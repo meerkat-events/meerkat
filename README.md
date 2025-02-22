@@ -17,7 +17,7 @@ data.
 4. Seed the database with `deno task db:seed`.
 5. Setup git hooks with `deno task setup`.
 6. Cach dependencies with `deno task api:cache` and patch dependencies with
-   `deno task api:patch:mac` or `deno task:api:patch:linux`.
+   `deno task api:patch:mac` or `deno task :api:patch:linux`.
 7. Start the local development server with `deno task api:dev`.
 8. Open a second terminal and run `deno task ui:cache` and then start the
    frontend with `deno task ui:dev`.
