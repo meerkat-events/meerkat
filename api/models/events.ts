@@ -14,12 +14,13 @@ export async function upsertEvents(
   >[],
 ) {
   const allColumns = getTableColumns(events);
-  const updateColumns = Object.keys(allColumns).filter(
-    (column) =>
-      !["uid", "conferenceId", "createdAt", "id"].includes(
-        column,
-      ),
-  );
+  const updateColumns = (Object.keys(allColumns) as (keyof typeof allColumns)[])
+    .filter(
+      (column) =>
+        !["uid", "conferenceId", "createdAt", "id"].includes(
+          column,
+        ),
+    );
 
   const results = await db.insert(events)
     .values(
@@ -31,7 +32,7 @@ export async function upsertEvents(
     )
     .onConflictDoUpdate({
       target: events.uid,
-      set: buildConflictUpdateColumns(events, updateColumns as any),
+      set: buildConflictUpdateColumns(events, updateColumns),
     })
     .returning()
     .execute();

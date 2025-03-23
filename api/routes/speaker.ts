@@ -10,7 +10,7 @@ const app = new Hono();
 
 app.get(
   "/api/v1/speaker/pods",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -32,7 +32,7 @@ app.get(
 
     const speaker = await fetchSpeaker(zuPass.hash);
 
-    const eventUids = speaker.sessions.map((session: any) => session.sourceId);
+    const eventUids = speaker.sessions.map((session) => session.sourceId);
     const pods = await getEventPods(eventUids);
 
     const apiPods = pods.map(

@@ -43,7 +43,7 @@ const app = new Hono();
 
 app.get(
   "/api/v1/users/me",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -68,7 +68,7 @@ app.get(
 
 app.get(
   "/api/v1/users/me/votes",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -90,7 +90,7 @@ app.get(
 
 app.get(
   "/api/v1/users/me/roles",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -111,7 +111,7 @@ app.get(
 
 app.get(
   "/api/v1/users/me/stats",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -293,7 +293,7 @@ app.post(
 
 app.post(
   "/api/v1/users/:uid/block",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const uid = c.req.param("uid");
 
@@ -375,7 +375,7 @@ const DEVCON_ID = 1;
 
 app.post(
   "/api/v1/users/me/summary-pod",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);

@@ -7,15 +7,15 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.4",
+    "@hono/node-server": "^1.13.8",
     "@pcd/gpc": "^0.4.0",
     "@pcd/proto-pod-gpc-artifacts": "^0.13.0",
-    "hono": "^4.6.8",
+    "hono": "^4.7.2",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "@types/node": "^22.8.7",
-    "tsx": "^4.7.1",
-    "typescript": "^5.6.3"
+    "@types/node": "^22.13.8",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
   }
 }

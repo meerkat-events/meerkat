@@ -1,3 +1,5 @@
+.DS_Store
+
 node_modules
 .vscode
 .zed
@@ -11,3 +13,6 @@ dist
 fly.toml
 fly.dev.toml
 fly.prod.toml
+
+.react-router/
+build/

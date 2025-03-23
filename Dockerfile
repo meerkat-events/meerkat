@@ -1,28 +1,26 @@
-FROM denoland/deno:2.0.6 AS base
-FROM base AS builder
+FROM node:22 AS builder
+
+ARG VITE_API_URL
+
+WORKDIR /usr/src/app
+
+COPY ./ui/package*.json /usr/src/app/
+
+RUN npm install
+
+COPY ./ui/ /usr/src/app
+
+RUN npm run build
+
+FROM denoland/deno:2.2.4 AS runner
 
 WORKDIR /app
 
-COPY . .
+COPY ./api/deno.json ./api/deno.lock /app/
 
-RUN deno install && deno task ui:build
+RUN deno install
 
-FROM base
+COPY ./api/ /app/
+COPY --from=builder /usr/src/app/build/client /app/public
 
-WORKDIR /app
-
-# Prefer not to run as root.
-# TODO: Enable when there is a way to run as non-root user.
-# USER deno
-
-ENV DENO_DIR=/app/.cache
-
-COPY . .
-
-RUN deno install && \
- deno task api:cache && \
- deno task api:patch
-
-COPY --from=builder /app/ui/dist /app/ui/dist
-
-CMD ["task", "api:start"]
+CMD ["task", "start"]

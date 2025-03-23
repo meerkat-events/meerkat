@@ -272,3 +272,5 @@ export async function getNonce(nonce: string) {
     .limit(1).execute();
   return result.length === 1 ? result[0] : null;
 }
+
+export type User = typeof users.$inferSelect;

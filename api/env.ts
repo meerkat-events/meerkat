@@ -49,7 +49,7 @@ if (!emailSecret) {
 
 const zupassUrl = Deno.env.get("ZUPASS_URL") ?? "https://zupass.org";
 const zappName = Deno.env.get("ZUPASS_ZAPP_NAME") ?? "meerkat-local";
-const base = Deno.env.get("BASE_URL") ?? "http://localhost:8000";
+const base = Deno.env.get("BASE_URL") ?? "https://meerkat.local";
 const posthogToken = Deno.env.get("POSTHOG_TOKEN");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");

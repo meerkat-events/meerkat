@@ -7,24 +7,29 @@ data.
 ### Prerequisites
 
 - [Deno v2](https://deno.land/)
+- [Node.js v22](https://nodejs.org/)
 - [Docker](https://www.docker.com/)
+- [Tmux](https://github.com/tmux/tmux/wiki)
 
 ## Get Started
 
-1. Copy `.env.example` to `.env` and update the values as needed.
-2. Start the database with `docker compose up -d`.
-3. Run database migration with `deno task db:migrate`.
-4. Seed the database with `deno task db:seed`.
-5. Setup git hooks with `deno task setup`.
-6. Cach dependencies with `deno task api:cache` and patch dependencies with
-   `deno task api:patch:mac` or `deno task :api:patch:linux`.
-7. Start the local development server with `deno task api:dev`.
-8. Open a second terminal and run `deno task ui:cache` and then start the
-   frontend with `deno task ui:dev`.
+To get started, run `./scripts/setup.sh` from the root directory. It will:
 
-Open your browser and visit
-[http://localhost:8000/events/01j4yc358mf4xrd5aqj8kvj75t](http://localhost:8000/events/01j4yc358mf4xrd5aqj8kvj75t)
-to view the app.
+1. Start docker services.
+2. Copy `.env.example` to `.env`, update the values as needed.
+3. Install dependencies.
+4. Run database migration.
+5. Seed the database.
+6. Create SSL certificate for https://meerkat.local
+
+If you wish to tear down the development environment, run
+`./scripts/teardown.sh` from the root directory.
+
+## Development
+
+To start the development environment, run `./scripts/dev.sh` from the root
+directory. It will start the development environment with tmux and open a new
+terminal window, then open `https://meerkat.local` in your browser.
 
 ## Environment Variables
 

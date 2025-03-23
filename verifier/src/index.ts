@@ -2,9 +2,10 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { verifyTicketProof } from "./verify.js";
+import process from "node:process";
 
 const app = new Hono();
-const port = process.env.PORT || "3000";
+const port = process.env.PORT || "8080";
 
 app.use(logger());
 

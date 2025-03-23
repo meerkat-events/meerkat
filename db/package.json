@@ -1,0 +1,19 @@
+{
+  "name": "db",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "migrate": "drizzle-kit migrate",
+    "generate": "drizzle-kit generate"
+  },
+  "keywords": [],
+  "author": "Florian Dreschner <code@dreschner.eu>",
+  "license": "MIT",
+  "description": "Database migrations and seeding for Meerkat",
+  "dependencies": {
+    "drizzle-kit": "^0.30.5",
+    "drizzle-orm": "^0.40.0",
+    "postgres": "^3.4.5"
+  }
+}

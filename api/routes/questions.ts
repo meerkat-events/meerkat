@@ -24,7 +24,7 @@ const app = new Hono();
 
 app.post(
   "/api/v1/questions/:uid/upvote",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const uid = c.req.param("uid");
 
@@ -100,7 +100,7 @@ app.post(
 
 app.post(
   "/api/v1/questions/:uid/mark-as-answered",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const uid = c.req.param("uid");
     const payload = c.get("jwtPayload");
@@ -153,7 +153,7 @@ app.post(
 
 app.delete(
   "/api/v1/questions/:uid",
-  jwt({ secret: env.secret, cookie: "jwt" }),
+  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
   async (c) => {
     const uid = c.req.param("uid");
     const payload = c.get("jwtPayload");
