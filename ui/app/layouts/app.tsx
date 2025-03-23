@@ -14,6 +14,8 @@ import { SWRConfig } from "swr";
 import { getConfig } from "../lib/config";
 import { useTools } from "~/lib/use-tools";
 
+import "./index.css";
+
 export async function clientLoader(_args: Route.LoaderArgs) {
   return {
     config: await getConfig(),
