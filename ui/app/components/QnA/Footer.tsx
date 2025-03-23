@@ -28,6 +28,9 @@ import {
   AlertDialogOverlay,
 } from "@chakra-ui/react";
 import { useLogout } from "../../hooks/use-logout.ts";
+
+import "./Footer.css";
+
 const MAX_QUESTION_LENGTH = 200;
 
 export type FooterProps = {
@@ -62,11 +65,10 @@ export function Footer({
     },
   });
   const [question, setQuestion] = useState("");
-  // const [isTutorialHeartFinished, setIsTutorialHeartFinished] = useLocalStorage(
-  //   "tutorial-heart",
-  //   false,
-  // );
-  const [isTutorialHeartFinished, setIsTutorialHeartFinished] = useState(false);
+  const [isTutorialHeartFinished, setIsTutorialHeartFinished] = useLocalStorage(
+    "tutorial-heart",
+    false,
+  );
 
   const { trigger } = useAskQuestion(event, {
     onSuccess: () => {

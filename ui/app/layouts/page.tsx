@@ -1,9 +1,4 @@
 import { isRouteErrorResponse, Outlet } from "react-router";
-import {
-  ChakraProvider,
-  extendTheme,
-  withDefaultColorScheme,
-} from "@chakra-ui/react";
 import { ZAPIProvider } from "../zapi/context";
 import { UserProvider } from "../context/user";
 import { SupabaseProvider } from "../context/supabase";
@@ -20,29 +15,11 @@ export async function clientLoader(_args: Route.LoaderArgs) {
   };
 }
 
-const theme = extendTheme(
-  withDefaultColorScheme({ colorScheme: "purple" }),
-  {
-    config: {
-      initialColorMode: "dark",
-      useSystemColorMode: false,
-    },
-    styles: {
-      global: {
-        body: {
-          bg: "#0C021D",
-          color: "#AFA5C0",
-        },
-      },
-    },
-  },
-);
-
 export function HydrateFallback() {
   return <p>Loading...</p>;
 }
 
-export default function AppLayout({ loaderData }: Route.ComponentProps) {
+export default function PageLayout({ loaderData }: Route.ComponentProps) {
   const { config } = loaderData;
 
   const supabase = useMemo(() => {
@@ -62,9 +39,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         zupassUrl={config.zupassUrl}
       >
         <UserProvider>
-          <ChakraProvider theme={theme}>
-            <Outlet />
-          </ChakraProvider>
+          <Outlet />
         </UserProvider>
       </ZAPIProvider>
     </SWRConfig>

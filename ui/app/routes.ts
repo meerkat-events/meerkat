@@ -7,7 +7,9 @@ import {
 
 export default [
   index("routes/Home.tsx"),
-  route("/e/:uid", "routes/Event.tsx"),
+  layout("layouts/page.tsx", [
+    route("/e/:uid", "routes/Event.tsx"),
+  ]),
   layout("layouts/app.tsx", [
     route("/e/:uid/remote", "routes/Remote.tsx"),
     route("/e/:uid/qa", "routes/QnA.tsx"),
