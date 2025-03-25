@@ -19,12 +19,13 @@ import {
 } from "../models/votes.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { checkEventEnded } from "./errors.ts";
+import { COOKIE_NAME } from "../utils/cookie.ts";
 
 const app = new Hono();
 
 app.post(
   "/api/v1/questions/:uid/upvote",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const uid = c.req.param("uid");
 
@@ -100,7 +101,7 @@ app.post(
 
 app.post(
   "/api/v1/questions/:uid/mark-as-answered",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const uid = c.req.param("uid");
     const payload = c.get("jwtPayload");
@@ -153,7 +154,7 @@ app.post(
 
 app.delete(
   "/api/v1/questions/:uid",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const uid = c.req.param("uid");
     const payload = c.get("jwtPayload");

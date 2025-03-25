@@ -5,12 +5,13 @@ import { getUserByUID, ZUPASS_PROVIDER } from "../models/user.ts";
 import { getEventPods } from "../models/events.ts";
 import { getAccounts } from "../models/user.ts";
 import { Hono } from "@hono/hono";
+import { COOKIE_NAME } from "../utils/cookie.ts";
 
 const app = new Hono();
 
 app.get(
   "/api/v1/speaker/pods",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);

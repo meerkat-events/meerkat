@@ -3,7 +3,7 @@ import { Hono } from "@hono/hono";
 import { jwt, sign } from "@hono/hono/jwt";
 import env from "../env.ts";
 import { constructJWTPayload, JWT_EXPIRATION_TIME } from "../utils/jwt.ts";
-import { setJWTCookie } from "../utils/cookie.ts";
+import { COOKIE_NAME, COOKIE_OPTIONS, setJWTCookie } from "../utils/cookie.ts";
 import {
   countAnsweredQuestions,
   countQuestions,
@@ -43,7 +43,7 @@ const app = new Hono();
 
 app.get(
   "/api/v1/users/me",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -68,7 +68,7 @@ app.get(
 
 app.get(
   "/api/v1/users/me/votes",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -90,7 +90,7 @@ app.get(
 
 app.get(
   "/api/v1/users/me/roles",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -111,7 +111,7 @@ app.get(
 
 app.get(
   "/api/v1/users/me/stats",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -293,7 +293,7 @@ app.post(
 
 app.post(
   "/api/v1/users/:uid/block",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const uid = c.req.param("uid");
 
@@ -375,7 +375,7 @@ const DEVCON_ID = 1;
 
 app.post(
   "/api/v1/users/me/summary-pod",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   async (c) => {
     const payload = c.get("jwtPayload");
     const user = await getUserByUID(payload.sub);
@@ -443,17 +443,7 @@ app.post(
 );
 
 app.post("/api/v1/users/logout", (c) => {
-  const origin = c.req.header("origin") ?? env.base;
-  const baseUrl = new URL(origin);
-
-  deleteCookie(c, "jwt", {
-    path: "/",
-    domain: baseUrl.hostname,
-    secure: baseUrl.protocol === "https:",
-    httpOnly: true,
-    maxAge: JWT_EXPIRATION_TIME,
-    sameSite: "strict",
-  });
+  deleteCookie(c, COOKIE_NAME, COOKIE_OPTIONS);
 
   return c.json({ data: {} });
 });

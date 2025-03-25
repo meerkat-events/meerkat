@@ -40,6 +40,7 @@ import { createAttendancePOD } from "../zupass.ts";
 import { getConferenceRolesForConference } from "../models/roles.ts";
 import { bodyLimit } from "@hono/hono/body-limit";
 import { checkEventEnded } from "./errors.ts";
+import { COOKIE_NAME } from "../utils/cookie.ts";
 
 const app = new Hono();
 
@@ -118,7 +119,7 @@ const attendanceSchema = zod.object({
 
 app.post(
   "/api/v1/events/:uid/attendance",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   zValidator("json", attendanceSchema),
   eventMiddleware,
   async (c) => {
@@ -186,7 +187,7 @@ const createQuestionSchema = zod.object({
 
 app.post(
   "/api/v1/events/:uid/questions",
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   eventMiddleware,
   zValidator("json", createQuestionSchema),
   async (c) => {
@@ -255,7 +256,7 @@ const reactionScheme = zod.object({
 app.post(
   "/api/v1/events/:uid/react",
   zValidator("json", reactionScheme),
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   eventMiddleware,
   async (c) => {
     const payload = c.get("jwtPayload");
@@ -319,7 +320,7 @@ app.post(
   bodyLimit({
     maxSize: 100 * 1024,
   }),
-  jwt({ secret: env.secret, cookie: "__Host-meerkat-jwt" }),
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
   zValidator("json", feedbackSchema),
   async (c) => {
     const event = c.get("event");
