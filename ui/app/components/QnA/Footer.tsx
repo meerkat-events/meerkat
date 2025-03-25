@@ -59,7 +59,7 @@ export function Footer({
 
   const { login, isLoading } = hasZupassLogin
     ? useLogin({
-      conferenceId: event?.id,
+      conferenceId: event?.conferenceId,
       onError: (error) => {
         toast({
           title: `Failed to login`,
@@ -70,7 +70,7 @@ export function Footer({
       },
     })
     : useTicketProof({
-      conferenceId: event?.id,
+      conferenceId: event?.conferenceId,
       onError: (error) => {
         toast({
           title: `Failed to login`,
