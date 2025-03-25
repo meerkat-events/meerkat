@@ -110,6 +110,8 @@ export function Footer({
     globalThis.location.reload();
   };
 
+  const hasLeaderboard = event?.features["leaderboard"] ?? false;
+
   return (
     <>
       <div className="overlay-container">
@@ -181,18 +183,20 @@ export function Footer({
             <ChakraLink onClick={onOpen}>
               {user?.name ?? user?.uid ?? "Anonymous"}
             </ChakraLink>{" "}
-            <Button
-              variant="outline"
-              as={Link}
-              size="xs"
-              to="/leaderboard"
-              fontWeight="bold"
-              padding="16px 8px"
-              fontSize="16px"
-              borderRadius="999px"
-            >
-              🦄 {user?.points ?? 0}
-            </Button>
+            {hasLeaderboard && (
+              <Button
+                variant="outline"
+                as={Link}
+                size="xs"
+                to="/leaderboard"
+                fontWeight="bold"
+                padding="16px 8px"
+                fontSize="16px"
+                borderRadius="999px"
+              >
+                🦄 {user?.points ?? 0}
+              </Button>
+            )}
           </span>
         </div>
         {!isAuthenticated && !isUserLoading && (

@@ -57,5 +57,6 @@ VALUES
     (1, 'temple-background', true),
     (1, 'speaker-feedback', true),
     (1, 'fileverse-link', true),
-    (1, 'anonymous-login', true)
+    (1, 'anonymous-login', true),
+		(1, 'leaderboard', true)
 ON CONFLICT (conference_id, name) DO UPDATE SET active = true;
