@@ -30,6 +30,7 @@ import {
 import { useLogout } from "../../hooks/use-logout.ts";
 
 import "./Footer.css";
+import { useLogin } from "../../hooks/use-login.ts";
 
 const MAX_QUESTION_LENGTH = 200;
 
@@ -53,17 +54,32 @@ export function Footer({
   const { primaryPurple } = useThemeColors();
   const [focused, setFocused] = useState(false);
   const toast = useToast();
-  const { login, isLoading } = useTicketProof({
-    conferenceId: event?.id,
-    onError: (error) => {
-      toast({
-        title: `Failed to login`,
-        status: "error",
-        description: error.message,
-        duration: 2000,
-      });
-    },
-  });
+
+  const hasZupassLogin = event?.features["zupass-login"] ?? false;
+
+  const { login, isLoading } = hasZupassLogin
+    ? useLogin({
+      conferenceId: event?.id,
+      onError: (error) => {
+        toast({
+          title: `Failed to login`,
+          status: "error",
+          description: error.message,
+          duration: 2000,
+        });
+      },
+    })
+    : useTicketProof({
+      conferenceId: event?.id,
+      onError: (error) => {
+        toast({
+          title: `Failed to login`,
+          status: "error",
+          description: error.message,
+          duration: 2000,
+        });
+      },
+    });
   const [question, setQuestion] = useState("");
   const [isTutorialHeartFinished, setIsTutorialHeartFinished] = useLocalStorage(
     "tutorial-heart",

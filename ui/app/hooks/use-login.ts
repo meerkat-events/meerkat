@@ -10,6 +10,7 @@ import { useZAPI } from "../zapi/context.tsx";
 import { constructLoginZapp } from "../zapi/zapps.ts";
 
 export type UseLoginProps = {
+  conferenceId?: number;
   onError?: (error: Error) => void;
 };
 
@@ -36,7 +37,7 @@ export function useLogin(props?: UseLoginProps) {
         podData.signerPublicKey,
       );
 
-      user = await loginRequest(pod);
+      user = await loginRequest(pod, props?.conferenceId);
 
       setUser(user);
       posthog.capture("user_logged_in");
@@ -65,7 +66,7 @@ function constructLoginPodEntries(nonce: string): PODEntries {
   };
 }
 
-async function loginRequest(pod: POD) {
+async function loginRequest(pod: POD, conferenceId?: number) {
   const res = await fetch(
     `${import.meta.env.VITE_API_URL}/api/v1/users/login`,
     {
@@ -73,7 +74,7 @@ async function loginRequest(pod: POD) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ pod: pod.toJSON() }),
+      body: JSON.stringify({ pod: pod.toJSON(), conferenceId }),
     },
   );
 

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { Hono } from "@hono/hono";
 import { jwt, sign } from "@hono/hono/jwt";
 import env from "../env.ts";
-import { constructJWTPayload, JWT_EXPIRATION_TIME } from "../utils/jwt.ts";
+import { constructJWTPayload } from "../utils/jwt.ts";
 import { COOKIE_NAME, COOKIE_OPTIONS, setJWTCookie } from "../utils/cookie.ts";
 import {
   countAnsweredQuestions,
@@ -38,7 +38,7 @@ import { hash } from "../utils/secret.ts";
 import { POD } from "@pcd/pod";
 import { TicketSpec } from "@parcnet-js/ticket-spec";
 import { createSummaryPOD } from "../zupass.ts";
-
+import { getFeatures } from "../models/features.ts";
 const app = new Hono();
 
 app.get(
@@ -148,6 +148,7 @@ const loginPodEntriesSchema = z.object({
 });
 
 const loginScheme = z.object({
+  conferenceId: z.number().optional(),
   pod: z.object({
     entries: loginPodEntriesSchema,
     signature: z.string(),
@@ -158,7 +159,7 @@ const loginScheme = z.object({
 const NONCE_LIFETIME = 1000 * 60 * 15;
 
 app.post("/api/v1/users/login", zValidator("json", loginScheme), async (c) => {
-  const { pod } = c.req.valid("json");
+  const { pod, conferenceId } = c.req.valid("json");
   const signedPOD = POD.fromJSON(pod);
 
   const valid = signedPOD.verifySignature();
@@ -199,6 +200,29 @@ app.post("/api/v1/users/login", zValidator("json", loginScheme), async (c) => {
     userId: user.id,
     nonce,
   });
+
+  const conference = conferenceId
+    ? await getConferenceById(conferenceId)
+    : null;
+
+  if (conferenceId && !conference) {
+    throw new HTTPException(400, { message: "Conference not found" });
+  }
+
+  if (conference) {
+    const features = await getFeatures(conference.id);
+    const hasZupassLogin = features.some((f) =>
+      f.name === "zupass-login" && f.active
+    );
+
+    if (!hasZupassLogin) {
+      throw new HTTPException(400, {
+        message: "Conference does not support Zupass login",
+      });
+    }
+
+    await grantRole(user.id, conference.id, "attendee");
+  }
 
   const payload = constructJWTPayload(user);
   const jwtString = await sign(payload, env.secret);

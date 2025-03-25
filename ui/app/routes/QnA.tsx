@@ -112,10 +112,6 @@ export default function QnA() {
   });
 
   const { data: user, isAuthenticated, isLoading, isBlocked } = useUser();
-  // const supportsAnonymousLogin = event?.features?.["anonymous-login"] ?? false;
-  // useAnonymousUser(
-  //   !isLoading && !isAuthenticated && supportsAnonymousLogin,
-  // );
 
   const isOrganizer =
     roles?.some((role) =>
@@ -242,7 +238,7 @@ export default function QnA() {
       {isBlocked && (
         <Modal
           isOpen
-          onClose={() => { }}
+          onClose={() => {}}
           title="Blocked"
           lockFocusAcrossFrames
         >
