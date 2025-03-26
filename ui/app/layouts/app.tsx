@@ -40,6 +40,10 @@ const theme = extendTheme(
   },
 );
 
+export function HydrateFallback() {
+  return <p>Loading...</p>;
+}
+
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const { config } = loaderData;
 
