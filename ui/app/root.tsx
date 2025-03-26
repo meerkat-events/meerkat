@@ -44,9 +44,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     </html>
   );
 }
-export function HydrateFallback() {
-  return <p>Loading...</p>;
-}
 
 export default function Root() {
   return <Outlet />;

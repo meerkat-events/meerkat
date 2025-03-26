@@ -15,10 +15,6 @@ export async function clientLoader(_args: Route.LoaderArgs) {
   };
 }
 
-export function HydrateFallback() {
-  return <p>Loading...</p>;
-}
-
 export default function PageLayout({ loaderData }: Route.ComponentProps) {
   const { config } = loaderData;
 
