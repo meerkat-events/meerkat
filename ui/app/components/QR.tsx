@@ -37,7 +37,6 @@ const QR = ({
     year: "numeric",
     hour: "numeric",
     minute: "numeric",
-    timeZone: "Asia/Bangkok", // UTC+7
   }) ?? "";
 
   return (
