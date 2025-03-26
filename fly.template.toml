@@ -44,5 +44,5 @@ cpu_kind = 'shared'
 cpus = 1
 
 [[statics]]
-guest_path = "/app/ui/dist"
+guest_path = "/app/public/assets"
 url_prefix = "/assets"
