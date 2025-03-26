@@ -22,12 +22,15 @@ app.get("/api/v1/config", (c) => {
 });
 
 app.get("/", serveStatic({ path: "./public/index.html" }));
-app.get("/leaderboard", serveStatic({ path: "./public/index.html" }));
-app.get("/speaker", serveStatic({ path: "./public/index.html" }));
+app.get(
+  "/leaderboard",
+  serveStatic({ path: "./public/leaderboard/index.html" }),
+);
+app.get("/speaker", serveStatic({ path: "./public/speaker/index.html" }));
+app.get("/login", serveStatic({ path: "./public/login/index.html" }));
+
 app.get("/e/:uid", serveStatic({ path: "./public/index.html" }));
 app.get("/e/:uid/*", serveStatic({ path: "./public/index.html" }));
-app.get("/login", serveStatic({ path: "./public/index.html" }));
-app.use("/*", serveStatic({ root: "./public" }));
-app.get("*", serveStatic({ path: "./public/__spa-fallback.html" }));
 
+app.use("*", serveStatic({ root: "./public" }));
 export default app;
