@@ -7,17 +7,22 @@ export const UserContext = createContext<
     setUser: (user: User | undefined) => void;
     isOnCooldown: boolean;
     setIsOnCooldown: (cooldown: boolean) => void;
+    isValidated: boolean;
+    setIsValidated: (validated: boolean) => void;
   }
 >({
   user: undefined,
-  setUser: () => { },
+  setUser: () => {},
   isOnCooldown: false,
-  setIsOnCooldown: () => { },
+  setIsOnCooldown: () => {},
+  isValidated: false,
+  setIsValidated: () => {},
 });
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | undefined>(undefined);
   const [isOnCooldown, setIsOnCooldown] = useState<boolean>(false);
+  const [isValidated, setIsValidated] = useState<boolean>(false);
 
   return (
     <UserContext.Provider
@@ -26,6 +31,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser,
         isOnCooldown,
         setIsOnCooldown,
+        isValidated,
+        setIsValidated,
       }}
     >
       {children}

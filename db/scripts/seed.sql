@@ -58,5 +58,6 @@ VALUES
     (1, 'speaker-feedback', true),
     (1, 'fileverse-link', true),
     (1, 'zupass-login', true),
-		(1, 'leaderboard', true)
+		(1, 'leaderboard', true),
+		(1, 'anonymous-user', true)
 ON CONFLICT (conference_id, name) DO UPDATE SET active = true;

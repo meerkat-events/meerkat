@@ -13,7 +13,7 @@ import { generateUsername } from "../usernames.ts";
 
 export const ZUPASS_PROVIDER = "zupass";
 
-const getUserByUIDPreparedStatement = db.select().from(users).innerJoin(
+const getUserByUIDPreparedStatement = db.select().from(users).leftJoin(
   accounts,
   eq(users.id, accounts.userId),
 ).where(
@@ -29,7 +29,7 @@ export async function getUserByUID(uid: string) {
 function toUser(
   result: {
     users: typeof users.$inferSelect;
-    accounts: typeof accounts.$inferSelect;
+    accounts: typeof accounts.$inferSelect | null;
   },
 ) {
   const { users: user, accounts: account } = result;
@@ -37,11 +37,17 @@ function toUser(
   return { ...user, hash: account?.hash };
 }
 
-export async function createUser(uid?: string | undefined) {
-  const result = await db.insert(users).values({
-    uid: uid ?? uuidv7(),
+type Transaction = Parameters<Parameters<typeof db["transaction"]>[0]>[0];
+
+async function createUserInternal(transaction: Transaction) {
+  const result = await transaction.insert(users).values({
+    uid: uuidv7(),
     name: generateUsername(),
   }).returning().execute();
+
+  if (result.length !== 1) {
+    throw new Error("Failed to create user");
+  }
 
   return result[0];
 }
@@ -54,29 +60,26 @@ export async function createUserFromAccount(
   },
 ) {
   const result = await db.transaction(async (db) => {
-    const result = await db.insert(users).values({
-      uid: uuidv7(),
-      name: generateUsername(),
-    }).returning().execute();
-
-    if (result.length !== 1) {
-      throw new Error("Failed to create user");
-    }
+    const user = await createUserInternal(db);
 
     await db.insert(accounts).values({
       provider,
       id,
       hash,
-      userId: result[0].id,
+      userId: user.id,
     }).execute();
 
     return {
-      ...result[0],
+      ...user,
       hash,
     };
   });
 
   return result;
+}
+
+export function createUser() {
+  return db.transaction((db) => createUserInternal(db));
 }
 
 export async function getUserByProvider(provider: string, id: string) {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Hono } from "@hono/hono";
-import { jwt, sign } from "@hono/hono/jwt";
+import { getCookie } from "@hono/hono/cookie";
+import { decode, jwt, sign } from "@hono/hono/jwt";
 import env from "../env.ts";
 import { constructJWTPayload } from "../utils/jwt.ts";
 import { COOKIE_NAME, COOKIE_OPTIONS, setJWTCookie } from "../utils/cookie.ts";
@@ -11,6 +12,7 @@ import {
   countReceivedVotes,
   countVotes,
   createNonce,
+  createUser,
   getAccounts,
   getNonce,
   getTopContributors,
@@ -18,6 +20,7 @@ import {
   getUserByUID,
   getUserContributionRank,
   updateUserEmail,
+  type User,
   ZUPASS_PROVIDER,
 } from "../models/user.ts";
 import { HTTPException } from "@hono/hono/http-exception";
@@ -463,6 +466,58 @@ app.post(
     return c.json({
       data: pod.toJSON(),
     });
+  },
+);
+
+const anonymousUserSchema = z.object({
+  conferenceId: z.number().min(1).int(),
+});
+
+app.post(
+  "/api/v1/users",
+  zValidator("json", anonymousUserSchema),
+  async (c) => {
+    const { conferenceId } = c.req.valid("json");
+
+    const cookie = await getCookie(c, COOKIE_NAME);
+
+    let user: User | null = null;
+
+    if (typeof cookie === "string") {
+      const jwt = decode(cookie);
+      user = await getUserByUID(jwt.payload?.sub as string);
+    }
+
+    if (!user) {
+      const conference = await getConferenceById(conferenceId);
+
+      if (!conference) {
+        throw new HTTPException(400, {
+          message: `Conference with id ${conferenceId} not found`,
+        });
+      }
+
+      const features = await getFeatures(conferenceId);
+      const hasAnonymousUser = features.some((f) =>
+        f.name === "anonymous-user"
+      );
+
+      if (!hasAnonymousUser) {
+        throw new HTTPException(400, {
+          message: "Conference does not support anonymous users",
+        });
+      }
+
+      user = await createUser();
+
+      await grantRole(user.id, conferenceId, "attendee");
+
+      const payload = constructJWTPayload(user);
+      const jwtString = await sign(payload, env.secret);
+      setJWTCookie(c, jwtString);
+    }
+
+    return c.json({ data: { user } });
   },
 );
 

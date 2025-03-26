@@ -37,13 +37,13 @@ import { uuidv7 } from "uuidv7";
 import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
 import { useQuestionsSubscription } from "../hooks/use-questions-subscription.ts";
 import { useQuestions } from "../hooks/use-questions.ts";
-import { useAnonymousUser } from "../hooks/use-anonymous-user.ts";
 import { usePageTitle } from "../hooks/use-page-title.ts";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
 import { AttendancePod } from "../components/AttendancePod.tsx";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { useToast } from "@chakra-ui/react";
+import { useAnonymousUser } from "~/hooks/use-anonymous-user.ts";
 
 export default function QnA() {
   const { uid } = useParams();
@@ -175,6 +175,11 @@ export default function QnA() {
     navigate(card(uid));
     setShowEndingModal(false);
   };
+
+  const supportAnonymous = event?.features["anonymous-user"] ?? false;
+  const conferenceId = event?.conferenceId ?? 0;
+
+  useAnonymousUser(supportAnonymous ? conferenceId : undefined);
 
   return (
     <>

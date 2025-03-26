@@ -7,7 +7,7 @@ import { UserContext } from "../context/user.tsx";
 import { posthog } from "posthog-js";
 
 export const useUser = () => {
-  const { user, setUser } = useContext(UserContext);
+  const { user, setUser, setIsValidated } = useContext(UserContext);
   const { data, isLoading, error, ...rest } = useSWR<{ data: User }, HTTPError>(
     "/api/v1/users/me",
     fetcher,
@@ -15,6 +15,10 @@ export const useUser = () => {
       revalidateOnFocus: false,
       onSuccess: (data) => {
         setUser(data.data);
+        setIsValidated(true);
+      },
+      onError: () => {
+        setIsValidated(true);
       },
     },
   );

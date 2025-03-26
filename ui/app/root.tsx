@@ -8,7 +8,6 @@ import {
 } from "react-router";
 import type React from "react";
 import type { Route } from "./+types/root";
-import "./fingerprint.client";
 
 export const links: Route.LinksFunction = () => [
   { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
