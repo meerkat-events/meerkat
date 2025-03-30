@@ -4,20 +4,19 @@
     "jsr:@libs/qrcode@^2.0.1": "2.0.1",
     "jsr:@std/crypto@^1.0.3": "1.0.4",
     "jsr:@std/dotenv@~0.225.3": "0.225.3",
-    "jsr:@std/encoding@^1.0.6": "1.0.7",
-    "jsr:@supabase/supabase-js@^2.49.1": "2.49.1",
+    "jsr:@std/encoding@^1.0.8": "1.0.8",
+    "jsr:@supabase/supabase-js@^2.49.4": "2.49.4",
     "npm:@hono/zod-validator@~0.4.3": "0.4.3_hono@4.7.5_zod@3.24.2",
     "npm:@parcnet-js/ticket-spec@^1.1.9": "1.1.9",
     "npm:@pcd/pod@0.5": "0.5.0",
-    "npm:@sentry/deno@^9.8.0": "9.8.0",
-    "npm:@supabase/auth-js@2.68.0": "2.68.0",
+    "npm:@sentry/deno@^9.10.1": "9.10.1",
+    "npm:@supabase/auth-js@2.69.1": "2.69.1",
     "npm:@supabase/functions-js@2.4.4": "2.4.4",
     "npm:@supabase/node-fetch@2.6.15": "2.6.15",
-    "npm:@supabase/postgrest-js@1.19.2": "1.19.2",
+    "npm:@supabase/postgrest-js@1.19.4": "1.19.4",
     "npm:@supabase/realtime-js@2.11.2": "2.11.2",
     "npm:@supabase/storage-js@2.7.1": "2.7.1",
-    "npm:@types/node@*": "22.12.0",
-    "npm:drizzle-kit@~0.30.5": "0.30.5_esbuild@0.19.12",
+    "npm:drizzle-kit@~0.30.6": "0.30.6_esbuild@0.19.12",
     "npm:drizzle-orm@0.41": "0.41.0_postgres@3.4.5",
     "npm:hono@^4.7.5": "4.7.5",
     "npm:postgres@^3.4.5": "3.4.5",
@@ -35,11 +34,11 @@
     "@std/dotenv@0.225.3": {
       "integrity": "a95e5b812c27b0854c52acbae215856d9cce9d4bbf774d938c51d212711e8d4a"
     },
-    "@std/encoding@1.0.7": {
-      "integrity": "f631247c1698fef289f2de9e2a33d571e46133b38d042905e3eac3715030a82d"
+    "@std/encoding@1.0.8": {
+      "integrity": "a6c8f3f933ab1bed66244f435d1dc0fd23a888e07195532122ddc3d5f8f0e6b4"
     },
-    "@supabase/supabase-js@2.49.1": {
-      "integrity": "45dff81927b876287024ff8b43de8741bfe5ddf1fbaf152dd863a367bfcbd380",
+    "@supabase/supabase-js@2.49.4": {
+      "integrity": "4b785f9cd4a62feb7b3f84606bb923a4ea51e3e000eafff0972bc779240b7592",
       "dependencies": [
         "npm:@supabase/auth-js",
         "npm:@supabase/functions-js",
@@ -351,8 +350,8 @@
         "uuid"
       ]
     },
-    "@petamoriken/float16@3.9.1": {
-      "integrity": "sha512-j+ejhYwY6PeB+v1kn7lZFACUIG97u90WxMuGosILFsl9d4Ovi0sjk0GlPfoEcx+FzvXZDAfioD+NGnnPamXgMA=="
+    "@petamoriken/float16@3.9.2": {
+      "integrity": "sha512-VgffxawQde93xKxT3qap3OH+meZf7VaSB5Sqd4Rqc+FP5alWbpOyan/7tRbOAvynjpG3GpdtAuGU/NdhQpmrog=="
     },
     "@semaphore-protocol/core@4.9.0_@semaphore-protocol+group@4.9.0_@semaphore-protocol+identity@4.9.0": {
       "integrity": "sha512-Mp9+2Ki0duzHcLOPWbS2zwHIHMJib3EUMLzfdYuTr4nqn4CCM4cCT8qYAv6of+ZeoT/hc+CEjINyPIC5jpuDzw==",
@@ -407,17 +406,17 @@
         "ethers"
       ]
     },
-    "@sentry/core@9.8.0": {
-      "integrity": "sha512-EnN2yLWCbWjooWBPzwlXdZoJG/Bqn3ymbuXX++DUJuBGjSmtixQeTf/hKeVzj4zbib3BbbYsNBasRVjq8Rk5ng=="
+    "@sentry/core@9.10.1": {
+      "integrity": "sha512-TE2zZV3Od4131mZNgFo2Mv4aKU8FXxL0s96yqRvmV+8AU57mJoycMXBnmNSYfWuDICbPJTVAp+3bYMXwX7N5YA=="
     },
-    "@sentry/deno@9.8.0": {
-      "integrity": "sha512-1RjJ77z8mwb/fSu6B7YE1lac9nHwNbYjM3S2gxdGTv9bN2J6B6TBpzfIhitemJpXeubTk2AYQ8c6qXiSXmPasQ==",
+    "@sentry/deno@9.10.1": {
+      "integrity": "sha512-yliBfGKfhPVhp+mMF5pEObIQDLOWpPRxUKsWJ9268g5jQ0jvfL4+RDOBQrGPPjZUJYIcXqmIn53KRJ45X//2rQ==",
       "dependencies": [
         "@sentry/core"
       ]
     },
-    "@supabase/auth-js@2.68.0": {
-      "integrity": "sha512-odG7nb7aOmZPUXk6SwL2JchSsn36Ppx11i2yWMIc/meUO2B2HK9YwZHPK06utD9Ql9ke7JKDbwGin/8prHKxxQ==",
+    "@supabase/auth-js@2.69.1": {
+      "integrity": "sha512-FILtt5WjCNzmReeRLq5wRs3iShwmnWgBvxHfqapC/VoljJl+W8hDAyFmf1NVw3zH+ZjZ05AKxiKxVeb0HNWRMQ==",
       "dependencies": [
         "@supabase/node-fetch"
       ]
@@ -434,8 +433,8 @@
         "whatwg-url"
       ]
     },
-    "@supabase/postgrest-js@1.19.2": {
-      "integrity": "sha512-MXRbk4wpwhWl9IN6rIY1mR8uZCCG4MZAEji942ve6nMwIqnBgBnZhZlON6zTTs6fgveMnoCILpZv1+K91jN+ow==",
+    "@supabase/postgrest-js@1.19.4": {
+      "integrity": "sha512-O4soKqKtZIW3olqmbXXbKugUtByD2jPa8kL2m2c1oozAO11uCcGrRhkZL0kVxjBLrXHE0mdSkFsMj7jDSfyNpw==",
       "dependencies": [
         "@supabase/node-fetch"
       ]
@@ -470,8 +469,8 @@
     "@types/phoenix@1.6.6": {
       "integrity": "sha512-PIzZZlEppgrpoT2QgbnDU+MMzuR6BbCjllj0bM70lWoejMeNJAxCchxnv7J3XFkI8MpygtRpzXrIlmWUBclP5A=="
     },
-    "@types/ws@8.5.14": {
-      "integrity": "sha512-bd/YFLW+URhBzMXurx7lWByOu+xzU9+kb3RboOteXYDfW+tr+JZa99OyNmPINEGB/ahzKrEuc8rcv4gnpJmxTw==",
+    "@types/ws@8.18.0": {
+      "integrity": "sha512-8svvI3hMyvN0kKCJMvTJP/x6Y/EoQbepff882wL+Sn5QsXb3etnamgrJq4isrBxSJj5L2AuXcI0+bgkoAXGUJw==",
       "dependencies": [
         "@types/node@22.12.0"
       ]
@@ -645,8 +644,8 @@
     "dijkstrajs@1.0.3": {
       "integrity": "sha512-qiSlmBq9+BCdCA/L46dw8Uy93mloxsPSbwnm5yrKn2vMPiy8KyAskTF6zuV/j5BMsmOGZDPs7KjU+mjb670kfA=="
     },
-    "drizzle-kit@0.30.5_esbuild@0.19.12": {
-      "integrity": "sha512-l6dMSE100u7sDaTbLczibrQZjA35jLsHNqIV+jmhNVO3O8jzM6kywMOmV9uOz9ZVSCMPQhAZEFjL/qDPVrqpUA==",
+    "drizzle-kit@0.30.6_esbuild@0.19.12": {
+      "integrity": "sha512-U4wWit0fyZuGuP7iNmRleQyK2V8wCuv57vf5l3MnG4z4fzNTjY/U13M8owyQ5RavqvqxBifWORaR3wIUzlN64g==",
       "dependencies": [
         "@drizzle-team/brocli",
         "@esbuild-kit/esm-loader",
@@ -807,8 +806,8 @@
         "path-exists"
       ]
     },
-    "gel@2.0.0": {
-      "integrity": "sha512-Oq3Fjay71s00xzDc0BF/mpcLmnA+uRqMEJK8p5K4PaZjUEsxaeo+kR9OHBVAf289/qPd+0OcLOLUN0UhqiUCog==",
+    "gel@2.0.1": {
+      "integrity": "sha512-gfem3IGvqKqXwEq7XseBogyaRwGsQGuE7Cw/yQsjLGdgiyqX92G1xENPCE0ltunPGcsJIa6XBOTx/PK169mOqw==",
       "dependencies": [
         "@petamoriken/float16",
         "debug",
@@ -1186,13 +1185,13 @@
       "jsr:@libs/qrcode@^2.0.1",
       "jsr:@std/crypto@^1.0.3",
       "jsr:@std/dotenv@~0.225.3",
-      "jsr:@std/encoding@^1.0.6",
-      "jsr:@supabase/supabase-js@^2.49.1",
+      "jsr:@std/encoding@^1.0.8",
+      "jsr:@supabase/supabase-js@^2.49.4",
       "npm:@hono/zod-validator@~0.4.3",
       "npm:@parcnet-js/ticket-spec@^1.1.9",
       "npm:@pcd/pod@0.5",
-      "npm:@sentry/deno@^9.8.0",
-      "npm:drizzle-kit@~0.30.5",
+      "npm:@sentry/deno@^9.10.1",
+      "npm:drizzle-kit@~0.30.6",
       "npm:drizzle-orm@0.41",
       "npm:hono@^4.7.5",
       "npm:postgres@^3.4.5",
