@@ -4,11 +4,9 @@ body {
   font-size: 20px;
   margin: 0;
   padding: 0;
-  background: linear-gradient(
-    218.34deg,
-    rgba(175, 177, 245, 0.86) 22.08%,
-    #854fe3 90.71%
-  );
+  background: linear-gradient(218.34deg,
+      rgba(175, 177, 245, 0.86) 22.08%,
+      #854fe3 90.71%);
 }
 
 h2 {
@@ -27,7 +25,7 @@ ul {
   padding: 0;
   margin: 0;
 
-  & > li {
+  &>li {
     margin: 0;
     padding: 0;
   }
@@ -44,11 +42,9 @@ ul {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  background: linear-gradient(
-    218.34deg,
-    rgba(50, 51, 77, 0.86) 22.08%,
-    #2a1059 90.71%
-  );
+  background: linear-gradient(218.34deg,
+      rgba(50, 51, 77, 0.86) 22.08%,
+      #2a1059 90.71%);
   color: white;
 }
 
@@ -69,6 +65,7 @@ ul {
   height: 38rem;
   width: 100%;
 }
+
 /* TopQuestions - Header */
 
 .top-questions-header {
@@ -91,13 +88,13 @@ ul {
 .question-count {
   font-weight: 400;
 }
+
 /* TopQuestions - Content */
 
 .top-questions-content {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  overflow-y: auto;
   max-height: 32rem;
   scrollbar-width: none;
 
@@ -112,10 +109,29 @@ ul {
   padding: 1rem 1rem 1rem 1rem;
   margin-bottom: 1.125rem;
   position: relative;
+  border: 1px solid transparent;
 
-  & > h2 {
+  &>h2 {
     font-size: 1.5rem;
   }
+}
+
+.bubble.selected {
+  border-color: #C8AFF2;
+}
+
+.bubble-status {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  position: absolute;
+  top: -13px;
+  left: 1.25rem;
+  background-color: #A789DC;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
 }
 
 .upvote-section {
@@ -140,7 +156,7 @@ ul {
   align-items: center;
   margin-top: 1rem;
 
-  & > h2 {
+  &>h2 {
     margin: 0;
   }
 }
@@ -246,6 +262,7 @@ ul {
     transform: translateY(0) scale(1);
     opacity: 1;
   }
+
   100% {
     transform: translateY(-40dvh) scale(2);
     opacity: 0;

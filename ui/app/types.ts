@@ -44,6 +44,7 @@ export type Question = {
   question: string;
   createdAt: Date;
   answeredAt?: Date | undefined;
+  selectedAt?: Date | undefined;
   user?: {
     uid: string;
     name?: string | undefined;

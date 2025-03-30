@@ -1,4 +1,5 @@
 import { ArrowUpIcon } from "./assets/arrow-up.ts";
+import { FiRadio } from "react-icons/fi";
 
 type QuestionWithVotes = {
   id: number;
@@ -7,6 +8,7 @@ type QuestionWithVotes = {
   question: string;
   createdAt: Date;
   answeredAt?: Date | undefined;
+  selectedAt?: Date | undefined;
   votes: number;
 };
 
@@ -17,6 +19,7 @@ interface TopQuestionsProps {
 
 const TopQuestions = ({ questions, participants }: TopQuestionsProps) => {
   const votes = questions.reduce((acc, question) => acc + question.votes, 0);
+
   return (
     <div className="top-questions-layout">
       <header className="top-questions-header">
@@ -34,18 +37,9 @@ const TopQuestions = ({ questions, participants }: TopQuestionsProps) => {
           </p>
         )}
         <ol>
-          {questions
-            .filter((question) => question.answeredAt === null)
-            .sort((a, b) => b.votes - a.votes)
-            .map((question) => (
-              <li key={question.uid} className="bubble">
-                <h2>{question.question}</h2>
-                <div className="upvote-section">
-                  <div className="upvote-count">{question.votes ?? 0}</div>
-                  <div dangerouslySetInnerHTML={{ __html: ArrowUpIcon }} />
-                </div>
-              </li>
-            ))}
+          {questions.map((question) => (
+            <Question key={question.uid} question={question} />
+          ))}
         </ol>
       </main>
       <footer className="top-questions-footer">
@@ -73,5 +67,25 @@ const TopQuestions = ({ questions, participants }: TopQuestionsProps) => {
     </div>
   );
 };
+
+function Question({ question }: { question: QuestionWithVotes }) {
+  const isSelected = !!question.selectedAt;
+  const classNames = ["bubble", isSelected ? "selected" : ""];
+  return (
+    <li key={question.uid} className={classNames.join(" ")}>
+      {isSelected && (
+        <div className="bubble-status">
+          <FiRadio />
+          Answering
+        </div>
+      )}
+      <h2>{question.question}</h2>
+      <div className="upvote-section">
+        <div className="upvote-count">{question.votes ?? 0}</div>
+        <div dangerouslySetInnerHTML={{ __html: ArrowUpIcon }} />
+      </div>
+    </li>
+  );
+}
 
 export default TopQuestions;

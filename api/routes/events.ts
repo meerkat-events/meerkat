@@ -171,10 +171,16 @@ app.post(
 app.get("/api/v1/events/:uid/questions", eventMiddleware, async (c) => {
   const event = c.get("event");
   const sort = c.req.query("sort") ?? "newest";
+  const answeredString = c.req.query("answered");
+  const answered = typeof answeredString === "string"
+    ? answeredString === "true"
+    : undefined;
+
   if (!Sorts.includes(sort as Sort)) {
     throw new HTTPException(400, { message: `Invalid sort ${sort}` });
   }
-  const questions = await getQuestions(event.id, sort as Sort);
+
+  const questions = await getQuestions(event.id, sort as Sort, answered);
 
   return c.json({
     data: questions.map(toApiQuestion),
@@ -240,7 +246,6 @@ app.post(
       question: questionData.question,
       eventId: event.id,
       userId: user.id,
-      deletedAt: null,
     });
 
     return c.json({

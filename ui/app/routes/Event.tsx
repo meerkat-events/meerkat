@@ -64,7 +64,10 @@ export default function Event(
     mutate: refreshQuestions,
   } = useQuestions(
     uid,
-    "popular",
+    {
+      sort: "popular",
+      answered: false,
+    },
   );
 
   const refresh = () => {

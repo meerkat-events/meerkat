@@ -1,87 +1,70 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, not, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import { questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
+
+export const Sorts = ["popular", "newest"] as const;
+export type Sort = (typeof Sorts)[number];
 
 const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
   "votes",
 );
 
-const getQuestionsPreparedStatement = db
-  .select({
-    id: questions.id,
-    uid: questions.uid,
-    eventId: questions.eventId,
-    question: questions.question,
-    createdAt: questions.createdAt,
-    answeredAt: questions.answeredAt,
-    deletedAt: questions.deletedAt,
-    userId: questions.userId,
-    user: users,
-    votes: votesSnippet,
-  })
-  .from(questions)
-  .leftJoin(votes, eq(questions.id, votes.questionId))
-  .leftJoin(users, eq(questions.userId, users.id))
-  .where(
-    and(
-      eq(questions.eventId, sql.placeholder("event_id")),
-      eq(users.blocked, false),
-      isNull(questions.deletedAt),
-    ),
-  )
-  .groupBy(questions.id, users.id)
-  .orderBy(
-    sql`${questions.answeredAt} DESC NULLs FIRST`,
-    desc(votesSnippet),
-    asc(questions.createdAt),
-  )
-  .prepare("questions_with_votes_by_event_id");
-
-const getQuestionsPreparedStatementByCreation = db
-  .select({
-    id: questions.id,
-    uid: questions.uid,
-    eventId: questions.eventId,
-    question: questions.question,
-    createdAt: questions.createdAt,
-    answeredAt: questions.answeredAt,
-    deletedAt: questions.deletedAt,
-    userId: questions.userId,
-    user: users,
-    votes: votesSnippet,
-  })
-  .from(questions)
-  .leftJoin(votes, eq(questions.id, votes.questionId))
-  .leftJoin(users, eq(questions.userId, users.id))
-  .where(
-    and(
-      eq(questions.eventId, sql.placeholder("event_id")),
-      eq(users.blocked, false),
-      isNull(questions.deletedAt),
-    ),
-  )
-  .groupBy(questions.id, users.id)
-  .orderBy(desc(questions.createdAt))
-  .prepare("questions_with_votes_by_event_id");
-
-export type Sort = "popular" | "newest";
-export const Sorts = ["popular", "newest"] as const;
-
-export async function getQuestions(
+export function getQuestions(
   eventId: number,
   sort: Sort = "popular",
+  answered?: boolean,
 ) {
-  const params = { event_id: eventId };
-  const results = sort === "popular"
-    ? await getQuestionsPreparedStatement.execute(params)
-    : await getQuestionsPreparedStatementByCreation.execute(params);
+  const orderBy = sort === "popular"
+    ? [
+      sql`${questions.answeredAt} DESC NULLs FIRST`,
+      desc(votesSnippet),
+      asc(questions.createdAt),
+    ]
+    : [desc(questions.createdAt)];
 
-  return results;
+  const clauses = [
+    eq(questions.eventId, eventId),
+    eq(users.blocked, false),
+    isNull(questions.deletedAt),
+  ];
+
+  if (answered === true) {
+    clauses.push(not(isNull(questions.answeredAt)));
+  } else if (answered === false) {
+    clauses.push(isNull(questions.answeredAt));
+  }
+
+  return db
+    .select({
+      id: questions.id,
+      uid: questions.uid,
+      eventId: questions.eventId,
+      question: questions.question,
+      createdAt: questions.createdAt,
+      selectedAt: questions.selectedAt,
+      answeredAt: questions.answeredAt,
+      deletedAt: questions.deletedAt,
+      userId: questions.userId,
+      user: users,
+      votes: votesSnippet,
+    })
+    .from(questions)
+    .leftJoin(votes, eq(questions.id, votes.questionId))
+    .leftJoin(users, eq(questions.userId, users.id))
+    .where(
+      and(...clauses),
+    )
+    .groupBy(questions.id, users.id)
+    .orderBy(...orderBy)
+    .execute();
 }
 
 export async function createQuestion(
-  question: Omit<Question, "uid" | "createdAt" | "id" | "answeredAt">,
+  question: Omit<
+    Question,
+    "uid" | "createdAt" | "id" | "answeredAt" | "selectedAt" | "deletedAt"
+  >,
 ) {
   const result = await db.insert(questions).values({
     ...question,
@@ -95,12 +78,18 @@ export async function createQuestion(
   return result[0];
 }
 
-const getQuestionByUIDPreparedStatement = db.select().from(questions).where(
-  eq(questions.uid, sql.placeholder("uid")),
-).prepare("get_question_by_uid");
-
 export async function getQuestionByUID(uid: string) {
-  const result = await getQuestionByUIDPreparedStatement.execute({ uid });
+  const result = await db.select().from(questions).where(
+    eq(questions.uid, uid),
+  );
+
+  return result.length === 1 ? result[0] : null;
+}
+
+export async function selectQuestion(id: number) {
+  const result = await db.update(questions).set({
+    selectedAt: new Date(),
+  }).where(eq(questions.id, id)).returning().execute();
 
   return result.length === 1 ? result[0] : null;
 }

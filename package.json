@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "drizzle-orm": "^0.41.0"
+  }
+}

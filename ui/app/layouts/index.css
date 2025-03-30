@@ -1,4 +1,3 @@
-
 html,
 body {
 	margin: 0;
@@ -48,7 +47,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	& > li {
+	&>li {
 		margin: 0;
 		padding: 0;
 	}
@@ -58,7 +57,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	& > li {
+	&>li {
 		margin: 0;
 		padding: 0;
 	}
@@ -75,7 +74,8 @@ ul {
 .bubble {
 	background-color: #342749;
 	border-radius: 5px;
-	padding: 1rem 1rem 1rem 1rem;
+	border: 1px solid transparent;
+	padding: 1.25rem 1rem 1rem 1rem;
 	position: relative;
 	display: grid;
 	grid-template-columns: 1fr max-content;
@@ -87,6 +87,24 @@ ul {
 
 .bubble.answered {
 	opacity: 0.6;
+}
+
+.bubble.selected {
+	border-color: #C8AFF2;
+}
+
+.bubble-status {
+	display: flex;
+	align-items: center;
+	gap: 0.1rem;
+	position: absolute;
+	top: -13px;
+	left: 1.25rem;
+	background-color: #A789DC;
+	color: white;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.5rem;
+	font-size: 0.75rem;
 }
 
 .upvote-section {
@@ -141,11 +159,9 @@ ul {
 		border-radius: 15px;
 		padding: 8px;
 		background:
-			linear-gradient(
-				95deg,
+			linear-gradient(95deg,
 				rgba(151, 71, 255, 0.50) 20.09%,
-				rgba(86, 59, 131, 0.50) 80%
-			),
+				rgba(86, 59, 131, 0.50) 80%),
 			rgba(255, 255, 255, 0.01);
 		box-shadow:
 			0px 28.665px 41.159px -26.46px rgba(255, 255, 255, 0.50) inset,
@@ -169,10 +185,7 @@ ul {
 .tab-panel {
 	display: flex;
 	flex-direction: column;
-	height: calc(
-		100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom)
-			- env(safe-area-inset-top)
-	);
+	height: calc(100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom) - env(safe-area-inset-top));
 }
 
 .reaction {
@@ -186,6 +199,7 @@ ul {
 		transform: translateY(0) scale(1);
 		opacity: 1;
 	}
+
 	100% {
 		transform: translateY(-40dvh) scale(2);
 		opacity: 0;
@@ -213,9 +227,11 @@ ul {
 	0% {
 		transform: scale(1);
 	}
+
 	50% {
 		transform: scale(1.05);
 	}
+
 	100% {
 		transform: scale(1);
 	}

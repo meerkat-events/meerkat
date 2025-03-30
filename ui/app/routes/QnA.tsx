@@ -67,7 +67,9 @@ export default function QnA() {
     isLoading: isQuestionsLoading,
   } = useQuestions(
     uid,
-    isSortByPopularity ? "popular" : "newest",
+    {
+      sort: isSortByPopularity ? "popular" : "newest",
+    },
   );
   const { data: votes, mutate: refreshVotes } = useVotes();
   const { data: roles } = useConferenceRoles();
