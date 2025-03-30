@@ -18,6 +18,8 @@
     "drizzle-kit": "npm:drizzle-kit@^0.30.6"
   },
   "tasks": {
+    "check": "deno check **/*.ts",
+    "lint": "deno lint",
     "dev": "DENO_TLS_CA_STORE=system deno run --inspect --allow-env --allow-read --allow-net --watch ./dev.ts",
     "start": "deno run --allow-read --allow-env --allow-net ./main.ts"
   }
