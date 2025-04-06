@@ -4,9 +4,11 @@ body {
   font-size: 20px;
   margin: 0;
   padding: 0;
-  background: linear-gradient(218.34deg,
-      rgba(175, 177, 245, 0.86) 22.08%,
-      #854fe3 90.71%);
+  background: linear-gradient(
+    218.34deg,
+    rgba(175, 177, 245, 0.86) 22.08%,
+    #854fe3 90.71%
+  );
 }
 
 h2 {
@@ -25,7 +27,7 @@ ul {
   padding: 0;
   margin: 0;
 
-  &>li {
+  & > li {
     margin: 0;
     padding: 0;
   }
@@ -42,9 +44,11 @@ ul {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  background: linear-gradient(218.34deg,
-      rgba(50, 51, 77, 0.86) 22.08%,
-      #2a1059 90.71%);
+  background: linear-gradient(
+    218.34deg,
+    rgba(50, 51, 77, 0.86) 22.08%,
+    #2a1059 90.71%
+  );
   color: white;
 }
 
@@ -101,6 +105,15 @@ ul {
   &::-webkit-scrollbar {
     display: none;
   }
+
+  & > p {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    font-size: 0.9rem;
+  }
 }
 
 .bubble {
@@ -111,13 +124,13 @@ ul {
   position: relative;
   border: 1px solid transparent;
 
-  &>h2 {
+  & > h2 {
     font-size: 1.5rem;
   }
 }
 
 .bubble.selected {
-  border-color: #C8AFF2;
+  border-color: #c8aff2;
 }
 
 .bubble-status {
@@ -127,7 +140,7 @@ ul {
   position: absolute;
   top: -13px;
   left: 1.25rem;
-  background-color: #A789DC;
+  background-color: #a789dc;
   color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 0.5rem;
@@ -156,7 +169,7 @@ ul {
   align-items: center;
   margin-top: 1rem;
 
-  &>h2 {
+  & > h2 {
     margin: 0;
   }
 }
