@@ -41,7 +41,7 @@ import { getConferenceRolesForConference } from "../models/roles.ts";
 import { bodyLimit } from "@hono/hono/body-limit";
 import { checkEventEnded } from "./errors.ts";
 import { COOKIE_NAME } from "../utils/cookie.ts";
-
+import logger from "../logger.ts";
 const app = new Hono();
 
 type Env = {
@@ -162,6 +162,11 @@ app.post(
 
     const pod = createAttendancePOD(conference!, event, zupassId);
 
+    logger.info(
+      { pod, conference, event, zupassId, user },
+      "Created attendance pod",
+    );
+
     return c.json({
       data: pod.toJSON(),
     });
@@ -248,6 +253,8 @@ app.post(
       userId: user.id,
     });
 
+    logger.info({ question, event, user }, "Created question");
+
     return c.json({
       data: question,
     });
@@ -304,6 +311,8 @@ app.post(
       userId: user.id,
     });
 
+    logger.info({ reaction, event, user }, "Created reaction");
+
     return c.json({
       data: {
         uid,
@@ -342,6 +351,8 @@ app.post(
       userId: user.id,
       pod,
     });
+
+    logger.info({ pod: createdPod, event, user }, "Created event pod");
 
     return c.json({
       data: createdPod,

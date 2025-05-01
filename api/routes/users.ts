@@ -42,6 +42,7 @@ import { POD } from "@pcd/pod";
 import { TicketSpec } from "@parcnet-js/ticket-spec";
 import { createSummaryPOD } from "../zupass.ts";
 import { getFeatures } from "../models/features.ts";
+import logger from "../logger.ts";
 const app = new Hono();
 
 app.get(
@@ -231,6 +232,8 @@ app.post("/api/v1/users/login", zValidator("json", loginScheme), async (c) => {
   const jwtString = await sign(payload, env.secret);
   setJWTCookie(c, jwtString);
 
+  logger.info({ user, pod, conference }, "Signed in with Zupass POD");
+
   return c.json({ data: { user } });
 });
 
@@ -306,13 +309,19 @@ app.post(
       return Math.max(acc, ROLE_HIERARCHY.indexOf(role.role));
     }, -1);
 
-    if (newRoleIndex > currentRoleIndex) {
+    const isNewRole = newRoleIndex > currentRoleIndex;
+    if (isNewRole) {
       await grantRole(user.id, conference.id, role);
     }
 
     const payload = constructJWTPayload(user);
     const jwtString = await sign(payload, env.secret);
     setJWTCookie(c, jwtString);
+
+    logger.info(
+      { user, pod: ticketProof, conference, role, isNewRole },
+      "Signed in with ticket proof",
+    );
 
     return c.json({ data: { user } });
   },
@@ -349,6 +358,8 @@ app.post(
     }
 
     await markUserAsBlocked(blockedUser.id);
+
+    logger.info({ user, blockedUser }, "Blocked user");
 
     return c.json({ data: {} });
   },
@@ -463,8 +474,12 @@ app.post(
       points: rank.points,
     });
 
+    const serializedPod = pod.toJSON();
+
+    logger.info({ pod: serializedPod, user }, "Created summary pod");
+
     return c.json({
-      data: pod.toJSON(),
+      data: serializedPod,
     });
   },
 );
@@ -515,6 +530,7 @@ app.post(
       const payload = constructJWTPayload(user);
       const jwtString = await sign(payload, env.secret);
       setJWTCookie(c, jwtString);
+      logger.info({ user, conference, features }, "Created anonymous user");
     }
 
     return c.json({ data: { user } });

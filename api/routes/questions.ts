@@ -21,7 +21,7 @@ import {
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { checkEventEnded } from "./errors.ts";
 import { COOKIE_NAME } from "../utils/cookie.ts";
-
+import logger from "../logger.ts";
 const app = new Hono();
 
 app.post(
@@ -96,6 +96,8 @@ app.post(
 
     const { id: _id, userId: _userId, ...rest } = question;
 
+    logger.info({ question, user, event }, "Upvoted question");
+
     return c.json({ data: rest });
   },
 );
@@ -149,6 +151,8 @@ app.post(
     }
     const { id: _id, userId: _userId, ...rest } = result;
 
+    logger.info({ question, user, event }, "Selected question");
+
     return c.json({ data: rest });
   },
 );
@@ -201,6 +205,8 @@ app.post(
       throw new HTTPException(500, { message: `Failed to mark as answered` });
     }
     const { id: _id, userId: _userId, ...rest } = result;
+
+    logger.info({ question, user, event }, "Marked question as answered");
 
     return c.json({ data: rest });
   },
@@ -256,6 +262,8 @@ app.delete(
       });
     }
     const { id: _id, userId: _userId, ...rest } = result;
+
+    logger.info({ question, user, event }, "Deleted question");
 
     return c.json({ data: rest });
   },

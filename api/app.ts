@@ -17,9 +17,7 @@ app.route("/", events);
 app.route("/", questions);
 app.route("/", speaker);
 
-app.get("/api/v1/config", (c) => {
-  return c.json(config);
-});
+app.get("/api/v1/config", (c) => c.json(config));
 
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.get(
@@ -33,4 +31,5 @@ app.get("/e/:uid", serveStatic({ path: "./public/index.html" }));
 app.get("/e/:uid/*", serveStatic({ path: "./public/index.html" }));
 
 app.use("*", serveStatic({ root: "./public" }));
+
 export default app;

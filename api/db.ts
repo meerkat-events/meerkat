@@ -1,8 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import env from "./env.ts";
-
-console.info(`DB - maxPoolSize: ${env.maxPoolSize}`);
+import logger from "./logger.ts";
 
 const client = postgres(env.connectionString, {
   // Disable prefetch as suggested by https://supabase.com/docs/guides/database/connecting-to-postgres#connecting-with-drizzle
@@ -13,5 +12,7 @@ const client = postgres(env.connectionString, {
 });
 
 const db = drizzle(client);
+
+logger.info({ maxPoolSize: env.maxPoolSize }, "Initialized DB");
 
 export default db;

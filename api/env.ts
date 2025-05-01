@@ -1,3 +1,5 @@
+import logger from "./logger.ts";
+
 const adminToken = Deno.env.get("ADMIN_TOKEN");
 
 if (!adminToken) {
@@ -58,11 +60,7 @@ const maxPoolSize = Deno.env.get("DATABASE_MAX_POOL_SIZE");
 const environment = Deno.env.get("ENVIRONMENT") ?? "development";
 const grafanaUrl = Deno.env.get("GRAFANA_URL");
 
-console.info(
-  `Env - zupassUrl: ${zupassUrl}, base: ${base}, verifier: ${verifierEndpoint}`,
-);
-
-export default {
+const env = {
   adminToken,
   connectionString,
   base,
@@ -82,3 +80,16 @@ export default {
   environment,
   grafanaUrl,
 };
+
+logger.info({
+  env: {
+    ...env,
+    connectionString: "REDACTED",
+    privateKey: "REDACTED",
+    secret: "REDACTED",
+    codeSecret: "REDACTED",
+    emailSecret: "REDACTED",
+  },
+}, "Parsed environment variables");
+
+export default env;

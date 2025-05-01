@@ -13,6 +13,7 @@ import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "@hono/hono/http-exception";
 import { accepts } from "@hono/hono/accepts";
 import { createSigner } from "../utils/secret.ts";
+import logger from "../logger.ts";
 
 const app = new Hono();
 
@@ -57,6 +58,8 @@ app.post(
   async (c) => {
     const conferenceCreate = c.req.valid("json");
     const conference = await createConference(conferenceCreate);
+
+    logger.info({ conference }, "Created conference");
 
     return c.json({ data: conference }, 201);
   },
@@ -170,6 +173,8 @@ app.post(
     const events = await Promise.all(promises);
 
     const response = await upsertEvents(conferenceId, events);
+
+    logger.info({ conference, eventsLength: events.length }, "Upserted events");
 
     return c.json({ data: response }, 201);
   },
