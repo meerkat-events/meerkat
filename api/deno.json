@@ -21,7 +21,7 @@
   "tasks": {
     "check": "deno check **/*.ts",
     "lint": "deno lint",
-    "dev": "DENO_TLS_CA_STORE=system OTEL_DENO=true OTEL_SERVICE_NAME=api deno run --inspect --allow-env --unstable-otel --allow-read --allow-net --watch ./dev.ts",
-    "start": "deno run --allow-read --allow-env --allow-net ./main.ts"
+    "dev": "DENO_TLS_CA_STORE=system OTEL_DENO=true OTEL_SERVICE_NAME=api deno run --inspect --allow-env --unstable-otel --allow-read --allow-net --allow-sys --watch ./dev.ts",
+    "start": "deno run --allow-env --allow-net --allow-sys=hostname ./main.ts"
   }
 }
