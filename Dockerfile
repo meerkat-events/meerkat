@@ -14,7 +14,7 @@ RUN npm run typecheck
 
 RUN npm run build
 
-FROM denoland/deno:2.2.4 AS runner
+FROM denoland/deno:2.3.1 AS runner
 
 WORKDIR /app
 

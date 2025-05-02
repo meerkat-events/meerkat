@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "drizzle-orm": "^0.41.0"
+    "drizzle-orm": "^0.43.1"
   }
 }
