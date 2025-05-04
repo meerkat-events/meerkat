@@ -101,6 +101,7 @@ ul {
   justify-content: flex-start;
   max-height: 32rem;
   scrollbar-width: none;
+  overflow-y: scroll;
 
   &::-webkit-scrollbar {
     display: none;
