@@ -10,7 +10,7 @@ import { pageTitle } from "../utils/events.ts";
 
 export default function Remote() {
   const { uid } = useParams();
-  const { data: event } = useEvent(uid);
+  const { data: event, isLoading: isEventLoading } = useEvent(uid);
   const [isLoading, setIsLoading] = useState(true);
 
   usePageTitle(pageTitle(event));
@@ -61,7 +61,7 @@ export default function Remote() {
         <Stack spacing={2} flexDirection="column" alignItems="center">
           <Skeleton isLoaded={!!event} width="fit-content">
             <Heading as="h1" color="white" size="lg" mb={1.5}>
-              {event?.title ?? "Loading... please stand by"}
+              {isEventLoading ? "Loading..." : event?.title}
             </Heading>
           </Skeleton>
           <Flex justifyContent="space-between">
@@ -73,7 +73,7 @@ export default function Remote() {
                 wordBreak="break-word"
                 color="white"
               >
-                {event?.speaker ?? "Loading..."}
+                {isEventLoading ? "Loading..." : event?.speaker}
               </Heading>
             </Skeleton>
           </Flex>
