@@ -145,7 +145,7 @@ export function Question(
                 Mark as Answered
               </MenuItem>
               <MenuItem onClick={handleDelete} icon={<DeleteIcon />}>
-                Delete
+                Hide Question
               </MenuItem>
               <MenuItem onClick={handleBlock} icon={<NotAllowedIcon />}>
                 Block User
