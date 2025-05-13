@@ -42,6 +42,8 @@ import { bodyLimit } from "@hono/hono/body-limit";
 import { checkEventEnded } from "./errors.ts";
 import { COOKIE_NAME } from "../utils/cookie.ts";
 import logger from "../logger.ts";
+import { generateQRCodePNG } from "../code.ts";
+
 const app = new Hono();
 
 type Env = {
@@ -96,6 +98,27 @@ app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
         return acc;
       }, {} as Record<string, boolean>),
     },
+  });
+});
+
+app.get("/api/v1/events/:uid/code", eventMiddleware, async (c) => {
+  const widthInput = Number.parseInt(c.req.query("width") ?? "512");
+
+  if (isNaN(widthInput)) {
+    throw new HTTPException(400, { message: "Invalid width" });
+  }
+  if (widthInput < 128 || widthInput > 2048) {
+    throw new HTTPException(400, {
+      message: "Invalid width, must be between 128 and 2048",
+    });
+  }
+
+  const event = c.get("event");
+
+  const url = new URL(`/e/${event.uid}/remote`, env.base);
+
+  return c.body(await generateQRCodePNG(url.toString(), widthInput), 200, {
+    "Content-Type": "image/png",
   });
 });
 
