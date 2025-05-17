@@ -1,5 +1,5 @@
 import { IconButton } from "@chakra-ui/react";
-import { TriangleUpIcon } from "@chakra-ui/icons";
+import { FiChevronUp as TriangleUpIcon } from "react-icons/fi";
 
 interface UpVoteButtonProps {
   hasVoted: boolean;
@@ -7,17 +7,18 @@ interface UpVoteButtonProps {
 }
 
 export function UpVoteButton({ hasVoted, isDisabled }: UpVoteButtonProps) {
-  const color = hasVoted ? "white" : "#AFA5C0";
+  const color = hasVoted ? "white" : "gray.300";
 
   return (
     <IconButton
       type="submit"
-      isDisabled={isDisabled}
+      disabled={isDisabled}
       variant="ghost"
-      color={color}
       size="md"
-      icon={<TriangleUpIcon />}
+      color={color}
       aria-label="Vote for this question"
-    />
+    >
+      <TriangleUpIcon />
+    </IconButton>
   );
 }

@@ -1,9 +1,5 @@
 import { isRouteErrorResponse, Outlet } from "react-router";
-import {
-  ChakraProvider,
-  extendTheme,
-  withDefaultColorScheme,
-} from "@chakra-ui/react";
+import { Provider } from "~/components/ui/provider";
 import { ZAPIProvider } from "../zapi/context";
 import { UserProvider } from "../context/user";
 import { SupabaseProvider } from "../context/supabase";
@@ -13,6 +9,7 @@ import { useMemo } from "react";
 import { SWRConfig } from "swr";
 import { getConfig } from "../lib/config";
 import { useTools } from "~/lib/use-tools";
+import { Toaster } from "~/components/ui/toaster";
 
 import "./index.css";
 
@@ -20,28 +17,6 @@ export async function clientLoader(_args: Route.LoaderArgs) {
   return {
     config: await getConfig(),
   };
-}
-
-const theme = extendTheme(
-  withDefaultColorScheme({ colorScheme: "purple" }),
-  {
-    config: {
-      initialColorMode: "dark",
-      useSystemColorMode: false,
-    },
-    styles: {
-      global: {
-        body: {
-          bg: "#0C021D",
-          color: "#AFA5C0",
-        },
-      },
-    },
-  },
-);
-
-export function HydrateFallback() {
-  return <p>Loading...</p>;
 }
 
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
@@ -64,9 +39,10 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         zupassUrl={config.zupassUrl}
       >
         <UserProvider>
-          <ChakraProvider theme={theme}>
+          <Provider defaultTheme="dark" forcedTheme="dark">
             <Outlet />
-          </ChakraProvider>
+            <Toaster />
+          </Provider>
         </UserProvider>
       </ZAPIProvider>
     </SWRConfig>

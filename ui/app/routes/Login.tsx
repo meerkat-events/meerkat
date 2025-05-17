@@ -1,20 +1,15 @@
-import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { FiArrowUpRight as ExternalLinkIcon } from "react-icons/fi";
 import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
 import { useLogin } from "../hooks/use-login.ts";
 import { useUser } from "../hooks/use-user.ts";
 import {
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
   Button,
+  CloseButton,
+  Dialog,
   Heading,
   Link as ChakraLink,
   useDisclosure,
 } from "@chakra-ui/react";
-import { useRef } from "react";
 import { useLogout } from "../hooks/use-logout.ts";
 
 export default function Login() {
@@ -22,8 +17,7 @@ export default function Login() {
   const { trigger: logout } = useLogout();
   const { data: user, isAuthenticated } = useUser();
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const { open, onOpen, onClose } = useDisclosure();
 
   const onLogout = async () => {
     await logout({});
@@ -54,39 +48,38 @@ export default function Login() {
         )
         : (
           <PrimaryButton
-            isLoading={isLoading}
+            loading={isLoading}
             loadingText="Connecting..."
             onClick={() => login()}
           >
             Login with Zupass <ExternalLinkIcon />
           </PrimaryButton>
         )}
-      <AlertDialog
-        isOpen={isOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={onClose}
+      <Dialog.Root
+        role="alertdialog"
+        open={open}
+        onOpenChange={onClose}
       >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Logout
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              Are you sure you want to logout?
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} colorScheme="gray" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={onLogout} ml={3}>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>
                 Logout
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+              </Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              Are you sure you want to logout?
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Button colorPalette="red" onClick={onLogout}>Logout</Button>
+            </Dialog.Footer>
+            <Dialog.CloseTrigger asChild>
+              <CloseButton size="sm" />
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Root>
     </main>
   );
 }

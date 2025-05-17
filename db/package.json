@@ -12,7 +12,7 @@
   "license": "MIT",
   "description": "Database migrations and seeding for Meerkat",
   "dependencies": {
-    "drizzle-kit": "^0.31.0",
+    "drizzle-kit": "^0.31.1",
     "drizzle-orm": "^0.43.1",
     "postgres": "^3.4.5"
   }

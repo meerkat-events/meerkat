@@ -1,14 +1,6 @@
 import { useState } from "react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
-import {
-  Flex,
-  FormControl,
-  FormHelperText,
-  FormLabel,
-  Link,
-  Textarea,
-  useToast,
-} from "@chakra-ui/react";
+import { FiArrowLeft as ArrowBackIcon } from "react-icons/fi";
+import { Field, Flex, Link as ChakraLink, Textarea } from "@chakra-ui/react";
 import { Link as ReactRouterLink, useParams } from "react-router";
 import { usePageTitle } from "../hooks/use-page-title.ts";
 import { pageTitle } from "../utils/events.ts";
@@ -23,7 +15,7 @@ import { useProvideFeedback } from "../hooks/use-provide-feedback.ts";
 import { constructPODZapp } from "../zapi/zapps.ts";
 import { collectionName } from "../zapi/collections.ts";
 import { useZAPI } from "../zapi/context.tsx";
-import type { ProveResult } from "../hooks/use-ticket-proof.ts";
+import { toaster } from "../components/ui/toaster.tsx";
 
 export default function Feedback() {
   const { uid } = useParams();
@@ -33,13 +25,11 @@ export default function Feedback() {
   const { connect, isConnecting } = useZAPIConnect();
   const [text, setText] = useState("");
   const context = useZAPI();
-  const toast = useToast();
   const { login, isLoading: isLoggingIn } = useTicketProof({
     conferenceId: event?.conference.id,
     onError: (error) => {
-      toast({
+      toaster.error({
         title: `Failed to login (${error?.message})`,
-        status: "error",
         description: error.message,
         duration: 2000,
       });
@@ -49,10 +39,9 @@ export default function Feedback() {
   const { provideFeedback, isLoading: isProvidingFeedback } =
     useProvideFeedback({
       onError: (error) => {
-        toast({
+        toaster.error({
           title: "Submission Failed",
           description: error.message,
-          status: "error",
         });
       },
     });
@@ -69,10 +58,9 @@ export default function Feedback() {
     }
 
     if (textValue.length > 1000) {
-      toast({
+      toaster.error({
         title: "Submission Failed",
         description: "Note must be less than 1000 characters",
-        status: "error",
       });
       return;
     }
@@ -91,24 +79,23 @@ export default function Feedback() {
     if (ticketProof) {
       email = ticketProof.revealedClaims.pods.ticket.entries.attendeeEmail
         ?.value as
-        | string
-        | undefined;
+          | string
+          | undefined;
     }
 
     let name: string | undefined;
     if (ticketProof) {
       name = ticketProof.revealedClaims.pods.ticket.entries.attendeeName
         ?.value as
-        | string
-        | undefined;
+          | string
+          | undefined;
     }
 
     await provideFeedback({ zapi, event, text: textValue, email, name });
     setText("");
-    toast({
+    toaster.success({
       title: "Feedback Submitted",
       description: "Open Zupass to view.",
-      status: "success",
     });
   };
 
@@ -116,17 +103,19 @@ export default function Feedback() {
     <div className="layout">
       <header className="header">
         <nav>
-          <Link as={ReactRouterLink} to={uid ? remote(uid) : ""}>
-            <Flex
-              flexDirection="row"
-              gap="1"
-              alignItems="center"
-              padding="0.5rem 0 0 1rem"
-              minHeight="1rem"
-            >
-              <ArrowBackIcon /> <span>Controls</span>
-            </Flex>
-          </Link>
+          <ChakraLink asChild>
+            <ReactRouterLink to={uid ? remote(uid) : ""}>
+              <Flex
+                flexDirection="row"
+                gap="1"
+                alignItems="center"
+                padding="0.5rem 0 0 1rem"
+                minHeight="1rem"
+              >
+                <ArrowBackIcon /> <span>Controls</span>
+              </Flex>
+            </ReactRouterLink>
+          </ChakraLink>
         </nav>
         <div style={{ paddingBottom: "1rem" }}>
           <Header title={`Feedback: ${event?.title ?? "Loading..."}`} />
@@ -134,8 +123,8 @@ export default function Feedback() {
       </header>
       <main className="content flex">
         <Flex flexDirection="column" gap="4" marginTop="2rem">
-          <FormControl>
-            <FormLabel>Private Note</FormLabel>
+          <Field.Root>
+            <Field.Label>Private Note</Field.Label>
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -146,30 +135,31 @@ export default function Feedback() {
               placeholder="Type your note here..."
               maxLength={1000}
             />
-            <FormHelperText>
+            <Field.HelperText>
               Message will be signed with Zupass identity and delivered to all
               speakers of this event. Find your own feedback in Zupass.
-            </FormHelperText>
-          </FormControl>
+            </Field.HelperText>
+          </Field.Root>
 
           <PrimaryButton
-            isLoading={isProvidingFeedback || isConnecting || isLoggingIn}
+            loading={isProvidingFeedback || isConnecting || isLoggingIn}
             loadingText="Loading..."
             onClick={handleSubmit}
             alignSelf="flex-end"
-            isDisabled={!text.trim()}
+            disabled={!text.trim()}
           >
             Sign & Submit
           </PrimaryButton>
           <p style={{ marginTop: "auto", marginBottom: "1rem" }}>
             Are you a speaker? Check your feedback{" "}
-            <Link
-              as={ReactRouterLink}
-              to="/speaker"
-              style={{ textDecoration: "underline" }}
-            >
-              here
-            </Link>
+            <ChakraLink asChild>
+              <ReactRouterLink
+                to="/speaker"
+                style={{ textDecoration: "underline" }}
+              >
+                here
+              </ReactRouterLink>
+            </ChakraLink>
             .
           </p>
         </Flex>

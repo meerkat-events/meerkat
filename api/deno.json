@@ -1,13 +1,13 @@
 {
   "imports": {
-    "@hono/hono": "npm:hono@^4.7.8",
+    "@hono/hono": "npm:hono@^4.7.10",
     "@hono/zod-validator": "npm:@hono/zod-validator@^0.5.0",
     "@libs/qrcode": "jsr:@libs/qrcode@^2.0.1",
     "@parcnet-js/ticket-spec": "npm:@parcnet-js/ticket-spec@^1.1.9",
     "@pcd/pod": "npm:@pcd/pod@^0.5.0",
-    "@sentry/deno": "npm:@sentry/deno@^9.15.0",
-    "@std/crypto": "jsr:@std/crypto@^1.0.3",
-    "@std/dotenv": "jsr:@std/dotenv@^0.225.3",
+    "@sentry/deno": "npm:@sentry/deno@^9.19.0",
+    "@std/crypto": "jsr:@std/crypto@^1.0.5",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.4",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.49.4",
     "drizzle-orm": "npm:drizzle-orm@^0.43.1",
@@ -15,8 +15,8 @@
     "postgres": "npm:postgres@^3.4.5",
     "qrcode": "npm:qrcode@^1.5.4",
     "uuidv7": "npm:uuidv7@^1.0.2",
-    "zod": "npm:zod@^3.24.3",
-    "drizzle-kit": "npm:drizzle-kit@^0.31.0"
+    "zod": "npm:zod@^3.24.4",
+    "drizzle-kit": "npm:drizzle-kit@^0.31.1"
   },
   "tasks": {
     "check": "deno check **/*.ts",

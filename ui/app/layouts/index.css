@@ -2,8 +2,6 @@ html,
 body {
 	margin: 0;
 	padding: 0;
-	font-family: "Inter", sans-serif;
-	background-color: #0c021d;
 }
 
 :root {
@@ -47,7 +45,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	&>li {
+	& > li {
 		margin: 0;
 		padding: 0;
 	}
@@ -57,7 +55,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	&>li {
+	& > li {
 		margin: 0;
 		padding: 0;
 	}
@@ -72,7 +70,8 @@ ul {
 }
 
 .bubble {
-	background-color: #342749;
+	background-color: var(--chakra-colors-brand-900);
+	color: var(--chakra-colors-brand-contrast);
 	border-radius: 5px;
 	border: 1px solid transparent;
 	padding: 1.25rem 1rem 1rem 1rem;
@@ -90,7 +89,7 @@ ul {
 }
 
 .bubble.selected {
-	border-color: #C8AFF2;
+	border-color: var(--chakra-colors-brand-500);
 }
 
 .bubble-status {
@@ -100,8 +99,8 @@ ul {
 	position: absolute;
 	top: -13px;
 	left: 1.25rem;
-	background-color: #A789DC;
-	color: white;
+	background-color: var(--chakra-colors-brand-500);
+	color: var(--chakra-colors-brand-contrast);
 	padding: 0.25rem 0.5rem;
 	border-radius: 0.5rem;
 	font-size: 0.75rem;
@@ -125,11 +124,11 @@ ul {
 .upvote-count {
 	display: inline;
 	margin-right: 0.25rem;
-	color: #afa5c0;
+	color: var(--chakra-colors-gray-300);
 }
 
 .upvote-count.voted {
-	color: white;
+	color: var(--chakra-colors-white);
 }
 
 /*  Collect  Card */
@@ -159,9 +158,11 @@ ul {
 		border-radius: 15px;
 		padding: 8px;
 		background:
-			linear-gradient(95deg,
+			linear-gradient(
+				95deg,
 				rgba(151, 71, 255, 0.50) 20.09%,
-				rgba(86, 59, 131, 0.50) 80%),
+				rgba(86, 59, 131, 0.50) 80%
+			),
 			rgba(255, 255, 255, 0.01);
 		box-shadow:
 			0px 28.665px 41.159px -26.46px rgba(255, 255, 255, 0.50) inset,
@@ -185,7 +186,10 @@ ul {
 .tab-panel {
 	display: flex;
 	flex-direction: column;
-	height: calc(100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom) - env(safe-area-inset-top));
+	height: calc(
+		100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom)
+			- env(safe-area-inset-top)
+	);
 }
 
 .reaction {

@@ -1,15 +1,18 @@
-import { CheckCircleIcon, DeleteIcon, NotAllowedIcon } from "@chakra-ui/icons";
 import {
+  FiCheckCircle as CheckCircleIcon,
+  FiEyeOff as DeleteIcon,
+  FiMoreVertical,
+  FiStopCircle as NotAllowedIcon,
+} from "react-icons/fi";
+import {
+  Box,
   Heading,
   Icon,
   IconButton,
   Menu,
-  MenuButton,
-  MenuItem,
-  MenuList,
-  useToast,
+  Portal,
+  Text,
 } from "@chakra-ui/react";
-import { MdMoreHoriz } from "react-icons/md";
 import { useAsyncFormSubmit } from "../../hooks/use-async-form-submit.ts";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
 import type { Event, Question as QuestionType } from "../../types.ts";
@@ -20,6 +23,7 @@ import { posthog } from "posthog-js";
 import { FiRadio } from "react-icons/fi";
 import { RxCursorArrow } from "react-icons/rx";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
+import { toaster } from "../../components/ui/toaster.tsx";
 
 interface QuestionProps {
   event: Event | undefined;
@@ -33,13 +37,12 @@ interface QuestionProps {
 export function Question(
   { event, canVote, canModerate, question, voted, refresh }: QuestionProps,
 ) {
-  const toast = useToast();
   const { onSubmit } = useAsyncFormSubmit({
     onSuccess: () => {
       refresh();
-      toast({
+      toaster.create({
         title: "Vote recorded 🗳️",
-        status: "success",
+        type: "success",
         duration: 1000,
       });
       posthog.capture("vote_toggled", {
@@ -48,9 +51,9 @@ export function Question(
       });
     },
     onError: (error) => {
-      toast({
+      toaster.create({
         title: `Failed to vote`,
-        status: "error",
+        type: "error",
         description: error.message,
       });
     },
@@ -70,18 +73,18 @@ export function Question(
     await block();
     refresh();
 
-    toast({
+    toaster.create({
       title: "User blocked 🚫",
-      status: "success",
+      type: "success",
       duration: 1000,
     });
   };
 
   const handleAnswered = async () => {
     await markAsAnswered();
-    toast({
+    toaster.create({
       title: "Question marked as answered ✅",
-      status: "success",
+      type: "success",
       duration: 1000,
     });
   };
@@ -89,17 +92,18 @@ export function Question(
   const handleDelete = async () => {
     await deleteQuestion();
     refresh();
-    toast({
+    toaster.create({
       title: "Question deleted 🗑️",
-      status: "success",
+      type: "success",
       duration: 1000,
     });
   };
 
   const handleSelected = async () => {
     await selectQuestion();
-    toast({
+    toaster.create({
       title: "Question selected ✅",
+      type: "success",
     });
   };
 
@@ -123,40 +127,52 @@ export function Question(
           Answering
         </div>
       )}
-      <Heading as="h3" color="white" size="sm" mb={2} flex="1">
+      <Text fontSize="md" mb={2} flex="1">
         {question.question}
-      </Heading>
+      </Text>
       {canModerate
         ? (
-          <Menu>
-            <MenuButton
-              as={IconButton}
-              size="md"
-              aria-label="Options"
-              icon={<Icon as={MdMoreHoriz} />}
-              variant="ghost"
-              justifySelf="flex-end"
-            />
-            <MenuList>
-              <MenuItem onClick={handleSelected} icon={<RxCursorArrow />}>
-                Select for Answering
-              </MenuItem>
-              <MenuItem onClick={handleAnswered} icon={<CheckCircleIcon />}>
-                Mark as Answered
-              </MenuItem>
-              <MenuItem onClick={handleDelete} icon={<DeleteIcon />}>
-                Hide Question
-              </MenuItem>
-              <MenuItem onClick={handleBlock} icon={<NotAllowedIcon />}>
-                Block User
-              </MenuItem>
-            </MenuList>
-          </Menu>
+          <Menu.Root>
+            <Menu.Trigger asChild>
+              <IconButton
+                size="md"
+                aria-label="Options"
+                variant="ghost"
+                colorPalette="gray"
+                color="gray.300"
+                justifySelf="flex-end"
+              >
+                <Icon as={FiMoreVertical} />
+              </IconButton>
+            </Menu.Trigger>
+            <Portal>
+              <Menu.Positioner>
+                <Menu.Content>
+                  <Menu.Item value="select" onClick={handleSelected}>
+                    <Icon as={RxCursorArrow} mr="2" />
+                    <Box as="span">Select for Answering</Box>
+                  </Menu.Item>
+                  <Menu.Item value="answer" onClick={handleAnswered}>
+                    <Icon as={CheckCircleIcon} mr="2" />
+                    <Box as="span">Mark as Answered</Box>
+                  </Menu.Item>
+                  <Menu.Item value="delete" onClick={handleDelete}>
+                    <Icon as={DeleteIcon} mr="2" />
+                    <Box as="span">Hide Question</Box>
+                  </Menu.Item>
+                  <Menu.Item value="block" onClick={handleBlock}>
+                    <Icon as={NotAllowedIcon} mr="2" />
+                    <Box as="span">Block User</Box>
+                  </Menu.Item>
+                </Menu.Content>
+              </Menu.Positioner>
+            </Portal>
+          </Menu.Root>
         )
         : <div />}
-      <span className="author">
+      <Text as="span" className="author" fontWeight="thin">
         {question.user?.name ?? question.user?.uid}
-      </span>
+      </Text>
       <div className="upvote">
         <div className={`upvote-count ${voted && "voted"}`}>
           {question.votes}
