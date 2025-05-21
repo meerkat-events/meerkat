@@ -77,10 +77,6 @@ ul {
   justify-content: center;
 }
 
-.header-title {
-  margin-bottom: 1.5rem;
-}
-
 .text-align-right {
   text-align: right;
 }
@@ -102,6 +98,7 @@ ul {
   max-height: 32rem;
   scrollbar-width: none;
   overflow-y: scroll;
+  padding-top: 12px;
 
   &::-webkit-scrollbar {
     display: none;

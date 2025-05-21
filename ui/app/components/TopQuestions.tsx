@@ -23,8 +23,8 @@ const TopQuestions = ({ questions, participants }: TopQuestionsProps) => {
   return (
     <div className="top-questions-layout">
       <header className="top-questions-header">
-        <h2 className="header-title">
-          Top Questions{" "}
+        <h2>
+          Top Questions
           <span className="question-count">
             ({questions.length ?? "Loading..."})
           </span>
