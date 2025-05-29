@@ -1,10 +1,9 @@
-import { useState } from "react";
-import { Button, Flex, Heading, Skeleton, Stack } from "@chakra-ui/react";
+import { Button, Flex, Heading, Skeleton } from "@chakra-ui/react";
 import { Link, useParams } from "react-router";
+import { useState } from "react";
 import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
 import { useEvent } from "../hooks/use-event.ts";
 import { card, feedback, qa } from "../routing.ts";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { usePageTitle } from "../hooks/use-page-title.ts";
 import { pageTitle } from "../utils/events.ts";
 
@@ -15,7 +14,6 @@ export default function Remote() {
 
   usePageTitle(pageTitle(event));
 
-  const hasFileverseLink = event?.features["fileverse-link"] ?? false;
   const hasSpeakerFeedback = event?.features["speaker-feedback"] ?? false;
 
   return (
@@ -33,7 +31,7 @@ export default function Remote() {
         }}
       >
         <Skeleton
-          isLoaded={!isLoading}
+          loading={isLoading}
           minWidth={240}
           minHeight={240}
           rounded="12px"
@@ -58,18 +56,18 @@ export default function Remote() {
             )
             : null}
         </Skeleton>
-        <Stack spacing={2} flexDirection="column" alignItems="center">
-          <Skeleton isLoaded={!!event} width="fit-content">
-            <Heading as="h1" color="white" size="lg" mb={1.5}>
+        <Flex gap={2} alignItems="center" direction="column">
+          <Skeleton loading={!event} width="fit-content">
+            <Heading as="h1" color="white" fontWeight="bold" size="2xl">
               {isEventLoading ? "Loading..." : event?.title}
             </Heading>
           </Skeleton>
           <Flex justifyContent="space-between">
-            <Skeleton isLoaded={!!event} width="fit-content">
+            <Skeleton loading={!event} width="fit-content">
               <Heading
                 as="h2"
-                size="md"
-                fontWeight="thin"
+                size="lg"
+                fontWeight="200"
                 wordBreak="break-word"
                 color="white"
               >
@@ -77,42 +75,38 @@ export default function Remote() {
               </Heading>
             </Skeleton>
           </Flex>
-        </Stack>
-        <Stack spacing={4} flexDirection="column" alignItems="center">
+        </Flex>
+        <Flex
+          gap={3}
+          direction="column"
+          alignItems="stretch"
+          maxW="280px"
+          w="100%"
+        >
           <PrimaryButton as={Link} to={uid ? qa(uid) : ""}>
             Join Q&A
           </PrimaryButton>
           <Button
+            asChild
             variant="outline"
-            as={Link}
-            to={uid ? card(uid) : ""}
-            width="16rem"
-            fontWeight="bold"
-            py={6}
+            size="lg"
           >
-            Collect Card
+            <Link to={uid ? card(uid) : ""}>
+              Collect Card
+            </Link>
           </Button>
           {hasSpeakerFeedback && (
             <Button
+              asChild
               variant="outline"
-              as={Link}
-              to={uid ? feedback(uid) : ""}
-              width="16rem"
-              fontWeight="bold"
-              py={6}
+              size="lg"
             >
-              Speaker Feedback
+              <Link to={uid ? feedback(uid) : ""}>
+                Speaker Feedback
+              </Link>
             </Button>
           )}
-          {hasFileverseLink && event?.uid && (
-            <Link
-              to={`https://devcon.fileverse.io/devcon7/portal?event=${event.uid}`}
-              target="_blank"
-            >
-              Contribute on Fileverse <ExternalLinkIcon />
-            </Link>
-          )}
-        </Stack>
+        </Flex>
       </main>
     </div>
   );

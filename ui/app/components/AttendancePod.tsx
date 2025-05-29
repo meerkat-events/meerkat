@@ -10,7 +10,7 @@ export function AttendancePod({ event }: AttendancePodProps) {
   const [isLoading, setIsLoading] = useState(true);
   return (
     <div className="collect-card-image">
-      <Skeleton isLoaded={!isLoading} width={260} height={260}>
+      <Skeleton loading={isLoading} width={260} height={260}>
         {event?.cover
           ? (
             <img

@@ -6,9 +6,11 @@ import { useEvent } from "../hooks/use-event.ts";
 import { Header } from "../components/Header/Header.tsx";
 import { remote } from "../routing.js";
 import { Flex } from "@chakra-ui/react";
-import { ArrowBackIcon, ExternalLinkIcon } from "@chakra-ui/icons";
+import {
+  FiArrowLeft as ArrowBackIcon,
+  FiArrowUpRight as ExternalLinkIcon,
+} from "react-icons/fi";
 import { useCollect } from "../hooks/use-collect.ts";
-import { useToast } from "@chakra-ui/react";
 import { pageTitle } from "../utils/events.ts";
 import { usePageTitle } from "../hooks/use-page-title.ts";
 import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
@@ -22,19 +24,19 @@ import { useTicketProof } from "../hooks/use-ticket-proof.ts";
 import { constructPODZapp } from "../zapi/zapps.ts";
 import { collectionName } from "../zapi/collections.ts";
 import { isError } from "../utils/error.ts";
+import { toaster } from "../components/ui/toaster.tsx";
 
 export default function EventCard() {
   const { uid } = useParams();
   const [searchParams] = useSearchParams();
   const { data: event } = useEvent(uid);
   const { isAuthenticated } = useUser();
-  const toast = useToast();
   const { login, isLoading: isLoggingIn } = useTicketProof({
     conferenceId: event?.conferenceId,
     onError: (error) => {
-      toast({
+      toaster.create({
         title: `Failed to login (${error?.message})`,
-        status: "error",
+        type: "error",
         description: error.message,
         duration: 2000,
       });
@@ -77,32 +79,33 @@ export default function EventCard() {
       setIsCollected(hasEventPods);
 
       if (hasEventPods) {
-        toast({
+        toaster.create({
           title: "Attendance Already Recorded",
           description: "Open Zupass to view your attendance POD",
-          status: "info",
+          type: "info",
           duration: 5000,
-          isClosable: true,
+          closable: true,
         });
         return;
       }
       await collect(zapi);
-      toast({
+      toaster.create({
         title: "Attendance Recorded",
         description: "Open Zupass to view your attendance POD",
-        status: "success",
+        type: "success",
         duration: 5000,
-        isClosable: true,
+        closable: true,
       });
       setIsCollected(true);
     } catch (error) {
-      toast({
+      toaster.create({
         title: "Error: Failed to record attendance",
-        description: `Please try again later. Error: ${isError(error) ? error.message : "Unknown error"
-          }`,
-        status: "error",
+        description: `Please try again later. Error: ${
+          isError(error) ? error.message : "Unknown error"
+        }`,
+        type: "error",
         duration: 9000,
-        isClosable: true,
+        closable: true,
       });
     } finally {
       setIsCollecting(false);
@@ -138,8 +141,8 @@ export default function EventCard() {
   const action = isAuthenticated && hasAnyRoles && secret && !isCollected
     ? onCollect
     : secret && !isCollected
-      ? onLogin
-      : null;
+    ? onLogin
+    : null;
 
   const hasTempleBackground = event?.features["temple-background"] ?? false;
 
@@ -178,7 +181,7 @@ export default function EventCard() {
           {action
             ? (
               <PrimaryButton
-                isLoading={isLoggingIn || isCollecting}
+                loading={isLoggingIn || isCollecting}
                 loadingText="Collecting..."
                 onClick={action}
                 disabled={isLoggingIn || isCollecting}
@@ -187,23 +190,23 @@ export default function EventCard() {
               </PrimaryButton>
             )
             : isCollected
-              ? (
-                <p>
-                  <ChakraLink
-                    href="https://zupass.org"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open Zupass <ExternalLinkIcon />
-                  </ChakraLink>{" "}
-                  to view your attendance PODs.
-                </p>
-              )
-              : (
-                <p style={{ marginTop: "auto" }}>
-                  Scan the Session QR code to collect your attendance
-                </p>
-              )}
+            ? (
+              <p>
+                <ChakraLink
+                  href="https://zupass.org"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open Zupass <ExternalLinkIcon />
+                </ChakraLink>{" "}
+                to view your attendance PODs.
+              </p>
+            )
+            : (
+              <p style={{ marginTop: "auto" }}>
+                Scan the Session QR code to collect your attendance
+              </p>
+            )}
         </Flex>
       </main>
     </div>

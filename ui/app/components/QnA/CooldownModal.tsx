@@ -12,7 +12,6 @@ export function CooldownModal() {
         setIsOnCooldown(false);
       }}
       title="Cooldown 🧊"
-      lockFocusAcrossFrames
     >
       <p>You were too fast! You are on cooldown.</p>
     </Modal>

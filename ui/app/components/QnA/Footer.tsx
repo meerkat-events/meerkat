@@ -1,36 +1,28 @@
-import { useRef } from "react";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { FiArrowUpRight as ExternalLinkIcon } from "react-icons/fi";
+import { FiSend } from "react-icons/fi";
 import {
   Button,
+  CloseButton,
   Flex,
-  Icon,
   IconButton,
   Link as ChakraLink,
   Textarea,
   useDisclosure,
-  useToast,
 } from "@chakra-ui/react";
 import { Link } from "react-router";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { useTicketProof } from "../../hooks/use-ticket-proof.ts";
-import { useThemeColors } from "../../hooks/use-theme-colors.ts";
 import type { Event, User } from "../../types.ts";
 import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
 import { HeartIcon } from "./HeartIcon.tsx";
 import { useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
-import {
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-} from "@chakra-ui/react";
+import { Dialog } from "@chakra-ui/react";
+import { useLogin } from "../../hooks/use-login.ts";
 import { useLogout } from "../../hooks/use-logout.ts";
+import { toaster } from "../ui/toaster.tsx";
 
 import "./Footer.css";
-import { useLogin } from "../../hooks/use-login.ts";
 
 const MAX_QUESTION_LENGTH = 200;
 
@@ -51,9 +43,7 @@ export function Footer({
   refresh,
   onReactClick,
 }: FooterProps) {
-  const { primaryPurple } = useThemeColors();
   const [focused, setFocused] = useState(false);
-  const toast = useToast();
 
   const hasZupassLogin = event?.features["zupass-login"] ?? false;
 
@@ -61,9 +51,9 @@ export function Footer({
     ? useLogin({
       conferenceId: event?.conferenceId,
       onError: (error) => {
-        toast({
+        toaster.create({
           title: `Failed to login`,
-          status: "error",
+          type: "error",
           description: error.message,
           duration: 2000,
         });
@@ -72,9 +62,9 @@ export function Footer({
     : useTicketProof({
       conferenceId: event?.conferenceId,
       onError: (error) => {
-        toast({
+        toaster.create({
           title: `Failed to login`,
-          status: "error",
+          type: "error",
           description: error.message,
           duration: 2000,
         });
@@ -88,26 +78,25 @@ export function Footer({
 
   const { trigger } = useAskQuestion(event, {
     onSuccess: () => {
-      toast({
+      toaster.create({
         title: "Question added 🎉",
-        status: "success",
+        type: "success",
         duration: 2000,
       });
       refresh();
       setQuestion("");
     },
     onError: (error) => {
-      toast({
+      toaster.create({
         title: `Failed to create question`,
-        status: "error",
+        type: "error",
         description: error.message,
         duration: 2000,
       });
     },
   });
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const { open: isOpen, onOpen, onClose } = useDisclosure();
 
   const { trigger: logout } = useLogout();
 
@@ -148,49 +137,42 @@ export function Footer({
               disabled={!isAuthenticated}
               placeholder="Type a question..."
               name="question"
-              bg="#342749"
-              color="white"
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               rows={isQuestionMode ? 3 : 1}
-              borderColor={primaryPurple}
-              border="none"
               borderRadius="md"
               paddingTop="12px"
               maxLength={MAX_QUESTION_LENGTH}
             />
             <IconButton
-              isDisabled={!isAuthenticated}
+              disabled={!isAuthenticated}
               size="lg"
               onClick={submitQuestion}
-              bg="purple.500"
-              _hover={{ bg: "purple.600" }}
-              icon={<SendIcon />}
               aria-label="Submit question"
-            />
+            >
+              <FiSend />
+            </IconButton>
             {!isQuestionMode
               ? (
                 <IconButton
-                  isDisabled={!isAuthenticated}
+                  disabled={!isAuthenticated}
                   onClick={() => {
                     onReactClick();
                     setIsTutorialHeartFinished(true);
                   }}
                   variant="ghost"
                   size="lg"
-                  icon={
-                    <div
-                      className={!isTutorialHeartFinished && isAuthenticated
-                        ? "pulsate"
-                        : undefined}
-                    >
-                      <HeartIcon />
-                    </div>
-                  }
-                  borderColor="purple.500"
                   aria-label="React to event"
                   type="button"
-                />
+                >
+                  <div
+                    className={!isTutorialHeartFinished && isAuthenticated
+                      ? "pulsate"
+                      : undefined}
+                  >
+                    <HeartIcon />
+                  </div>
+                </IconButton>
               )
               : null}
           </Flex>
@@ -202,15 +184,16 @@ export function Footer({
             {hasLeaderboard && (
               <Button
                 variant="outline"
-                as={Link}
                 size="xs"
-                to="/leaderboard"
                 fontWeight="bold"
+                asChild
                 padding="16px 8px"
                 fontSize="16px"
                 borderRadius="999px"
               >
-                🦄 {user?.points ?? 0}
+                <Link to="/leaderboard">
+                  🦄 {user?.points ?? 0}
+                </Link>
               </Button>
             )}
           </span>
@@ -218,7 +201,7 @@ export function Footer({
         {!isAuthenticated && !isUserLoading && (
           <LoginOverlay>
             <PrimaryButton
-              isLoading={isLoading}
+              loading={isLoading}
               loadingText="Connecting..."
               onClick={() => login()}
             >
@@ -227,32 +210,31 @@ export function Footer({
           </LoginOverlay>
         )}
       </div>
-      <AlertDialog
-        isOpen={isOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={onClose}
+      <Dialog.Root
+        role="alertdialog"
+        open={isOpen}
+        onOpenChange={onClose}
       >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Logout
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              Are you sure you want to logout?
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} colorScheme="gray" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={onLogout} ml={3}>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>
                 Logout
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+              </Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              Are you sure you want to logout?
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Button colorPalette="red" onClick={onLogout}>Logout</Button>
+            </Dialog.Footer>
+            <Dialog.CloseTrigger asChild>
+              <CloseButton size="sm" />
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Root>
     </>
   );
 }
@@ -265,13 +247,5 @@ function LoginOverlay(
       <span>To participate:</span>
       {children}
     </div>
-  );
-}
-
-function SendIcon() {
-  return (
-    <Icon viewBox="0 0 24 24">
-      <path fill="white" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-    </Icon>
   );
 }

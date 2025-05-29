@@ -10,11 +10,11 @@
     "@hono/node-server": "^1.14.1",
     "@pcd/gpc": "^0.4.0",
     "@pcd/proto-pod-gpc-artifacts": "^0.13.0",
-    "hono": "^4.7.8",
+    "hono": "^4.7.10",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "@types/node": "^22.15.3",
+    "@types/node": "^22.15.18",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }

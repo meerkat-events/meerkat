@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { FiArrowLeft as ArrowBackIcon } from "react-icons/fi";
 import {
+  Box,
   Button,
+  createListCollection,
   Flex,
   Link,
-  Modal as ChakraModal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
+  Portal,
   Select,
   Text,
 } from "@chakra-ui/react";
@@ -42,8 +38,15 @@ import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
 import { AttendancePod } from "../components/AttendancePod.tsx";
 import { useLocalStorage } from "@uidotdev/usehooks";
-import { useToast } from "@chakra-ui/react";
+import { toaster } from "~/components/ui/toaster.tsx";
 import { useAnonymousUser } from "~/hooks/use-anonymous-user.ts";
+
+const sortOptions = createListCollection({
+  items: [
+    { label: "Popular", value: "popular" },
+    { label: "Newest", value: "newest" },
+  ],
+});
 
 export default function QnA() {
   const { uid } = useParams();
@@ -60,7 +63,9 @@ export default function QnA() {
 
   usePageTitle(pageTitle(event));
 
-  const [isSortByPopularity, setIsSortByPopularity] = useState(false);
+  const [selectValue, setSelectValue] = useState<string[]>(["newest"]);
+  const isSortByPopularity = selectValue.includes("popular");
+
   const {
     data: questions,
     mutate: refreshQuestions,
@@ -81,15 +86,14 @@ export default function QnA() {
     [refreshQuestions, refreshVotes],
   );
 
-  const toast = useToast();
   const { trigger } = useReact(
     event?.uid ?? "",
     {
       onError: (error) => {
-        toast({
-          title: `Failed to react`,
+        toaster.create({
+          type: "error",
+          title: "Failed to react",
           description: error.message,
-          status: "error",
         });
       },
     },
@@ -188,29 +192,52 @@ export default function QnA() {
       <div className="layout">
         <header className="header flex">
           <nav>
-            <Link as={ReactRouterLink} to={uid ? remote(uid) : ""}>
-              <Flex
-                flexDirection="row"
-                gap="1"
-                alignItems="center"
-                padding="0.5rem 0 0 1rem"
-                minHeight="1rem"
-              >
-                <ArrowBackIcon /> <span>Controls</span>
-              </Flex>
+            <Link asChild color="gray.300">
+              <ReactRouterLink to={uid ? remote(uid) : ""}>
+                <Flex
+                  flexDirection="row"
+                  gap="1"
+                  alignItems="center"
+                  padding="0.5rem 0 0 1rem"
+                  minHeight="1rem"
+                >
+                  <ArrowBackIcon /> <span>Controls</span>
+                </Flex>
+              </ReactRouterLink>
             </Link>
           </nav>
           <Header title={`QA: ${event?.title}`} />
-          <div style={{ alignSelf: "flex-end", marginBottom: "0.5rem" }}>
-            <Select
-              value={isSortByPopularity ? "popular" : "newest"}
-              onChange={(e) =>
-                setIsSortByPopularity(e.target.value === "popular")}
+          <Box alignSelf="flex-end" padding="0 1rem 0.5rem">
+            <Select.Root
+              size="md"
+              collection={sortOptions}
+              width={90}
+              value={selectValue}
+              onValueChange={(e) => setSelectValue(e.value)}
             >
-              <option value="newest">Newest</option>
-              <option value="popular">Votes</option>
-            </Select>
-          </div>
+              <Select.HiddenSelect />
+              <Select.Control>
+                <Select.Trigger>
+                  <Select.ValueText placeholder="Newest" />
+                </Select.Trigger>
+                <Select.IndicatorGroup>
+                  <Select.Indicator />
+                </Select.IndicatorGroup>
+              </Select.Control>
+              <Portal>
+                <Select.Positioner>
+                  <Select.Content>
+                    {sortOptions.items.map((option) => (
+                      <Select.Item item={option} key={option.value}>
+                        {option.label}
+                        <Select.ItemIndicator />
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Positioner>
+              </Portal>
+            </Select.Root>
+          </Box>
         </header>
         <main className="content flex">
           <QuestionsSection
@@ -247,7 +274,6 @@ export default function QnA() {
           isOpen
           onClose={() => {}}
           title="Blocked"
-          lockFocusAcrossFrames
         >
           <p>
             You have been blocked from asking questions. If you believe this is
@@ -256,62 +282,47 @@ export default function QnA() {
         </Modal>
       )}
       <CooldownModal />
-      <ChakraModal
+      <Modal
         isOpen={showEndingModal}
         onClose={() => setShowEndingModal(false)}
+        title="Event End"
+        footer={
+          <Flex gap="1rem" justifyContent="flex-end">
+            <Button variant="outline" onClick={() => setShowEndingModal(false)}>
+              Stay Here
+            </Button>
+            <Button onClick={handleNavigateToCard}>
+              Go to Card Page
+            </Button>
+          </Flex>
+        }
       >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Event End</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <AttendancePod event={event} />
-            <Text mt="1rem">
-              Event is ending soon. It's time to get your attendance
-              collectable. Would you like to navigate there?
-            </Text>
-          </ModalBody>
-          <ModalFooter>
-            <Flex gap="1rem">
-              <Button variant="ghost" onClick={() => setShowEndingModal(false)}>
-                Stay Here
-              </Button>
-              <Button colorScheme="purple" onClick={handleNavigateToCard}>
-                Go to Card Page
-              </Button>
-            </Flex>
-          </ModalFooter>
-        </ModalContent>
-      </ChakraModal>
-      <ChakraModal
+        <AttendancePod event={event} />
+        <Text mt="1rem">
+          Event is ending soon. It's time to get your attendance collectable.
+          Would you like to navigate there?
+        </Text>
+      </Modal>
+      <Modal
         isOpen={showFeedbackModal}
         onClose={() => setShowFeedbackModal(false)}
+        title="Event End"
+        footer={
+          <Flex gap="1rem">
+            <Button variant="ghost" onClick={() => setShowFeedbackModal(false)}>
+              Stay Here
+            </Button>
+            <Button colorScheme="purple" onClick={handleNavigateToFeedback}>
+              Give Feedback
+            </Button>
+          </Flex>
+        }
       >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Event End</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Text>
-              Event is ending soon. Would you like to provide feedback for the
-              speaker?
-            </Text>
-          </ModalBody>
-          <ModalFooter>
-            <Flex gap="1rem">
-              <Button
-                variant="ghost"
-                onClick={() => setShowFeedbackModal(false)}
-              >
-                Stay Here
-              </Button>
-              <Button colorScheme="purple" onClick={handleNavigateToFeedback}>
-                Give Feedback
-              </Button>
-            </Flex>
-          </ModalFooter>
-        </ModalContent>
-      </ChakraModal>
+        <Text>
+          Event is ending soon. Would you like to provide feedback for the
+          speaker?
+        </Text>
+      </Modal>
     </>
   );
 }

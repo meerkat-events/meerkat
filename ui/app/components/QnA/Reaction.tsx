@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 interface ReactionProps {
   uid: string;
-  icon: JSX.Element;
+  icon: React.ReactNode;
   setReactions: React.Dispatch<React.SetStateAction<{ uid: string }[]>>;
 }
 

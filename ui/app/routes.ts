@@ -17,6 +17,5 @@ export default [
     route("/e/:uid/feedback", "routes/Feedback.tsx"),
     route("/login", "routes/Login.tsx"),
     route("/speaker", "routes/Speaker.tsx"),
-    route("/leaderboard", "routes/Leaderboard.tsx"),
   ]),
 ] satisfies RouteConfig;

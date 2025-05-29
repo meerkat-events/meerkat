@@ -15,13 +15,13 @@ export const Card = (
         <AttendancePod event={event} />
       </div>
       <Flex direction="column" align="center" gap="12px">
-        <Skeleton isLoaded={!!event} width="fit-content">
+        <Skeleton loading={!!event} width="fit-content">
           <Heading as="h1" color="white" size="lg" mb={1.5}>
             {event?.title ?? "Loading... please stand by"}
           </Heading>
         </Skeleton>
         <Flex justifyContent="space-between">
-          <Skeleton isLoaded={!!event} width="fit-content">
+          <Skeleton loading={!!event} width="fit-content">
             <Heading
               as="h2"
               size="md"

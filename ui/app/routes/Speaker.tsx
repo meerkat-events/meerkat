@@ -1,13 +1,4 @@
-import {
-  Button,
-  Card,
-  CardBody,
-  Heading,
-  Stack,
-  StackDivider,
-  Text,
-  useToast,
-} from "@chakra-ui/react";
+import { Button, Card, Heading, Stack, Text } from "@chakra-ui/react";
 import { useState } from "react";
 import { Header } from "../components/Header/Header.tsx";
 import { useUser } from "../hooks/use-user.ts";
@@ -32,7 +23,23 @@ export default function Speaker() {
     usePods();
   const [collected, setCollected] = useState<string[]>([]);
   const [isCollecting, setIsCollecting] = useState(false);
-  const toast = useToast();
+  const [toast, setToast] = useState<
+    {
+      title: string;
+      description: string;
+      status: "success" | "error";
+    } | null
+  >(null);
+
+  // Simple toast implementation since useToast is no longer available
+  const showToast = (toastData: {
+    title: string;
+    description: string;
+    status: "success" | "error";
+  }) => {
+    setToast(toastData);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const collect = async (pod: EventPod) => {
     if (!context?.config) {
@@ -50,7 +57,7 @@ export default function Speaker() {
 
       setCollected([...collected, pod.uid]);
 
-      toast({
+      showToast({
         title: "Feedback Collected",
         description: "Open Zupass to view it",
         status: "success",
@@ -59,7 +66,7 @@ export default function Speaker() {
         event_uid: pod.event.uid,
       });
     } catch (error) {
-      toast({
+      showToast({
         title: `Error collecting feedback for ${pod.event.title}`,
         description: `Error: ${(error as Error)?.message ?? "Unknown error"}`,
         status: "error",
@@ -93,29 +100,45 @@ export default function Speaker() {
           {isLoadingPods
             ? <Text textAlign="center">Loading...</Text>
             : filteredPods?.length === 0
-              ? <Text textAlign="center">No feedback to collect</Text>
-              : filteredPods?.map((pod) => (
-                <li
-                  key={pod.uid}
-                >
-                  <Pod
-                    pod={pod}
-                    collect={collect}
-                    isConnecting={isCollecting}
-                  />
-                </li>
-              ))}
+            ? <Text textAlign="center">No feedback to collect</Text>
+            : filteredPods?.map((pod) => (
+              <li
+                key={pod.uid}
+              >
+                <Pod
+                  pod={pod}
+                  collect={collect}
+                  isConnecting={isCollecting}
+                />
+              </li>
+            ))}
         </ul>
         {!isEmailVerified && (
           <PrimaryButton
             onClick={handleLogin}
-            isLoading={isLoading}
-            loadingText="Logging in..."
+            loading={isLoading}
           >
             Login
           </PrimaryButton>
         )}
       </main>
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            padding: "15px",
+            backgroundColor: toast.status === "success" ? "#48BB78" : "#E53E3E",
+            color: "white",
+            borderRadius: "5px",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          <div style={{ fontWeight: "bold" }}>{toast.title}</div>
+          <div>{toast.description}</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -128,9 +151,9 @@ function Pod(
   },
 ) {
   return (
-    <Card>
-      <CardBody>
-        <Stack divider={<StackDivider />} spacing="4">
+    <Card.Root>
+      <Card.Body>
+        <Stack gap="4">
           <Heading size="md">{pod.event.title}</Heading>
           <Text>
             {String(pod.pod.entries.zupass_description)}
@@ -140,13 +163,12 @@ function Pod(
             fontWeight="bold"
             py={6}
             onClick={() => collect(pod)}
-            isLoading={isConnecting}
-            loadingText="Collecting..."
+            loading={isConnecting}
           >
             Collect
           </Button>
         </Stack>
-      </CardBody>
-    </Card>
+      </Card.Body>
+    </Card.Root>
   );
 }
