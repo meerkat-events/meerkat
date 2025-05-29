@@ -45,7 +45,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	& > li {
+	&>li {
 		margin: 0;
 		padding: 0;
 	}
@@ -55,7 +55,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	& > li {
+	&>li {
 		margin: 0;
 		padding: 0;
 	}
@@ -70,7 +70,7 @@ ul {
 }
 
 .bubble {
-	background-color: var(--chakra-colors-brand-900);
+	background-color: color-mix(in srgb, var(--chakra-colors-brand-emphasized) 30%, transparent);
 	color: var(--chakra-colors-brand-contrast);
 	border-radius: 5px;
 	border: 1px solid transparent;
@@ -158,11 +158,9 @@ ul {
 		border-radius: 15px;
 		padding: 8px;
 		background:
-			linear-gradient(
-				95deg,
+			linear-gradient(95deg,
 				rgba(151, 71, 255, 0.50) 20.09%,
-				rgba(86, 59, 131, 0.50) 80%
-			),
+				rgba(86, 59, 131, 0.50) 80%),
 			rgba(255, 255, 255, 0.01);
 		box-shadow:
 			0px 28.665px 41.159px -26.46px rgba(255, 255, 255, 0.50) inset,
@@ -174,10 +172,6 @@ ul {
 	}
 }
 
-.temple-background {
-	background: url("/Background.svg") center -40px / contain no-repeat;
-}
-
 .card {
 	padding: 1rem 0;
 	text-align: center;
@@ -186,10 +180,7 @@ ul {
 .tab-panel {
 	display: flex;
 	flex-direction: column;
-	height: calc(
-		100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom)
-			- env(safe-area-inset-top)
-	);
+	height: calc(100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom) - env(safe-area-inset-top));
 }
 
 .reaction {

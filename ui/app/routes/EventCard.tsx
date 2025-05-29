@@ -144,31 +144,29 @@ export default function EventCard() {
     ? onLogin
     : null;
 
-  const hasTempleBackground = event?.features["temple-background"] ?? false;
-
   return (
     <div className="layout">
       <header className="header">
         <nav>
-          <Link to={uid ? remote(uid) : ""}>
-            <Flex
-              flexDirection="row"
-              gap="1"
-              alignItems="center"
-              padding="0.5rem 0 0 1rem"
-              minHeight="1rem"
-            >
-              <ArrowBackIcon /> <span>Controls</span>
-            </Flex>
-          </Link>
+          <ChakraLink asChild color="gray.300">
+            <Link to={uid ? remote(uid) : ""}>
+              <Flex
+                flexDirection="row"
+                gap="1"
+                alignItems="center"
+                padding="0.5rem 0 0 1rem"
+                minHeight="1rem"
+              >
+                <ArrowBackIcon /> <span>Controls</span>
+              </Flex>
+            </Link>
+          </ChakraLink>
         </nav>
         <div style={{ paddingBottom: "1rem" }}>
           <Header title={`Card: ${event?.title ?? "Loading..."}`} />
         </div>
       </header>
-      <main
-        className={`content ${hasTempleBackground ? "temple-background" : ""}`}
-      >
+      <main className="content">
         <Flex
           flexDirection="column"
           alignItems="center"

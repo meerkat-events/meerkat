@@ -5,7 +5,6 @@ type ThemeKit = {
   brandColor: string;
   contrastColor: string;
   backgroundColor: string;
-  headingFontFamily?: string;
 };
 
 const meerkat: ThemeKit = {
@@ -15,26 +14,24 @@ const meerkat: ThemeKit = {
 };
 
 const protocolBerg: ThemeKit = {
-  backgroundColor: "#292929",
-  brandColor: "#95daf3",
-  contrastColor: "black",
-  headingFontFamily:
-    "Latin Modern, Georgia, Cambria, Times New Roman, Times, serif",
+  backgroundColor: "brand.900",
+  brandColor: "#1382aa",
+  contrastColor: "white",
 };
 
 const generateColorScale = (baseColor: string) => {
   return {
-    50: { value: lighten(baseColor, 0.45) },
-    100: { value: lighten(baseColor, 0.35) },
-    200: { value: lighten(baseColor, 0.25) },
-    300: { value: lighten(baseColor, 0.15) },
-    400: { value: lighten(baseColor, 0.05) },
-    500: { value: baseColor },
-    600: { value: darken(baseColor, 0.1) },
-    700: { value: darken(baseColor, 0.2) },
-    800: { value: darken(baseColor, 0.3) },
-    900: { value: darken(baseColor, 0.4) },
-    950: { value: darken(baseColor, 0.5) },
+    50: { value: lighten(baseColor, 0.6) },
+    100: { value: lighten(baseColor, 0.5) },
+    200: { value: lighten(baseColor, 0.4) },
+    300: { value: lighten(baseColor, 0.3) },
+    400: { value: lighten(baseColor, 0.2) },
+    500: { value: lighten(baseColor, 0.1) },
+    600: { value: baseColor },
+    700: { value: darken(baseColor, 0.1) },
+    800: { value: darken(baseColor, 0.2) },
+    900: { value: darken(baseColor, 0.3) },
+    950: { value: darken(baseColor, 0.4) },
   };
 };
 
@@ -51,22 +48,17 @@ const chakraAdapter = (themeKit: ThemeKit) => {
         colors: {
           brand: generateColorScale(themeKit.brandColor),
         },
-        fonts: {
-          ...(themeKit.headingFontFamily && {
-            heading: { value: themeKit.headingFontFamily },
-          }),
-        },
       },
       semanticTokens: {
         colors: {
           brand: {
-            solid: { value: "{colors.brand.500}" },
+            solid: { value: "{colors.brand.600}" },
             contrast: { value: themeKit.contrastColor },
-            fg: { value: "{colors.brand.400}" },
-            // muted: { value: "{colors.brand.100}" },
-            subtle: { value: "{colors.brand.800}" },
-            // emphasized: { value: "{colors.brand.300}" },
-            focusRing: { value: "{colors.brand.500}" },
+            fg: { value: "{colors.brand.300}" },
+            muted: { value: "{colors.brand.800}" },
+            subtle: { value: "{colors.brand.900}" },
+            emphasized: { value: "{colors.brand.700}" },
+            focusRing: { value: "{colors.brand.600}" },
           },
         },
       },

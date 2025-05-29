@@ -127,7 +127,7 @@ export function Question(
           Answering
         </div>
       )}
-      <Text fontSize="md" mb={2} flex="1">
+      <Text fontSize="md" mb={2} flex="1" fontWeight="600">
         {question.question}
       </Text>
       {canModerate
@@ -170,7 +170,7 @@ export function Question(
           </Menu.Root>
         )
         : <div />}
-      <Text as="span" className="author" fontWeight="thin">
+      <Text as="span" className="author" fontWeight="400">
         {question.user?.name ?? question.user?.uid}
       </Text>
       <div className="upvote">

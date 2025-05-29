@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { FiArrowLeft as ArrowBackIcon } from "react-icons/fi";
-import { Field, Flex, Link as ChakraLink, Textarea } from "@chakra-ui/react";
+import {
+  Field,
+  Flex,
+  Link,
+  Link as ChakraLink,
+  Textarea,
+} from "@chakra-ui/react";
 import { Link as ReactRouterLink, useParams } from "react-router";
 import { usePageTitle } from "../hooks/use-page-title.ts";
 import { pageTitle } from "../utils/events.ts";
@@ -103,7 +109,7 @@ export default function Feedback() {
     <div className="layout">
       <header className="header">
         <nav>
-          <ChakraLink asChild>
+          <Link asChild color="gray.300">
             <ReactRouterLink to={uid ? remote(uid) : ""}>
               <Flex
                 flexDirection="row"
@@ -115,7 +121,7 @@ export default function Feedback() {
                 <ArrowBackIcon /> <span>Controls</span>
               </Flex>
             </ReactRouterLink>
-          </ChakraLink>
+          </Link>
         </nav>
         <div style={{ paddingBottom: "1rem" }}>
           <Header title={`Feedback: ${event?.title ?? "Loading..."}`} />
