@@ -1,0 +1,23 @@
+name: Data Sync Trigger
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - uses: denoland/setup-deno@v2
+      with:
+        deno-version: v2.x  
+    - name: Run script
+      working-directory: api
+      env:
+        SYNC_CONFIGS: ${{ secrets.SYNC_CONFIGS }}
+      run: |
+        deno run --allow-net --allow-env ./jobs/syncs.ts
