@@ -1,6 +1,4 @@
 import { isRouteErrorResponse, Outlet } from "react-router";
-import { ZAPIProvider } from "../zapi/context";
-import { UserProvider } from "../context/user";
 import { SupabaseProvider } from "../context/supabase";
 import { createClient } from "@supabase/supabase-js";
 import type { Route } from "./+types/app";
@@ -30,14 +28,7 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
 
   const content = (
     <SWRConfig>
-      <ZAPIProvider
-        zappName={config.zappName}
-        zupassUrl={config.zupassUrl}
-      >
-        <UserProvider>
-          <Outlet />
-        </UserProvider>
-      </ZAPIProvider>
+      <Outlet />
     </SWRConfig>
   );
 

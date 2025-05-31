@@ -1,21 +1,14 @@
-import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
+import {
+  createSystem as createSystemChakra,
+  defaultConfig,
+  defineConfig,
+} from "@chakra-ui/react";
 import { darken, lighten } from "color2k";
+import type { Theme } from "~/types";
 
-type ThemeKit = {
-  brandColor: string;
-  contrastColor: string;
-  backgroundColor: string;
-};
-
-const meerkat: ThemeKit = {
+export const meerkat: Theme = {
   backgroundColor: "#0c021d",
   brandColor: "#9333EA",
-  contrastColor: "white",
-};
-
-const protocolBerg: ThemeKit = {
-  backgroundColor: "brand.900",
-  brandColor: "#1382aa",
   contrastColor: "white",
 };
 
@@ -35,25 +28,25 @@ const generateColorScale = (baseColor: string) => {
   };
 };
 
-const chakraAdapter = (themeKit: ThemeKit) => {
+const chakraAdapter = (theme: Theme) => {
   return defineConfig({
     globalCss: {
       html: {
-        backgroundColor: themeKit.backgroundColor,
+        backgroundColor: theme.backgroundColor,
         colorPalette: "brand",
       },
     },
     theme: {
       tokens: {
         colors: {
-          brand: generateColorScale(themeKit.brandColor),
+          brand: generateColorScale(theme.brandColor),
         },
       },
       semanticTokens: {
         colors: {
           brand: {
             solid: { value: "{colors.brand.600}" },
-            contrast: { value: themeKit.contrastColor },
+            contrast: { value: theme.contrastColor },
             fg: { value: "{colors.brand.300}" },
             muted: { value: "{colors.brand.800}" },
             subtle: { value: "{colors.brand.900}" },
@@ -61,9 +54,22 @@ const chakraAdapter = (themeKit: ThemeKit) => {
             focusRing: { value: "{colors.brand.600}" },
           },
         },
+        fonts: {
+          ...(theme.headingFontFamily && {
+            heading: {
+              value: theme.headingFontFamily,
+            },
+          }),
+          ...(theme.bodyFontFamily && {
+            body: {
+              value: theme.bodyFontFamily,
+            },
+          }),
+        },
       },
     },
   });
 };
 
-export const system = createSystem(defaultConfig, chakraAdapter(meerkat));
+export const createSystem = (theme: Theme) =>
+  createSystemChakra(defaultConfig, chakraAdapter(theme));

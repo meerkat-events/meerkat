@@ -16,6 +16,13 @@ export const conferences = pgTable("conferences", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   logoUrl: text("logo_url"),
+  theme: jsonb("theme").$type<{
+    brandColor: string;
+    contrastColor: string;
+    backgroundColor: string;
+    headingFontFamily?: string;
+    bodyFontFamily?: string;
+  }>(),
 });
 
 export const roleEnum = pgEnum("role", ["attendee", "speaker", "organizer"]);

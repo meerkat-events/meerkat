@@ -10,17 +10,33 @@ import { SWRConfig } from "swr";
 import { getConfig } from "../lib/config";
 import { useTools } from "~/lib/use-tools";
 import { Toaster } from "~/components/ui/toaster";
+import type { Event } from "~/types";
+import { fetcher } from "~/hooks/fetcher";
+import { createSystem, meerkat } from "~/theme";
 
 import "./index.css";
 
-export async function clientLoader(_args: Route.LoaderArgs) {
+export async function clientLoader(args: Route.LoaderArgs) {
+  let event: Event | undefined;
+  if (args.params.uid) {
+    ({ data: event } = await fetcher(`/api/v1/events/${args.params.uid}`));
+  }
+
   return {
+    event,
     config: await getConfig(),
   };
 }
 
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
-  const { config } = loaderData;
+  const { config, event } = loaderData;
+
+  const system = useMemo(() => {
+    if (event?.conference?.theme) {
+      return createSystem(event.conference.theme);
+    }
+    return createSystem(meerkat);
+  }, [event]);
 
   const supabase = useMemo(() => {
     if (config.supabaseUrl && config.supabaseAnonKey) {
@@ -39,7 +55,10 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         zupassUrl={config.zupassUrl}
       >
         <UserProvider>
-          <Provider defaultTheme="dark" forcedTheme="dark">
+          <Provider
+            colorMode={{ defaultTheme: "dark", forcedTheme: "dark" }}
+            value={system}
+          >
             <Outlet />
             <Toaster />
           </Provider>

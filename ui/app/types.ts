@@ -10,10 +10,19 @@ export type User = {
   points?: 0 | number | undefined;
 };
 
+export type Theme = {
+  brandColor: string;
+  contrastColor: string;
+  backgroundColor: string;
+  headingFontFamily?: string;
+  bodyFontFamily?: string;
+};
+
 export type Conference = {
   id: number;
   name: string;
   logoUrl: string | null;
+  theme: Theme | null;
 };
 
 export type Event = {
