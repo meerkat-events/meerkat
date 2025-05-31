@@ -27,17 +27,23 @@ export const conferences = pgTable("conferences", {
 
 export const roleEnum = pgEnum("role", ["attendee", "speaker", "organizer"]);
 
-export const conferenceTickets = pgTable("conference_tickets", {
-  id: serial("id").primaryKey(),
-  conferenceId: integer("conference_id")
-    .notNull()
-    .references(() => conferences.id, { onDelete: "cascade" }),
-  collectionName: text("collection_name").notNull(),
-  eventId: text("event_id").notNull(),
-  signerPublicKey: text("signer_public_key").notNull(),
-  productId: text("product_id"),
-  role: roleEnum("role").default("attendee").notNull(),
-});
+export const conferenceTickets = pgTable(
+  "conference_tickets",
+  {
+    id: serial("id").primaryKey(),
+    conferenceId: integer("conference_id")
+      .notNull()
+      .references(() => conferences.id, { onDelete: "cascade" }),
+    collectionName: text("collection_name").notNull(),
+    eventId: text("event_id").notNull(),
+    signerPublicKey: text("signer_public_key").notNull(),
+    productId: text("product_id"),
+    role: roleEnum("role").default("attendee").notNull(),
+  },
+  (
+    table,
+  ) => [index("conference_tickets_conference_id_idx").on(table.conferenceId)],
+);
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
@@ -55,7 +61,7 @@ export const events = pgTable("events", {
   cover: text("cover"),
   speaker: text("speaker"),
   secret: text("secret"),
-});
+}, (table) => [index("events_conference_id_idx").on(table.conferenceId)]);
 
 // export const event_speakers = pgTable("event_speakers", {
 //   eventId: integer("event_id")
@@ -87,9 +93,7 @@ export const event_pods = pgTable("event_pods", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  eventPodsIdx: index("event_pods_event_id_idx").on(table.eventId),
-}));
+}, (table) => [index("event_pods_event_id_idx").on(table.eventId)]);
 
 export const questions = pgTable(
   "questions",
@@ -108,10 +112,12 @@ export const questions = pgTable(
     answeredAt: timestamp("answered_at"),
     deletedAt: timestamp("deleted_at"),
   },
-  (table) => ({
-    eventIdx: index("questions_event_id_idx").on(table.eventId),
-    userIdx: index("questions_user_id_idx").on(table.userId),
-  }),
+  (
+    table,
+  ) => [
+    index("questions_event_id_idx").on(table.eventId),
+    index("questions_user_id_idx").on(table.userId),
+  ],
 );
 
 export const votes = pgTable(
@@ -125,11 +131,13 @@ export const votes = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.questionId, table.userId] }),
-    userIdx: index("votes_user_id_idx").on(table.userId),
-    questionIdx: index("votes_question_id_idx").on(table.questionId),
-  }),
+  (
+    table,
+  ) => [
+    primaryKey({ columns: [table.questionId, table.userId] }),
+    index("votes_user_id_idx").on(table.userId),
+    index("votes_question_id_idx").on(table.questionId),
+  ],
 );
 
 export const users = pgTable("users", {
@@ -152,10 +160,12 @@ export const conferenceRole = pgTable(
     role: roleEnum("role").default("attendee").notNull(),
     grantedAt: timestamp("granted_at").defaultNow().notNull(),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.conferenceId, table.userId] }),
-    userIdx: index("conference_role_user_id_idx").on(table.userId),
-  }),
+  (
+    table,
+  ) => [
+    primaryKey({ columns: [table.conferenceId, table.userId] }),
+    index("conference_role_user_id_idx").on(table.userId),
+  ],
 );
 
 export const accounts = pgTable(
@@ -168,10 +178,12 @@ export const accounts = pgTable(
     id: text("id").notNull().unique(),
     hash: text("hash"),
   },
-  (table) => ({
-    providerId: unique("provider_id_uniq").on(table.provider, table.id),
-    userIdx: index("accounts_user_id_idx").on(table.userId),
-  }),
+  (
+    table,
+  ) => [
+    unique("provider_id_uniq").on(table.provider, table.id),
+    index("accounts_user_id_idx").on(table.userId),
+  ],
 );
 
 export const nonces = pgTable("nonces", {
@@ -189,9 +201,7 @@ export const features = pgTable("features", {
   ),
   name: text("name").notNull(),
   active: boolean("active").notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.conferenceId, table.name] }),
-}));
+}, (table) => [primaryKey({ columns: [table.conferenceId, table.name] })]);
 
 export const reactions = pgTable(
   "reactions",
@@ -205,8 +215,10 @@ export const reactions = pgTable(
       .references(() => events.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    eventIdx: index("reactions_event_id_idx").on(table.eventId),
-    userIdx: index("reactions_user_id_idx").on(table.userId),
-  }),
+  (
+    table,
+  ) => [
+    index("reactions_event_id_idx").on(table.eventId),
+    index("reactions_user_id_idx").on(table.userId),
+  ],
 );
