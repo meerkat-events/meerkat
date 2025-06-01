@@ -12,7 +12,7 @@ import {
 } from "react-icons/fi";
 import { useCollect } from "../hooks/use-collect.ts";
 import { pageTitle } from "../utils/events.ts";
-import { usePageTitle } from "../hooks/use-page-title.ts";
+import { useDocumentTitle } from "@uidotdev/usehooks";
 import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useUser } from "../hooks/use-user.ts";
 import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
@@ -43,7 +43,7 @@ export default function EventCard() {
     },
   });
   const [isCollected, setIsCollected] = useState(false);
-  usePageTitle(pageTitle(event));
+  useDocumentTitle(pageTitle(event));
   const secret = searchParams.get("secret");
   const [isCollecting, setIsCollecting] = useState(false);
   const { connect, isConnected } = useZAPIConnect();

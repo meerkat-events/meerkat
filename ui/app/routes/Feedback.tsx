@@ -8,7 +8,7 @@ import {
   Textarea,
 } from "@chakra-ui/react";
 import { Link as ReactRouterLink, useParams } from "react-router";
-import { usePageTitle } from "../hooks/use-page-title.ts";
+import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import { Header } from "../components/Header/Header.tsx";
 import { useEvent } from "../hooks/use-event.ts";
@@ -26,7 +26,7 @@ import { toaster } from "../components/ui/toaster.tsx";
 export default function Feedback() {
   const { uid } = useParams();
   const { data: event } = useEvent(uid);
-  usePageTitle(pageTitle(event));
+  useDocumentTitle(pageTitle(event));
   const { isAuthenticated } = useUser();
   const { connect, isConnecting } = useZAPIConnect();
   const [text, setText] = useState("");

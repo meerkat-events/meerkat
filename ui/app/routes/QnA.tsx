@@ -33,7 +33,7 @@ import { uuidv7 } from "uuidv7";
 import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
 import { useQuestionsSubscription } from "../hooks/use-questions-subscription.ts";
 import { useQuestions } from "../hooks/use-questions.ts";
-import { usePageTitle } from "../hooks/use-page-title.ts";
+import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
 import { AttendancePod } from "../components/AttendancePod.tsx";
@@ -61,7 +61,7 @@ export default function QnA() {
   const secret = searchParams.get("secret");
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
-  usePageTitle(pageTitle(event));
+  useDocumentTitle(pageTitle(event));
 
   const [selectValue, setSelectValue] = useState<string[]>(["newest"]);
   const isSortByPopularity = selectValue.includes("popular");

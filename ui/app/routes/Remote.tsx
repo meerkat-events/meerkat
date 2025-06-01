@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
 import { useEvent } from "../hooks/use-event.ts";
 import { card, feedback, qa } from "../routing.ts";
-import { usePageTitle } from "../hooks/use-page-title.ts";
+import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 
 export default function Remote() {
@@ -12,7 +12,7 @@ export default function Remote() {
   const { data: event, isLoading: isEventLoading } = useEvent(uid);
   const [isLoading, setIsLoading] = useState(true);
 
-  usePageTitle(pageTitle(event));
+  useDocumentTitle(pageTitle(event));
 
   const hasSpeakerFeedback = event?.features["speaker-feedback"] ?? false;
 
