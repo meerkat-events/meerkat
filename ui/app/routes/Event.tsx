@@ -6,18 +6,22 @@ import { HeartIcon } from "~/components/assets/heart";
 import { useQuestionsSubscription } from "~/hooks/use-questions-subscription";
 import { useQuestions } from "~/hooks/use-questions";
 import { useParams, useSearchParams } from "react-router";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useThrottle } from "@uidotdev/usehooks";
 import type { Event } from "~/types";
 import { useEvent } from "~/hooks/use-event.ts";
+import { randomNormal } from "d3-random";
 
 import "./index.css";
 
 const REFRESH_INTERVAL = 30_000;
 
+const randomX = randomNormal(50, 8);
+
 export default function EventPage() {
   const { uid } = useParams();
   const [searchParams] = useSearchParams();
+  const [reactions, setReactions] = useState<{ id: string; x: number }[]>([]);
 
   const hideQRCode = searchParams.get("hide-qr-code") === "true";
 
@@ -48,12 +52,19 @@ export default function EventPage() {
     eventData,
   ]);
 
+  const addReaction = useCallback(() => {
+    const id = globalThis.crypto.randomUUID();
+    const x = Math.max(0, Math.min(100, randomX()));
+
+    setReactions((prev) => [...prev, { id, x }]);
+
+    setTimeout(() => {
+      setReactions((prev) => prev.filter((reaction) => reaction.id !== id));
+    }, 3000);
+  }, []);
+
   useReactionsSubscription(event, {
-    onUpdate: (_reaction) => {
-      const reactionElement = createReactionElement(HeartIcon);
-      const parent = document.querySelector(".heart-icon-container");
-      parent?.appendChild(reactionElement);
-    },
+    onUpdate: addReaction,
   });
 
   const throttledRefresh = useThrottle(
@@ -95,17 +106,19 @@ export default function EventPage() {
           Participants {event?.participants}
         </Text>
       </aside>
+
+      <div className="reactions-container">
+        {reactions.map((reaction) => (
+          <div
+            key={reaction.id}
+            className="reaction"
+            style={{ left: `${reaction.x}%` }}
+            dangerouslySetInnerHTML={{ __html: HeartIcon }}
+          />
+        ))}
+      </div>
     </div>
   );
-}
-
-function createReactionElement(icon: string) {
-  const reactionElement = document.createElement("div");
-  reactionElement.className = "reaction";
-  reactionElement.style.right = `${Math.random() * 0.5 - 0.25}rem`;
-  reactionElement.innerHTML = icon;
-
-  return reactionElement;
 }
 
 function toEvent(data: Event) {
