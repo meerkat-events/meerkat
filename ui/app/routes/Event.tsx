@@ -11,7 +11,7 @@ import { useEvent } from "~/hooks/use-event.ts";
 import { randomNormal } from "d3-random";
 import throttle from "lodash.throttle";
 
-import "./index.css";
+import "./Event.css";
 
 const REFRESH_INTERVAL = 30_000;
 
