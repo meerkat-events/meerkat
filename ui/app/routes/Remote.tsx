@@ -1,4 +1,4 @@
-import { Button, Flex, Heading, Skeleton } from "@chakra-ui/react";
+import { Button, Flex, Heading, Skeleton, Text } from "@chakra-ui/react";
 import { Link, useParams } from "react-router";
 import { useState } from "react";
 import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
@@ -107,6 +107,14 @@ export default function Remote() {
             </Button>
           )}
         </Flex>
+        <Text
+          fontSize="sm"
+          color="gray.300"
+          marginTop="auto"
+          marginBottom="1rem"
+        >
+          Powered by meerkat.events
+        </Text>
       </main>
     </div>
   );
