@@ -7,24 +7,27 @@ import { createClient } from "@supabase/supabase-js";
 import type { Route } from "./+types/app";
 import { useMemo } from "react";
 import { SWRConfig } from "swr";
-import { getConfig } from "../lib/config";
+import { type Config, getConfig } from "../lib/config";
 import { useTools } from "~/lib/use-tools";
 import { Toaster } from "~/components/ui/toaster";
-import type { Event } from "~/types";
 import { fetcher } from "~/hooks/fetcher";
 import { createSystem, meerkat } from "~/theme";
+import type { Event } from "~/types";
 
-import "./index.css";
+import "./app.css";
 
 export async function clientLoader(args: Route.LoaderArgs) {
-  let event: Event | undefined;
-  if (args.params.uid) {
-    ({ data: event } = await fetcher(`/api/v1/events/${args.params.uid}`));
-  }
+  const [{ data: event }, config]: [{ data: Event | undefined }, Config] =
+    await Promise.all([
+      args.params.uid
+        ? fetcher(`/api/v1/events/${args.params.uid}`)
+        : undefined,
+      getConfig(),
+    ]);
 
   return {
     event,
-    config: await getConfig(),
+    config,
   };
 }
 

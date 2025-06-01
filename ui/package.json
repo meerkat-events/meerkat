@@ -14,7 +14,6 @@
     "@chakra-ui/react": "^3.19.1",
     "@emotion/react": "^11.14.0",
     "@grafana/faro-web-sdk": "^1.18.1",
-    "@libs/qrcode": "npm:@jsr/libs__qrcode@^2.0.1",
     "@parcnet-js/app-connector": "^1.1.10",
     "@parcnet-js/podspec": "^1.2.0",
     "@parcnet-js/ticket-spec": "^1.1.9",

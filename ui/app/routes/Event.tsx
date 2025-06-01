@@ -1,10 +1,11 @@
 import QR from "~/components/QR";
+import { Heading, Text } from "@chakra-ui/react";
 import TopQuestions from "~/components/TopQuestions";
 import { useReactionsSubscription } from "~/hooks/use-reactions-subscription";
 import { HeartIcon } from "~/components/assets/heart";
 import { useQuestionsSubscription } from "~/hooks/use-questions-subscription";
 import { useQuestions } from "~/hooks/use-questions";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import type { Route } from "./+types/Event.tsx";
 import type { Event, Question } from "~/types";
 
@@ -56,23 +57,24 @@ export default function Event(
   { loaderData }: Route.ComponentProps,
 ) {
   const { uid } = useParams();
+  const [searchParams] = useSearchParams();
   const event = loaderData;
-  const { participants, conference } = loaderData;
+
+  const hideQRCode = searchParams.get("hide-qr-code") === "true";
 
   const {
     data: questions,
-    mutate: refreshQuestions,
+    mutate: refresh,
   } = useQuestions(
     uid,
     {
       sort: "popular",
       answered: false,
+      swr: {
+        refreshInterval: 30_000,
+      },
     },
   );
-
-  const refresh = () => {
-    refreshQuestions();
-  };
 
   useReactionsSubscription(event, {
     onUpdate: (_reaction) => {
@@ -83,22 +85,38 @@ export default function Event(
   });
 
   useQuestionsSubscription(event, {
-    onUpdate: () => {
-      refresh();
-    },
+    onUpdate: refresh,
   });
 
   return (
-    <div className="layout">
-      <div className="top-questions-container">
-        <TopQuestions
-          questions={questions ?? []}
-          participants={participants}
-        />
-      </div>
-      <div className="qr-container">
-        <QR url={event.url} event={event} conferenceName={conference.name} />
-      </div>
+    <div className={`page ${hideQRCode ? "hide-qr-code" : ""}`}>
+      <header>
+        <div className="title">
+          <Heading as="h1" size="2xl">
+            {event.title}
+          </Heading>
+          <Text fontSize="xl">
+            {event.speaker}
+          </Text>
+        </div>
+        <div className="logo">
+          <img src="/logo.png" alt="Logo" width={30} height={30} />
+          <Text className="font-family-meerkat" fontSize="sm" fontWeight="bold">
+            meerkat.events
+          </Text>
+        </div>
+      </header>
+      <main>
+        <TopQuestions questions={questions ?? []} />
+      </main>
+      {!hideQRCode && (
+        <aside>
+          <QR url={event.url} />
+          <Text fontSize="xl" fontWeight="bold" textAlign="center">
+            Participants {event.participants}
+          </Text>
+        </aside>
+      )}
     </div>
   );
 }

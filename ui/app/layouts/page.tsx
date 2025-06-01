@@ -4,17 +4,37 @@ import { createClient } from "@supabase/supabase-js";
 import type { Route } from "./+types/app";
 import { useMemo } from "react";
 import { SWRConfig } from "swr";
-import { getConfig } from "../lib/config";
+import { type Config, getConfig } from "~/lib/config";
 import { useTools } from "~/lib/use-tools";
+import { Provider } from "~/components/ui/provider";
+import { meerkat } from "~/theme";
+import { fetcher } from "~/hooks/fetcher";
+import { createSystem } from "~/theme";
 
-export async function clientLoader(_args: Route.LoaderArgs) {
+export async function clientLoader(args: Route.LoaderArgs) {
+  const [{ data: event }, config]: [{ data: Event | undefined }, Config] =
+    await Promise.all([
+      args.params.uid
+        ? fetcher(`/api/v1/events/${args.params.uid}`)
+        : undefined,
+      getConfig(),
+    ]);
+
   return {
-    config: await getConfig(),
+    event,
+    config,
   };
 }
 
 export default function PageLayout({ loaderData }: Route.ComponentProps) {
-  const { config } = loaderData;
+  const { config, event } = loaderData;
+
+  const system = useMemo(() => {
+    if (event?.conference?.theme) {
+      return createSystem(event.conference.theme);
+    }
+    return createSystem(meerkat);
+  }, [event]);
 
   const supabase = useMemo(() => {
     if (config.supabaseUrl && config.supabaseAnonKey) {
@@ -28,7 +48,12 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
 
   const content = (
     <SWRConfig>
-      <Outlet />
+      <Provider
+        colorMode={{ defaultTheme: "dark", forcedTheme: "dark" }}
+        value={system}
+      >
+        <Outlet />
+      </Provider>
     </SWRConfig>
   );
 
