@@ -1,7 +1,6 @@
 import {
   isRouteErrorResponse,
   Links,
-  Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
@@ -24,6 +23,12 @@ export const links: Route.LinksFunction = () => [
     href: "/favicon-16x16.png",
   },
   { rel: "manifest", href: "/site.webmanifest" },
+  {
+    rel: "preload",
+    href: "/api/v1/config",
+    as: "fetch",
+    crossOrigin: "anonymous",
+  },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

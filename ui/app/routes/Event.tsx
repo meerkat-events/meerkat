@@ -6,75 +6,47 @@ import { HeartIcon } from "~/components/assets/heart";
 import { useQuestionsSubscription } from "~/hooks/use-questions-subscription";
 import { useQuestions } from "~/hooks/use-questions";
 import { useParams, useSearchParams } from "react-router";
-import type { Route } from "./+types/Event.tsx";
-import type { Event, Question } from "~/types";
+import { useMemo } from "react";
+import { useThrottle } from "@uidotdev/usehooks";
+import type { Event } from "~/types";
+import { useEvent } from "~/hooks/use-event.ts";
 
 import "./index.css";
 
-type JSONQuestion = Omit<Question, "answeredAt" | "createdAt"> & {
-  answeredAt: string | undefined;
-  createdAt: string;
-};
+const REFRESH_INTERVAL = 30_000;
 
-type JSONEvent = Omit<Event, "start" | "end"> & {
-  start: string;
-  end: string;
-  questions: JSONQuestion[];
-};
-
-export async function clientLoader({ params }: Route.LoaderArgs) {
-  const url = new URL(
-    `${import.meta.env.VITE_API_URL}/api/v1/events/${params.uid}`,
-  );
-  const event = await fetch(url, {
-    headers: {
-      accept: "application/json",
-    },
-  });
-
-  if (!event.ok) {
-    throw new Response("Not found", { status: 404 });
-  }
-
-  const { data } = await event.json() as { data: JSONEvent };
-
-  return {
-    ...data,
-    start: new Date(data.start),
-    end: new Date(data.end),
-    url: new URL(`${import.meta.env.VITE_API_URL}/e/${params.uid}/remote`),
-    questions: data.questions.map((question) => ({
-      ...question,
-      createdAt: new Date(question.createdAt),
-      answeredAt: question.answeredAt
-        ? new Date(question.answeredAt)
-        : undefined,
-    })),
-  };
-}
-
-export default function Event(
-  { loaderData }: Route.ComponentProps,
-) {
+export default function EventPage() {
   const { uid } = useParams();
   const [searchParams] = useSearchParams();
-  const event = loaderData;
 
   const hideQRCode = searchParams.get("hide-qr-code") === "true";
 
   const {
     data: questions,
-    mutate: refresh,
+    mutate: refreshQuestions,
   } = useQuestions(
     uid,
     {
       sort: "popular",
       answered: false,
       swr: {
-        refreshInterval: 30_000,
+        refreshInterval: REFRESH_INTERVAL,
       },
     },
   );
+
+  const {
+    data: eventData,
+    mutate: refreshEvent,
+  } = useEvent(uid, {
+    swr: {
+      refreshInterval: REFRESH_INTERVAL,
+    },
+  });
+
+  const event = useMemo(() => eventData ? toEvent(eventData) : undefined, [
+    eventData,
+  ]);
 
   useReactionsSubscription(event, {
     onUpdate: (_reaction) => {
@@ -84,8 +56,16 @@ export default function Event(
     },
   });
 
+  const throttledRefresh = useThrottle(
+    () => {
+      refreshQuestions();
+      refreshEvent();
+    },
+    300,
+  );
+
   useQuestionsSubscription(event, {
-    onUpdate: refresh,
+    onUpdate: throttledRefresh,
   });
 
   return (
@@ -93,10 +73,10 @@ export default function Event(
       <header>
         <div className="title">
           <Heading as="h1" size="2xl">
-            {event.title}
+            {event?.title}
           </Heading>
           <Text fontSize="xl">
-            {event.speaker}
+            {event?.speaker}
           </Text>
         </div>
         <div className="logo">
@@ -109,14 +89,12 @@ export default function Event(
       <main>
         <TopQuestions questions={questions ?? []} />
       </main>
-      {!hideQRCode && (
-        <aside>
-          <QR url={event.url} />
-          <Text fontSize="xl" fontWeight="bold" textAlign="center">
-            Participants {event.participants}
-          </Text>
-        </aside>
-      )}
+      <aside>
+        {!hideQRCode && event && <QR url={event.url} />}
+        <Text fontSize="xl" fontWeight="bold" textAlign="center">
+          Participants {event?.participants}
+        </Text>
+      </aside>
     </div>
   );
 }
@@ -128,4 +106,20 @@ function createReactionElement(icon: string) {
   reactionElement.innerHTML = icon;
 
   return reactionElement;
+}
+
+function toEvent(data: Event) {
+  return {
+    ...data,
+    start: new Date(data.start),
+    end: new Date(data.end),
+    url: new URL(`${import.meta.env.VITE_API_URL}/e/${data.uid}/remote`),
+    questions: data.questions.map((question) => ({
+      ...question,
+      createdAt: new Date(question.createdAt),
+      answeredAt: question.answeredAt
+        ? new Date(question.answeredAt)
+        : undefined,
+    })),
+  };
 }

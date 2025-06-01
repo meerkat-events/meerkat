@@ -47,7 +47,9 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
   useTools(config);
 
   const content = (
-    <SWRConfig>
+    <SWRConfig
+      value={{ fallback: { [`/api/v1/events/${event?.uid}`]: event } }}
+    >
       <Provider
         colorMode={{ defaultTheme: "dark", forcedTheme: "dark" }}
         value={system}
