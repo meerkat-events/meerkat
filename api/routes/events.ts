@@ -71,7 +71,8 @@ app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
   const event = c.get("event");
   const [conference, questions, participants, features] = await Promise.all([
     getConferenceById(event.conferenceId),
-    getQuestions(event.id),
+    // By default, we exclude the answered qeuestions
+    getQuestions(event.id, "popular", false),
     countParticipants(event.id),
     getFeatures(event.conferenceId),
   ]);

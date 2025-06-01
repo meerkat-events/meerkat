@@ -4,13 +4,12 @@ import TopQuestions from "~/components/TopQuestions";
 import { useReactionsSubscription } from "~/hooks/use-reactions-subscription";
 import { HeartIcon } from "~/components/assets/heart";
 import { useQuestionsSubscription } from "~/hooks/use-questions-subscription";
-import { useQuestions } from "~/hooks/use-questions";
 import { useParams, useSearchParams } from "react-router";
 import { useCallback, useMemo, useState } from "react";
-import { useThrottle } from "@uidotdev/usehooks";
 import type { Event } from "~/types";
 import { useEvent } from "~/hooks/use-event.ts";
 import { randomNormal } from "d3-random";
+import throttle from "lodash.throttle";
 
 import "./index.css";
 
@@ -24,20 +23,6 @@ export default function EventPage() {
   const [reactions, setReactions] = useState<{ id: string; x: number }[]>([]);
 
   const hideQRCode = searchParams.get("hide-qr-code") === "true";
-
-  const {
-    data: questions,
-    mutate: refreshQuestions,
-  } = useQuestions(
-    uid,
-    {
-      sort: "popular",
-      answered: false,
-      swr: {
-        refreshInterval: REFRESH_INTERVAL,
-      },
-    },
-  );
 
   const {
     data: eventData,
@@ -67,16 +52,13 @@ export default function EventPage() {
     onUpdate: addReaction,
   });
 
-  const throttledRefresh = useThrottle(
-    () => {
-      refreshQuestions();
-      refreshEvent();
-    },
-    300,
+  const throttleRefresh = useCallback(
+    throttle(refreshEvent, 300),
+    [refreshEvent],
   );
 
   useQuestionsSubscription(event, {
-    onUpdate: throttledRefresh,
+    onUpdate: throttleRefresh,
   });
 
   return (
@@ -98,7 +80,7 @@ export default function EventPage() {
         </div>
       </header>
       <main>
-        <TopQuestions questions={questions ?? []} />
+        <TopQuestions questions={event?.questions ?? []} />
       </main>
       <aside>
         {!hideQRCode && event && <QR url={event.url} />}
