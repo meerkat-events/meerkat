@@ -18,7 +18,7 @@ body {
 .header {
 	grid-row: 1;
 	grid-column: 2;
-	border-bottom: 2px solid rgba(255, 255, 255, 0.16);
+	border-bottom: 2px solid var(--chakra-colors-gray-800);
 }
 
 .content {
@@ -35,6 +35,7 @@ body {
 	grid-column: 2;
 	padding: 0 1rem;
 	position: relative;
+	border-top: 2px solid var(--chakra-colors-gray-800);
 }
 
 .title-section {
@@ -71,7 +72,7 @@ ul {
 
 .bubble {
 	background-color: color-mix(in srgb, var(--chakra-colors-brand-emphasized) 30%, transparent);
-	color: var(--chakra-colors-brand-contrast);
+	color: white;
 	border-radius: 5px;
 	border: 1px solid transparent;
 	padding: 1.25rem 1rem 1rem 1rem;

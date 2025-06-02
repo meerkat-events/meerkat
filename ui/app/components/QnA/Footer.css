@@ -21,7 +21,6 @@
 
 .question-input {
   padding: 0.5rem 0 1.5rem 0;
-  border-top: 2px solid rgba(255, 255, 255, 0.16);
 }
 
 .signin-name {
@@ -40,9 +39,11 @@
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.8);
   }
+
   100% {
     transform: scale(1);
   }

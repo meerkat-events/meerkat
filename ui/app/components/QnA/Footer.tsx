@@ -125,7 +125,6 @@ export function Footer({
             <Textarea
               resize="vertical"
               size="lg"
-              minH="48px"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => {
@@ -141,7 +140,10 @@ export function Footer({
               onBlur={() => setFocused(false)}
               rows={isQuestionMode ? 3 : 1}
               borderRadius="md"
-              paddingTop="12px"
+              borderColor="gray.700"
+              _focusVisible={{
+                borderColor: "transparent",
+              }}
               maxLength={MAX_QUESTION_LENGTH}
             />
             <IconButton
@@ -149,6 +151,8 @@ export function Footer({
               size="lg"
               onClick={submitQuestion}
               aria-label="Submit question"
+              h="50px"
+              w="50px"
             >
               <FiSend />
             </IconButton>
@@ -164,6 +168,8 @@ export function Footer({
                   size="lg"
                   aria-label="React to event"
                   type="button"
+                  h="50px"
+                  w="50px"
                 >
                   <div
                     className={!isTutorialHeartFinished && isAuthenticated

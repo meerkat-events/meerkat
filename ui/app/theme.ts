@@ -25,6 +25,8 @@ const generateColorScale = (baseColor: string) => {
     800: { value: darken(baseColor, 0.2) },
     900: { value: darken(baseColor, 0.3) },
     950: { value: darken(baseColor, 0.4) },
+    975: { value: darken(baseColor, 0.5) },
+    1000: { value: darken(baseColor, 0.6) },
   };
 };
 
@@ -47,7 +49,7 @@ const chakraAdapter = (theme: Theme) => {
           brand: {
             solid: { value: "{colors.brand.600}" },
             contrast: { value: theme.contrastColor },
-            fg: { value: "{colors.brand.300}" },
+            fg: { value: "{colors.brand.500}" },
             muted: { value: "{colors.brand.800}" },
             subtle: { value: "{colors.brand.900}" },
             emphasized: { value: "{colors.brand.700}" },

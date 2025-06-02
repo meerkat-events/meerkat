@@ -4,7 +4,7 @@
   grid-template-columns: 1.618fr 1fr;
   grid-template-rows: max-content 1fr;
   gap: 1rem;
-  color: var(--chakra-colors-brand-contrast);
+  color: white;
   height: 100dvh;
   margin: 0 auto;
   max-width: 1400px;
@@ -80,19 +80,19 @@
 }
 
 .qr-code {
-  background-color: var(--chakra-colors-brand-600);
-  color: var(--chakra-colors-brand-950);
+  background-color: white;
+  color: var(--chakra-colors-brand-975);
   border-radius: var(--chakra-radii-sm);
   padding: 1.5rem;
   width: 100%;
-  max-width: 30dvw;
+  max-width: 25dvw;
   /** Align with top of main content which needs extra margin */
   margin-top: 1rem;
 }
 
 .bubble {
   background-color: color-mix(in srgb, var(--chakra-colors-brand-emphasized) 30%, transparent);
-  color: var(--chakra-colors-brand-contrast);
+  color: white;
   border-radius: var(--chakra-radii-sm);
   padding: 1rem;
   position: relative;
