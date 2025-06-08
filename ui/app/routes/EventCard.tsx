@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Flex, Link as ChakraLink } from "@chakra-ui/react";
 import { Link, useParams } from "react-router";
 import Card from "../components/Card/Card.tsx";
@@ -12,7 +12,6 @@ import {
 import { useCollect } from "../hooks/use-collect.ts";
 import { pageTitle } from "../utils/events.ts";
 import { useDocumentTitle } from "@uidotdev/usehooks";
-import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useUser } from "../hooks/use-user.ts";
 import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
 import { useZupassPods } from "../hooks/use-zupass-pods.ts";
@@ -48,10 +47,17 @@ export default function EventCard() {
   const context = useZAPI();
   const { collect } = useCollect(event);
   const { getZupassPods } = useZupassPods();
-  const { data: roles } = useConferenceRoles();
 
-  const hasAnyRoles =
-    roles?.some((r) => r.conferenceId === event?.conferenceId) ?? false;
+  useEffect(() => {
+    if (isCollecting) {
+      // This is a hack to reload the page after 5 seconds if the getZupassPods call is stuck. This sometimes happens when done after proof on another page.
+      const timeoutId = setTimeout(() => {
+        globalThis.location.reload();
+      }, 5000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isCollecting]);
 
   const onCollect = async () => {
     if (!event?.conference) {
