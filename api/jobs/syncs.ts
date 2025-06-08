@@ -48,6 +48,9 @@ async function sync(syncConfig: SyncConfig) {
       uid: event.code,
       title: event.title,
       submissionType: event.submission_type["en"],
+      // TODO: get cover from somewhere else
+      cover:
+        "https://whfkrpdetdsqbtsfyfox.supabase.co/storage/v1/object/public/events//protocol-berg-v2-bg.png",
       start: event.slot.start,
       end: event.slot.end,
       abstract: event.abstract,

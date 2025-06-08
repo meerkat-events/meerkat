@@ -46,7 +46,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	&>li {
+	& > li {
 		margin: 0;
 		padding: 0;
 	}
@@ -56,7 +56,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	&>li {
+	& > li {
 		margin: 0;
 		padding: 0;
 	}
@@ -71,7 +71,11 @@ ul {
 }
 
 .bubble {
-	background-color: color-mix(in srgb, var(--chakra-colors-brand-emphasized) 30%, transparent);
+	background-color: color-mix(
+		in srgb,
+		var(--chakra-colors-brand-emphasized) 30%,
+		transparent
+	);
 	color: white;
 	border-radius: 5px;
 	border: 1px solid transparent;
@@ -156,20 +160,7 @@ ul {
 
 	& img {
 		max-height: 20rem;
-		border-radius: 15px;
-		padding: 8px;
-		background:
-			linear-gradient(95deg,
-				rgba(151, 71, 255, 0.50) 20.09%,
-				rgba(86, 59, 131, 0.50) 80%),
-			rgba(255, 255, 255, 0.01);
-		box-shadow:
-			0px 28.665px 41.159px -26.46px rgba(255, 255, 255, 0.50) inset,
-			0px -60.269px 49.979px -47.039px rgba(38, 95, 242, 0.30) inset,
-			0px 72.029px 73.499px -35.28px rgba(51, 105, 244, 0.24) inset,
-			0px 2.94px 13.23px 0px rgba(51, 105, 244, 0.30) inset,
-			0px 0.735px 29.4px 0px rgba(38, 95, 242, 0.20) inset;
-		backdrop-filter: blur(36.749481201171875px);
+		border-radius: var(--chakra-radii-lg);
 	}
 }
 
@@ -181,7 +172,10 @@ ul {
 .tab-panel {
 	display: flex;
 	flex-direction: column;
-	height: calc(100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom) - env(safe-area-inset-top));
+	height: calc(
+		100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom)
+			- env(safe-area-inset-top)
+	);
 }
 
 .reaction {
