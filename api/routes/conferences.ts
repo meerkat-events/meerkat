@@ -165,7 +165,7 @@ app.post(
         description: event.description ?? null,
         abstract: event.abstract ?? null,
         track: event.track ?? null,
-        cover: event.cover ?? null,
+        cover: event.cover ?? conference.logoUrl ?? null,
         speaker: event.speaker ?? null,
       };
     });

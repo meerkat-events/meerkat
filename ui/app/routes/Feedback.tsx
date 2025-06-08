@@ -18,7 +18,7 @@ import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
 import { useTicketProof } from "../hooks/use-ticket-proof.ts";
 import { useZAPIConnect } from "../zapi/connect.ts";
 import { useProvideFeedback } from "../hooks/use-provide-feedback.ts";
-import { constructPODZapp } from "../zapi/zapps.ts";
+import { constructZapp } from "../zapi/zapps.ts";
 import { collectionName } from "../zapi/collections.ts";
 import { useZAPI } from "../zapi/context.tsx";
 import { toaster } from "../components/ui/toaster.tsx";
@@ -32,7 +32,7 @@ export default function Feedback() {
   const [text, setText] = useState("");
   const context = useZAPI();
   const { login, isLoading: isLoggingIn } = useTicketProof({
-    conferenceId: event?.conference.id,
+    conference: event?.conference,
     onError: (error) => {
       toaster.error({
         title: `Failed to login (${error?.message})`,
@@ -77,9 +77,9 @@ export default function Feedback() {
     }
 
     const zapi = await connect(
-      constructPODZapp(context?.config.zappName ?? "", [
+      constructZapp(context?.config.zappName ?? "", [
         collectionName(context?.config.zappName ?? "", event.conference.name),
-      ]),
+      ], []),
     );
     let email: string | undefined;
     if (ticketProof) {

@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
-import { Link as ChakraLink } from "@chakra-ui/react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { useState } from "react";
+import { Flex, Link as ChakraLink } from "@chakra-ui/react";
+import { Link, useParams } from "react-router";
 import Card from "../components/Card/Card.tsx";
 import { useEvent } from "../hooks/use-event.ts";
 import { Header } from "../components/Header/Header.tsx";
 import { remote } from "../routing.js";
-import { Flex } from "@chakra-ui/react";
 import {
   FiArrowLeft as ArrowBackIcon,
   FiArrowUpRight as ExternalLinkIcon,
@@ -21,18 +20,18 @@ import { useZAPIConnect } from "../zapi/connect.ts";
 import { useZAPI } from "../zapi/context.tsx";
 import { attendancePodType } from "../utils/pod.client.ts";
 import { useTicketProof } from "../hooks/use-ticket-proof.ts";
-import { constructPODZapp } from "../zapi/zapps.ts";
+import { constructZapp } from "../zapi/zapps.ts";
 import { collectionName } from "../zapi/collections.ts";
 import { isError } from "../utils/error.ts";
 import { toaster } from "../components/ui/toaster.tsx";
+import { getConferenceTickets } from "~/hooks/use-conference-tickets.ts";
 
 export default function EventCard() {
   const { uid } = useParams();
-  const [searchParams] = useSearchParams();
   const { data: event } = useEvent(uid);
   const { isAuthenticated } = useUser();
   const { login, isLoading: isLoggingIn } = useTicketProof({
-    conferenceId: event?.conferenceId,
+    conference: event?.conference,
     onError: (error) => {
       toaster.create({
         title: `Failed to login (${error?.message})`,
@@ -44,11 +43,10 @@ export default function EventCard() {
   });
   const [isCollected, setIsCollected] = useState(false);
   useDocumentTitle(pageTitle(event));
-  const secret = searchParams.get("secret");
   const [isCollecting, setIsCollecting] = useState(false);
-  const { connect, isConnected } = useZAPIConnect();
+  const { connect } = useZAPIConnect();
   const context = useZAPI();
-  const { collect } = useCollect(event, secret);
+  const { collect } = useCollect(event);
   const { getZupassPods } = useZupassPods();
   const { data: roles } = useConferenceRoles();
 
@@ -65,8 +63,18 @@ export default function EventCard() {
         context?.config.zappName ?? "",
         event?.conference.name,
       );
+      const tickets = await getConferenceTickets(event?.conferenceId);
+      const ticketCollectionsSet = new Set(
+        tickets.map((ticket) => ticket.collectionName),
+      );
+      const ticketCollections = Array.from(ticketCollectionsSet);
+
       const zapi = await connect(
-        constructPODZapp(context?.config.zappName ?? "", [collection]),
+        constructZapp(
+          context?.config.zappName ?? "",
+          [collection],
+          ticketCollections,
+        ),
       );
       const pods = await getZupassPods(
         zapi,
@@ -76,7 +84,6 @@ export default function EventCard() {
       const hasEventPods = pods.some((p) =>
         p.entries.code.value === event?.uid
       );
-      setIsCollected(hasEventPods);
 
       if (hasEventPods) {
         toaster.create({
@@ -86,16 +93,16 @@ export default function EventCard() {
           duration: 5000,
           closable: true,
         });
-        return;
+      } else {
+        await collect(zapi);
+        toaster.create({
+          title: "Attendance Recorded",
+          description: "Open Zupass to view your attendance POD",
+          type: "success",
+          duration: 5000,
+          closable: true,
+        });
       }
-      await collect(zapi);
-      toaster.create({
-        title: "Attendance Recorded",
-        description: "Open Zupass to view your attendance POD",
-        type: "success",
-        duration: 5000,
-        closable: true,
-      });
       setIsCollected(true);
     } catch (error) {
       toaster.create({
@@ -112,37 +119,12 @@ export default function EventCard() {
     }
   };
 
-  useEffect(() => {
-    const func = async () => {
-      if (isConnected && context?.zapi && event?.conference) {
-        const collection = collectionName(
-          context?.config.zappName ?? "",
-          event?.conference.name,
-        );
-        const pods = await getZupassPods(
-          context.zapi,
-          collection,
-          attendancePodType,
-        );
-        const hasEventPods = pods.some((p) =>
-          p.entries.code.value === event?.uid
-        );
-        setIsCollected(hasEventPods);
-      }
-    };
-    func();
-  }, [isConnected, context?.zapi, event?.conference]);
-
   const onLogin = async () => {
     await login();
     onCollect();
   };
 
-  const action = isAuthenticated && hasAnyRoles && secret && !isCollected
-    ? onCollect
-    : secret && !isCollected
-    ? onLogin
-    : null;
+  const action = !isAuthenticated ? onLogin : !isCollected ? onCollect : null;
 
   return (
     <div className="layout">
@@ -200,11 +182,7 @@ export default function EventCard() {
                 to view your attendance PODs.
               </p>
             )
-            : (
-              <p style={{ marginTop: "auto" }}>
-                Scan the Session QR code to collect your attendance
-              </p>
-            )}
+            : null}
         </Flex>
       </main>
     </div>

@@ -137,17 +137,11 @@ const toApiQuestion = (
     : undefined,
 });
 
-const attendanceSchema = zod.object({
-  secret: zod.string(),
-});
-
 app.post(
   "/api/v1/events/:uid/attendance",
   jwt({ secret: env.secret, cookie: COOKIE_NAME }),
-  zValidator("json", attendanceSchema),
   eventMiddleware,
   async (c) => {
-    const secret = c.req.valid("json").secret;
     const event = c.get("event");
     const payload = c.get("jwtPayload");
     const [conference, user] = await Promise.all([
@@ -157,12 +151,6 @@ app.post(
 
     if (!user) {
       throw new HTTPException(401, { message: "User not found" });
-    }
-
-    if (event.secret && event.secret !== secret) {
-      throw new HTTPException(401, {
-        message: `Secret ${secret} is invalid for event ${event.uid}`,
-      });
     }
 
     const roles = await getConferenceRolesForConference(

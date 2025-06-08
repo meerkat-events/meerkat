@@ -60,7 +60,7 @@ export function Footer({
       },
     })
     : useTicketProof({
-      conferenceId: event?.conferenceId,
+      conference: event?.conference,
       onError: (error) => {
         toaster.create({
           title: `Failed to login`,

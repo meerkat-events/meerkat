@@ -10,28 +10,17 @@ export function constructLoginZapp(name: string): Zapp {
   };
 }
 
-export function constructTicketProofZapp(
+export function constructZapp(
   name: string,
-  collections: string[],
+  podCollections: string[],
+  ticketCollections: string[],
 ): Zapp {
   return {
     name,
     permissions: {
-      REQUEST_PROOF: { collections },
-    },
-  };
-}
-
-export function constructPODZapp(
-  name: string,
-  collections: string[],
-): Zapp {
-  return {
-    name,
-    permissions: {
-      READ_POD: { collections },
-      INSERT_POD: { collections },
-      SIGN_POD: {},
+      REQUEST_PROOF: { collections: ticketCollections },
+      READ_POD: { collections: podCollections },
+      INSERT_POD: { collections: podCollections },
     },
   };
 }

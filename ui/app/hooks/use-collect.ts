@@ -5,16 +5,22 @@ import { poster } from "./fetcher.ts";
 import { useZAPI } from "../zapi/context.tsx";
 import { type ParcnetAPI } from "@parcnet-js/app-connector";
 import { posthog } from "posthog-js";
+import { collectionName } from "~/zapi/collections.ts";
 
-export function useCollect(event: Event | undefined, secret: string | null) {
+export function useCollect(event: Event | undefined) {
   const context = useZAPI();
   const { trigger } = useAttendancePOD(event);
 
   const collect = async (zapi: ParcnetAPI) => {
-    const { data } = await trigger({ secret });
+    const { data } = await trigger({});
     const pod = POD.fromJSON(data);
-    await context?.zapi?.pod
-      .collection(`${context?.config.zappName ?? ""}: ${event?.conference.name}`)
+    await zapi.pod
+      .collection(
+        collectionName(
+          context?.config.zappName ?? "",
+          event?.conference.name ?? "",
+        ),
+      )
       .insert({
         entries: pod.content.asEntries(),
         signature: pod.signature,

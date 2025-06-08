@@ -11,10 +11,12 @@ import { posthog } from "posthog-js";
 import { UserContext } from "../context/user.tsx";
 import { getConferenceTickets } from "./use-conference-tickets.ts";
 import { useZAPI } from "../zapi/context.tsx";
-import { constructTicketProofZapp } from "../zapi/zapps.ts";
+import { constructZapp } from "../zapi/zapps.ts";
+import type { Conference } from "~/types.ts";
+import { collectionName } from "~/zapi/collections.ts";
 
 export type UseTicketProofProps = {
-  conferenceId?: number;
+  conference?: Conference | undefined;
   onError?: (error: Error) => void;
 };
 
@@ -36,10 +38,10 @@ export function useTicketProof(props: UseTicketProofProps) {
     let ticketProof: ProveResult | undefined;
     try {
       setLoading(true);
-      if (!props.conferenceId) {
+      if (!props.conference?.id) {
         throw new Error("Conference ID is required");
       }
-      const tickets = await getConferenceTickets(props.conferenceId);
+      const tickets = await getConferenceTickets(props.conference.id!);
       const ticketCollectionsSet = new Set(
         tickets.map((ticket) => ticket.collectionName),
       );
@@ -48,11 +50,15 @@ export function useTicketProof(props: UseTicketProofProps) {
         signerPublicKey: ticket.signerPublicKey,
         ...(ticket.productId ? { productId: ticket.productId } : {}),
       }));
-      const ticketCollections = Array.from(ticketCollectionsSet);
+      const collection = collectionName(
+        context?.config.zappName ?? "",
+        props.conference.name,
+      );
       const zapi = await connect(
-        constructTicketProofZapp(
+        constructZapp(
           context?.config.zappName ?? "",
-          ticketCollections,
+          [collection],
+          Array.from(ticketCollectionsSet),
         ),
       );
       ticketProof = await generateTicketProof(

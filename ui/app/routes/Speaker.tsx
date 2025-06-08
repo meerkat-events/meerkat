@@ -6,15 +6,27 @@ import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
 import { useTicketProof } from "../hooks/use-ticket-proof.ts";
 import { useZAPIConnect } from "../zapi/connect.ts";
 import { usePods } from "../hooks/use-pods.ts";
-import type { EventPod } from "../types.ts";
+import type { Conference, EventPod } from "../types.ts";
 import { useZAPI } from "../zapi/context.tsx";
-import { constructPODZapp } from "../zapi/zapps.ts";
+import { constructZapp } from "../zapi/zapps.ts";
 import { collectionName } from "../zapi/collections.ts";
 import { posthog } from "posthog-js";
 
+/*
+ * We likely will get rid of this feature soon or have to entirely redo it.
+ * We don't have the e-mail of the speaker like at Devcon.
+ */
+const devconSEA: Conference = {
+  id: 1,
+  name: "Devcon SEA",
+  logoUrl:
+    "https://icnyvghgspgzemdudsrd.supabase.co/storage/v1/object/public/images/image.avif?t=2024-11-06T15%3A49%3A19.756Z",
+  theme: null,
+};
+
 export default function Speaker() {
   const { login, isLoading } = useTicketProof({
-    conferenceId: 1,
+    conference: devconSEA,
   });
   const { data: user } = useUser();
   const { connect } = useZAPIConnect();
@@ -49,9 +61,9 @@ export default function Speaker() {
     setIsCollecting(true);
     try {
       const collection = collectionName(context?.config.zappName, "Devcon SEA");
-      const zapi = await connect(constructPODZapp(context?.config.zappName, [
+      const zapi = await connect(constructZapp(context?.config.zappName, [
         collection,
-      ]));
+      ], []));
       await zapi.pod.collection(collection)
         .insert(pod.pod);
 
