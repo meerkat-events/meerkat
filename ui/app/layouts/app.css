@@ -46,7 +46,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	& > li {
+	&>li {
 		margin: 0;
 		padding: 0;
 	}
@@ -56,7 +56,7 @@ ol,
 ul {
 	list-style-type: none;
 
-	& > li {
+	&>li {
 		margin: 0;
 		padding: 0;
 	}
@@ -71,11 +71,9 @@ ul {
 }
 
 .bubble {
-	background-color: color-mix(
-		in srgb,
-		var(--chakra-colors-brand-emphasized) 30%,
-		transparent
-	);
+	background-color: color-mix(in srgb,
+			var(--chakra-colors-brand-emphasized) 30%,
+			transparent);
 	color: white;
 	border-radius: 5px;
 	border: 1px solid transparent;
@@ -172,10 +170,7 @@ ul {
 .tab-panel {
 	display: flex;
 	flex-direction: column;
-	height: calc(
-		100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom)
-			- env(safe-area-inset-top)
-	);
+	height: calc(100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom) - env(safe-area-inset-top));
 }
 
 .reaction {
@@ -225,4 +220,8 @@ ul {
 	100% {
 		transform: scale(1);
 	}
+}
+
+.parcnet-dialog {
+	margin: auto;
 }
