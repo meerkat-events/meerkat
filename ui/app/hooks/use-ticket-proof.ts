@@ -90,6 +90,19 @@ async function sendTicketProofRequest(
     boundConfigToJSON,
     revealedClaimsToJSON,
   } = await import("@pcd/gpc");
+
+  let revealedClaims: any;
+  let boundConfig: any;
+  try {
+    revealedClaims = revealedClaimsToJSON(ticketProof.revealedClaims);
+    boundConfig = boundConfigToJSON(ticketProof.boundConfig);
+  } catch (error) {
+    throw new TicketProofError(
+      "Missing ticket. Try another email address and confirm on zupass.org",
+      "missing_ticket_proof",
+    );
+  }
+
   const response = await fetch(
     `${import.meta.env.VITE_API_URL}/api/v1/users/prove`,
     {
@@ -99,8 +112,8 @@ async function sendTicketProofRequest(
       },
       body: JSON.stringify({
         proof: ticketProof.proof,
-        revealedClaims: revealedClaimsToJSON(ticketProof.revealedClaims),
-        boundConfig: boundConfigToJSON(ticketProof.boundConfig),
+        revealedClaims,
+        boundConfig,
       }),
     },
   );
@@ -122,4 +135,12 @@ function generateTicketProof(
   });
 
   return zapi.gpc.prove({ request: request.schema });
+}
+
+class TicketProofError extends Error {
+  constructor(message: string, public code: string) {
+    super(message);
+    this.name = "TicketProofError";
+    this.code = code;
+  }
 }

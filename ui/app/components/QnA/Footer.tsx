@@ -66,7 +66,7 @@ export function Footer({
           title: `Failed to login`,
           type: "error",
           description: error.message,
-          duration: 2000,
+          duration: 6_000,
         });
       },
     });
