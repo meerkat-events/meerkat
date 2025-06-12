@@ -98,7 +98,7 @@ async function sendTicketProofRequest(
     boundConfig = boundConfigToJSON(ticketProof.boundConfig);
   } catch (error) {
     throw new TicketProofError(
-      "Missing ticket. Try another email address and confirm on zupass.org",
+      "Missing ticket. Try another email address or check zupass.org for your ticket first.",
       "missing_ticket_proof",
     );
   }
