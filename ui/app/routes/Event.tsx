@@ -73,7 +73,7 @@ export default function EventPage() {
           </Text>
         </div>
         <div className="logo">
-          <img src="/logo.png" alt="Logo" width={30} height={30} />
+          {/* <img src="/logo.png" alt="Logo" width={30} height={30} /> */}
           <Text className="font-family-meerkat" fontSize="sm" fontWeight="bold">
             meerkat.events
           </Text>
