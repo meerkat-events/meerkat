@@ -24,11 +24,9 @@ ENVIRONMENT = '$ENVIRONMENT'
 app = 'task start'
 
 [http_service]
-internal_port = 8000
-force_https = true
-auto_stop_machines = 'stop'
+auto_stop_machines = true
 auto_start_machines = true
-min_machines_running = 1
+min_machines_running = 4
 processes = ['app']
 
 [[http_service.checks]]
@@ -39,9 +37,9 @@ timeout = "5s"
 path = "/api/v1/conferences"
 
 [[vm]]
-memory = '1gb'
-cpu_kind = 'shared'
+cpu_kind = "performance"
 cpus = 1
+memory = "2gb"
 
 [[statics]]
 guest_path = "/app/public/assets"
