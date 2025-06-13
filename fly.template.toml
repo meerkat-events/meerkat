@@ -39,9 +39,9 @@ timeout = "5s"
 path = "/api/v1/conferences"
 
 [[vm]]
-cpu_kind = "performance"
+cpu_kind = "shared"
 cpus = 1
-memory = "2gb"
+memory = "1gb"
 
 [[statics]]
 guest_path = "/app/public/assets"
