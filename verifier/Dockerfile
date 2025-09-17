@@ -1,5 +1,5 @@
 # Use Node 22 slim as the base image
-FROM node:22-slim
+FROM node:24-slim
 
 # Set working directory
 WORKDIR /app

@@ -7,7 +7,7 @@ data.
 ### Prerequisites
 
 - [Deno v2](https://deno.land/)
-- [Node.js v22](https://nodejs.org/)
+- [Node.js v24](https://nodejs.org/)
 - [Docker](https://www.docker.com/)
 - [Tmux](https://github.com/tmux/tmux/wiki)
 

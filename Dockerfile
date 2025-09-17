@@ -1,4 +1,4 @@
-FROM node:22 AS builder
+FROM node:24 AS builder
 
 ARG VITE_API_URL
 
@@ -14,7 +14,7 @@ RUN npm run typecheck
 
 RUN npm run build
 
-FROM denoland/deno:2.3.3 AS runner
+FROM denoland/deno:2.5.1 AS runner
 
 WORKDIR /app
 

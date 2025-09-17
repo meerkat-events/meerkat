@@ -29,7 +29,7 @@ services:
       retries: 3
       start_period: 5s 
   lgtm:
-    image: docker.io/grafana/otel-lgtm:0.8.1
+    image: docker.io/grafana/otel-lgtm:0.11.10
     restart: always
     ports:
       - "3000:3000"
