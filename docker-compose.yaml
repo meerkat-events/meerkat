@@ -27,20 +27,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 5s 
-  lgtm:
-    image: docker.io/grafana/otel-lgtm:0.11.10
-    restart: always
-    ports:
-      - "3000:3000"
-      - "4317:4317"
-      - "4318:4318"
-    volumes:
-      - lgtm_grafana:/data/grafana
-      - lgtm_prometheus:/data/prometheus
-      - lgtm_loki:/data/loki
-    environment:
-      - GF_PATHS_DATA=/data/grafana
+      start_period: 5s
+  # Enable if tracing is needed
+  # lgtm:
+  #   image: docker.io/grafana/otel-lgtm:0.11.10
+  #   restart: always
+  #   ports:
+  #     - "3000:3000"
+  #     - "4317:4317"
+  #     - "4318:4318"
+  #   volumes:
+  #     - lgtm_grafana:/data/grafana
+  #     - lgtm_prometheus:/data/prometheus
+  #     - lgtm_loki:/data/loki
+  #   environment:
+  #     - GF_PATHS_DATA=/data/grafana
 
 volumes:
   postgres_data:
