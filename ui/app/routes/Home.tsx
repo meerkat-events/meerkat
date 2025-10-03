@@ -42,76 +42,44 @@ export default function Home() {
             contribute questions throughout the talk.
           </p>
         </div>
-        {/* Container for iframes */}
+        {/* Container for steps, stacked vertically */}
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             gap: "1rem",
             width: "100%",
-            flexDirection: "row",
-            flexWrap: "wrap",
+            alignItems: "center",
             justifyContent: "center",
           }}
         >
-          {/* Left Panel */}
+          {/* Step 1 */}
           <div
             style={{
-              flex: "1 1 48%",
+              width: "100%",
               minWidth: "300px",
               padding: "20px",
               boxSizing: "border-box",
+              maxWidth: "500px",
             }}
           >
             <p style={{ fontSize: "1.2em", marginBottom: "10px" }}>
               1. Scan QR Code
             </p>
-            <div
-              style={{
-                width: "100%",
-                height:
-                  "85vh", /* Updated to use relative height for better adaptability */
-                boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
-                overflow: "hidden",
-              }}
-            >
-              <iframe
-                title="QR Code Scan"
-                src="https://meerkat.events/e/feedback/remote"
-                style={{ width: "100%", height: "100%", border: "none" }}
-              >
-                Your browser does not support iframes.
-              </iframe>
-            </div>
           </div>
-          {/* Right Panel */}
+          {/* Step 2 */}
           <div
             style={{
-              flex: "1 1 48%",
+              width: "100%",
               minWidth: "300px",
               padding: "20px",
               boxSizing: "border-box",
+              maxWidth: "500px",
             }}
           >
             <p style={{ fontSize: "1.2em", marginBottom: "10px" }}>
               2. Ask a question, upvote and like.
             </p>
-            <div
-              style={{
-                width: "100%",
-                height:
-                  "85vh", /* Updated to use relative height for better adaptability */
-                boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
-                overflow: "hidden",
-              }}
-            >
-              <iframe
-                title="Ask a Question"
-                src="https://meerkat.events/e/feedback/qa"
-                style={{ width: "100%", height: "100%", border: "none" }}
-              >
-                Your browser does not support iframes.
-              </iframe>
-            </div>
           </div>
         </div>
 
@@ -177,24 +145,25 @@ export default function Home() {
         <div>
           <h2>Team</h2>
           <p>
-            <a href="https://x.com/mcnaclh2o">Miriam</a> &{"  "}
             <a href="https://x.com/fdreschner">Florian</a>, and our amazing
             contributors{"  "}
             <a href="https://github.com/mycenaean-n">@Matic</a>{"  "}
-            <a href="https://www.linkedin.com/in/jinnycharoensiri/">@Jinny</a>
+            <a href="https://www.linkedin.com/in/jinnycharoensiri/">
+              @Jinny
+            </a>
+            &nbsp; prev. <a href="https://x.com/mcnaclh2o">Miriam</a>
           </p>
         </div>
         <div>
           <h1>
-            Want to leave us feedback? Just use{"   "}
-            <a href="https://meerkat.events/e/FEEDBACK/remote">Meerkat</a>
+            Want to leave us feedback? Just use Meerkat
           </h1>
         </div>
         <div>
           <h2>We love to hear from you</h2>
           <p>
             Reach out to us on Twitter at{"  "}
-            <a href="https://x.com/meerkatzk">@meerkatzk</a>
+            <a href="https://x.com/fdreschner">@fdreschner</a>
           </p>
         </div>
       </div>
