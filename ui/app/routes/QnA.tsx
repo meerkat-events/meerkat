@@ -6,6 +6,7 @@ import {
 } from "react";
 import { FiArrowLeft as ArrowBackIcon, FiChevronDown } from "react-icons/fi";
 import {
+  Alert,
   Box,
   Button,
   createListCollection,
@@ -200,6 +201,8 @@ export default function QnA() {
 
   useAnonymousUser(supportAnonymous ? conferenceId : undefined);
 
+  const isntLive = event === undefined ? false : !event.live;
+
   return (
     <>
       <div className="layout">
@@ -219,6 +222,19 @@ export default function QnA() {
               </ReactRouterLink>
             </Link>
           </nav>
+          {isntLive && (
+            <Alert.Root
+              status="info"
+              title="You're viewing a past or upcoming event"
+              colorPalette="brand"
+              color="brand.contrast"
+            >
+              <Alert.Indicator />
+              <Alert.Title>
+                You're viewing a past or upcoming event.
+              </Alert.Title>
+            </Alert.Root>
+          )}
           <Flex
             flexDirection="row"
             gap="1"
