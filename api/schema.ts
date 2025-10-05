@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  AnyPgColumn,
   boolean,
   index,
   integer,
@@ -10,6 +12,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const conferences = pgTable("conferences", {
@@ -50,7 +53,7 @@ export const events = pgTable("events", {
   conferenceId: integer("conference_id")
     .notNull()
     .references(() => conferences.id, { onDelete: "cascade" }),
-  uid: text("uid").notNull().unique(),
+  uid: text("uid").notNull(),
   title: text("title").notNull(),
   submissionType: text("submission_type").notNull(),
   start: timestamp("start").notNull(),
@@ -61,27 +64,11 @@ export const events = pgTable("events", {
   cover: text("cover"),
   speaker: text("speaker"),
   secret: text("secret"),
-}, (table) => [index("events_conference_id_idx").on(table.conferenceId)]);
-
-// export const event_speakers = pgTable("event_speakers", {
-//   eventId: integer("event_id")
-//     .notNull()
-//     .references(() => events.id, { onDelete: "cascade" }),
-//   speakerId: integer("speaker_id")
-//     .notNull()
-//     .references(() => speakers.id, { onDelete: "cascade" }),
-// }, (table) => ({
-//   pk: primaryKey({ columns: [table.eventId, table.speakerId] }),
-// }));
-
-// export const speakers = pgTable("speakers", {
-//   id: serial("id").primaryKey(),
-//   sourceId: text("source_id").notNull(),
-//   name: text("name").notNull(),
-//   hash: text("hash").notNull(),
-//   userId: integer("user_id")
-//     .references(() => users.id, { onDelete: "cascade" }),
-// });
+  live: boolean("live").notNull().default(false),
+}, (table) => [
+  uniqueIndex("events_uid_uniq").on(lower(table.uid)),
+  index("events_conference_id_idx").on(table.conferenceId),
+]);
 
 export const event_pods = pgTable("event_pods", {
   uid: text("uid").primaryKey(),
@@ -222,3 +209,7 @@ export const reactions = pgTable(
     index("reactions_user_id_idx").on(table.userId),
   ],
 );
+
+export function lower(column: AnyPgColumn) {
+  return sql`lower(${column})`;
+}

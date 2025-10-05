@@ -1,17 +1,14 @@
 import { eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import db from "../db.ts";
-import { event_pods, events, questions, votes } from "../schema.ts";
+import { event_pods, events, lower, questions, votes } from "../schema.ts";
 import { buildConflictUpdateColumns } from "./utils.ts";
 import { DEFAULT_COVER } from "./event.ts";
 import { uuidv7 } from "uuidv7";
 
 export async function upsertEvents(
   conferenceId: number,
-  newEvents: Omit<
-    Event,
-    "id" | "conferenceId" | "createAt"
-  >[],
+  newEvents: Omit<typeof events.$inferInsert, "conferenceId">[],
 ) {
   const allColumns = getTableColumns(events);
   const updateColumns = (Object.keys(allColumns) as (keyof typeof allColumns)[])
@@ -39,19 +36,21 @@ export async function upsertEvents(
   return results;
 }
 
-export async function getEvents(conferenceId: number) {
+export async function getEvents(
+  conferenceId: number,
+  limit: number = 100,
+) {
   const results = await db.select().from(events).where(
     eq(events.conferenceId, conferenceId),
-  ).orderBy(events.start).execute();
+  ).orderBy(events.start).limit(limit).execute();
   return results;
 }
 
-const eventByUID = db.select().from(events).where(
-  eq(events.uid, sql.placeholder("uid")),
-).limit(1).prepare("event_by_uid");
-
 export async function getEventByUID(uid: string) {
-  const results = await eventByUID.execute({ uid: uid.toUpperCase() });
+  const results = await db.select().from(events).where(
+    eq(lower(events.uid), uid.toLowerCase()),
+  ).limit(1).execute();
+
   const event = results.length === 1 ? results[0] : null;
   return event ? { ...event, cover: event.cover ?? DEFAULT_COVER } : null;
 }

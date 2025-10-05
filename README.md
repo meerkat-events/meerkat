@@ -58,3 +58,9 @@ features:
 ### How to generate secrets?
 
 To generate a 32 bytes secret, you can run `openssl rand -hex 32`.
+
+### How to create and apply a migration?
+
+After modifying the database schema in api/schema.ts, you will need to generate
+a new migration using `npm run generate` in the `db` folder and apply it by
+`npm run migrate`.

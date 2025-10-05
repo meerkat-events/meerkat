@@ -7,3 +7,5 @@ export function getFeatures(conferenceId: number) {
     eq(features.conferenceId, conferenceId),
   ).execute();
 }
+
+export type Feature = typeof features.$inferSelect;

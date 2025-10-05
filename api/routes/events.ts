@@ -15,7 +15,9 @@ import { getConferenceById } from "../models/conferences.ts";
 import {
   countParticipants,
   createEventPod,
+  type Event,
   getEventByUID,
+  getEvents,
 } from "../models/events.ts";
 import {
   createQuestion,
@@ -35,7 +37,7 @@ import {
   ZUPASS_PROVIDER,
 } from "../models/user.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
-import { getFeatures } from "../models/features.ts";
+import { Feature, getFeatures } from "../models/features.ts";
 import { createAttendancePOD } from "../zupass.ts";
 import { getConferenceRolesForConference } from "../models/roles.ts";
 import { bodyLimit } from "@hono/hono/body-limit";
@@ -371,5 +373,44 @@ app.post(
     });
   },
 );
+
+app.get(
+  "/api/v1/conferences/:id/events",
+  async (c) => {
+    const conferenceId = parseInt(c.req.param("id"));
+
+    if (Number.isInteger(conferenceId) === false) {
+      throw new HTTPException(400, {
+        message: `Invalid conference id ${conferenceId}`,
+      });
+    }
+
+    const conference = await getConferenceById(conferenceId);
+
+    if (!conference) {
+      throw new HTTPException(404, {
+        message: `Conference with id ${conferenceId} not found`,
+      });
+    }
+
+    const [events, features] = await Promise.all([
+      getEvents(conferenceId),
+      getFeatures(conferenceId),
+    ]);
+
+    return c.json({ data: events.map((event) => toApiEvent(event, features)) });
+  },
+);
+
+const toApiEvent = (
+  { secret: _secret, ...rest }: Event,
+  features: Feature[],
+) => ({
+  ...rest,
+  features: features.reduce((acc, val) => {
+    acc[val.name] = val.active;
+    return acc;
+  }, {} as Record<string, boolean>),
+});
 
 export default app;

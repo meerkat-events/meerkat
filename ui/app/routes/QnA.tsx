@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
-import { FiArrowLeft as ArrowBackIcon } from "react-icons/fi";
+import {
+  useCallback,
+  useEffect, // @ts-types="react"
+  useMemo,
+  useState,
+} from "react";
+import { FiArrowLeft as ArrowBackIcon, FiChevronDown } from "react-icons/fi";
 import {
   Box,
   Button,
   createListCollection,
   Flex,
   Link,
+  Menu,
   Portal,
   Select,
   Text,
@@ -25,7 +31,7 @@ import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useEvent } from "../hooks/use-event.ts";
 import { useUser } from "../hooks/use-user.ts";
 import { useVotes } from "../hooks/use-votes.ts";
-import { card, feedback, remote } from "../routing.js";
+import { card, feedback, qa, remote } from "../routing.js";
 import { useReact } from "../hooks/use-react.ts";
 import { Reaction } from "../components/QnA/Reaction.tsx";
 import { HeartIcon } from "../components/QnA/HeartIcon.tsx";
@@ -40,6 +46,8 @@ import { AttendancePod } from "../components/AttendancePod.tsx";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { toaster } from "~/components/ui/toaster.tsx";
 import { useAnonymousUser } from "~/hooks/use-anonymous-user.ts";
+import { useConferenceEvents } from "../hooks/use-conference-events.ts";
+import type { Event } from "../types.ts";
 
 const sortOptions = createListCollection({
   items: [
@@ -51,6 +59,11 @@ const sortOptions = createListCollection({
 export default function QnA() {
   const { uid } = useParams();
   const { data: event } = useEvent(uid);
+  const { data: events } = useConferenceEvents(event?.conferenceId);
+  const { past, live, upcoming } = useMemo(
+    () => groupByState(computeFields(events ?? [], uid ?? "")),
+    [events, uid],
+  );
   const navigate = useNavigate();
   const [showEndingModal, setShowEndingModal] = useState(false);
   const [acknowledgedModals, setAcknowledgedModals] = useLocalStorage<
@@ -206,8 +219,38 @@ export default function QnA() {
               </ReactRouterLink>
             </Link>
           </nav>
+          <Flex
+            flexDirection="row"
+            gap="1"
+            justifyContent="space-between"
+            alignItems="center"
+            padding="0 1rem 0 1rem"
+          >
+            <span>
+              {event?.conference.name}
+            </span>
+
+            <Menu.Root positioning={{ placement: "bottom-end" }}>
+              <Menu.Trigger asChild>
+                <Button size="sm" variant="plain" colorPalette="gray">
+                  Sessions <FiChevronDown />
+                </Button>
+              </Menu.Trigger>
+              <Portal>
+                <Menu.Positioner>
+                  <Menu.Content>
+                    <EventMenuGroup label="Past" events={past} />
+                    <Menu.Separator />
+                    <EventMenuGroup label="Live" events={live} />
+                    <Menu.Separator />
+                    <EventMenuGroup label="Next" events={upcoming} />
+                  </Menu.Content>
+                </Menu.Positioner>
+              </Portal>
+            </Menu.Root>
+          </Flex>
           <Header title={`QA: ${event?.title}`} />
-          <Box alignSelf="flex-end" padding="0 1rem 0.5rem">
+          <Box padding="0 1rem 0.5rem">
             <Select.Root
               size="md"
               collection={sortOptions}
@@ -326,3 +369,60 @@ export default function QnA() {
     </>
   );
 }
+
+type ComputedEvent = ReturnType<typeof computeFields>[number];
+
+function EventMenuGroup(
+  { label, events }: { label: string; events: ComputedEvent[] },
+) {
+  return (
+    <Menu.ItemGroup>
+      <Menu.ItemGroupLabel>{label}</Menu.ItemGroupLabel>
+      {events.map((event) => (
+        <Menu.Item
+          key={event.uid}
+          value={event.uid}
+          asChild
+          {...(event.selected && { background: "gray.800" })}
+        >
+          {event.selected
+            ? <span>{event.title}</span>
+            : (
+              <a href={qa(event.uid)}>
+                {event.title}
+              </a>
+            )}
+        </Menu.Item>
+      ))}
+    </Menu.ItemGroup>
+  );
+}
+
+const groupByState = <E extends { live?: boolean; start?: Date }>(
+  events: E[],
+) => {
+  const liveEvent = events.find((event) => event.live);
+  const groupingDate = liveEvent?.start ?? new Date();
+
+  return events.reduce((acc, event) => {
+    if (event === liveEvent) {
+      acc.live.push(event);
+    } else if ((event as any).end && (event as any).end < groupingDate) {
+      acc.past.push(event);
+    } else {
+      acc.upcoming.push(event);
+    }
+    return acc;
+  }, {
+    past: [] as E[],
+    live: [] as E[],
+    upcoming: [] as E[],
+  });
+};
+
+const computeFields = (events: Event[], uid: string) => {
+  return events.map((event) => ({
+    ...event,
+    selected: event.uid === uid,
+  }));
+};

@@ -43,6 +43,7 @@ export type Event = {
   speaker: string;
   conference: Conference;
   features: Record<string, boolean>;
+  live: boolean;
 };
 
 export type Question = {
