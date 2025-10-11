@@ -9,7 +9,6 @@ const withQuery = (path: string) => {
   return newUrl.pathname + newUrl.search;
 };
 
-export const remote = (uid: string) => withQuery(`/e/${uid}/remote`);
 export const qa = (uid: string) => withQuery(`/e/${uid}/qa`);
 export const card = (uid: string) => withQuery(`/e/${uid}/card`);
 export const feedback = (uid: string) => withQuery(`/e/${uid}/feedback`);
