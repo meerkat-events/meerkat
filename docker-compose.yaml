@@ -17,7 +17,7 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
+      - ./caddy_data:/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -45,8 +45,6 @@ services:
 
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:
   lgtm_grafana:
   lgtm_prometheus:
   lgtm_loki:

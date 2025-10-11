@@ -17,3 +17,8 @@ fly.prod.toml
 
 .react-router/
 build/
+
+workdocs/
+
+# Caddy data (certificates, etc)
+caddy_data/
