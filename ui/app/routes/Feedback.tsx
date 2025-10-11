@@ -1,19 +1,11 @@
 import { useState } from "react";
-import { FiArrowLeft as ArrowBackIcon } from "react-icons/fi";
-import {
-  Field,
-  Flex,
-  Link,
-  Link as ChakraLink,
-  Textarea,
-} from "@chakra-ui/react";
+import { Field, Flex, Link as ChakraLink, Textarea } from "@chakra-ui/react";
 import { Link as ReactRouterLink, useParams } from "react-router";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import { Header } from "../components/Header/Header.tsx";
 import { useEvent } from "../hooks/use-event.ts";
 import { useUser } from "../hooks/use-user.ts";
-import { remote } from "../routing.js";
 import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
 import { useTicketProof } from "../hooks/use-ticket-proof.ts";
 import { useZAPIConnect } from "../zapi/connect.ts";
@@ -22,6 +14,8 @@ import { constructZapp } from "../zapi/zapps.ts";
 import { collectionName } from "../zapi/collections.ts";
 import { useZAPI } from "../zapi/context.tsx";
 import { toaster } from "../components/ui/toaster.tsx";
+import { NavigationDrawer } from "~/components/NavigationDrawer/index.tsx";
+import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 
 export default function Feedback() {
   const { uid } = useParams();
@@ -104,24 +98,14 @@ export default function Feedback() {
       description: "Open Zupass to view.",
     });
   };
+  const navLinks = useLinks({ event });
 
   return (
     <div className="layout">
       <header className="header">
         <nav>
-          <Link asChild color="gray.300">
-            <ReactRouterLink to={uid ? remote(uid) : ""}>
-              <Flex
-                flexDirection="row"
-                gap="1"
-                alignItems="center"
-                padding="0.5rem 0 0 1rem"
-                minHeight="1rem"
-              >
-                <ArrowBackIcon /> <span>Controls</span>
-              </Flex>
-            </ReactRouterLink>
-          </Link>
+          <NavigationDrawer navLinks={navLinks} />
+          {event?.conference.name}
         </nav>
         <div style={{ paddingBottom: "1rem" }}>
           <Header title={`Feedback: ${event?.title ?? "Loading..."}`} />

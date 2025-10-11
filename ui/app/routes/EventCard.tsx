@@ -1,14 +1,10 @@
 import { useState } from "react";
-import { Flex, Link as ChakraLink } from "@chakra-ui/react";
-import { Link, useParams } from "react-router";
+import { Box, Flex, Link as ChakraLink } from "@chakra-ui/react";
+import { useParams } from "react-router";
 import Card from "../components/Card/Card.tsx";
 import { useEvent } from "../hooks/use-event.ts";
 import { Header } from "../components/Header/Header.tsx";
-import { remote } from "../routing.js";
-import {
-  FiArrowLeft as ArrowBackIcon,
-  FiArrowUpRight as ExternalLinkIcon,
-} from "react-icons/fi";
+import { FiArrowUpRight as ExternalLinkIcon } from "react-icons/fi";
 import { useCollect } from "../hooks/use-collect.ts";
 import { pageTitle } from "../utils/events.ts";
 import { useDocumentTitle } from "@uidotdev/usehooks";
@@ -24,6 +20,8 @@ import { collectionName } from "../zapi/collections.ts";
 import { isError } from "../utils/error.ts";
 import { toaster } from "../components/ui/toaster.tsx";
 import { getConferenceTickets } from "~/hooks/use-conference-tickets.ts";
+import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
+import { NavigationDrawer } from "~/components/NavigationDrawer/index.tsx";
 
 export default function EventCard() {
   const { uid } = useParams();
@@ -121,23 +119,14 @@ export default function EventCard() {
 
   const action = !isAuthenticated ? onLogin : !isCollected ? onCollect : null;
 
+  const navLinks = useLinks({ event });
+
   return (
     <div className="layout">
       <header className="header">
         <nav>
-          <ChakraLink asChild color="gray.300">
-            <Link to={uid ? remote(uid) : ""}>
-              <Flex
-                flexDirection="row"
-                gap="1"
-                alignItems="center"
-                padding="0.5rem 0 0 1rem"
-                minHeight="1rem"
-              >
-                <ArrowBackIcon /> <span>Controls</span>
-              </Flex>
-            </Link>
-          </ChakraLink>
+          <NavigationDrawer navLinks={navLinks} />
+          {event?.conference.name}
         </nav>
         <div style={{ paddingBottom: "1rem" }}>
           <Header title={`Card: ${event?.title ?? "Loading..."}`} />

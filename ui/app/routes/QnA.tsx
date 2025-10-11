@@ -4,27 +4,22 @@ import {
   useMemo,
   useState,
 } from "react";
-import { FiArrowLeft as ArrowBackIcon, FiChevronDown } from "react-icons/fi";
+import { FiChevronDown } from "react-icons/fi";
 import {
   Alert,
   Box,
   Button,
   createListCollection,
   Flex,
-  Link,
   Menu,
   Portal,
   Select,
   Text,
 } from "@chakra-ui/react";
-import {
-  Link as ReactRouterLink,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Header } from "../components/Header/Header.tsx";
 import { Modal } from "../components/Modal/Modal.tsx";
+import { NavigationDrawer } from "../components/NavigationDrawer/index.tsx";
 import { CooldownModal } from "../components/QnA/CooldownModal.tsx";
 import { Footer } from "../components/QnA/Footer.tsx";
 import { QuestionsSection } from "../components/QnA/QuestionsSection.tsx";
@@ -32,7 +27,7 @@ import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useEvent } from "../hooks/use-event.ts";
 import { useUser } from "../hooks/use-user.ts";
 import { useVotes } from "../hooks/use-votes.ts";
-import { card, feedback, qa, remote } from "../routing.js";
+import { card, feedback, qa } from "../routing.js";
 import { useReact } from "../hooks/use-react.ts";
 import { Reaction } from "../components/QnA/Reaction.tsx";
 import { HeartIcon } from "../components/QnA/HeartIcon.tsx";
@@ -49,6 +44,7 @@ import { toaster } from "~/components/ui/toaster.tsx";
 import { useAnonymousUser } from "~/hooks/use-anonymous-user.ts";
 import { useConferenceEvents } from "../hooks/use-conference-events.ts";
 import type { Event } from "../types.ts";
+import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 
 const sortOptions = createListCollection({
   items: [
@@ -74,7 +70,6 @@ export default function QnA() {
   const [searchParams] = useSearchParams();
   const secret = searchParams.get("secret");
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-
   useDocumentTitle(pageTitle(event));
 
   const [selectValue, setSelectValue] = useState<string[]>(["newest"]);
@@ -203,31 +198,19 @@ export default function QnA() {
 
   const isntLive = event === undefined ? false : !event.live;
 
+  const navLinks = useLinks({ event });
+
   return (
     <>
       <div className="layout">
         <header className="header flex">
-          <nav>
-            <Link asChild color="gray.300">
-              <ReactRouterLink to={uid ? remote(uid) : ""}>
-                <Flex
-                  flexDirection="row"
-                  gap="1"
-                  alignItems="center"
-                  padding="0.5rem 0 0 1rem"
-                  minHeight="1rem"
-                >
-                  <ArrowBackIcon /> <span>Controls</span>
-                </Flex>
-              </ReactRouterLink>
-            </Link>
-          </nav>
           {isntLive && (
             <Alert.Root
               status="info"
               title="You're viewing a past or upcoming event"
               colorPalette="brand"
               color="brand.contrast"
+              borderRadius="0"
             >
               <Alert.Indicator />
               <Alert.Title>
@@ -242,10 +225,10 @@ export default function QnA() {
             alignItems="center"
             padding="0 1rem 0 1rem"
           >
-            <span>
+            <nav>
+              <NavigationDrawer navLinks={navLinks} />
               {event?.conference.name}
-            </span>
-
+            </nav>
             <Menu.Root positioning={{ placement: "bottom-end" }}>
               <Menu.Trigger asChild>
                 <Button size="sm" variant="plain" colorPalette="gray">
