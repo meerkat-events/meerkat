@@ -124,10 +124,12 @@ export default function EventCard() {
   return (
     <div className="layout">
       <header className="header">
-        <nav>
-          <NavigationDrawer navLinks={navLinks} />
-          {event?.conference.name}
-        </nav>
+        <Flex padding="0 1rem 0 1rem">
+          <nav>
+            <NavigationDrawer navLinks={navLinks} />
+            {event?.conference.name}
+          </nav>
+        </Flex>
         <div style={{ paddingBottom: "1rem" }}>
           <Header title={`Card: ${event?.title ?? "Loading..."}`} />
         </div>

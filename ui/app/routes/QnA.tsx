@@ -7,13 +7,12 @@ import {
 import { FiChevronDown } from "react-icons/fi";
 import {
   Alert,
-  Box,
   Button,
   createListCollection,
   Flex,
   Menu,
+  NativeSelect,
   Portal,
-  Select,
   Text,
 } from "@chakra-ui/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
@@ -72,8 +71,8 @@ export default function QnA() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   useDocumentTitle(pageTitle(event));
 
-  const [selectValue, setSelectValue] = useState<string[]>(["newest"]);
-  const isSortByPopularity = selectValue.includes("popular");
+  const [selectValue, setSelectValue] = useState<string>("newest");
+  const isSortByPopularity = selectValue === "popular";
 
   const {
     data: questions,
@@ -231,7 +230,12 @@ export default function QnA() {
             </nav>
             <Menu.Root positioning={{ placement: "bottom-end" }}>
               <Menu.Trigger asChild>
-                <Button size="sm" variant="plain" colorPalette="gray">
+                <Button
+                  size="sm"
+                  variant="plain"
+                  colorPalette="gray"
+                  paddingRight="0"
+                >
                   Sessions <FiChevronDown />
                 </Button>
               </Menu.Trigger>
@@ -249,37 +253,25 @@ export default function QnA() {
             </Menu.Root>
           </Flex>
           <Header title={`QA: ${event?.title}`} />
-          <Box padding="0 1rem 0.5rem">
-            <Select.Root
-              size="md"
-              collection={sortOptions}
+          <Flex padding="0 1rem 0.5rem">
+            <NativeSelect.Root
+              size="xs"
+              variant="outline"
               width={90}
-              value={selectValue}
-              onValueChange={(e) => setSelectValue(e.value)}
+              colorPalette="gray"
+              color="gray.400"
             >
-              <Select.HiddenSelect />
-              <Select.Control>
-                <Select.Trigger>
-                  <Select.ValueText placeholder="Newest" />
-                </Select.Trigger>
-                <Select.IndicatorGroup>
-                  <Select.Indicator />
-                </Select.IndicatorGroup>
-              </Select.Control>
-              <Portal>
-                <Select.Positioner>
-                  <Select.Content>
-                    {sortOptions.items.map((option) => (
-                      <Select.Item item={option} key={option.value}>
-                        {option.label}
-                        <Select.ItemIndicator />
-                      </Select.Item>
-                    ))}
-                  </Select.Content>
-                </Select.Positioner>
-              </Portal>
-            </Select.Root>
-          </Box>
+              <NativeSelect.Field
+                value={selectValue}
+                onChange={(e) => setSelectValue(e.target.value)}
+              >
+                {sortOptions.items.map((option) => (
+                  <option value={option.value}>{option.label}</option>
+                ))}
+              </NativeSelect.Field>
+              <NativeSelect.Indicator />
+            </NativeSelect.Root>
+          </Flex>
         </header>
         <main className="content flex">
           <QuestionsSection

@@ -50,6 +50,7 @@ export function NavigationDrawer({ navLinks }: NavigationDrawerProps) {
           aria-label="Open navigation menu"
           paddingLeft="0"
           paddingRight="0"
+          justifyContent="start"
         >
           <FiMenu />
         </Button>

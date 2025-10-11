@@ -18,7 +18,6 @@ body {
 .header {
 	grid-row: 1;
 	grid-column: 2;
-	border-bottom: 2px solid var(--chakra-colors-gray-800);
 }
 
 .content {
@@ -35,7 +34,6 @@ body {
 	grid-column: 2;
 	padding: 0 1rem;
 	position: relative;
-	border-top: 2px solid var(--chakra-colors-gray-800);
 }
 
 .title-section {

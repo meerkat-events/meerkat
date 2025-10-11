@@ -7,7 +7,7 @@ interface HeaderProps {
 export function Header({ title }: HeaderProps) {
   return (
     <div className="title-section">
-      <Heading as="h1" className="two-lines" color="white" size="xl" mb={1.5}>
+      <Heading as="h1" className="two-lines" color="white" size="md" mb={2}>
         {title ?? "Loading..."}
       </Heading>
     </div>
