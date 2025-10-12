@@ -11,13 +11,14 @@ import {
   MAX_REACTIONS_PER_INTERVAL,
 } from "../moderation.ts";
 import env from "../env.ts";
-import { getConferenceById } from "../models/conferences.ts";
+import { type Conference, getConferenceById } from "../models/conferences.ts";
 import {
   countParticipants,
   createEventPod,
   type Event,
   getEventByUID,
   getEvents,
+  getLiveEvent,
 } from "../models/events.ts";
 import {
   createQuestion,
@@ -402,6 +403,48 @@ app.get(
   },
 );
 
+app.get("/api/v1/conferences/:id/events/live", async (c) => {
+  const conferenceId = parseInt(c.req.param("id"));
+  if (Number.isInteger(conferenceId) === false) {
+    throw new HTTPException(400, {
+      message: `Invalid conference id ${conferenceId}`,
+    });
+  }
+
+  const [conference, liveEvent, features] = await Promise.all([
+    getConferenceById(conferenceId),
+    getLiveEvent(conferenceId),
+    getFeatures(conferenceId),
+  ]);
+
+  if (!conference) {
+    throw new HTTPException(404, {
+      message: `Conference with id ${conferenceId} not found`,
+    });
+  }
+
+  if (!liveEvent) {
+    throw new HTTPException(404, {
+      message: `No live event found for conference ${conferenceId}`,
+    });
+  }
+
+  const [questions, participants] = await Promise.all([
+    getQuestions(liveEvent.id, "popular", false),
+    countParticipants(liveEvent.id),
+  ]);
+
+  return c.json({
+    data: toFullApiEvent({
+      event: liveEvent,
+      features,
+      questions,
+      conference,
+      participants,
+    }),
+  });
+});
+
 const toApiEvent = (
   { secret: _secret, ...rest }: Event,
   features: Feature[],
@@ -412,5 +455,23 @@ const toApiEvent = (
     return acc;
   }, {} as Record<string, boolean>),
 });
+
+const toFullApiEvent = (
+  { event, features, questions, conference, participants }: {
+    event: Event;
+    features: Feature[];
+    questions: Awaited<ReturnType<typeof getQuestions>>;
+    conference: Conference;
+    participants: number;
+  },
+) => {
+  return {
+    ...toApiEvent(event, features),
+    questions: questions.map(toApiQuestion),
+    votes: questions.reduce((acc, question) => acc + question.votes, 0),
+    participants,
+    conference,
+  };
+};
 
 export default app;

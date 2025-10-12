@@ -1,4 +1,4 @@
-import { eq, getTableColumns, inArray, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import db from "../db.ts";
 import { event_pods, events, lower, questions, votes } from "../schema.ts";
@@ -114,6 +114,16 @@ export async function getEventPods(eventUids: string[]) {
     ...pod,
     event: events,
   }));
+}
+
+export async function getLiveEvent(conferenceId: number) {
+  const result = await db.select().from(events).where(
+    and(
+      eq(events.conferenceId, conferenceId),
+      eq(events.live, true),
+    ),
+  ).limit(1).execute();
+  return result.at(0);
 }
 
 export type Event = typeof events.$inferSelect & { speaker: string | null };

@@ -23,16 +23,16 @@ export function getQuestions(
     ]
     : [desc(questions.createdAt)];
 
-  const clauses = [
+  const conditions = [
     eq(questions.eventId, eventId),
     eq(users.blocked, false),
     isNull(questions.deletedAt),
   ];
 
   if (answered === true) {
-    clauses.push(not(isNull(questions.answeredAt)));
+    conditions.push(not(isNull(questions.answeredAt)));
   } else if (answered === false) {
-    clauses.push(isNull(questions.answeredAt));
+    conditions.push(isNull(questions.answeredAt));
   }
 
   return db
@@ -53,7 +53,7 @@ export function getQuestions(
     .leftJoin(votes, eq(questions.id, votes.questionId))
     .leftJoin(users, eq(questions.userId, users.id))
     .where(
-      and(...clauses),
+      and(...conditions),
     )
     .groupBy(questions.id, users.id)
     .orderBy(...orderBy)

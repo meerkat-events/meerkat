@@ -12,16 +12,15 @@ import { fetcher } from "~/hooks/fetcher";
 import { createSystem } from "~/theme";
 
 export async function clientLoader(args: Route.LoaderArgs) {
-  const [{ data: event }, config]: [{ data: Event | undefined }, Config] =
-    await Promise.all([
-      args.params.uid
-        ? fetcher(`/api/v1/events/${args.params.uid}`)
-        : undefined,
+  const hasUid = args.params.uid;
+  const [result, config]: [{ data: Event } | undefined, Config] = await Promise
+    .all([
+      hasUid ? fetcher(`/api/v1/events/${args.params.uid}`) : undefined,
       getConfig(),
     ]);
 
   return {
-    event,
+    event: result?.data,
     config,
   };
 }

@@ -9,6 +9,7 @@ export default [
   index("routes/Home.tsx"),
   layout("layouts/page.tsx", [
     route("/e/:uid", "routes/Event.tsx"),
+    route("/c/:conferenceId", "routes/Conference.tsx"),
   ]),
   layout("layouts/app.tsx", [
     route("/e/:uid/qa", "routes/QnA.tsx"),
