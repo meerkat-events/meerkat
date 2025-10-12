@@ -29,6 +29,7 @@ app.get("/login", serveStatic({ path: "./public/login/index.html" }));
 
 app.get("/e/:uid", serveStatic({ path: "./public/index.html" }));
 app.get("/e/:uid/*", serveStatic({ path: "./public/index.html" }));
+app.get("/c/:conferenceId", serveStatic({ path: "./public/index.html" }));
 
 app.use("*", serveStatic({ root: "./public" }));
 
