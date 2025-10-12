@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect, // @ts-types="react"
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FiChevronDown } from "react-icons/fi";
 import {
   Alert,
@@ -13,9 +8,8 @@ import {
   Menu,
   NativeSelect,
   Portal,
-  Text,
 } from "@chakra-ui/react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useParams } from "react-router";
 import { Header } from "../components/Header/Header.tsx";
 import { Modal } from "../components/Modal/Modal.tsx";
 import { NavigationDrawer } from "../components/NavigationDrawer/index.tsx";
@@ -26,7 +20,7 @@ import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useEvent } from "../hooks/use-event.ts";
 import { useUser } from "../hooks/use-user.ts";
 import { useVotes } from "../hooks/use-votes.ts";
-import { card, feedback, qa } from "../routing.js";
+import { qa } from "../routing.js";
 import { useReact } from "../hooks/use-react.ts";
 import { Reaction } from "../components/QnA/Reaction.tsx";
 import { HeartIcon } from "../components/QnA/HeartIcon.tsx";
@@ -37,13 +31,13 @@ import { useQuestions } from "../hooks/use-questions.ts";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
-import { AttendancePod } from "../components/AttendancePod.tsx";
-import { useLocalStorage } from "@uidotdev/usehooks";
 import { toaster } from "~/components/ui/toaster.tsx";
 import { useAnonymousUser } from "~/hooks/use-anonymous-user.ts";
 import { useConferenceEvents } from "../hooks/use-conference-events.ts";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
+import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
+import { useGoLive } from "~/hooks/use-go-live.ts";
 
 const sortOptions = createListCollection({
   items: [
@@ -54,21 +48,14 @@ const sortOptions = createListCollection({
 
 export default function QnA() {
   const { uid } = useParams();
-  const { data: event } = useEvent(uid);
-  const { data: events } = useConferenceEvents(event?.conferenceId);
+  const { data: event, mutate: refreshEvent } = useEvent(uid);
+  const { data: events, mutate: refreshEvents } = useConferenceEvents(
+    event?.conferenceId,
+  );
   const { past, live, upcoming } = useMemo(
     () => groupByState(computeFields(events ?? [], uid ?? "")),
     [events, uid],
   );
-  const navigate = useNavigate();
-  const [showEndingModal, setShowEndingModal] = useState(false);
-  const [acknowledgedModals, setAcknowledgedModals] = useLocalStorage<
-    Record<string, boolean>
-  >("acknowledged-modals", {});
-
-  const [searchParams] = useSearchParams();
-  const secret = searchParams.get("secret");
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   useDocumentTitle(pageTitle(event));
 
   const [selectValue, setSelectValue] = useState<string>("newest");
@@ -140,56 +127,6 @@ export default function QnA() {
     addReaction(reaction);
   };
 
-  const handleNavigateToFeedback = () => {
-    if (!uid) return;
-    navigate(feedback(uid));
-    setShowFeedbackModal(false);
-  };
-
-  useEffect(() => {
-    if (!event?.end || !event?.uid) return;
-
-    const checkEventEnding = () => {
-      const now = new Date();
-      const end = new Date(event.end);
-      const timeUntilEnd = end.getTime() - now.getTime();
-      const twoMinutesInMs = 180000; // 3 minutes in milliseconds
-
-      if (timeUntilEnd <= twoMinutesInMs) {
-        if (secret && !acknowledgedModals[`ending-${event.uid}`]) {
-          setShowEndingModal(true);
-          setAcknowledgedModals((prev: Record<string, boolean>) => ({
-            ...prev,
-            [`ending-${event.uid}`]: true,
-          }));
-        } else if (!secret && !acknowledgedModals[`feedback-${event.uid}`]) {
-          setShowFeedbackModal(true);
-          setAcknowledgedModals((prev: Record<string, boolean>) => ({
-            ...prev,
-            [`feedback-${event.uid}`]: true,
-          }));
-        }
-      }
-    };
-
-    const interval = setInterval(checkEventEnding, 30000);
-    checkEventEnding();
-
-    return () => clearInterval(interval);
-  }, [
-    event?.end,
-    event?.uid,
-    secret,
-    acknowledgedModals,
-    setAcknowledgedModals,
-  ]);
-
-  const handleNavigateToCard = () => {
-    if (!uid) return;
-    navigate(card(uid));
-    setShowEndingModal(false);
-  };
-
   const supportAnonymous = event?.features["anonymous-user"] ?? false;
   const conferenceId = event?.conferenceId ?? 0;
 
@@ -198,6 +135,19 @@ export default function QnA() {
   const isntLive = event === undefined ? false : !event.live;
 
   const navLinks = useLinks({ event });
+
+  const { trigger: goLive } = useGoLive(event?.uid ?? "");
+
+  const onConfirm = async () => {
+    await goLive();
+    await refreshEvent();
+    toaster.create({
+      title: "Event is now live",
+      type: "success",
+      duration: 1000,
+    });
+    await refreshEvents();
+  };
 
   return (
     <>
@@ -210,11 +160,21 @@ export default function QnA() {
               colorPalette="brand"
               color="brand.contrast"
               borderRadius="0"
+              display="flex"
+              flexDirection="row"
+              gap="1"
+              alignItems="center"
+              justifyContent="space-between"
             >
               <Alert.Indicator />
-              <Alert.Title>
-                You're viewing a past or upcoming event.
-              </Alert.Title>
+              <Alert.Content>
+                <Alert.Title>
+                  You're viewing a past or upcoming event.
+                </Alert.Title>
+              </Alert.Content>
+              {event && isOrganizer && (
+                <LiveDialog event={event} onConfirm={onConfirm} />
+              )}
             </Alert.Root>
           )}
           <Flex
@@ -316,47 +276,6 @@ export default function QnA() {
         </Modal>
       )}
       <CooldownModal />
-      <Modal
-        isOpen={showEndingModal}
-        onClose={() => setShowEndingModal(false)}
-        title="Event End"
-        footer={
-          <Flex gap="1rem" justifyContent="flex-end">
-            <Button variant="outline" onClick={() => setShowEndingModal(false)}>
-              Stay Here
-            </Button>
-            <Button onClick={handleNavigateToCard}>
-              Go to Card Page
-            </Button>
-          </Flex>
-        }
-      >
-        <AttendancePod event={event} />
-        <Text mt="1rem">
-          Event is ending soon. It's time to get your attendance collectable.
-          Would you like to navigate there?
-        </Text>
-      </Modal>
-      <Modal
-        isOpen={showFeedbackModal}
-        onClose={() => setShowFeedbackModal(false)}
-        title="Event End"
-        footer={
-          <Flex gap="1rem">
-            <Button variant="ghost" onClick={() => setShowFeedbackModal(false)}>
-              Stay Here
-            </Button>
-            <Button colorScheme="purple" onClick={handleNavigateToFeedback}>
-              Give Feedback
-            </Button>
-          </Flex>
-        }
-      >
-        <Text>
-          Event is ending soon. Would you like to provide feedback for the
-          speaker?
-        </Text>
-      </Modal>
     </>
   );
 }

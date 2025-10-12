@@ -126,4 +126,16 @@ export async function getLiveEvent(conferenceId: number) {
   return result.at(0);
 }
 
+export async function setEventLive(eventId: number) {
+  return await db.transaction(async (tx) => {
+    await tx.update(events).set({ live: false }).where(
+      eq(events.live, true),
+    );
+    const result = await tx.update(events).set({ live: true }).where(
+      eq(events.id, eventId),
+    ).returning();
+    return result.at(0);
+  });
+}
+
 export type Event = typeof events.$inferSelect & { speaker: string | null };

@@ -19,6 +19,7 @@ import {
   getEventByUID,
   getEvents,
   getLiveEvent,
+  setEventLive,
 } from "../models/events.ts";
 import {
   createQuestion,
@@ -372,6 +373,44 @@ app.post(
     return c.json({
       data: createdPod,
     });
+  },
+);
+
+app.post(
+  "/api/v1/events/:uid/live",
+  eventMiddleware,
+  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
+  async (c) => {
+    const event = c.get("event");
+    const payload = c.get("jwtPayload");
+    const user = await getUserByUID(payload.sub);
+
+    if (!user) {
+      throw new HTTPException(401, { message: "User not found" });
+    }
+
+    const roles = await getConferenceRolesForConference(
+      user.id,
+      event.conferenceId,
+    );
+    const isOrganizer = roles.some((role) => role.role === "organizer");
+
+    if (!isOrganizer) {
+      throw new HTTPException(403, { message: `User is not an organizer` });
+    }
+
+    const [result, features] = await Promise.all([
+      setEventLive(event.id),
+      getFeatures(event.conferenceId),
+    ]);
+
+    if (!result) {
+      throw new HTTPException(500, { message: `Failed to set event live` });
+    }
+
+    logger.info({ result, event, user }, "Set event live");
+
+    return c.json({ data: toApiEvent(result, features) });
   },
 );
 
