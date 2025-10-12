@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import { useCallback, useMemo } from "react";
 import type { Event } from "~/types";
 import throttle from "lodash.throttle";
-import { useEventSubscription } from "~/hooks/use-event-subscription";
+import { useLiveEventSubscription } from "~/hooks/use-live-event-subscription";
 import { useLiveEvent } from "~/hooks/use-live-event";
 import Presenter from "~/components/Presenter";
 
@@ -30,7 +30,7 @@ export default function Conference() {
     onUpdate: throttleRefresh,
   });
 
-  useEventSubscription(event, {
+  useLiveEventSubscription(event, {
     onUpdate: throttleRefresh,
   });
 

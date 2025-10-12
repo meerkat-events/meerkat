@@ -2,35 +2,30 @@ import { useSupabase } from "~/context/supabase";
 import useSWRSubscription from "swr/subscription";
 import type { Event } from "~/types";
 
-const PREFIX = "event-";
+const PREFIX = "conference-";
 
-export type UseEventSubscriptionProps = {
+export type UseLiveEventSubscriptionProps = {
   onUpdate: () => void;
 };
 
-export function useEventSubscription(
+export function useLiveEventSubscription(
   event: Event | undefined,
-  { onUpdate }: UseEventSubscriptionProps,
+  { onUpdate }: UseLiveEventSubscriptionProps,
 ) {
   const { client: supabase } = useSupabase();
 
   const { error: error3 } = useSWRSubscription(
     typeof event?.id === "number" && supabase
-      ? `${PREFIX}${event.id}`
+      ? `${PREFIX}${event.conferenceId}`
       : undefined,
     (key) => {
-      const eventId = key.substring(PREFIX.length);
-      const channel = supabase?.channel("event-updates")
+      const channel = supabase?.channel(key)
         .on(
-          "postgres_changes",
+          "broadcast",
           {
-            event: "UPDATE",
-            schema: "public",
-            table: "events",
-            filter: `id=eq.${eventId}`,
+            event: "live",
           },
-          (payload) => {
-            console.log("payload", payload);
+          (_payload) => {
             onUpdate();
           },
         )

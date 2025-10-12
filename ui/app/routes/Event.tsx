@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 import type { Event } from "~/types";
 import { useEvent } from "~/hooks/use-event.ts";
 import throttle from "lodash.throttle";
-import { useEventSubscription } from "~/hooks/use-event-subscription";
+import { useLiveEventSubscription } from "~/hooks/use-live-event-subscription";
 import Presenter from "~/components/Presenter";
 
 const REFRESH_INTERVAL = 30_000;
@@ -34,7 +34,7 @@ export default function EventPage() {
     onUpdate: throttleRefresh,
   });
 
-  useEventSubscription(event, {
+  useLiveEventSubscription(event, {
     onUpdate: throttleRefresh,
   });
 

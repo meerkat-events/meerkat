@@ -47,6 +47,7 @@ import { checkEventEnded } from "./errors.ts";
 import { COOKIE_NAME } from "../utils/cookie.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
+import { supabase } from "../supabase.ts";
 
 const app = new Hono();
 
@@ -406,6 +407,18 @@ app.post(
 
     if (!result) {
       throw new HTTPException(500, { message: `Failed to set event live` });
+    }
+
+    if (supabase) {
+      const channel = supabase.channel(`conference-${event.conferenceId}`);
+
+      await channel.send({
+        "type": "broadcast",
+        "event": "live",
+        "data": {
+          "eventId": event.id,
+        },
+      });
     }
 
     logger.info({ result, event, user }, "Set event live");
