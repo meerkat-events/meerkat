@@ -121,7 +121,7 @@ app.get("/api/v1/events/:uid/code", eventMiddleware, async (c) => {
 
   const event = c.get("event");
 
-  const url = new URL(`/e/${event.uid}/remote`, env.base);
+  const url = new URL(`/e/${event.uid}/qa`, env.base);
 
   return c.body(await generateQRCodePNG(url.toString(), widthInput), 200, {
     "Content-Type": "image/png",

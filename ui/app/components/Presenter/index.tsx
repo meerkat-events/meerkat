@@ -13,10 +13,11 @@ import "./styles.css";
 const randomX = randomNormal(50, 8);
 
 export type PresenterProps = {
-  event: Event & { url: URL } | undefined;
+  event: Event | undefined;
+  url: URL | undefined;
 };
 
-export default function Presenter({ event }: PresenterProps) {
+export default function Presenter({ event, url }: PresenterProps) {
   const [searchParams] = useSearchParams();
   const [reactions, setReactions] = useState<{ id: string; x: number }[]>([]);
 
@@ -58,7 +59,7 @@ export default function Presenter({ event }: PresenterProps) {
         <TopQuestions questions={event?.questions ?? []} />
       </main>
       <aside>
-        {!hideQRCode && event && <QR url={event.url} />}
+        {!hideQRCode && url && <QR url={url} />}
         <Text fontSize="xl" fontWeight="bold" textAlign="center">
           Participants {event?.participants}
         </Text>

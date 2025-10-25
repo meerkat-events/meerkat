@@ -1,11 +1,11 @@
 import { useQuestionsSubscription } from "~/hooks/use-questions-subscription";
 import { useParams } from "react-router";
 import { useCallback, useMemo } from "react";
-import type { Event } from "~/types";
 import throttle from "lodash.throttle";
 import { useLiveEventSubscription } from "~/hooks/use-live-event-subscription";
 import { useLiveEvent } from "~/hooks/use-live-event";
 import Presenter from "~/components/Presenter";
+import { toEvent } from "~/lib/event";
 
 const REFRESH_INTERVAL = 30_000;
 
@@ -34,21 +34,16 @@ export default function Conference() {
     onUpdate: throttleRefresh,
   });
 
-  return <Presenter event={event} />;
+  return (
+    <Presenter
+      event={event}
+      url={event ? getConferenceUrl(event.conference.id) : undefined}
+    />
+  );
 }
 
-function toEvent(data: Event) {
-  return {
-    ...data,
-    start: new Date(data.start),
-    end: new Date(data.end),
-    url: new URL(`${import.meta.env.VITE_API_URL}/e/${data.uid}/remote`),
-    questions: data.questions.map((question) => ({
-      ...question,
-      createdAt: new Date(question.createdAt),
-      answeredAt: question.answeredAt
-        ? new Date(question.answeredAt)
-        : undefined,
-    })),
-  };
+function getConferenceUrl(conferenceId: number): URL {
+  return new URL(
+    `${import.meta.env.VITE_API_URL}/api/v1/conferences/${conferenceId}/live`,
+  );
 }

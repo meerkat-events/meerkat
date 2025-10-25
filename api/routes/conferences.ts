@@ -12,6 +12,7 @@ import { upsertEvents } from "../models/events.ts";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "@hono/hono/http-exception";
 import { createSigner } from "../utils/secret.ts";
+import { getLiveEvent } from "../models/events.ts";
 import logger from "../logger.ts";
 
 const app = new Hono();
@@ -123,5 +124,24 @@ app.post(
     return c.json({ data: response }, 201);
   },
 );
+
+app.get("/api/v1/conferences/:id/live", async (c) => {
+  const conferenceId = parseInt(c.req.param("id"));
+  if (Number.isInteger(conferenceId) === false) {
+    throw new HTTPException(400, {
+      message: `Invalid conference id ${conferenceId}`,
+    });
+  }
+
+  const liveEvent = await getLiveEvent(conferenceId);
+
+  if (!liveEvent) {
+    throw new HTTPException(404, {
+      message: `No live event found for conference ${conferenceId}`,
+    });
+  }
+
+  return c.redirect(new URL(`/e/${liveEvent.uid}/qa`, env.base));
+});
 
 export default app;
