@@ -6,10 +6,10 @@
     "jsr:@std/dotenv@~0.225.5": "0.225.5",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "jsr:@supabase/supabase-js@^2.58.0": "2.58.0",
-    "npm:@hono/zod-validator@~0.7.4": "0.7.4_hono@4.9.11_zod@4.1.12",
+    "npm:@hono/zod-validator@~0.7.4": "0.7.4_hono@4.10.3_zod@4.1.12",
     "npm:@parcnet-js/ticket-spec@^1.1.9": "1.1.9",
     "npm:@pcd/pod@~0.5.1": "0.5.1",
-    "npm:@sentry/deno@^10.19.0": "10.19.0",
+    "npm:@sentry/deno@^10.22.0": "10.22.0",
     "npm:@supabase/auth-js@2.72.0": "2.72.0",
     "npm:@supabase/functions-js@2.5.0": "2.5.0",
     "npm:@supabase/node-fetch@2.6.15": "2.6.15",
@@ -17,9 +17,9 @@
     "npm:@supabase/realtime-js@2.15.5": "2.15.5",
     "npm:@supabase/storage-js@2.12.2": "2.12.2",
     "npm:drizzle-kit@~0.31.5": "0.31.5_esbuild@0.25.10",
-    "npm:drizzle-orm@~0.44.6": "0.44.6_postgres@3.4.7",
-    "npm:hono@^4.9.11": "4.9.11",
-    "npm:pino@10": "10.0.0",
+    "npm:drizzle-orm@~0.44.7": "0.44.7_postgres@3.4.7",
+    "npm:hono@^4.10.3": "4.10.3",
+    "npm:pino@^10.1.0": "10.1.0",
     "npm:postgres@^3.4.7": "3.4.7",
     "npm:qrcode@^1.5.4": "1.5.4",
     "npm:uuidv7@^1.0.2": "1.0.2",
@@ -364,7 +364,7 @@
         "@ethersproject/logger"
       ]
     },
-    "@hono/zod-validator@0.7.4_hono@4.9.11_zod@4.1.12": {
+    "@hono/zod-validator@0.7.4_hono@4.10.3_zod@4.1.12": {
       "integrity": "sha512-biKGn3BRJVaftZlIPMyK+HCe/UHAjJ6sH0UyXe3+v0OcgVr9xfImDROTJFLtn9e3XEEAHGZIM9U6evu85abm8Q==",
       "dependencies": [
         "hono",
@@ -526,6 +526,9 @@
         "uuid"
       ]
     },
+    "@pinojs/redact@0.4.0": {
+      "integrity": "sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg=="
+    },
     "@semaphore-protocol/core@4.13.1_@semaphore-protocol+group@4.13.1_@semaphore-protocol+identity@4.13.1": {
       "integrity": "sha512-qQSVV0ttI+/De4IwcGkjgM7LuWqXubcc2RK7OaaAPenb8hryTeCwL0+4hso/4CdqFy5/U6+Jj1Y2RnFBrSSxsg==",
       "dependencies": [
@@ -579,11 +582,11 @@
         "ethers@6.13.5"
       ]
     },
-    "@sentry/core@10.19.0": {
-      "integrity": "sha512-OqZjYDYsK6ZmBG5UzML0uKiKq//G6mMwPcszfuCsFgPt+pg5giUCrCUbt5VIVkHdN1qEEBk321JO2haU5n2Eig=="
+    "@sentry/core@10.22.0": {
+      "integrity": "sha512-V1oeHbrOKzxadsCmgtPku3v3Emo/Bpb3VSuKmlLrQefiHX98MWtjJ3XDGfduzD5/dCdh0r/OOLwjcmrO/PZ2aw=="
     },
-    "@sentry/deno@10.19.0": {
-      "integrity": "sha512-EKaqqRmlkNvu1ebBDB692hsTqfw4Y373/vKCDPFAgwT7dzny7fwuUK+BojZ+WC89fZou7j48S4kXSn5S5yIeAA==",
+    "@sentry/deno@10.22.0": {
+      "integrity": "sha512-XUH07JDWz31TFCWFn+0z4TLhPtxEyG+LTh8ZyMMZ5iIa9pTCXPqa9tLYR+0EZrnz/ZpP3tpqDoS7mIOKbI//Jw==",
       "dependencies": [
         "@opentelemetry/api",
         "@sentry/core"
@@ -997,8 +1000,8 @@
       ],
       "bin": true
     },
-    "drizzle-orm@0.44.6_postgres@3.4.7": {
-      "integrity": "sha512-uy6uarrrEOc9K1u5/uhBFJbdF5VJ5xQ/Yzbecw3eAYOunv5FDeYkR2m8iitocdHBOHbvorviKOW5GVw0U1j4LQ==",
+    "drizzle-orm@0.44.7_postgres@3.4.7": {
+      "integrity": "sha512-quIpnYznjU9lHshEOAYLoZ9s3jweleHlZIAWR/jX9gAWNg/JhQ1wj0KGRf7/Zm+obRrYd9GjPVJg790QY9N5AQ==",
       "dependencies": [
         "postgres"
       ],
@@ -1286,8 +1289,8 @@
         "function-bind"
       ]
     },
-    "hono@4.9.11": {
-      "integrity": "sha512-MyJ4xop3boTyXl8bJBh4i20AAZTLM3AXUJphyrUb0CpgTKYb1N703z53XiKUKchGUpcPqiiYkiLOXA3kqK3icA=="
+    "hono@4.10.3": {
+      "integrity": "sha512-2LOYWUbnhdxdL8MNbNg9XZig6k+cZXm5IjHn2Aviv7honhBMOHb+jxrKIeJRZJRmn+htUCKhaicxwXuUDlchRA=="
     },
     "hoopy@0.1.4": {
       "integrity": "sha512-HRcs+2mr52W0K+x8RzcLzuPPmVIKMSv97RGHy0Ea9y/mpcaK+xTrjICA04KAHi4GRzxliNqNJEFYWHghy3rSfQ=="
@@ -1491,9 +1494,10 @@
     "pino-std-serializers@7.0.0": {
       "integrity": "sha512-e906FRY0+tV27iq4juKzSYPbUj2do2X2JX4EzSca1631EB2QJQUqGbDuERal7LCtOpxl6x3+nvo9NPZcmjkiFA=="
     },
-    "pino@10.0.0": {
-      "integrity": "sha512-eI9pKwWEix40kfvSzqEP6ldqOoBIN7dwD/o91TY5z8vQI12sAffpR/pOqAD1IVVwIVHDpHjkq0joBPdJD0rafA==",
+    "pino@10.1.0": {
+      "integrity": "sha512-0zZC2ygfdqvqK8zJIr1e+wT1T/L+LF6qvqvbzEQ6tiMAoTqEVK9a1K3YRu8HEUvGEvNqZyPJTtb2sNIoTkB83w==",
       "dependencies": [
+        "@pinojs/redact",
         "atomic-sleep",
         "on-exit-leak-free",
         "pino-abstract-transport",
@@ -1502,7 +1506,6 @@
         "quick-format-unescaped",
         "real-require",
         "safe-stable-stringify",
-        "slow-redact",
         "sonic-boom",
         "thread-stream"
       ],
@@ -1619,9 +1622,6 @@
     },
     "signal-exit@4.1.0": {
       "integrity": "sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw=="
-    },
-    "slow-redact@0.3.2": {
-      "integrity": "sha512-MseHyi2+E/hBRqdOi5COy6wZ7j7DxXRz9NkseavNYSvvWC06D8a5cidVZX3tcG5eCW3NIyVU4zT63hw0Q486jw=="
     },
     "snarkjs@0.5.0": {
       "integrity": "sha512-KWz8mZ2Y+6wvn6GGkQo6/ZlKwETdAGohd40Lzpwp5TUZCn6N6O4Az1SuX1rw/qREGL6Im+ycb19suCFE8/xaKA==",
@@ -1895,11 +1895,11 @@
       "npm:@hono/zod-validator@~0.7.4",
       "npm:@parcnet-js/ticket-spec@^1.1.9",
       "npm:@pcd/pod@~0.5.1",
-      "npm:@sentry/deno@^10.19.0",
+      "npm:@sentry/deno@^10.22.0",
       "npm:drizzle-kit@~0.31.5",
-      "npm:drizzle-orm@~0.44.6",
-      "npm:hono@^4.9.11",
-      "npm:pino@10",
+      "npm:drizzle-orm@~0.44.7",
+      "npm:hono@^4.10.3",
+      "npm:pino@^10.1.0",
       "npm:postgres@^3.4.7",
       "npm:qrcode@^1.5.4",
       "npm:uuidv7@^1.0.2",

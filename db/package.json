@@ -13,7 +13,7 @@
   "description": "Database migrations and seeding for Meerkat",
   "dependencies": {
     "drizzle-kit": "^0.31.5",
-    "drizzle-orm": "^0.44.6",
+    "drizzle-orm": "^0.44.7",
     "postgres": "^3.4.7"
   }
 }
