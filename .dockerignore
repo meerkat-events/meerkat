@@ -6,6 +6,7 @@ fly.prod.toml
 fly.template.toml
 
 node_modules
+api/node_modules
 .vscode
 .react-router
 .github
@@ -16,5 +17,3 @@ Caddyfile
 docker-compose.yml
 LICENSE
 README.md
-ui/build
-api/public

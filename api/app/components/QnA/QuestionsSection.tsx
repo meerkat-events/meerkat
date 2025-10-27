@@ -46,16 +46,16 @@ export function QuestionsSection(
           </ol>
         )
         : isLoading
-          ? (
-            <Flex alignItems="center" justifyContent="center" flex="1">
-              Loading...
-            </Flex>
-          )
-          : (
-            <Flex alignItems="center" justifyContent="center" flex="1">
-              <span>No questions, yet. Be first to ask!</span>
-            </Flex>
-          )}
+        ? (
+          <Flex alignItems="center" justifyContent="center" flex="1">
+            Loading...
+          </Flex>
+        )
+        : (
+          <Flex alignItems="center" justifyContent="center" flex="1">
+            <span>No questions, yet. Be first to ask!</span>
+          </Flex>
+        )}
     </>
   );
 }

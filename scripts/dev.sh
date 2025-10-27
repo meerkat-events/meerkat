@@ -28,28 +28,14 @@ tmux rename-window -t $SESSION:0 'Meerkat Dev'
 
 # Split the window into three panes
 tmux split-window -h -t $SESSION:0
-tmux split-window -v -t $SESSION:0.1
 
 # Start API in the first pane
 tmux send-keys -t $SESSION:0.0 "cd $(pwd)/api && echo '🚀 Starting API Server...' && deno task dev" C-m
 
-# Start UI in the second pane
-tmux send-keys -t $SESSION:0.1 "cd $(pwd)/ui && echo '🚀 Starting UI Server...' && npm run dev" C-m
-
 # Start Verifier in the third pane
-tmux send-keys -t $SESSION:0.2 "cd $(pwd)/verifier && echo '🚀 Starting Verifier Server...' && npm run dev" C-m
+tmux send-keys -t $SESSION:0.1 "cd $(pwd)/verifier && echo '🚀 Starting Verifier Server...' && npm run dev" C-m
 
 # Attach to the session
 tmux attach-session -t $SESSION
 
 echo "✅ Development environment started in tmux!"
-echo "🌐 Services are available at:"
-echo "   - API: http://localhost:8000"
-echo "   - Verifier: http://localhost:8001"
-echo "   - UI: http://localhost:3000 (development server)"
-echo ""
-echo "📝 tmux keyboard shortcuts:"
-echo "   - Ctrl+b d: Detach from session (keeps services running)"
-echo "   - Ctrl+b arrow keys: Navigate between panes"
-echo "   - Ctrl+b z: Zoom in/out of current pane"
-echo "   - Ctrl+b &: Kill the session (stops all services)" 

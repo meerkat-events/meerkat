@@ -4,16 +4,18 @@
   "type": "module",
   "version": "1.0.0",
   "author": "Florian Dreschner <code@dreschner.eu>",
-  "scripts": {
-    "build": "react-router build",
-    "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 react-router dev --host 0.0.0.0",
-    "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
-  },
   "dependencies": {
     "@chakra-ui/react": "^3.28.0",
     "@emotion/react": "^11.14.0",
     "@grafana/faro-web-sdk": "^1.19.0",
+    "@hono/zod-validator": "^0.7.4",
+    "@jsr/libs__qrcode": "^3.0.0",
+    "@jsr/std__crypto": "^1.0.5",
+    "@jsr/std__dotenv": "^0.225.5",
+    "@jsr/std__encoding": "^1.0.10",
+    "@jsr/std__http": "^1.0.21",
+    "@jsr/std__path": "^1.1.2",
+    "@jsr/supabase__supabase-js": "^2.58.0",
     "@parcnet-js/app-connector": "^1.1.10",
     "@parcnet-js/podspec": "^1.2.0",
     "@parcnet-js/ticket-spec": "^1.1.9",
@@ -21,15 +23,20 @@
     "@pcd/pod": "^0.5.1",
     "@react-router/node": "^7.9.4",
     "@react-router/serve": "^7.9.4",
+    "@sentry/deno": "^10.22.0",
     "@sentry/react": "^10.22.0",
     "@supabase/supabase-js": "^2.76.1",
     "@uidotdev/usehooks": "^2.4.1",
     "color2k": "^2.0.3",
     "d3-random": "^3.0.1",
+    "drizzle-orm": "^0.44.7",
+    "hono": "^4.10.3",
     "isbot": "^5.1.31",
     "js-confetti": "^0.13.1",
     "lodash.throttle": "^4.1.1",
     "next-themes": "^0.4.6",
+    "pino": "^10.1.0",
+    "postgres": "^3.4.7",
     "posthog-js": "^1.280.1",
     "qrcode": "^1.5.4",
     "react": "^19.2.0",
@@ -38,9 +45,11 @@
     "react-router": "^7.9.4",
     "swr": "^2.3.6",
     "uuidv7": "^1.0.2",
-    "vite-plugin-node-polyfills": "^0.24.0"
+    "vite-plugin-node-polyfills": "^0.24.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@deno/vite-plugin": "^1.0.5",
     "@react-router/dev": "^7.9.4",
     "@types/d3-random": "^3.0.3",
     "@types/lodash.throttle": "^4.1.9",
@@ -48,9 +57,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "react-router-devtools": "^5.1.3",
-    "typescript": "^5.9.3",
-    "vite": "^7.1.12",
-    "vite-tsconfig-paths": "^5.1.4"
+    "drizzle-kit": "^0.31.5",
+    "vite": "^6.4.1"
   }
 }

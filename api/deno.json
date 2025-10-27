@@ -1,27 +1,52 @@
 {
   "imports": {
+    "~/": "./app/",
     "@hono/hono": "npm:hono@^4.10.3",
-    "@hono/zod-validator": "npm:@hono/zod-validator@^0.7.4",
-    "@libs/qrcode": "jsr:@libs/qrcode@^3.0.0",
-    "@parcnet-js/ticket-spec": "npm:@parcnet-js/ticket-spec@^1.1.9",
-    "@pcd/pod": "npm:@pcd/pod@^0.5.1",
-    "@sentry/deno": "npm:@sentry/deno@^10.22.0",
-    "@std/crypto": "jsr:@std/crypto@^1.0.5",
-    "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
-    "@std/encoding": "jsr:@std/encoding@^1.0.10",
-    "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.58.0",
-    "drizzle-orm": "npm:drizzle-orm@^0.44.7",
-    "pino": "npm:pino@^10.1.0",
-    "postgres": "npm:postgres@^3.4.7",
-    "qrcode": "npm:qrcode@^1.5.4",
-    "uuidv7": "npm:uuidv7@^1.0.2",
-    "zod": "npm:zod@^4.1.12",
-    "drizzle-kit": "npm:drizzle-kit@^0.31.5"
+    "@std/http/": "npm:/@jsr/std__http@1.0.21/",
+    "@std/path/": "npm:/@jsr/std__path@1.1.2/",
+    "@std/crypto": "npm:@jsr/std__crypto@1.0.5",
+    "@std/crypto/": "npm:/@jsr/std__crypto@1.0.5/",
+    "@std/encoding": "npm:@jsr/std__encoding@1.0.10",
+    "@std/encoding/": "npm:/@jsr/std__encoding@1.0.10/",
+    "@std/dotenv/": "npm:/@jsr/std__dotenv@0.225.5/",
+    "@supabase/supabase-js": "npm:@jsr/supabase__supabase-js@^2.58.0",
+    "@libs/qrcode": "npm:@jsr/libs__qrcode@^3.0.0"
   },
   "tasks": {
-    "check": "deno check **/*.ts",
     "lint": "deno lint",
-    "dev": "DENO_TLS_CA_STORE=system OTEL_DENO=true OTEL_SERVICE_NAME=api deno run --inspect --allow-env --unstable-otel --allow-read --allow-net --allow-sys --watch ./dev.ts",
-    "start": "deno run --allow-env --allow-net --allow-read=public --allow-sys=hostname ./main.ts"
-  }
+    "dev": "DENO_TLS_CA_STORE=system deno run --inspect --env-file=.env --allow-read --allow-net --allow-sys=hostname --allow-env --watch ./dev.ts",
+    "start": "deno run --allow-env --allow-net --allow-read=public --allow-sys=hostname ./main.ts",
+    "build": "NODE_ENV=production react-router build",
+    "format": "deno fmt",
+    "typecheck": {
+      "command": "deno check --node-modules-dir=auto '**/*'",
+      "dependencies": [
+        "typegen"
+      ]
+    },
+    "typegen": "react-router typegen"
+  },
+  "compilerOptions": {
+    "lib": [
+      "deno.window",
+      "dom"
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "jsxImportSourceTypes": "@types/react",
+    "rootDirs": [
+      ".",
+      "./.react-router/types"
+    ],
+    "types": [
+      "vite/client"
+    ]
+  },
+  "unstable": [
+    "sloppy-imports"
+  ],
+  "exclude": [
+    "build/"
+  ],
+  "nodeModulesDir": "manual"
 }

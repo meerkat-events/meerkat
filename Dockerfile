@@ -1,31 +1,16 @@
-FROM node:24 AS builder
-
-ARG VITE_API_URL
-
-WORKDIR /usr/src/app
-
-COPY ./ui/package*.json /usr/src/app/
-
-RUN npm install
-
-COPY ./ui/ /usr/src/app
-
-RUN npm run typecheck
-
-RUN npm run build
-
-FROM denoland/deno:2.5.1 AS runner
+FROM denoland/deno:2.5.4
 
 WORKDIR /app
 
-COPY ./api/deno.json ./api/deno.lock /app/
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+COPY ./api/deno.json ./api/deno.lock ./api/package.json /app/
 
 RUN deno install
 
 COPY ./api/ /app/
 
-RUN deno task check && deno task lint
-
-COPY --from=builder /usr/src/app/build/client /app/public
+RUN	deno task typecheck && \
+ 		deno task build
 
 CMD ["task", "start"]

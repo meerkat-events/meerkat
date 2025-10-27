@@ -1,7 +1,7 @@
 import { reactRouter } from "@react-router/dev/vite";
 import { defineConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+import deno from "@deno/vite-plugin";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -9,13 +9,24 @@ export default defineConfig({
     target: "esnext",
   },
   plugins: [
+    deno(),
     reactRouter(),
-    tsconfigPaths(),
     nodePolyfills({
       include: ["buffer", "constants"],
     }),
   ],
+  resolve: {
+    alias: {
+      "react-dom/server": "react-dom/server.node",
+    },
+  },
   server: {
     allowedHosts: ["meerkat.local"],
+  },
+  ssr: {
+    resolve: {
+      conditions: ["module", "deno", "node", "development|production"],
+      externalConditions: ["deno", "node"],
+    },
   },
 });

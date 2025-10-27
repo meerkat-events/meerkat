@@ -11,7 +11,12 @@ export const useAskQuestion = (event: Event | undefined, {
   onError,
 }: { onSuccess: () => void; onError: (error: HTTPError) => void }) => {
   const { setIsOnCooldown } = useContext(UserContext);
-  const { trigger } = useSWRMutation<{ data: Question[] }, HTTPError, string | undefined, { question: string }>(
+  const { trigger } = useSWRMutation<
+    { data: Question[] },
+    HTTPError,
+    string | undefined,
+    { question: string }
+  >(
     event ? `/api/v1/events/${event.uid}/questions` : undefined,
     poster,
     {
