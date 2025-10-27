@@ -5,7 +5,7 @@ import { serveStatic } from "@hono/hono/deno";
 const rootDir = new URL(".", import.meta.url).pathname;
 
 const handleRequest = createRequestHandler(
-  await import(`${rootDir}/build/server/index.js`),
+  await import(`${rootDir}build/server/index.js`),
   "production",
 );
 
