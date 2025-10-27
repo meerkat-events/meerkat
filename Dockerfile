@@ -10,6 +10,8 @@ RUN deno install
 
 COPY ./api/ /app/
 
+ENV NODE_ENV=production
+
 RUN	deno task typecheck && \
  		deno task build
 
