@@ -18,12 +18,6 @@ echo -e "${YELLOW}🔧 Setting up environment files...${NC}"
 cp api/.env.example api/.env
 cp db/.env.example db/.env
 
-# Install UI dependencies
-echo -e "${YELLOW}📱 Installing UI dependencies...${NC}"
-cd ui
-npm install
-cd ..
-
 # Install Verifier dependencies
 echo -e "${YELLOW}🔍 Installing Verifier dependencies...${NC}"
 cd verifier
