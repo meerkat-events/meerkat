@@ -178,10 +178,10 @@ INSERT INTO conference_tickets (
 	)
 VALUES (
 		1,
-		'ETHDenver Test',
-		'cd92f88c-5b87-5769-8af7-a49d68d3ae87',
-		'BNK3P9+x82ZiYaEaBTxISgdD4+i7JVVT1cqqG/E47JA',
-		'dfcfc8dc-9ee2-5b78-ab70-a8276c220d14',
+		'Devconnect ARG',
+		'1f36ddce-e538-4c7a-9f31-6a4b2221ecac',
+		'YwahfUdUYehkGMaWh0+q3F8itx2h8mybjPmt8CmTJSs',
+		'bce2e86a-36a3-49d7-929b-b6e659773117',
 		'organizer'
 	) ON CONFLICT DO NOTHING;
 INSERT INTO features (conference_id, name, active)
