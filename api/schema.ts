@@ -55,32 +55,18 @@ export const events = pgTable("events", {
     .references(() => conferences.id, { onDelete: "cascade" }),
   uid: text("uid").notNull(),
   title: text("title").notNull(),
-  submissionType: text("submission_type").notNull(),
+  submissionType: text("submission_type").default("talk"),
   start: timestamp("start").notNull(),
   end: timestamp("end").notNull(),
-  abstract: text("abstract"),
   description: text("description"),
   track: text("track"),
   cover: text("cover"),
   speaker: text("speaker"),
-  secret: text("secret"),
   live: boolean("live").notNull().default(false),
 }, (table) => [
   uniqueIndex("events_uid_uniq").on(lower(table.uid)),
   index("events_conference_id_idx").on(table.conferenceId),
 ]);
-
-export const event_pods = pgTable("event_pods", {
-  uid: text("uid").primaryKey(),
-  eventId: integer("event_id")
-    .notNull()
-    .references(() => events.id, { onDelete: "cascade" }),
-  pod: jsonb("pod").notNull(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [index("event_pods_event_id_idx").on(table.eventId)]);
 
 export const questions = pgTable(
   "questions",
@@ -172,14 +158,6 @@ export const accounts = pgTable(
     index("accounts_user_id_idx").on(table.userId),
   ],
 );
-
-export const nonces = pgTable("nonces", {
-  nonce: text("nonce").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
 
 export const features = pgTable("features", {
   conferenceId: integer("conference_id").notNull().references(

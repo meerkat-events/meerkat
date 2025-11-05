@@ -8,6 +8,5 @@ export default [
   layout("layouts/app.tsx", [
     route("/e/:uid/qa", "routes/QnA.tsx"),
     route("/e/:uid/card", "routes/EventCard.tsx"),
-    route("/e/:uid/feedback", "routes/Feedback.tsx"),
   ]),
 ] satisfies RouteConfig;

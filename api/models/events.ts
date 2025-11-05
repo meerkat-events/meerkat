@@ -1,10 +1,9 @@
-import { and, eq, getTableColumns, inArray, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, sql } from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import db from "../db.ts";
-import { event_pods, events, lower, questions, votes } from "../schema.ts";
+import { events, lower, questions, votes } from "../schema.ts";
 import { buildConflictUpdateColumns } from "./utils.ts";
 import { DEFAULT_COVER } from "./event.ts";
-import { uuidv7 } from "uuidv7";
 
 export async function upsertEvents(
   conferenceId: number,
@@ -84,36 +83,6 @@ export async function countParticipants(eventId: number) {
     ).as("participants"),
   ).execute();
   return results[0].count;
-}
-
-export async function createEventPod(
-  {
-    eventId,
-    userId,
-    pod,
-  }: Omit<typeof event_pods.$inferInsert, "createdAt" | "uid">,
-) {
-  const result = await db.insert(event_pods).values({
-    uid: uuidv7(),
-    eventId,
-    userId,
-    pod,
-  }).returning()
-    .execute();
-  return result[0];
-}
-
-export async function getEventPods(eventUids: string[]) {
-  const upperCaseEventUids = eventUids.map((uid) => uid.toUpperCase());
-  const result = await db.select().from(event_pods).innerJoin(
-    events,
-    eq(event_pods.eventId, events.id),
-  ).where(inArray(events.uid, upperCaseEventUids))
-    .execute();
-  return result.map(({ event_pods: pod, events }) => ({
-    ...pod,
-    event: events,
-  }));
 }
 
 export async function getLiveEvent(conferenceId: number) {

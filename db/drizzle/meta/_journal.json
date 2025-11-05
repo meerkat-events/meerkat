@@ -225,6 +225,13 @@
       "when": 1760250512500,
       "tag": "0031_bizarre_wraith",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1762374186985,
+      "tag": "0032_clever_songbird",
+      "breakpoints": true
     }
   ]
 }

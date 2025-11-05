@@ -9,7 +9,6 @@ import {
   Textarea,
   useDisclosure,
 } from "@chakra-ui/react";
-import { Link } from "react-router";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { useTicketProof } from "../../hooks/use-ticket-proof.ts";
 import type { Event, User } from "../../types.ts";
@@ -18,7 +17,6 @@ import { HeartIcon } from "./HeartIcon.tsx";
 import { useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { Dialog } from "@chakra-ui/react";
-import { useLogin } from "../../hooks/use-login.ts";
 import { useLogout } from "../../hooks/use-logout.ts";
 import { toaster } from "../ui/toaster.tsx";
 
@@ -45,31 +43,17 @@ export function Footer({
 }: FooterProps) {
   const [focused, setFocused] = useState(false);
 
-  const hasZupassLogin = event?.features["zupass-login"] ?? false;
-
-  const { login, isLoading } = hasZupassLogin
-    ? useLogin({
-      conferenceId: event?.conferenceId,
-      onError: (error) => {
-        toaster.create({
-          title: `Failed to login`,
-          type: "error",
-          description: error.message,
-          duration: 2000,
-        });
-      },
-    })
-    : useTicketProof({
-      conference: event?.conference,
-      onError: (error) => {
-        toaster.create({
-          title: `Failed to login`,
-          type: "error",
-          description: error.message,
-          duration: 6_000,
-        });
-      },
-    });
+  const { login, isLoading } = useTicketProof({
+    conference: event?.conference,
+    onError: (error) => {
+      toaster.create({
+        title: `Failed to login`,
+        type: "error",
+        description: error.message,
+        duration: 6_000,
+      });
+    },
+  });
   const [question, setQuestion] = useState("");
   const [isTutorialHeartFinished, setIsTutorialHeartFinished] = useLocalStorage(
     "tutorial-heart",
@@ -114,8 +98,6 @@ export function Footer({
     await logout({});
     globalThis.location.reload();
   };
-
-  const hasLeaderboard = event?.features["leaderboard"] ?? false;
 
   return (
     <>
@@ -186,22 +168,7 @@ export function Footer({
             Signed as{" "}
             <ChakraLink onClick={onOpen}>
               {user?.name ?? user?.uid ?? "Anonymous"}
-            </ChakraLink>{" "}
-            {hasLeaderboard && (
-              <Button
-                variant="outline"
-                size="xs"
-                fontWeight="bold"
-                asChild
-                padding="16px 8px"
-                fontSize="16px"
-                borderRadius="999px"
-              >
-                <Link to="/leaderboard">
-                  🦄 {user?.points ?? 0}
-                </Link>
-              </Button>
-            )}
+            </ChakraLink>
           </span>
         </div>
         {!isAuthenticated && !isUserLoading && (

@@ -14,7 +14,6 @@ import env from "../env.ts";
 import { type Conference, getConferenceById } from "../models/conferences.ts";
 import {
   countParticipants,
-  createEventPod,
   type Event,
   getEventByUID,
   getEvents,
@@ -42,7 +41,6 @@ import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { Feature, getFeatures } from "../models/features.ts";
 import { createAttendancePOD } from "../zupass.ts";
 import { getConferenceRolesForConference } from "../models/roles.ts";
-import { bodyLimit } from "@hono/hono/body-limit";
 import { checkEventEnded } from "./errors.ts";
 import { COOKIE_NAME } from "../utils/cookie.ts";
 import logger from "../logger.ts";
@@ -90,11 +88,9 @@ app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
 
   const votes = questions.reduce((acc, question) => acc + question.votes, 0);
 
-  const { secret: _secret, ...rest } = event;
-
   return c.json({
     data: {
-      ...rest,
+      ...event,
       questions: questions.map(toApiQuestion),
       votes,
       participants,
@@ -339,44 +335,6 @@ app.post(
   },
 );
 
-const feedbackSchema = zod.object({
-  entries: zod.record(zod.string(), zod.any()),
-  signature: zod.string(),
-  signerPublicKey: zod.string(),
-});
-
-app.post(
-  "/api/v1/events/:uid/feedback",
-  eventMiddleware,
-  bodyLimit({
-    maxSize: 100 * 1024,
-  }),
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
-  zValidator("json", feedbackSchema),
-  async (c) => {
-    const event = c.get("event");
-    const payload = c.get("jwtPayload");
-    const user = await getUserByUID(payload.sub);
-    const pod = c.req.valid("json");
-
-    if (!user) {
-      throw new HTTPException(401, { message: "User not found" });
-    }
-
-    const createdPod = await createEventPod({
-      eventId: event.id,
-      userId: user.id,
-      pod,
-    });
-
-    logger.info({ pod: createdPod, event, user }, "Created event pod");
-
-    return c.json({
-      data: createdPod,
-    });
-  },
-);
-
 app.post(
   "/api/v1/events/:uid/live",
   eventMiddleware,
@@ -498,10 +456,10 @@ app.get("/api/v1/conferences/:id/events/live", async (c) => {
 });
 
 const toApiEvent = (
-  { secret: _secret, ...rest }: Event,
+  event: Event,
   features: Feature[],
 ) => ({
-  ...rest,
+  ...event,
   features: features.reduce((acc, val) => {
     acc[val.name] = val.active;
     return acc;

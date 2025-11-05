@@ -1,14 +1,7 @@
 import { and, eq, gt, isNotNull, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import db from "../db.ts";
-import {
-  accounts,
-  nonces,
-  questions,
-  reactions,
-  users,
-  votes,
-} from "../schema.ts";
+import { accounts, questions, reactions, users, votes } from "../schema.ts";
 import { generateUsername } from "../usernames.ts";
 
 export const ZUPASS_PROVIDER = "zupass";
@@ -76,10 +69,6 @@ export async function createUserFromAccount(
   });
 
   return result;
-}
-
-export function createUser() {
-  return db.transaction((db) => createUserInternal(db));
 }
 
 export async function getUserByProvider(provider: string, id: string) {
@@ -190,44 +179,6 @@ export async function getUserContributionRank(
   };
 }
 
-export async function getTopContributors(
-  count: number,
-) {
-  const result = await db
-    .select({
-      uid: users.uid,
-      name: users.name,
-      rank: sql<number>`
-        RANK() OVER (
-          ORDER BY (
-            COUNT(CASE WHEN ${questions.answeredAt} IS NOT NULL THEN 1 END) * 10 + 
-            COALESCE(SUM(${sql`(SELECT COUNT(*) FROM votes WHERE votes.question_id = ${questions.id})`}), 0)
-          ) DESC
-        )
-      `,
-      points: sql<number>`
-        COUNT(CASE WHEN ${questions.answeredAt} IS NOT NULL THEN 1 END) * 10 + 
-        COALESCE(SUM(${sql`(SELECT COUNT(*) FROM votes WHERE votes.question_id = ${questions.id})`}), 0)
-      `,
-    })
-    .from(users)
-    .leftJoin(questions, eq(users.id, questions.userId))
-    .groupBy(users.id)
-    .orderBy(sql`
-      COUNT(CASE WHEN ${questions.answeredAt} IS NOT NULL THEN 1 END) * 10 + 
-      COALESCE(SUM(${sql`(SELECT COUNT(*) FROM votes WHERE votes.question_id = ${questions.id})`}), 0) DESC
-    `)
-    .limit(count)
-    .execute();
-
-  return result.map((row) => ({
-    uid: row.uid,
-    name: row.name,
-    rank: Number(row.rank),
-    points: Number(row.points),
-  }));
-}
-
 export async function countQuestions(userId: number) {
   const result = await db.select({ count: sql<number>`count(*)` }).from(
     questions,
@@ -264,16 +215,6 @@ export async function countReactions(userId: number) {
     reactions,
   ).where(eq(reactions.userId, userId)).execute();
   return Number(result[0].count);
-}
-
-export async function createNonce(insert: typeof nonces.$inferInsert) {
-  await db.insert(nonces).values(insert).execute();
-}
-
-export async function getNonce(nonce: string) {
-  const result = await db.select().from(nonces).where(eq(nonces.nonce, nonce))
-    .limit(1).execute();
-  return result.length === 1 ? result[0] : null;
 }
 
 export type User = typeof users.$inferSelect;

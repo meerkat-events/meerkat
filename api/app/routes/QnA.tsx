@@ -20,7 +20,7 @@ import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useEvent } from "../hooks/use-event.ts";
 import { useUser } from "../hooks/use-user.ts";
 import { useVotes } from "../hooks/use-votes.ts";
-import { qa } from "../routing.js";
+import { qa } from "../routing.ts";
 import { useReact } from "../hooks/use-react.ts";
 import { Reaction } from "../components/QnA/Reaction.tsx";
 import { HeartIcon } from "../components/QnA/HeartIcon.tsx";
@@ -32,7 +32,6 @@ import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
 import { toaster } from "~/components/ui/toaster.tsx";
-import { useAnonymousUser } from "~/hooks/use-anonymous-user.ts";
 import { useConferenceEvents } from "../hooks/use-conference-events.ts";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
@@ -126,11 +125,6 @@ export default function QnA() {
     trigger(reaction);
     addReaction(reaction);
   };
-
-  const supportAnonymous = event?.features["anonymous-user"] ?? false;
-  const conferenceId = event?.conferenceId ?? 0;
-
-  useAnonymousUser(supportAnonymous ? conferenceId : undefined);
 
   const isntLive = event === undefined ? false : !event.live;
 
