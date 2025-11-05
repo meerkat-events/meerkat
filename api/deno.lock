@@ -5093,7 +5093,6 @@
         "npm:@chakra-ui/react@^3.28.0",
         "npm:@deno/vite-plugin@^1.0.5",
         "npm:@emotion/react@^11.14.0",
-        "npm:@grafana/faro-web-sdk@^1.19.0",
         "npm:@hono/zod-validator@~0.7.4",
         "npm:@jsr/libs__qrcode@3",
         "npm:@jsr/std__crypto@^1.0.5",
