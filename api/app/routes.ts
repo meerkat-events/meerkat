@@ -1,12 +1,6 @@
-import {
-  index,
-  layout,
-  route,
-  type RouteConfig,
-} from "@react-router/dev/routes";
+import { layout, route, type RouteConfig } from "@react-router/dev/routes";
 
 export default [
-  index("routes/Home.tsx"),
   layout("layouts/page.tsx", [
     route("/e/:uid", "routes/Event.tsx"),
     route("/c/:conferenceId", "routes/Conference.tsx"),
@@ -15,7 +9,5 @@ export default [
     route("/e/:uid/qa", "routes/QnA.tsx"),
     route("/e/:uid/card", "routes/EventCard.tsx"),
     route("/e/:uid/feedback", "routes/Feedback.tsx"),
-    route("/login", "routes/Login.tsx"),
-    route("/speaker", "routes/Speaker.tsx"),
   ]),
 ] satisfies RouteConfig;
