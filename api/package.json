@@ -7,7 +7,6 @@
   "dependencies": {
     "@chakra-ui/react": "^3.28.0",
     "@emotion/react": "^11.14.0",
-    "@grafana/faro-web-sdk": "^1.19.0",
     "@hono/zod-validator": "^0.7.4",
     "@jsr/libs__qrcode": "^3.0.0",
     "@jsr/std__crypto": "^1.0.5",

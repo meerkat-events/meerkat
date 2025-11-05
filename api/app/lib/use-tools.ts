@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { posthog } from "posthog-js";
 import * as Sentry from "@sentry/react";
-// TODO: Enable once they support React v19
-// import { initializeFaro } from "@grafana/faro-react";
 import type { Config } from "./config";
 
 export function useTools(config: Config) {
@@ -23,17 +21,4 @@ export function useTools(config: Config) {
       });
     }
   }, [config.posthogToken]);
-
-  // TODO: Enable once they support React v19
-  // useEffect(() => {
-  //   if (config.grafanaUrl) {
-  //     initializeFaro({
-  //       url: config.grafanaUrl,
-  //       app: {
-  //         name: "ui",
-  //         environment: config.environment,
-  //       },
-  //     });
-  //   }
-  // }, [config.grafanaUrl]);
 }
