@@ -1,7 +1,7 @@
 import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
-import { useUser } from "./use-user.ts";
+import { useAuth } from "./use-auth.ts";
 
 export type Vote = {
   questionUid: number;
@@ -10,14 +10,14 @@ export type Vote = {
 };
 
 export function useVotes() {
-  const { isAuthenticated } = useUser();
+  const { isAuthenticated, session } = useAuth();
 
   const { data, error, isLoading, mutate } = useSWR<
     { data: Vote[] },
     HTTPError
   >(
     isAuthenticated ? `/api/v1/users/me/votes` : undefined,
-    fetcher,
+    (path) => fetcher(path, session?.access_token),
     { fallbackData: { data: [] } },
   );
 

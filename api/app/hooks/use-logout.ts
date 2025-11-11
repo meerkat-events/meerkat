@@ -1,6 +1,11 @@
-import useSWRMutation from "swr/mutation";
-import { poster } from "./fetcher.ts";
+import { useSupabase } from "../context/supabase.tsx";
 
 export function useLogout() {
-  return useSWRMutation("/api/v1/users/logout", poster);
+  const { client } = useSupabase();
+
+  const logout = () => {
+    return client?.auth.signOut();
+  };
+
+  return { logout };
 }

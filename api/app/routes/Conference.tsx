@@ -1,11 +1,11 @@
-import { useQuestionsSubscription } from "~/hooks/use-questions-subscription";
+import { useQuestionsSubscription } from "../hooks/use-questions-subscription.ts";
 import { useParams } from "react-router";
 import { useCallback, useMemo } from "react";
 import throttle from "lodash.throttle";
-import { useLiveEventSubscription } from "~/hooks/use-live-event-subscription";
-import { useLiveEvent } from "~/hooks/use-live-event";
-import Presenter from "~/components/Presenter";
-import { toEvent } from "~/lib/event";
+import { useLiveEventSubscription } from "../hooks/use-live-event-subscription.ts";
+import { useLiveEvent } from "../hooks/use-live-event.ts";
+import Presenter from "../components/Presenter/index.tsx";
+import { toEvent } from "../lib/event.ts";
 
 const REFRESH_INTERVAL = 30_000;
 

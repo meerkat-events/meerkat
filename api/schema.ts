@@ -6,14 +6,37 @@ import {
   integer,
   jsonb,
   pgEnum,
+  pgSchema,
   pgTable,
   primaryKey,
   serial,
   text,
   timestamp,
-  unique,
   uniqueIndex,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
+
+const authSchema = pgSchema("auth");
+
+export const users = authSchema.table("users", {
+  id: uuid("id").primaryKey(),
+  aud: varchar("aud", { length: 255 }),
+  role: varchar("role", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  userMetadata: jsonb("raw_user_meta_data").$type<
+    Record<string, unknown>
+  >(),
+  bannedUntil: timestamp("banned_until"),
+});
+
+export const profiles = pgTable("profile", {
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").unique(),
+  zupassId: text("zupass_id"),
+});
 
 export const conferences = pgTable("conferences", {
   id: serial("id").primaryKey(),
@@ -55,32 +78,18 @@ export const events = pgTable("events", {
     .references(() => conferences.id, { onDelete: "cascade" }),
   uid: text("uid").notNull(),
   title: text("title").notNull(),
-  submissionType: text("submission_type").notNull(),
+  submissionType: text("submission_type").default("talk"),
   start: timestamp("start").notNull(),
   end: timestamp("end").notNull(),
-  abstract: text("abstract"),
   description: text("description"),
   track: text("track"),
   cover: text("cover"),
   speaker: text("speaker"),
-  secret: text("secret"),
   live: boolean("live").notNull().default(false),
 }, (table) => [
   uniqueIndex("events_uid_uniq").on(lower(table.uid)),
   index("events_conference_id_idx").on(table.conferenceId),
 ]);
-
-export const event_pods = pgTable("event_pods", {
-  uid: text("uid").primaryKey(),
-  eventId: integer("event_id")
-    .notNull()
-    .references(() => events.id, { onDelete: "cascade" }),
-  pod: jsonb("pod").notNull(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [index("event_pods_event_id_idx").on(table.eventId)]);
 
 export const questions = pgTable(
   "questions",
@@ -91,7 +100,7 @@ export const questions = pgTable(
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
     question: text("question").notNull(),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -113,7 +122,7 @@ export const votes = pgTable(
     questionId: integer("question_id")
       .notNull()
       .references(() => questions.id, { onDelete: "cascade" }),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -127,21 +136,13 @@ export const votes = pgTable(
   ],
 );
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  uid: text("uid").notNull().unique(),
-  name: text("name").unique(),
-  blocked: boolean("blocked").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
 export const conferenceRole = pgTable(
   "conference_role",
   {
     conferenceId: integer("conference_id")
       .notNull()
       .references(() => conferences.id, { onDelete: "cascade" }),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: roleEnum("role").default("attendee").notNull(),
@@ -155,31 +156,23 @@ export const conferenceRole = pgTable(
   ],
 );
 
-export const accounts = pgTable(
-  "accounts",
+export const invitations = pgTable(
+  "invitations",
   {
-    userId: integer("user_id")
+    id: serial("id").primaryKey(),
+    email: text("email").notNull(),
+    conferenceId: integer("conference_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    provider: text("provider").notNull(),
-    id: text("id").notNull().unique(),
-    hash: text("hash"),
+      .references(() => conferences.id, { onDelete: "cascade" }),
+    role: roleEnum("role").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    claimedAt: timestamp("claimed_at"),
   },
-  (
-    table,
-  ) => [
-    unique("provider_id_uniq").on(table.provider, table.id),
-    index("accounts_user_id_idx").on(table.userId),
+  (table) => [
+    index("invitations_email_idx").on(table.email),
+    index("invitations_conference_id_idx").on(table.conferenceId),
   ],
 );
-
-export const nonces = pgTable("nonces", {
-  nonce: text("nonce").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
 
 export const features = pgTable("features", {
   conferenceId: integer("conference_id").notNull().references(
@@ -194,7 +187,7 @@ export const reactions = pgTable(
   "reactions",
   {
     uid: text("uid").primaryKey(),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     eventId: integer("event_id")

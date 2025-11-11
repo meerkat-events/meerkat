@@ -1,15 +1,15 @@
 import { isRouteErrorResponse, Outlet } from "react-router";
-import { SupabaseProvider } from "../context/supabase";
+import { SupabaseProvider } from "../context/supabase.tsx";
 import { createClient } from "@supabase/supabase-js";
-import type { Route } from "./+types/app";
+import type { Route } from "../../.react-router/types/app/layouts/+types/app.ts";
 import { useMemo } from "react";
 import { SWRConfig } from "swr";
-import { type Config, getConfig } from "~/lib/config";
-import { useTools } from "~/lib/use-tools";
-import { Provider } from "~/components/ui/provider";
-import { meerkat } from "~/theme";
-import { fetcher } from "~/hooks/fetcher";
-import { createSystem } from "~/theme";
+import { type Config, getConfig } from "../lib/config.ts";
+import { useTools } from "../hooks/use-tools.ts";
+import { Provider } from "../components/ui/provider.tsx";
+import { meerkat } from "../theme.ts";
+import { fetcher } from "../hooks/fetcher.ts";
+import { createSystem } from "../theme.ts";
 
 export async function clientLoader(args: Route.LoaderArgs) {
   const hasUid = args.params.uid;

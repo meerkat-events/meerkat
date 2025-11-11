@@ -1,7 +1,7 @@
 import { Hono } from "@hono/hono";
 import { createMiddleware } from "@hono/hono/factory";
 import { HTTPException } from "@hono/hono/http-exception";
-import { jwt } from "@hono/hono/jwt";
+import { jwt } from "../middlewares/jwt.ts";
 import { zValidator } from "@hono/zod-validator";
 import zod from "zod";
 import {
@@ -14,7 +14,6 @@ import env from "../env.ts";
 import { type Conference, getConferenceById } from "../models/conferences.ts";
 import {
   countParticipants,
-  createEventPod,
   type Event,
   getEventByUID,
   getEvents,
@@ -32,19 +31,15 @@ import {
   getUserReactionCountAfterDate,
 } from "../models/reactions.ts";
 import {
-  getAccounts,
-  getUserByUID,
+  getUserById,
   getUserPostCountAfterDate,
   getUserPostCountPerTalk,
-  ZUPASS_PROVIDER,
 } from "../models/user.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { Feature, getFeatures } from "../models/features.ts";
 import { createAttendancePOD } from "../zupass.ts";
 import { getConferenceRolesForConference } from "../models/roles.ts";
-import { bodyLimit } from "@hono/hono/body-limit";
 import { checkEventEnded } from "./errors.ts";
-import { COOKIE_NAME } from "../utils/cookie.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
 import { supabase } from "../supabase.ts";
@@ -74,9 +69,10 @@ const eventMiddleware = createMiddleware<Env>(async (c, next) => {
 
 app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
   const event = c.get("event");
+
   const [conference, questions, participants, features] = await Promise.all([
     getConferenceById(event.conferenceId),
-    // By default, we exclude the answered qeuestions
+    // By default, we exclude the answered questions
     getQuestions(event.id, "popular", false),
     countParticipants(event.id),
     getFeatures(event.conferenceId),
@@ -90,11 +86,9 @@ app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
 
   const votes = questions.reduce((acc, question) => acc + question.votes, 0);
 
-  const { secret: _secret, ...rest } = event;
-
   return c.json({
     data: {
-      ...rest,
+      ...event,
       questions: questions.map(toApiQuestion),
       votes,
       participants,
@@ -136,46 +130,28 @@ const toApiQuestion = (
   ...rest,
   user: user
     ? {
-      uid: user?.uid,
-      name: user?.name ?? undefined,
+      id: user?.id,
+      name: user?.userMetadata?.["name"] ?? user?.id,
     }
     : undefined,
 });
 
 app.post(
   "/api/v1/events/:uid/attendance",
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
+  jwt(),
   eventMiddleware,
   async (c) => {
     const event = c.get("event");
     const payload = c.get("jwtPayload");
     const [conference, user] = await Promise.all([
       getConferenceById(event.conferenceId),
-      getUserByUID(payload.sub),
+      getUserById(payload.sub),
     ]);
 
     if (!user) {
       throw new HTTPException(401, { message: "User not found" });
     }
-
-    const roles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
-    );
-
-    if (roles.length === 0) {
-      throw new HTTPException(403, { message: "User has no conference roles" });
-    }
-
-    const zupassAccount = await getAccounts(user.id);
-    const zupassId = zupassAccount?.find((a) => a.provider === ZUPASS_PROVIDER)
-      ?.id;
-
-    if (!zupassId) {
-      throw new HTTPException(400, {
-        message: `User ${user.uid} does not have a Zupass account`,
-      });
-    }
+    const zupassId = "TODO: Add Zupass ID";
 
     const pod = createAttendancePOD(conference!, event, zupassId);
 
@@ -215,7 +191,7 @@ const createQuestionSchema = zod.object({
 
 app.post(
   "/api/v1/events/:uid/questions",
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
+  jwt(),
   eventMiddleware,
   zValidator("json", createQuestionSchema),
   async (c) => {
@@ -223,25 +199,14 @@ app.post(
     const event = c.get("event");
     const payload = c.get("jwtPayload");
     const uid = payload.sub as string;
-    const user = await getUserByUID(uid);
+    const user = await getUserById(uid);
 
     if (!user) {
       throw new HTTPException(401, { message: `User ${uid} not found` });
     }
 
-    if (user.blocked) {
+    if (user.bannedUntil && user.bannedUntil > new Date()) {
       throw new HTTPException(403, { message: `User ${uid} is blocked` });
-    }
-
-    const conferenceRoles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
-    );
-
-    if (conferenceRoles.length === 0) {
-      throw new HTTPException(403, {
-        message: `User ${uid} has no conference roles`,
-      });
     }
 
     checkEventEnded(event);
@@ -285,29 +250,20 @@ const reactionScheme = zod.object({
 app.post(
   "/api/v1/events/:uid/react",
   zValidator("json", reactionScheme),
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
+  jwt(),
   eventMiddleware,
   async (c) => {
     const payload = c.get("jwtPayload");
     const uid = c.req.valid("json").uid;
-    const user = await getUserByUID(payload.sub);
+    const user = await getUserById(payload.sub);
     const event = c.get("event");
 
     if (!user) {
       throw new HTTPException(401, { message: `User not found` });
     }
 
-    if (user.blocked) {
+    if (user.bannedUntil && user.bannedUntil > new Date()) {
       throw new HTTPException(403, { message: `User is blocked` });
-    }
-
-    const conferenceRoles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
-    );
-
-    if (conferenceRoles.length === 0) {
-      throw new HTTPException(403, { message: "User has no conference roles" });
     }
 
     checkEventEnded(event);
@@ -339,52 +295,14 @@ app.post(
   },
 );
 
-const feedbackSchema = zod.object({
-  entries: zod.record(zod.string(), zod.any()),
-  signature: zod.string(),
-  signerPublicKey: zod.string(),
-});
-
-app.post(
-  "/api/v1/events/:uid/feedback",
-  eventMiddleware,
-  bodyLimit({
-    maxSize: 100 * 1024,
-  }),
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
-  zValidator("json", feedbackSchema),
-  async (c) => {
-    const event = c.get("event");
-    const payload = c.get("jwtPayload");
-    const user = await getUserByUID(payload.sub);
-    const pod = c.req.valid("json");
-
-    if (!user) {
-      throw new HTTPException(401, { message: "User not found" });
-    }
-
-    const createdPod = await createEventPod({
-      eventId: event.id,
-      userId: user.id,
-      pod,
-    });
-
-    logger.info({ pod: createdPod, event, user }, "Created event pod");
-
-    return c.json({
-      data: createdPod,
-    });
-  },
-);
-
 app.post(
   "/api/v1/events/:uid/live",
   eventMiddleware,
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
+  jwt(),
   async (c) => {
     const event = c.get("event");
     const payload = c.get("jwtPayload");
-    const user = await getUserByUID(payload.sub);
+    const user = await getUserById(payload.sub);
 
     if (!user) {
       throw new HTTPException(401, { message: "User not found" });
@@ -498,10 +416,10 @@ app.get("/api/v1/conferences/:id/events/live", async (c) => {
 });
 
 const toApiEvent = (
-  { secret: _secret, ...rest }: Event,
+  event: Event,
   features: Feature[],
 ) => ({
-  ...rest,
+  ...event,
   features: features.reduce((acc, val) => {
     acc[val.name] = val.active;
     return acc;

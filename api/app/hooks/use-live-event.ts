@@ -1,7 +1,7 @@
 import useSWR, { type SWRConfiguration } from "swr";
-import { HTTPError } from "./http-error";
-import { fetcher } from "./fetcher";
-import type { Event } from "../types";
+import { HTTPError } from "./http-error.ts";
+import { fetcher } from "./fetcher.ts";
+import type { Event } from "../types.ts";
 
 export type UseLiveEventProps = {
   conferenceId: number | undefined;

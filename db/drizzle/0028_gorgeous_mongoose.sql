@@ -1,1 +1,0 @@
-ALTER TABLE "conferences" ADD COLUMN "theme" jsonb;

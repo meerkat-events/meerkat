@@ -1,18 +1,18 @@
 import { Navigate } from "react-router";
 import { useAuth } from "../hooks/use-auth.ts";
 import { LoadingState } from "../components/Auth/LoadingState.tsx";
-import { LoginForm } from "../components/Auth/LoginForm.tsx";
+import { Account } from "../components/Auth/Account.tsx";
 
-export default function Login() {
+export default function AccountRoute() {
   const { user, isLoading: authLoading } = useAuth();
 
   if (authLoading) {
     return <LoadingState />;
   }
 
-  if (user) {
-    return <Navigate to="/account" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
-  return <LoginForm />;
+  return <Account user={user} />;
 }

@@ -1,6 +1,6 @@
-import { useSupabase } from "~/context/supabase";
+import { useSupabase } from "../context/supabase.tsx";
 import useSWRSubscription from "swr/subscription";
-import type { Event } from "~/types";
+import type { Event } from "../types.ts";
 
 const PREFIX = "conference-";
 

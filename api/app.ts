@@ -5,7 +5,6 @@ import users from "./routes/users.ts";
 import events from "./routes/events.ts";
 import questions from "./routes/questions.ts";
 import { config } from "./models/config.ts";
-import speaker from "./routes/speaker.ts";
 
 const app = new Hono();
 
@@ -14,7 +13,6 @@ app.route("/", conferences);
 app.route("/", users);
 app.route("/", events);
 app.route("/", questions);
-app.route("/", speaker);
 
 app.get("/api/v1/config", (c) => c.json(config));
 

@@ -1,4 +1,3 @@
-import { FiArrowUpRight as ExternalLinkIcon } from "react-icons/fi";
 import { FiSend } from "react-icons/fi";
 import {
   Button,
@@ -9,18 +8,17 @@ import {
   Textarea,
   useDisclosure,
 } from "@chakra-ui/react";
-import { Link } from "react-router";
 import { useLocalStorage } from "@uidotdev/usehooks";
-import { useTicketProof } from "../../hooks/use-ticket-proof.ts";
-import type { Event, User } from "../../types.ts";
+import type { Event } from "../../types.ts";
 import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
 import { HeartIcon } from "./HeartIcon.tsx";
 import { useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { Dialog } from "@chakra-ui/react";
-import { useLogin } from "../../hooks/use-login.ts";
 import { useLogout } from "../../hooks/use-logout.ts";
 import { toaster } from "../ui/toaster.tsx";
+import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
+import { User } from "../../hooks/use-auth.ts";
 
 import "./Footer.css";
 
@@ -45,31 +43,8 @@ export function Footer({
 }: FooterProps) {
   const [focused, setFocused] = useState(false);
 
-  const hasZupassLogin = event?.features["zupass-login"] ?? false;
+  const { login: loginAnonymousUser } = useAnonymousUser();
 
-  const { login, isLoading } = hasZupassLogin
-    ? useLogin({
-      conferenceId: event?.conferenceId,
-      onError: (error) => {
-        toaster.create({
-          title: `Failed to login`,
-          type: "error",
-          description: error.message,
-          duration: 2000,
-        });
-      },
-    })
-    : useTicketProof({
-      conference: event?.conference,
-      onError: (error) => {
-        toaster.create({
-          title: `Failed to login`,
-          type: "error",
-          description: error.message,
-          duration: 6_000,
-        });
-      },
-    });
   const [question, setQuestion] = useState("");
   const [isTutorialHeartFinished, setIsTutorialHeartFinished] = useLocalStorage(
     "tutorial-heart",
@@ -98,7 +73,7 @@ export function Footer({
 
   const { open: isOpen, onOpen, onClose } = useDisclosure();
 
-  const { trigger: logout } = useLogout();
+  const { logout } = useLogout();
 
   const submitQuestion = () => {
     if (question) {
@@ -111,11 +86,9 @@ export function Footer({
   const isQuestionMode = focused || question;
 
   const onLogout = async () => {
-    await logout({});
+    await logout();
     globalThis.location.reload();
   };
-
-  const hasLeaderboard = event?.features["leaderboard"] ?? false;
 
   return (
     <>
@@ -185,33 +158,17 @@ export function Footer({
           <span className="signin-name">
             Signed as{" "}
             <ChakraLink onClick={onOpen}>
-              {user?.name ?? user?.uid ?? "Anonymous"}
-            </ChakraLink>{" "}
-            {hasLeaderboard && (
-              <Button
-                variant="outline"
-                size="xs"
-                fontWeight="bold"
-                asChild
-                padding="16px 8px"
-                fontSize="16px"
-                borderRadius="999px"
-              >
-                <Link to="/leaderboard">
-                  🦄 {user?.points ?? 0}
-                </Link>
-              </Button>
-            )}
+              {user?.user_metadata.name ?? user?.id ?? "Anonymous"}
+            </ChakraLink>
           </span>
         </div>
         {!isAuthenticated && !isUserLoading && (
           <LoginOverlay>
             <PrimaryButton
-              loading={isLoading}
-              loadingText="Connecting..."
-              onClick={() => login()}
+              loadingText="Joining..."
+              onClick={() => loginAnonymousUser()}
             >
-              Login with Zupass <ExternalLinkIcon />
+              Join conversation
             </PrimaryButton>
           </LoginOverlay>
         )}
@@ -250,7 +207,6 @@ function LoginOverlay(
 ) {
   return (
     <div className="overlay login">
-      <span>To participate:</span>
       {children}
     </div>
   );

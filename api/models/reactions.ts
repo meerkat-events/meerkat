@@ -3,7 +3,7 @@ import db from "../db.ts";
 import { reactions } from "../schema.ts";
 
 export async function createReaction(
-  { eventId, userId, uid }: { eventId: number; userId: number; uid: string },
+  { eventId, userId, uid }: { eventId: number; userId: string; uid: string },
 ): Promise<Reaction> {
   const [newReaction] = await db.insert(reactions).values({
     eventId: eventId,
@@ -15,7 +15,7 @@ export async function createReaction(
 }
 
 export async function getUserReactionCountAfterDate(
-  userId: number,
+  userId: string,
   date: Date,
 ): Promise<number> {
   const result = await db

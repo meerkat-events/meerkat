@@ -8,19 +8,16 @@ data.
 
 - [Deno v2](https://deno.land/)
 - [Node.js v24](https://nodejs.org/)
-- [Docker](https://www.docker.com/)
 - [Tmux](https://github.com/tmux/tmux/wiki)
 
 ## Get Started
 
 To get started, run `./scripts/setup.sh` from the root directory. It will:
 
-1. Start docker services.
-2. Copy `.env.example` to `.env`, update the values as needed.
-3. Install dependencies.
-4. Run database migration.
-5. Seed the database.
-6. Create SSL certificate for https://meerkat.local
+1. Copy `.env.example` to `.env`, update the values as needed
+2. Install dependencies.
+3. Run database migration.
+4. Seed the database.
 
 If you wish to tear down the development environment, run
 `./scripts/teardown.sh` from the root directory.
@@ -29,18 +26,15 @@ If you wish to tear down the development environment, run
 
 To start the development environment, run `./scripts/dev.sh` from the root
 directory. It will start the development environment with tmux and open a new
-terminal window, then open `https://meerkat.local` in your browser.
+terminal window, then open `https://localhost:8000` in your browser.
 
 ## Environment Variables
 
 The following environment variables are required to run the application:
 
 - DATABASE_URL: The connection string for the database.
-- ADMIN_TOKEN: The secret token used to authenticate admin requests.
 - PRIVATE_KEY: The private key used to sign PODs.
 - BASE_URL: The base URL of the application.
-- JWT_SECRET: The secret used to sign JWT tokens.
-- CODE_SECRET: The secret used to sign codes for event secrets.
 - ZUPASS_URL: The URL of the Zupass server.
 - ZUPASS_ZAPP_NAME: The name of the Zupass zapp.
 - SUPABASE_URL: The URL of the Supabase server.
