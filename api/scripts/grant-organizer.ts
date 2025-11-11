@@ -9,10 +9,10 @@ if (args.length !== 2) {
   Deno.exit(1);
 }
 
-const userId = parseInt(args[0], 10);
+const userId = args[0];
 const conferenceId = parseInt(args[1], 10);
 
-if (isNaN(userId) || isNaN(conferenceId)) {
+if (!userId || isNaN(conferenceId)) {
   console.error("Both userId and conferenceId must be valid numbers");
   Deno.exit(1);
 }
