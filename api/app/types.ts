@@ -1,15 +1,4 @@
 import type { PODData } from "@parcnet-js/podspec";
-
-// TDOO: Get interface from api
-export type User = {
-  uid: string;
-  createdAt: Date;
-  name?: string | undefined;
-  hash?: string | undefined;
-  rank?: 0 | number | undefined;
-  points?: 0 | number | undefined;
-};
-
 export type Theme = {
   brandColor: string;
   contrastColor: string;
@@ -45,7 +34,6 @@ export type Event = {
   features: Record<string, boolean>;
   live: boolean;
 };
-
 export type Question = {
   id: number;
   eventId: number;
@@ -56,7 +44,7 @@ export type Question = {
   answeredAt?: Date | undefined;
   selectedAt?: Date | undefined;
   user?: {
-    uid: string;
+    id: string;
     name?: string | undefined;
   } | undefined;
 };

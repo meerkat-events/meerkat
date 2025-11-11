@@ -9,7 +9,7 @@ const conferenceRolesByIdStatement = db
   .prepare("conference_roles_by_user_id");
 
 export function getConferenceRoles(
-  userId: number,
+  userId: string,
 ): Promise<ConferenceRole[]> {
   return conferenceRolesByIdStatement.execute({ user_id: userId });
 }
@@ -27,7 +27,7 @@ const conferenceRolesByUserIdAndConferenceIdStatement = db
   .prepare("conference_roles_by_user_id_and_conference_id");
 
 export async function getConferenceRolesForConference(
-  userId: number,
+  userId: string,
   conferenceId: number,
 ): Promise<ConferenceRole[]> {
   const result = await conferenceRolesByUserIdAndConferenceIdStatement.execute({
@@ -39,7 +39,7 @@ export async function getConferenceRolesForConference(
 }
 
 export function grantRole(
-  userId: number,
+  userId: string,
   conferenceId: number,
   role: ConferenceRole["role"],
 ) {

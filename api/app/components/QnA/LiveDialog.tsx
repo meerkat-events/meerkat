@@ -1,5 +1,5 @@
 import { Button, CloseButton, Dialog, Portal, Text } from "@chakra-ui/react";
-import type { Event } from "~/types";
+import type { Event } from "../../types.ts";
 
 export type LiveDialogProps = {
   event: Event | undefined;

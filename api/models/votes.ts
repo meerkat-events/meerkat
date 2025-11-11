@@ -5,7 +5,7 @@ import { Question } from "./questions.ts";
 
 export async function createVote(
   questionId: number,
-  userId: number,
+  userId: string,
 ): Promise<Vote> {
   const [newVote] = await db.insert(votes).values({
     questionId: questionId,
@@ -18,7 +18,7 @@ export async function createVote(
 
 export async function deleteVote(
   questionId: number,
-  userId: number,
+  userId: string,
 ): Promise<void> {
   await db.delete(votes).where(
     and(
@@ -40,7 +40,7 @@ const votesByEventIdAndUserId = db
   .prepare("votes_by_event_id_and_user_id");
 
 export async function getVotesByQuestionIdAndUserId(
-  { questionId, userId }: { questionId: number; userId: number },
+  { questionId, userId }: { questionId: number; userId: string },
 ) {
   const [results]: Vote[] | undefined = await votesByEventIdAndUserId.execute(
     {
@@ -59,7 +59,7 @@ const votesByUserIdStatement = db.select().from(votes).where(
 );
 
 export async function getVotesByUserId(
-  userId: number,
+  userId: string,
 ): Promise<(Vote & { question: Question })[]> {
   const results = await votesByUserIdStatement.execute({ user_id: userId });
 
@@ -70,7 +70,7 @@ export async function getVotesByUserId(
 }
 
 export async function getUserVoteCountAfterDate(
-  userId: number,
+  userId: string,
   eventId: number,
   date: Date,
 ): Promise<number> {

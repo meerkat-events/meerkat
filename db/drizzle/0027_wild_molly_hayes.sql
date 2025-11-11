@@ -1,1 +1,0 @@
-ALTER TABLE "questions" ADD COLUMN "selected_at" timestamp;

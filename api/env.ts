@@ -1,17 +1,5 @@
 import logger from "./logger.ts";
 
-const adminToken = Deno.env.get("ADMIN_TOKEN");
-
-if (!adminToken) {
-  throw new Error("ADMIN_TOKEN is required");
-}
-
-const syncToken = Deno.env.get("SYNC_TOKEN");
-
-if (!syncToken) {
-  throw new Error("SYNC_TOKEN is required");
-}
-
 const connectionString = Deno.env.get("DATABASE_POOLER_URL") ??
   Deno.env.get("DATABASE_URL");
 
@@ -25,33 +13,15 @@ if (!privateKey) {
   throw new Error("PRIVATE_KEY is required");
 }
 
-const secret = Deno.env.get("JWT_SECRET");
-
-if (!secret) {
-  throw new Error("SECRET is required");
-}
-
 const verifierEndpoint = Deno.env.get("VERIFIER_ENDPOINT");
 
 if (!verifierEndpoint) {
   throw new Error("VERIFIER_ENDPOINT is required");
 }
 
-const codeSecret = Deno.env.get("CODE_SECRET");
-
-if (!codeSecret) {
-  throw new Error("CODE_SECRET is required");
-}
-
-const emailSecret = Deno.env.get("EMAIL_SECRET");
-
-if (!emailSecret) {
-  throw new Error("EMAIL_SECRET is required");
-}
-
 const zupassUrl = Deno.env.get("ZUPASS_URL") ?? "https://zupass.org";
 const zappName = Deno.env.get("ZUPASS_ZAPP_NAME") ?? "meerkat-local";
-const base = Deno.env.get("BASE_URL") ?? "https://meerkat.local";
+const base = Deno.env.get("BASE_URL");
 const posthogToken = Deno.env.get("POSTHOG_TOKEN");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
@@ -61,10 +31,8 @@ const environment = Deno.env.get("ENVIRONMENT") ?? "development";
 const grafanaUrl = Deno.env.get("GRAFANA_URL");
 
 const env = {
-  adminToken,
   connectionString,
   base,
-  secret,
   privateKey,
   zupassUrl,
   zappName,
@@ -73,10 +41,7 @@ const env = {
   supabaseAnonKey,
   sentryDSN,
   verifierEndpoint,
-  codeSecret,
-  emailSecret,
   maxPoolSize,
-  syncToken,
   environment,
   grafanaUrl,
 };
@@ -86,9 +51,6 @@ logger.info({
     ...env,
     connectionString: "REDACTED",
     privateKey: "REDACTED",
-    secret: "REDACTED",
-    codeSecret: "REDACTED",
-    emailSecret: "REDACTED",
   },
 }, "Parsed environment variables");
 

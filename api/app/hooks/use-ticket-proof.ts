@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 import { useZAPIConnect } from "../zapi/connect.ts";
-import type { User } from "../types.ts";
+import type { User } from "./use-auth.ts";
 import { type ParcnetAPI } from "@parcnet-js/app-connector";
 import {
   type TicketClassificationTuples,
@@ -91,12 +91,13 @@ async function sendTicketProofRequest(
     revealedClaimsToJSON,
   } = await import("@pcd/gpc");
 
-  let revealedClaims: any;
-  let boundConfig: any;
+  let revealedClaims;
+  let boundConfig;
   try {
     revealedClaims = revealedClaimsToJSON(ticketProof.revealedClaims);
     boundConfig = boundConfigToJSON(ticketProof.boundConfig);
   } catch (error) {
+    console.error(error);
     throw new TicketProofError(
       "Missing ticket. Try another email address or check zupass.org for your ticket first.",
       "missing_ticket_proof",

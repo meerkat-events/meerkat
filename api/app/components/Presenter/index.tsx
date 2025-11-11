@@ -1,11 +1,11 @@
-import QR from "~/components/QR";
+import QR from "../QR.tsx";
 import { Heading, Text } from "@chakra-ui/react";
-import TopQuestions from "~/components/TopQuestions";
-import { useReactionsSubscription } from "~/hooks/use-reactions-subscription";
-import { HeartIcon } from "~/components/assets/heart";
+import TopQuestions from "../TopQuestions.tsx";
+import { useReactionsSubscription } from "../../hooks/use-reactions-subscription.ts";
+import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
 import { useCallback, useState } from "react";
-import type { Event } from "~/types";
+import type { Event } from "../../types.ts";
 import { randomNormal } from "d3-random";
 
 import "./styles.css";

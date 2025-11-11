@@ -6,14 +6,37 @@ import {
   integer,
   jsonb,
   pgEnum,
+  pgSchema,
   pgTable,
   primaryKey,
   serial,
   text,
   timestamp,
-  unique,
   uniqueIndex,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
+
+const authSchema = pgSchema("auth");
+
+export const users = authSchema.table("users", {
+  id: uuid("id").primaryKey(),
+  aud: varchar("aud", { length: 255 }),
+  role: varchar("role", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  userMetadata: jsonb("raw_user_meta_data").$type<
+    Record<string, unknown>
+  >(),
+  bannedUntil: timestamp("banned_until"),
+});
+
+export const profiles = pgTable("profile", {
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").unique(),
+  zupassId: text("zupass_id"),
+});
 
 export const conferences = pgTable("conferences", {
   id: serial("id").primaryKey(),
@@ -77,7 +100,7 @@ export const questions = pgTable(
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
     question: text("question").notNull(),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -99,7 +122,7 @@ export const votes = pgTable(
     questionId: integer("question_id")
       .notNull()
       .references(() => questions.id, { onDelete: "cascade" }),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -113,21 +136,13 @@ export const votes = pgTable(
   ],
 );
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  uid: text("uid").notNull().unique(),
-  name: text("name").unique(),
-  blocked: boolean("blocked").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
 export const conferenceRole = pgTable(
   "conference_role",
   {
     conferenceId: integer("conference_id")
       .notNull()
       .references(() => conferences.id, { onDelete: "cascade" }),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: roleEnum("role").default("attendee").notNull(),
@@ -138,24 +153,6 @@ export const conferenceRole = pgTable(
   ) => [
     primaryKey({ columns: [table.conferenceId, table.userId] }),
     index("conference_role_user_id_idx").on(table.userId),
-  ],
-);
-
-export const accounts = pgTable(
-  "accounts",
-  {
-    userId: integer("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    provider: text("provider").notNull(),
-    id: text("id").notNull().unique(),
-    hash: text("hash"),
-  },
-  (
-    table,
-  ) => [
-    unique("provider_id_uniq").on(table.provider, table.id),
-    index("accounts_user_id_idx").on(table.userId),
   ],
 );
 
@@ -172,7 +169,7 @@ export const reactions = pgTable(
   "reactions",
   {
     uid: text("uid").primaryKey(),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     eventId: integer("event_id")

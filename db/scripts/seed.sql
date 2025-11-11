@@ -1,6 +1,5 @@
 ALTER SEQUENCE conferences_id_seq RESTART WITH 1;
 ALTER SEQUENCE events_id_seq RESTART WITH 1;
-ALTER SEQUENCE users_id_seq RESTART WITH 1;
 ALTER SEQUENCE questions_id_seq RESTART WITH 1;
 ALTER SEQUENCE conference_tickets_id_seq RESTART WITH 1;
 INSERT INTO conferences (name, logo_url)

@@ -10,21 +10,25 @@ export type UseReactReturnType = {
   trigger: (obj: { uid: string }) => void;
 };
 
-export function useReact(
+export function useVote(
   uid: string,
-  { onError }: { onError?: (error: HTTPError) => void },
+  { onError, onSuccess }: {
+    onError?: (error: HTTPError) => void;
+    onSuccess?: () => void;
+  },
 ): UseReactReturnType {
   const { setIsOnCooldown } = useContext(UserContext);
   const { session } = useAuth();
-  const { trigger } = useSWRMutation(
-    `/api/v1/events/${uid}/react`,
+  return useSWRMutation(
+    `/api/v1/questions/${uid}/upvote`,
     (path: string, { arg }: { arg: Record<string, unknown> }) =>
       poster(path, { arg }, session?.access_token),
     {
       onSuccess: () => {
-        posthog.capture("reaction_created", {
-          event_uid: uid,
+        posthog.capture("vote_toggled", {
+          question_uid: uid,
         });
+        onSuccess?.();
       },
       onError: (error) => {
         if (error.status === 429) {
@@ -35,8 +39,4 @@ export function useReact(
       },
     },
   );
-
-  return {
-    trigger,
-  };
 }

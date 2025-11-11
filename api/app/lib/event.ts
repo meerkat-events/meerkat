@@ -1,4 +1,4 @@
-import type { Event } from "~/types";
+import type { Event } from "../types.ts";
 
 export function toEvent(data: Event) {
   return {

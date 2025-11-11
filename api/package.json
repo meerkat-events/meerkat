@@ -49,7 +49,7 @@
   },
   "devDependencies": {
     "@deno/vite-plugin": "^1.0.5",
-    "@react-router/dev": "^7.9.4",
+    "@react-router/dev": "^7.9.5",
     "@types/d3-random": "^3.0.3",
     "@types/lodash.throttle": "^4.1.9",
     "@types/node": "^24",

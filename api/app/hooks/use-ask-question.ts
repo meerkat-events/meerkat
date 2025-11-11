@@ -5,12 +5,14 @@ import { useContext } from "react";
 import { UserContext } from "../context/user.tsx";
 import { HTTPError } from "./http-error.ts";
 import { posthog } from "posthog-js";
+import { useAuth } from "./use-auth.ts";
 
 export const useAskQuestion = (event: Event | undefined, {
   onSuccess,
   onError,
 }: { onSuccess: () => void; onError: (error: HTTPError) => void }) => {
   const { setIsOnCooldown } = useContext(UserContext);
+  const { session } = useAuth();
   const { trigger } = useSWRMutation<
     { data: Question[] },
     HTTPError,
@@ -18,7 +20,7 @@ export const useAskQuestion = (event: Event | undefined, {
     { question: string }
   >(
     event ? `/api/v1/events/${event.uid}/questions` : undefined,
-    poster,
+    (path, { arg }) => poster(path, { arg }, session?.access_token),
     {
       onSuccess: () => {
         onSuccess();

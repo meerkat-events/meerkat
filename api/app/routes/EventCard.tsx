@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Flex, Link as ChakraLink } from "@chakra-ui/react";
+import { Flex, Link as ChakraLink } from "@chakra-ui/react";
 import { useParams } from "react-router";
 import Card from "../components/Card/Card.tsx";
 import { useEvent } from "../hooks/use-event.ts";
@@ -8,13 +8,11 @@ import { FiArrowUpRight as ExternalLinkIcon } from "react-icons/fi";
 import { useCollect } from "../hooks/use-collect.ts";
 import { pageTitle } from "../utils/events.ts";
 import { useDocumentTitle } from "@uidotdev/usehooks";
-import { useUser } from "../hooks/use-user.ts";
 import { PrimaryButton } from "../components/Buttons/PrimaryButton.tsx";
 import { useZupassPods } from "../hooks/use-zupass-pods.ts";
 import { useZAPIConnect } from "../zapi/connect.ts";
 import { useZAPI } from "../zapi/context.tsx";
 import { attendancePodType } from "../utils/pod.client.ts";
-import { useTicketProof } from "../hooks/use-ticket-proof.ts";
 import { constructZapp } from "../zapi/zapps.ts";
 import { collectionName } from "../zapi/collections.ts";
 import { isError } from "../utils/error.ts";
@@ -26,18 +24,6 @@ import { NavigationDrawer } from "~/components/NavigationDrawer/index.tsx";
 export default function EventCard() {
   const { uid } = useParams();
   const { data: event } = useEvent(uid);
-  const { isAuthenticated } = useUser();
-  const { login, isLoading: isLoggingIn } = useTicketProof({
-    conference: event?.conference,
-    onError: (error) => {
-      toaster.create({
-        title: `Failed to login (${error?.message})`,
-        type: "error",
-        description: error.message,
-        duration: 2000,
-      });
-    },
-  });
   const [isCollected, setIsCollected] = useState(false);
   useDocumentTitle(pageTitle(event));
   const [isCollecting, setIsCollecting] = useState(false);
@@ -112,12 +98,7 @@ export default function EventCard() {
     }
   };
 
-  const onLogin = async () => {
-    await login();
-    onCollect();
-  };
-
-  const action = !isAuthenticated ? onLogin : !isCollected ? onCollect : null;
+  const action = !isCollected ? onCollect : null;
 
   const navLinks = useLinks({ event });
 
@@ -147,10 +128,10 @@ export default function EventCard() {
           {action
             ? (
               <PrimaryButton
-                loading={isLoggingIn || isCollecting}
+                loading={isCollecting}
                 loadingText="Collecting..."
                 onClick={action}
-                disabled={isLoggingIn || isCollecting}
+                disabled={isCollecting}
               >
                 Collect
               </PrimaryButton>

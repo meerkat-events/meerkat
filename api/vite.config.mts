@@ -20,9 +20,6 @@ export default defineConfig({
       "react-dom/server": "react-dom/server.node",
     },
   },
-  server: {
-    allowedHosts: ["meerkat.local"],
-  },
   ssr: {
     resolve: {
       conditions: ["module", "deno", "node", "development|production"],

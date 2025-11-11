@@ -10,10 +10,6 @@ if ! command -v tmux &> /dev/null; then
     exit 1
 fi
 
-# Make sure Docker services are running
-echo "📦 Ensuring Docker services are running..."
-docker compose up -d
-
 # Session name
 SESSION="meerkat-dev"
 

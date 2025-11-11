@@ -6,7 +6,7 @@ import {
   ScrollRestoration,
 } from "react-router";
 import type React from "react";
-import type { Route } from "./+types/root";
+import type { Route } from "../.react-router/types/app/+types/root.ts";
 
 export const links: Route.LinksFunction = () => [
   { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },

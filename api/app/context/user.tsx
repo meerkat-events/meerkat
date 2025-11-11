@@ -1,5 +1,5 @@
 import { createContext, useState } from "react";
-import type { User } from "~/types";
+import { type User } from "../hooks/use-auth.ts";
 
 export const UserContext = createContext<
   {

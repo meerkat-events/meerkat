@@ -4,7 +4,7 @@ import {
   defineConfig,
 } from "@chakra-ui/react";
 import { darken, lighten } from "color2k";
-import type { Theme } from "~/types";
+import type { Theme } from "./types.ts";
 
 export const meerkat: Theme = {
   backgroundColor: "#0c021d",

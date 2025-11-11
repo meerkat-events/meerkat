@@ -6,10 +6,12 @@ const SHARED_HEADERS = {
   "Content-Type": "application/json",
 };
 
-export const fetcher = async (endpoint: string) => {
+export const fetcher = async (endpoint: string, token?: string) => {
   const res = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
-    headers: SHARED_HEADERS,
-    credentials: "include",
+    headers: {
+      ...SHARED_HEADERS,
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    },
   });
   if (!res.ok) {
     throw new HTTPError(res);
@@ -20,13 +22,16 @@ export const fetcher = async (endpoint: string) => {
 export const poster = async (
   endpoint: string,
   { arg }: { arg: Record<string, unknown> },
+  token?: string,
 ) => {
   const res = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
     method: "POST",
-    credentials: "include",
     ...(arg
       ? {
-        headers: SHARED_HEADERS,
+        headers: {
+          ...SHARED_HEADERS,
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(arg),
       }
       : {}),
@@ -37,10 +42,12 @@ export const poster = async (
   return res.json();
 };
 
-export const deleter = async (endpoint: string) => {
+export const deleter = async (endpoint: string, token?: string) => {
   const res = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
-    headers: SHARED_HEADERS,
-    credentials: "include",
+    headers: {
+      ...SHARED_HEADERS,
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    },
     method: "DELETE",
   });
   if (!res.ok) {

@@ -22,3 +22,5 @@ workdocs/
 
 # Caddy data (certificates, etc)
 caddy_data/
+
+.playwright-mcp

@@ -6,7 +6,6 @@ export type Config = {
   supabaseUrl: string | undefined;
   supabaseAnonKey: string | undefined;
   sentryDSN: string | undefined;
-  grafanaUrl: string | undefined;
 };
 
 export async function getConfig() {

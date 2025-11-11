@@ -4,16 +4,7 @@ import {
   FiMoreVertical,
   FiStopCircle as NotAllowedIcon,
 } from "react-icons/fi";
-import {
-  Box,
-  Heading,
-  Icon,
-  IconButton,
-  Menu,
-  Portal,
-  Text,
-} from "@chakra-ui/react";
-import { useAsyncFormSubmit } from "../../hooks/use-async-form-submit.ts";
+import { Box, Icon, IconButton, Menu, Portal, Text } from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
 import type { Event, Question as QuestionType } from "../../types.ts";
 import { useMarkAsAnswered } from "../../hooks/use-mark-as-answered.ts";
@@ -24,6 +15,7 @@ import { FiRadio } from "react-icons/fi";
 import { RxCursorArrow } from "react-icons/rx";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import { toaster } from "../../components/ui/toaster.tsx";
+import { useVote } from "../../hooks/use-vote.ts";
 
 interface QuestionProps {
   event: Event | undefined;
@@ -37,7 +29,7 @@ interface QuestionProps {
 export function Question(
   { event, canVote, canModerate, question, voted, refresh }: QuestionProps,
 ) {
-  const { onSubmit } = useAsyncFormSubmit({
+  const { trigger: toggleVote } = useVote(question.uid, {
     onSuccess: () => {
       refresh();
       toaster.create({
@@ -58,7 +50,7 @@ export function Question(
       });
     },
   });
-  const { trigger: block } = useBlockUser(question.user?.uid ?? "");
+  const { trigger: block } = useBlockUser(question.user?.id ?? "");
   const { trigger: markAsAnswered } = useMarkAsAnswered(question.uid);
   const { trigger: deleteQuestion } = useDeleteQuestion(question.uid);
   const { trigger: selectQuestion } = useSelectQuestion(question.uid);
@@ -171,22 +163,17 @@ export function Question(
         )
         : <div />}
       <Text as="span" className="author" fontWeight="400">
-        {question.user?.name ?? question.user?.uid}
+        {question.user?.name ?? question.user?.id ?? "Unknown"}
       </Text>
       <div className="upvote">
         <div className={`upvote-count ${voted && "voted"}`}>
           {question.votes}
         </div>
-        <form
-          method="POST"
-          onSubmit={onSubmit}
-          action={`/api/v1/questions/${question.uid}/upvote`}
-        >
-          <UpVoteButton
-            hasVoted={voted}
-            isDisabled={!canVote || isAnswered}
-          />
-        </form>
+        <UpVoteButton
+          onClick={() => toggleVote({ uid: question.uid })}
+          hasVoted={voted}
+          isDisabled={!canVote || isAnswered}
+        />
       </div>
     </li>
   );

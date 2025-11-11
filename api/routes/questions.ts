@@ -1,8 +1,7 @@
 import { Hono } from "@hono/hono";
 import { HTTPException } from "@hono/hono/http-exception";
-import { jwt } from "@hono/hono/jwt";
 import { MAX_VOTES_PER_EVENT } from "../moderation.ts";
-import env from "../env.ts";
+import { jwt } from "../middlewares/jwt.ts";
 import { getEventById } from "../models/events.ts";
 import {
   deleteQuestion,
@@ -11,7 +10,7 @@ import {
   selectQuestion,
 } from "../models/questions.ts";
 import { getConferenceRolesForConference } from "../models/roles.ts";
-import { getUserByUID } from "../models/user.ts";
+import { getUserById } from "../models/user.ts";
 import {
   createVote,
   deleteVote,
@@ -20,20 +19,20 @@ import {
 } from "../models/votes.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { checkEventEnded } from "./errors.ts";
-import { COOKIE_NAME } from "../utils/cookie.ts";
 import logger from "../logger.ts";
+
 const app = new Hono();
 
 app.post(
   "/api/v1/questions/:uid/upvote",
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
+  jwt(),
   async (c) => {
     const uid = c.req.param("uid");
 
     const payload = c.get("jwtPayload");
 
     const [user, question] = await Promise.all([
-      getUserByUID(payload.sub),
+      getUserById(payload.sub),
       getQuestionByUID(uid),
     ]);
 
@@ -43,7 +42,7 @@ app.post(
       });
     }
 
-    if (user.blocked) {
+    if (user.bannedUntil && user.bannedUntil > new Date()) {
       throw new HTTPException(403, { message: `User is blocked` });
     }
 
@@ -62,15 +61,6 @@ app.post(
     }
 
     checkEventEnded(event);
-
-    const conferenceRoles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
-    );
-
-    if (conferenceRoles.length === 0) {
-      throw new HTTPException(403, { message: "User has no conference roles" });
-    }
 
     const minuteAgo = dateDeductedMinutes(1);
     const voteCount = await getUserVoteCountAfterDate(
@@ -104,13 +94,13 @@ app.post(
 
 app.post(
   "/api/v1/questions/:uid/select",
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
+  jwt(),
   async (c) => {
     const uid = c.req.param("uid");
     const payload = c.get("jwtPayload");
 
     const [user, question] = await Promise.all([
-      getUserByUID(payload.sub),
+      getUserById(payload.sub),
       getQuestionByUID(uid),
     ]);
 
@@ -159,13 +149,13 @@ app.post(
 
 app.post(
   "/api/v1/questions/:uid/mark-as-answered",
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
+  jwt(),
   async (c) => {
     const uid = c.req.param("uid");
     const payload = c.get("jwtPayload");
 
     const [user, question] = await Promise.all([
-      getUserByUID(payload.sub),
+      getUserById(payload.sub),
       getQuestionByUID(uid),
     ]);
 
@@ -214,13 +204,13 @@ app.post(
 
 app.delete(
   "/api/v1/questions/:uid",
-  jwt({ secret: env.secret, cookie: COOKIE_NAME }),
+  jwt(),
   async (c) => {
     const uid = c.req.param("uid");
     const payload = c.get("jwtPayload");
 
     const [user, question] = await Promise.all([
-      getUserByUID(payload.sub),
+      getUserById(payload.sub),
       getQuestionByUID(uid),
     ]);
 

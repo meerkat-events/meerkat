@@ -12,6 +12,10 @@ export function useCollect(event: Event | undefined) {
   const { trigger } = useAttendancePOD(event);
 
   const collect = async (zapi: ParcnetAPI) => {
+    const publicKey = await context?.zapi?.identity.getPublicKey();
+    if (!publicKey) {
+      throw new Error("Public key not found");
+    }
     const { data } = await trigger({});
     const pod = POD.fromJSON(data);
     await zapi.pod

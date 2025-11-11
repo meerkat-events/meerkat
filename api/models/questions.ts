@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, not, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lte, not, or, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import { questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
@@ -25,7 +25,7 @@ export function getQuestions(
 
   const conditions = [
     eq(questions.eventId, eventId),
-    eq(users.blocked, false),
+    or(isNull(users.bannedUntil), lte(users.bannedUntil, new Date())),
     isNull(questions.deletedAt),
   ];
 
@@ -46,6 +46,7 @@ export function getQuestions(
       answeredAt: questions.answeredAt,
       deletedAt: questions.deletedAt,
       userId: questions.userId,
+      userMetadata: users.userMetadata,
       user: users,
       votes: votesSnippet,
     })

@@ -1,1 +1,0 @@
-ALTER TABLE "questions" ADD COLUMN "deleted_at" timestamp;
