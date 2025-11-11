@@ -26,15 +26,11 @@ export const poster = async (
 ) => {
   const res = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
     method: "POST",
-    ...(arg
-      ? {
-        headers: {
-          ...SHARED_HEADERS,
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(arg),
-      }
-      : {}),
+    headers: {
+      ...SHARED_HEADERS,
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    },
+    body: arg ? JSON.stringify(arg) : undefined,
   });
   if (!res.ok) {
     throw await extractHTTPError(res);
