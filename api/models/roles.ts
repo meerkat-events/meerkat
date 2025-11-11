@@ -1,16 +1,29 @@
 import { and, eq, sql } from "drizzle-orm";
-import { conferenceRole } from "../schema.ts";
+import { conferenceRole, conferences } from "../schema.ts";
 import db from "../db.ts";
 
 const conferenceRolesByIdStatement = db
-  .select()
+  .select({
+    conferenceName: conferences.name,
+    conferenceId: conferenceRole.conferenceId,
+    role: conferenceRole.role,
+    grantedAt: conferenceRole.grantedAt,
+  })
   .from(conferenceRole)
+  .leftJoin(conferences, eq(conferenceRole.conferenceId, conferences.id))
   .where(eq(conferenceRole.userId, sql.placeholder("user_id")))
   .prepare("conference_roles_by_user_id");
 
 export function getConferenceRoles(
   userId: string,
-): Promise<ConferenceRole[]> {
+): Promise<
+  {
+    conferenceName: string | null;
+    conferenceId: number;
+    role: "attendee" | "speaker" | "organizer";
+    grantedAt: Date;
+  }[]
+> {
   return conferenceRolesByIdStatement.execute({ user_id: userId });
 }
 

@@ -5,6 +5,7 @@ import { useAuth } from "./use-auth.ts";
 
 export type ConferenceRole = {
   conferenceId: number;
+  conferenceName: string | null;
   role: "attendee" | "speaker" | "organizer";
   grantedAt: Date;
 };

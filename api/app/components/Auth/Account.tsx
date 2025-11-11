@@ -1,5 +1,6 @@
 import { Button, Flex, Text, VStack } from "@chakra-ui/react";
 import { useLogout } from "../../hooks/use-logout.ts";
+import { useConferenceRoles } from "../../hooks/use-conference-roles.ts";
 import type { User } from "../../hooks/use-auth.ts";
 
 interface AccountProps {
@@ -8,6 +9,7 @@ interface AccountProps {
 
 export function Account({ user }: AccountProps) {
   const { logout } = useLogout();
+  const { data: roles, isLoading } = useConferenceRoles();
 
   return (
     <div className="layout">
@@ -37,6 +39,25 @@ export function Account({ user }: AccountProps) {
                 <strong>Name:</strong> {user.user_metadata?.name || "N/A"}
               </Text>
             </VStack>
+
+            <VStack gap="8px" alignItems="flex-start" width="100%">
+              <Text fontWeight="bold">Conference Roles:</Text>
+              {isLoading
+                ? <Text>Loading roles...</Text>
+                : roles && roles.length > 0
+                ? (
+                  roles.map((role) => (
+                    <Text key={role.conferenceId}>
+                      {role.conferenceName
+                        ? `${role.conferenceName} (#${role.conferenceId})`
+                        : `Conference #${role.conferenceId}`}:{" "}
+                      <strong>{role.role}</strong>
+                    </Text>
+                  ))
+                )
+                : <Text color="gray.500">No conference roles assigned</Text>}
+            </VStack>
+
             <Button onClick={() => logout()} colorPalette="red">
               Logout
             </Button>

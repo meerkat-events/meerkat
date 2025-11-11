@@ -156,6 +156,24 @@ export const conferenceRole = pgTable(
   ],
 );
 
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: serial("id").primaryKey(),
+    email: text("email").notNull(),
+    conferenceId: integer("conference_id")
+      .notNull()
+      .references(() => conferences.id, { onDelete: "cascade" }),
+    role: roleEnum("role").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    claimedAt: timestamp("claimed_at"),
+  },
+  (table) => [
+    index("invitations_email_idx").on(table.email),
+    index("invitations_conference_id_idx").on(table.conferenceId),
+  ],
+);
+
 export const features = pgTable("features", {
   conferenceId: integer("conference_id").notNull().references(
     () => conferences.id,

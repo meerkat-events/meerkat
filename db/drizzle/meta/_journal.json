@@ -15,6 +15,13 @@
       "when": 1762724171379,
       "tag": "0001_small_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762821392148,
+      "tag": "0002_groovy_the_fallen",
+      "breakpoints": true
     }
   ]
 }

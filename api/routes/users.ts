@@ -46,12 +46,9 @@ app.get(
     }
 
     const conferenceRoles = await getConferenceRoles(user.id);
-    const apiRoles = conferenceRoles.map(({ userId: _userId, ...rest }) =>
-      rest
-    );
 
     return c.json({
-      data: apiRoles,
+      data: conferenceRoles,
     });
   },
 );
