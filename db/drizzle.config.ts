@@ -13,5 +13,4 @@ export default defineConfig({
       provider: "supabase",
     },
   },
-  tablesFilter: ["!users"],
 });
