@@ -187,7 +187,6 @@ export default function QnA() {
                 <Button
                   size="sm"
                   variant="plain"
-                  colorPalette="gray"
                   paddingRight="0"
                 >
                   Sessions <FiChevronDown />
@@ -287,7 +286,6 @@ function EventMenuGroup(
           key={event.uid}
           value={event.uid}
           asChild
-          {...(event.selected && { background: "gray.800" })}
         >
           {event.selected
             ? <span>{event.title}</span>

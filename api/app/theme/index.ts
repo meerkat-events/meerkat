@@ -4,13 +4,9 @@ import {
   defineConfig,
 } from "@chakra-ui/react";
 import { darken, lighten } from "color2k";
-import type { Theme } from "./types.ts";
+import type { Theme } from "../types.ts";
 
-export const meerkat: Theme = {
-  backgroundColor: "#0c021d",
-  brandColor: "#9333EA",
-  contrastColor: "white",
-};
+export { meerkat } from "./meerkat.ts";
 
 const generateColorScale = (baseColor: string) => {
   return {
@@ -34,8 +30,10 @@ const chakraAdapter = (theme: Theme) => {
   return defineConfig({
     globalCss: {
       html: {
-        backgroundColor: theme.backgroundColor,
+        background: theme.background,
+        // "linear-gradient(360deg, #F6B613 0%, #FF85A6 17%, #9894FF 35%, #74ACDF 64%, #F2F9FF 100%)",
         colorPalette: "brand",
+        color: theme.textColor,
       },
     },
     theme: {
@@ -49,7 +47,7 @@ const chakraAdapter = (theme: Theme) => {
           brand: {
             solid: { value: "{colors.brand.600}" },
             contrast: { value: theme.contrastColor },
-            fg: { value: "{colors.brand.500}" },
+            fg: { value: "{colors.brand.700}" },
             muted: { value: "{colors.brand.800}" },
             subtle: { value: "{colors.brand.900}" },
             emphasized: { value: "{colors.brand.700}" },

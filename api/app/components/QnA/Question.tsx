@@ -171,7 +171,6 @@ export function Question(
         </div>
         <UpVoteButton
           onClick={() => toggleVote({ uid: question.uid })}
-          hasVoted={voted}
           isDisabled={!canVote || isAnswered}
         />
       </div>

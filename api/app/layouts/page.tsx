@@ -7,9 +7,9 @@ import { SWRConfig } from "swr";
 import { type Config, getConfig } from "../lib/config.ts";
 import { useTools } from "../hooks/use-tools.ts";
 import { Provider } from "../components/ui/provider.tsx";
-import { meerkat } from "../theme.ts";
+import { meerkat } from "../theme/index.ts";
 import { fetcher } from "../hooks/fetcher.ts";
-import { createSystem } from "../theme.ts";
+import { createSystem } from "../theme/index.ts";
 
 export async function clientLoader(args: Route.LoaderArgs) {
   const hasUid = args.params.uid;
@@ -45,12 +45,17 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
 
   useTools(config);
 
+  const systemTheme = event?.conference?.theme?.systemTheme ?? "dark";
+
   const content = (
     <SWRConfig
       value={{ fallback: { [`/api/v1/events/${event?.uid}`]: event } }}
     >
       <Provider
-        colorMode={{ defaultTheme: "dark", forcedTheme: "dark" }}
+        colorMode={{
+          defaultTheme: systemTheme,
+          forcedTheme: systemTheme,
+        }}
         value={system}
       >
         <Outlet />

@@ -45,7 +45,7 @@ export const conferences = pgTable("conferences", {
   theme: jsonb("theme").$type<{
     brandColor: string;
     contrastColor: string;
-    backgroundColor: string;
+    background: string;
     headingFontFamily?: string;
     bodyFontFamily?: string;
   }>(),

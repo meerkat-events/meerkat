@@ -114,6 +114,7 @@ export function Footer({
               rows={isQuestionMode ? 3 : 1}
               borderRadius="md"
               borderColor="gray.700"
+              background="bg.subtle"
               _focusVisible={{
                 borderColor: "transparent",
               }}

@@ -69,12 +69,7 @@ ul {
 }
 
 .bubble {
-  background-color: color-mix(
-    in srgb,
-    var(--chakra-colors-brand-emphasized) 30%,
-    transparent
-  );
-  color: white;
+  background-color: var(--chakra-colors-brand-contrast);
   border-radius: 5px;
   border: 1px solid transparent;
   padding: 1.25rem 1rem 1rem 1rem;
@@ -127,11 +122,10 @@ ul {
 .upvote-count {
   display: inline;
   margin-right: 0.25rem;
-  color: var(--chakra-colors-gray-300);
 }
 
 .upvote-count.voted {
-  color: var(--chakra-colors-white);
+  color: var(--chakra-colors-brand-700);
 }
 
 /*  Collect  Card */

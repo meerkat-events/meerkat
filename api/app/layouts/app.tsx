@@ -11,7 +11,7 @@ import { type Config, getConfig } from "../lib/config.ts";
 import { useTools } from "../hooks/use-tools.ts";
 import { Toaster } from "../components/ui/toaster.tsx";
 import { fetcher } from "../hooks/fetcher.ts";
-import { createSystem, meerkat } from "../theme.ts";
+import { createSystem, meerkat } from "../theme/index.ts";
 import type { Event } from "../types.ts";
 
 import "./app.css";
@@ -51,6 +51,8 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
 
   useTools(config);
 
+  const systemTheme = event?.conference?.theme?.systemTheme ?? "dark";
+
   const content = (
     <SWRConfig>
       <ZAPIProvider
@@ -59,7 +61,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
       >
         <UserProvider>
           <Provider
-            colorMode={{ defaultTheme: "dark", forcedTheme: "dark" }}
+            colorMode={{ defaultTheme: systemTheme, forcedTheme: systemTheme }}
             value={system}
           >
             <Outlet />

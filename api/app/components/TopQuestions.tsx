@@ -44,7 +44,7 @@ function Question({ question }: { question: QuestionWithVotes }) {
           Answering
         </div>
       )}
-      <Heading as="h3" size="xl">
+      <Heading as="h3" size="xl" fontFamily="var(--global-font-body)">
         {question.question}
       </Heading>
       <div className="upvote-section">

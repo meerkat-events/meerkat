@@ -42,7 +42,7 @@ export default function Presenter({ event, url }: PresenterProps) {
     <div className={`page ${hideQRCode ? "hide-qr-code" : ""}`}>
       <header>
         <div className="title">
-          <Heading as="h1" size="2xl">
+          <Heading as="h1" size="3xl">
             {event?.title}
           </Heading>
           <Text fontSize="xl">

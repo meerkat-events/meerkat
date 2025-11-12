@@ -2,7 +2,9 @@ import type { PODData } from "@parcnet-js/podspec";
 export type Theme = {
   brandColor: string;
   contrastColor: string;
-  backgroundColor: string;
+  background: string;
+  textColor: string;
+  systemTheme?: "dark" | "light";
   headingFontFamily?: string;
   bodyFontFamily?: string;
 };
