@@ -2,18 +2,6 @@ import { and, eq, sql } from "drizzle-orm";
 import { conferenceRole, conferences } from "../schema.ts";
 import db from "../db.ts";
 
-const conferenceRolesByIdStatement = db
-  .select({
-    conferenceName: conferences.name,
-    conferenceId: conferenceRole.conferenceId,
-    role: conferenceRole.role,
-    grantedAt: conferenceRole.grantedAt,
-  })
-  .from(conferenceRole)
-  .leftJoin(conferences, eq(conferenceRole.conferenceId, conferences.id))
-  .where(eq(conferenceRole.userId, sql.placeholder("user_id")))
-  .prepare("conference_roles_by_user_id");
-
 export function getConferenceRoles(
   userId: string,
 ): Promise<
@@ -24,31 +12,34 @@ export function getConferenceRoles(
     grantedAt: Date;
   }[]
 > {
-  return conferenceRolesByIdStatement.execute({ user_id: userId });
+  return db
+    .select({
+      conferenceName: conferences.name,
+      conferenceId: conferenceRole.conferenceId,
+      role: conferenceRole.role,
+      grantedAt: conferenceRole.grantedAt,
+    })
+    .from(conferenceRole)
+    .leftJoin(conferences, eq(conferenceRole.conferenceId, conferences.id))
+    .where(eq(conferenceRole.userId, userId))
+    .execute();
 }
-
-const conferenceRolesByUserIdAndConferenceIdStatement = db
-  .select()
-  .from(conferenceRole)
-  .where(
-    and(
-      eq(conferenceRole.userId, sql.placeholder("user_id")),
-      eq(conferenceRole.conferenceId, sql.placeholder("conference_id")),
-    ),
-  )
-  .limit(1)
-  .prepare("conference_roles_by_user_id_and_conference_id");
 
 export async function getConferenceRolesForConference(
   userId: string,
   conferenceId: number,
 ): Promise<ConferenceRole[]> {
-  const result = await conferenceRolesByUserIdAndConferenceIdStatement.execute({
-    user_id: userId,
-    conference_id: conferenceId,
-  });
-
-  return result;
+  return db
+    .select()
+    .from(conferenceRole)
+    .where(
+      and(
+        eq(conferenceRole.userId, userId),
+        eq(conferenceRole.conferenceId, conferenceId),
+      ),
+    )
+    .limit(1)
+    .execute();
 }
 
 export function grantRole(
