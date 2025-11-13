@@ -1,0 +1,74 @@
+---
+alwaysApply: true
+---
+
+# Meerkat Project Rules
+
+## Build Process
+
+- No live reload available - must run `deno task build` in api folder after
+  making changes to see them reflected
+- Build command: `cd api && deno task build`
+
+## Deno Compatibility
+
+- Use `globalThis` instead of `window` for browser APIs (window.open →
+  globalThis.open)
+- Deno runtime requires specific patterns for imports
+
+## React Hooks
+
+- Never call hooks inside loops or conditionally
+- Use useEffect + useState for complex data fetching patterns
+- Follow rules of hooks strictly
+
+## Code Style
+
+- Ternary operators: put condition on same line, true/false branches on new
+  lines with parentheses
+
+```typescript
+{
+	condition ? <TrueComponent /> : <FalseComponent />;
+}
+```
+
+- Multi-line ternaries with multiple conditions:
+
+```typescript
+{
+	isLoading
+		? <Loading />
+		: data && data.length > 0
+		? <DataView />
+		: <EmptyState />;
+}
+```
+
+## Routing
+
+- Use existing routing helpers from `routing.ts`: `qa(uid)`, `card(uid)`
+
+## Component Patterns
+
+- Keep consistent spacing with `gap` prop
+- Center content with `alignItems="center"` and `justifyContent`
+- Max width containers: `maxWidth="20rem"` for forms/selects
+
+## Data Fetching
+
+- Use custom hooks in `/hooks` directory for API calls
+- Pattern: `use-[resource-name].ts` (e.g., use-organizer-events.ts)
+- Return `{ data, isLoading, error }` from data hooks
+- Use SWR for caching when possible
+- Use fetcher utility from `hooks/fetcher.ts`
+
+## Navigation
+
+- New tabs: use `globalThis.open(url, '_blank')`
+
+## Error Handling
+
+- Show loading states with color="gray.400" Text
+- Show empty states when no data available
+- Handle undefined/null data gracefully with optional chaining
