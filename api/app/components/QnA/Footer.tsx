@@ -1,7 +1,5 @@
 import { FiSend } from "react-icons/fi";
 import {
-  Button,
-  CloseButton,
   Flex,
   IconButton,
   Link as ChakraLink,
@@ -14,11 +12,11 @@ import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
 import { HeartIcon } from "./HeartIcon.tsx";
 import { useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
-import { Dialog } from "@chakra-ui/react";
 import { useLogout } from "../../hooks/use-logout.ts";
 import { toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
 import { User } from "../../hooks/use-auth.ts";
+import { LogoutConfirmDialog } from "../Auth/LogoutConfirmDialog.tsx";
 
 import "./Footer.css";
 
@@ -174,31 +172,11 @@ export function Footer({
           </LoginOverlay>
         )}
       </div>
-      <Dialog.Root
-        role="alertdialog"
-        open={isOpen}
-        onOpenChange={onClose}
-      >
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>
-                Logout
-              </Dialog.Title>
-            </Dialog.Header>
-            <Dialog.Body>
-              Are you sure you want to logout?
-            </Dialog.Body>
-            <Dialog.Footer>
-              <Button colorPalette="red" onClick={onLogout}>Logout</Button>
-            </Dialog.Footer>
-            <Dialog.CloseTrigger asChild>
-              <CloseButton size="sm" />
-            </Dialog.CloseTrigger>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Dialog.Root>
+      <LogoutConfirmDialog
+        isOpen={isOpen}
+        onClose={onClose}
+        onConfirm={onLogout}
+      />
     </>
   );
 }
