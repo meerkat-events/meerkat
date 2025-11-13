@@ -31,7 +31,7 @@ jobs:
     concurrency: deploy-group # optional: ensure only one action runs at a time
     environment: ${{ needs.set-env.outputs.deploy_env }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Print Environment Variable
         run: |
           echo "Deploying to environment: ${{ needs.set-env.outputs.deploy_env }}"
@@ -59,7 +59,7 @@ jobs:
     concurrency: deploy-verifier-group
     environment: ${{ needs.set-env.outputs.deploy_env }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Print Environment Variable
         run: |
           echo "Deploying to environment: ${{ needs.set-env.outputs.deploy_env }}"
