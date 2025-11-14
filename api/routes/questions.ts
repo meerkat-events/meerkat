@@ -18,7 +18,6 @@ import {
   getVotesByQuestionIdAndUserId,
 } from "../models/votes.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
-import { checkEventEnded } from "./errors.ts";
 import logger from "../logger.ts";
 
 const app = new Hono();
@@ -59,8 +58,6 @@ app.post(
         message: `Event not found`,
       });
     }
-
-    checkEventEnded(event);
 
     const minuteAgo = dateDeductedMinutes(1);
     const voteCount = await getUserVoteCountAfterDate(

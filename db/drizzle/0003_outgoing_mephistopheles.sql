@@ -6,7 +6,9 @@ CREATE TABLE "api_keys" (
 	"valid_until" timestamp
 );
 --> statement-breakpoint
-ALTER TABLE "events" ADD COLUMN "stage" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "events" ADD COLUMN "stage" text;--> statement-breakpoint
+UPDATE "events" SET "stage" = 'main' WHERE "stage" IS NULL;--> statement-breakpoint
+ALTER TABLE "events" ALTER COLUMN "stage" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "events" DROP COLUMN "submission_type";--> statement-breakpoint
 ALTER TABLE "events" DROP COLUMN "track";--> statement-breakpoint
 ALTER TABLE "conferences" ADD CONSTRAINT "conferences_name_unique" UNIQUE("name");

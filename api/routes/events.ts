@@ -39,7 +39,6 @@ import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { Feature, getFeatures } from "../models/features.ts";
 import { createAttendancePOD } from "../zupass.ts";
 import { getConferenceRolesForConference } from "../models/roles.ts";
-import { checkEventEnded } from "./errors.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
 import { supabase } from "../supabase.ts";
@@ -211,8 +210,6 @@ app.post(
       throw new HTTPException(403, { message: `User ${uid} is blocked` });
     }
 
-    checkEventEnded(event);
-
     const minuteAgo = dateDeductedMinutes(1);
     const lastMinuteActivityPromise = getUserPostCountAfterDate(
       user.id,
@@ -267,8 +264,6 @@ app.post(
     if (user.bannedUntil && user.bannedUntil > new Date()) {
       throw new HTTPException(403, { message: `User is blocked` });
     }
-
-    checkEventEnded(event);
 
     const thirtySecondsAgo = dateDeductedMinutes(0.5);
     const thirtySecondsActivity = await getUserReactionCountAfterDate(
