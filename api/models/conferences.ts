@@ -1,21 +1,21 @@
-import { and, eq, isNull, or, sql } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { conferences, conferenceTickets } from "../schema.ts";
 import db from "../db.ts";
 
-const conferenceById = db.select().from(conferences).where(
-  eq(conferences.id, sql.placeholder("id")),
-).limit(1).prepare("conference_by_id");
+export type Conference = typeof conferences.$inferSelect;
 
 export async function getConferenceById(
   id: number,
 ): Promise<Conference | null> {
-  const conferences = await conferenceById.execute({ id });
-  return conferences.length === 1 ? conferences[0] : null;
+  const results = await db.select().from(conferences).where(
+    eq(conferences.id, id),
+  ).limit(1);
+
+  return results.length === 1 ? results[0] : null;
 }
 
-export async function getConferences(): Promise<Conference[]> {
-  const result = await db.select().from(conferences).execute();
-  return result;
+export function getConferences(): Promise<Conference[]> {
+  return db.select().from(conferences).execute();
 }
 
 export async function createConference(
@@ -53,11 +53,8 @@ export async function getConferenceByTicket(
   return result.length === 1 ? result[0] : null;
 }
 
-export async function getTickets(conferenceId: number) {
-  const result = await db.select().from(conferenceTickets).where(
+export function getTickets(conferenceId: number) {
+  return db.select().from(conferenceTickets).where(
     eq(conferenceTickets.conferenceId, conferenceId),
   ).execute();
-  return result;
 }
-
-export type Conference = typeof conferences.$inferSelect;

@@ -46,14 +46,17 @@ export async function getEventByUID(uid: string) {
   return event ? { ...event, cover: event.cover ?? DEFAULT_COVER } : null;
 }
 
-const eventByID = db.select().from(events).where(
-  eq(events.id, sql.placeholder("id")),
-).limit(1).prepare("event_by_id");
-
 export async function getEventById(id: number) {
-  const results = await eventByID.execute({ id });
+  const results = await db.select().from(events).where(
+    eq(events.id, id),
+  ).limit(1).execute();
   const event = results.length === 1 ? results[0] : null;
-  return event ? { ...event, cover: event.cover ?? DEFAULT_COVER } : null;
+
+  if (event) {
+    event.cover = event.cover ?? DEFAULT_COVER;
+  }
+
+  return event;
 }
 
 export async function countParticipants(eventId: number) {
