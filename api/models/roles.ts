@@ -25,7 +25,7 @@ export function getConferenceRoles(
     .execute();
 }
 
-export async function getConferenceRolesForConference(
+export function getConferenceRolesForConference(
   userId: string,
   conferenceId: number,
 ): Promise<ConferenceRole[]> {

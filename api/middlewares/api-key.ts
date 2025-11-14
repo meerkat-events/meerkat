@@ -1,7 +1,7 @@
 import { createMiddleware } from "@hono/hono/factory";
 import { HTTPException } from "@hono/hono/http-exception";
 import { getAllApiKeys } from "../models/api-keys.ts";
-import argon2 from "argon2";
+import { verify } from "argon2";
 
 export const apiKey = () => {
   return createMiddleware(async (c, next) => {
@@ -31,7 +31,7 @@ async function getApiKey(key: string) {
   const allKeys = await getAllApiKeys();
 
   for (const apiKey of allKeys) {
-    const matches = await argon2.verify(apiKey.hashedKey, key);
+    const matches = await verify(apiKey.hashedKey, key);
 
     if (matches) {
       return apiKey;

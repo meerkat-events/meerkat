@@ -84,6 +84,7 @@ export function useTicketProof(props: UseTicketProofProps) {
 export type ProveResult = Awaited<ReturnType<typeof generateTicketProof>>;
 
 async function sendTicketProofRequest(
+  // deno-lint-ignore no-explicit-any
   { ticketProof }: { ticketProof: any },
 ) {
   const {
