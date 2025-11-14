@@ -2,9 +2,10 @@
   "version": "5",
   "specifiers": {
     "npm:@chakra-ui/react@^3.28.0": "3.29.0_@emotion+react@11.14.0__react@19.2.0_react@19.2.0_react-dom@19.2.0__react@19.2.0",
+    "npm:@date-fns/tz@^1.4.1": "1.4.1",
     "npm:@deno/vite-plugin@^1.0.5": "1.0.5_vite@6.4.1__@types+node@24.10.0__picomatch@4.0.3_@types+node@24.10.0",
     "npm:@emotion/react@^11.14.0": "11.14.0_react@19.2.0",
-    "npm:@hono/zod-validator@~0.7.4": "0.7.4_hono@4.10.3_zod@4.1.12",
+    "npm:@hono/zod-validator@~0.7.4": "0.7.4_hono@4.10.3_zod@3.25.76",
     "npm:@jsr/libs__qrcode@3": "3.0.0",
     "npm:@jsr/std__crypto@1.0.5": "1.0.5",
     "npm:@jsr/std__crypto@^1.0.5": "1.0.5",
@@ -35,7 +36,9 @@
     "npm:@types/react-dom@^19.2.2": "19.2.2_@types+react@19.2.2",
     "npm:@types/react@^19.2.2": "19.2.2",
     "npm:@uidotdev/usehooks@^2.4.1": "2.4.1_react@19.2.0_react-dom@19.2.0__react@19.2.0",
+    "npm:argon2@0.44": "0.44.0",
     "npm:color2k@^2.0.3": "2.0.3",
+    "npm:csv-stringify@^6.6.0": "6.6.0",
     "npm:d3-random@^3.0.1": "3.0.1",
     "npm:drizzle-kit@~0.31.5": "0.31.6_esbuild@0.25.12",
     "npm:drizzle-orm@~0.44.7": "0.44.7_postgres@3.4.7",
@@ -56,6 +59,7 @@
     "npm:uuidv7@^1.0.2": "1.0.2",
     "npm:vite-plugin-node-polyfills@0.24": "0.24.0_vite@6.4.1__@types+node@24.10.0__picomatch@4.0.3_@types+node@24.10.0",
     "npm:vite@^6.4.1": "6.4.1_@types+node@24.10.0_picomatch@4.0.3",
+    "npm:zod@^3.25.76": "3.25.76",
     "npm:zod@^4.1.12": "4.1.12"
   },
   "npm": {
@@ -370,6 +374,9 @@
         "commander"
       ]
     },
+    "@date-fns/tz@1.4.1": {
+      "integrity": "sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA=="
+    },
     "@deno/vite-plugin@1.0.5_vite@6.4.1__@types+node@24.10.0__picomatch@4.0.3_@types+node@24.10.0": {
       "integrity": "sha512-tLja5n4dyMhcze1NzvSs2iiriBymfBlDCZIrjMTxb9O2ru0gvmV6mn5oBD2teNw5Sd92cj3YJzKwsAs8tMJXlg==",
       "dependencies": [
@@ -458,6 +465,9 @@
     },
     "@emotion/weak-memoize@0.4.0": {
       "integrity": "sha512-snKqtPW01tN0ui7yu9rGv69aJXr/a/Ywvl11sUjNtEcRc+ng/mQriFL0wLXMef74iHa/EkftbDzU9F8iFbH+zg=="
+    },
+    "@epic-web/invariant@1.0.0": {
+      "integrity": "sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA=="
     },
     "@esbuild-kit/core-utils@3.3.2": {
       "integrity": "sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==",
@@ -776,11 +786,11 @@
     "@floating-ui/utils@0.2.10": {
       "integrity": "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="
     },
-    "@hono/zod-validator@0.7.4_hono@4.10.3_zod@4.1.12": {
+    "@hono/zod-validator@0.7.4_hono@4.10.3_zod@3.25.76": {
       "integrity": "sha512-biKGn3BRJVaftZlIPMyK+HCe/UHAjJ6sH0UyXe3+v0OcgVr9xfImDROTJFLtn9e3XEEAHGZIM9U6evu85abm8Q==",
       "dependencies": [
         "hono",
-        "zod"
+        "zod@3.25.76"
       ]
     },
     "@iden3/bigarray@0.0.2": {
@@ -1131,6 +1141,9 @@
         "secure-random",
         "uuid"
       ]
+    },
+    "@phc/format@1.0.0": {
+      "integrity": "sha512-m7X9U6BG2+J+R1lSOdCiITLLrxm+cWlNI3HUFA92oLO77ObGNzaKdh8pMLqdZcshtkKuV84olNNXDfMc4FezBQ=="
     },
     "@pinojs/redact@0.4.0": {
       "integrity": "sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg=="
@@ -2373,6 +2386,16 @@
     "arg@5.0.2": {
       "integrity": "sha512-PYjyFOLKQ9y57JvQ6QLo8dAgNqswh8M1RMJYdQduT6xbWSgK36P/Z/v+p888pM69jMMfS8Xd8F6I1kQ/I9HUGg=="
     },
+    "argon2@0.44.0": {
+      "integrity": "sha512-zHPGN3S55sihSQo0dBbK0A5qpi2R31z7HZDZnry3ifOyj8bZZnpZND2gpmhnRGO1V/d555RwBqIK5W4Mrmv3ig==",
+      "dependencies": [
+        "@phc/format",
+        "cross-env",
+        "node-addon-api",
+        "node-gyp-build"
+      ],
+      "scripts": true
+    },
     "array-flatten@1.1.1": {
       "integrity": "sha512-PCVAQswWemu6UdxsDFFX/+gVeYqKAod3D3UVm91jHwynguOwAvYPhx8nNlM++NqRcK6CxxpUafjmhIdKiHibqg=="
     },
@@ -2859,6 +2882,14 @@
     "create-require@1.1.1": {
       "integrity": "sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ=="
     },
+    "cross-env@10.1.0": {
+      "integrity": "sha512-GsYosgnACZTADcmEyJctkJIoqAhHjttw7RsFrVoJNXbsWWqaq6Ym+7kZjq6mS45O0jij6vtiReppKQEtqWy6Dw==",
+      "dependencies": [
+        "@epic-web/invariant",
+        "cross-spawn"
+      ],
+      "bin": true
+    },
     "cross-spawn@7.0.6": {
       "integrity": "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==",
       "dependencies": [
@@ -2886,6 +2917,9 @@
     },
     "csstype@3.1.3": {
       "integrity": "sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw=="
+    },
+    "csv-stringify@6.6.0": {
+      "integrity": "sha512-YW32lKOmIBgbxtu3g5SaiqWNwa/9ISQt2EcgOq0+RAIFufFp9is6tqNnKahqE5kuKvrnYAzs28r+s6pXJR8Vcw=="
     },
     "d3-random@3.0.1": {
       "integrity": "sha512-FXMe9GfxTxqd5D6jFsQ+DJ8BJS4E/fT5mqqdjovykEB2oFbTMDVdg1MGFxfQW+FBOGoB++k8swBrgwSHT1cUXQ=="
@@ -3829,6 +3863,13 @@
         "react",
         "react-dom"
       ]
+    },
+    "node-addon-api@8.5.0": {
+      "integrity": "sha512-/bRZty2mXUIFY/xU5HLvveNHlswNJej+RnxBjOMkidWfwZzgTbPG1E3K5TOxRLOR+5hX7bSofy8yf1hZevMS8A=="
+    },
+    "node-gyp-build@4.8.4": {
+      "integrity": "sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==",
+      "bin": true
     },
     "node-releases@2.0.27": {
       "integrity": "sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA=="
@@ -5061,6 +5102,9 @@
     "yoctocolors-cjs@2.1.3": {
       "integrity": "sha512-U/PBtDf35ff0D8X8D0jfdzHYEPFxAI7jJlxZXwCSez5M3190m+QobIfh+sWDWSHMCWWJN2AWamkegn6vr6YBTw=="
     },
+    "zod@3.25.76": {
+      "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
+    },
     "zod@4.1.12": {
       "integrity": "sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ=="
     }
@@ -5069,6 +5113,10 @@
     "https://esm.sh/v128/@types/react@~18.3/jsx-runtime~.d.ts": "https://esm.sh/v128/@types/react@18.3.18/jsx-runtime~.d.ts"
   },
   "remote": {
+    "https://deno.land/x/bcrypt@v0.4.1/mod.ts": "ff09bdae282583cf5f7d87efe37ddcecef7f14f6d12e8b8066a3058db8c6c2f7",
+    "https://deno.land/x/bcrypt@v0.4.1/src/bcrypt/base64.ts": "b8266450a4f1eb6960f60f2f7986afc4dde6b45bd2d7ee7ba10789e67e17b9f7",
+    "https://deno.land/x/bcrypt@v0.4.1/src/bcrypt/bcrypt.ts": "ec221648cc6453ea5e3803bc817c01157dada06aa6f7a0ba6b9f87aae32b21e2",
+    "https://deno.land/x/bcrypt@v0.4.1/src/main.ts": "08d201b289c8d9c46f8839c69cd6625b213863db29775c7a200afc3b540e64f8",
     "https://esm.sh/react@18.3.1/jsx-runtime": "f47f11639cc0531ad2f1e0f6334d9ae7a8d906c905d9b79cb2e8cd4331bc5b10",
     "https://esm.sh/stable/react@18.3.1/denonext/jsx-runtime.js": "5ff1e02a3bb5c69dd3535d77054b182f1ea51c5eeaf24a396984f6b7012c2716",
     "https://esm.sh/stable/react@18.3.1/denonext/react.mjs": "fc048ffc55366baf7669519127d186761db72046e2bebf35fe8d0de3964defa3"
@@ -5082,11 +5130,13 @@
       "npm:@jsr/std__http@1.0.21",
       "npm:@jsr/std__path@1.1.2",
       "npm:@jsr/supabase__supabase-js@^2.58.0",
-      "npm:hono@^4.10.3"
+      "npm:hono@^4.10.3",
+      "npm:zod@^3.25.76"
     ],
     "packageJson": {
       "dependencies": [
         "npm:@chakra-ui/react@^3.28.0",
+        "npm:@date-fns/tz@^1.4.1",
         "npm:@deno/vite-plugin@^1.0.5",
         "npm:@emotion/react@^11.14.0",
         "npm:@hono/zod-validator@~0.7.4",
@@ -5115,7 +5165,9 @@
         "npm:@types/react-dom@^19.2.2",
         "npm:@types/react@^19.2.2",
         "npm:@uidotdev/usehooks@^2.4.1",
+        "npm:argon2@0.44",
         "npm:color2k@^2.0.3",
+        "npm:csv-stringify@^6.6.0",
         "npm:d3-random@^3.0.1",
         "npm:drizzle-kit@~0.31.5",
         "npm:drizzle-orm@~0.44.7",

@@ -6,8 +6,7 @@ import { buildConflictUpdateColumns } from "./utils.ts";
 import { DEFAULT_COVER } from "./event.ts";
 
 export async function upsertEvents(
-  conferenceId: number,
-  newEvents: Omit<typeof events.$inferInsert, "conferenceId">[],
+  newEvents: typeof events.$inferInsert[],
 ) {
   const allColumns = getTableColumns(events);
   const updateColumns = (Object.keys(allColumns) as (keyof typeof allColumns)[])
@@ -19,13 +18,7 @@ export async function upsertEvents(
     );
 
   const results = await db.insert(events)
-    .values(
-      newEvents.map((event) => ({
-        ...event,
-        uid: event.uid.toUpperCase(),
-        conferenceId,
-      })),
-    )
+    .values(newEvents)
     .onConflictDoUpdate({
       target: events.uid,
       set: buildConflictUpdateColumns(events, updateColumns),

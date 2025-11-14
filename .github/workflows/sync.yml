@@ -10,15 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: prod
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-    - uses: denoland/setup-deno@v2
-      with:
-        deno-version: v2.x  
-        cache: true
-    - name: Run script
-      working-directory: api
-      env:
-        SYNC_CONFIGS: ${{ secrets.SYNC_CONFIGS }}
-      run: |
-        deno run --allow-net --allow-env ./jobs/syncs.ts
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+          cache: true
+      - name: Run script
+        working-directory: api
+        env:
+          IMPORT_API_KEY: ${{ secrets.IMPORT_API_KEY }}
+          DEVCONNECT_BASE: ${{ secrets.DEVCONNECT_BASE }}
+          MEERKAT_BASE: ${{ secrets.MEERKAT_BASE }}
+          EVENT_CONFERENCE_MAP: ${{ secrets.EVENT_CONFERENCE_MAP }}
+        run: |
+          deno task sync

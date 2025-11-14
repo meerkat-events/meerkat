@@ -14,6 +14,7 @@ export type Conference = {
   name: string;
   logoUrl: string | null;
   theme: Theme | null;
+  features: Record<string, boolean>;
 };
 
 export type Event = {
@@ -21,19 +22,16 @@ export type Event = {
   uid: string;
   conferenceId: number;
   title: string;
-  submissionType: string;
   start: Date;
   end: Date;
-  "abstract": string | null;
   description: string | null;
-  track: string | null;
   cover: string | null;
   questions: Question[];
   votes: number;
   participants: number;
   speaker: string;
+  stage: string;
   conference: Conference;
-  features: Record<string, boolean>;
   live: boolean;
 };
 export type Question = {

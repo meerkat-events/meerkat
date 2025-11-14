@@ -53,10 +53,6 @@ export function createAttendancePOD(
       type: "string",
       value: conference.name,
     },
-    "track": {
-      type: "string",
-      value: event.track ?? "",
-    },
     "code": {
       type: "string",
       value: event.uid,

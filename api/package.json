@@ -6,6 +6,7 @@
   "author": "Florian Dreschner <code@dreschner.eu>",
   "dependencies": {
     "@chakra-ui/react": "^3.28.0",
+    "@date-fns/tz": "^1.4.1",
     "@emotion/react": "^11.14.0",
     "@hono/zod-validator": "^0.7.4",
     "@jsr/libs__qrcode": "^3.0.0",
@@ -26,7 +27,9 @@
     "@sentry/react": "^10.22.0",
     "@supabase/supabase-js": "^2.76.1",
     "@uidotdev/usehooks": "^2.4.1",
+    "argon2": "^0.44.0",
     "color2k": "^2.0.3",
+    "csv-stringify": "^6.6.0",
     "d3-random": "^3.0.1",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.3",

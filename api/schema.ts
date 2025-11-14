@@ -40,7 +40,7 @@ export const profiles = pgTable("profile", {
 
 export const conferences = pgTable("conferences", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
+  name: text("name").notNull().unique(),
   logoUrl: text("logo_url"),
   theme: jsonb("theme").$type<{
     brandColor: string;
@@ -78,11 +78,10 @@ export const events = pgTable("events", {
     .references(() => conferences.id, { onDelete: "cascade" }),
   uid: text("uid").notNull(),
   title: text("title").notNull(),
-  submissionType: text("submission_type").default("talk"),
   start: timestamp("start").notNull(),
   end: timestamp("end").notNull(),
+  stage: text("stage").notNull(),
   description: text("description"),
-  track: text("track"),
   cover: text("cover"),
   speaker: text("speaker"),
   live: boolean("live").notNull().default(false),
@@ -202,6 +201,14 @@ export const reactions = pgTable(
     index("reactions_user_id_idx").on(table.userId),
   ],
 );
+
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  hashedKey: text("hashed_key").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  validUntil: timestamp("valid_until"),
+});
 
 export function lower(column: AnyPgColumn) {
   return sql`lower(${column})`;

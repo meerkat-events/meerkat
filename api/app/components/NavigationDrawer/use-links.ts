@@ -17,7 +17,7 @@ export function useLinks({ event }: UseLinksProps) {
         href: qa(event?.uid ?? ""),
         active: location.pathname.endsWith("/qa"),
       },
-      ...(event?.features["collect"]
+      ...(event?.conference.features["collect"]
         ? [{
           label: "Collect",
           href: card(event?.uid ?? ""),

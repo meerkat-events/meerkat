@@ -22,6 +22,13 @@
       "when": 1762821392148,
       "tag": "0002_groovy_the_fallen",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1763129346024,
+      "tag": "0003_open_dragon_man",
+      "breakpoints": true
     }
   ]
 }

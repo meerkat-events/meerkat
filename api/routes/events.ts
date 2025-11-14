@@ -92,11 +92,13 @@ app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
       questions: questions.map(toApiQuestion),
       votes,
       participants,
-      conference,
-      features: features.reduce((acc, val) => {
-        acc[val.name] = val.active;
-        return acc;
-      }, {} as Record<string, boolean>),
+      conference: {
+        ...conference,
+        features: features.reduce((acc, val) => {
+          acc[val.name] = val.active;
+          return acc;
+        }, {} as Record<string, boolean>),
+      },
     },
   });
 });
