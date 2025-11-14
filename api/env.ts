@@ -28,7 +28,6 @@ const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 const sentryDSN = Deno.env.get("SENTRY_DSN");
 const maxPoolSize = Deno.env.get("DATABASE_MAX_POOL_SIZE");
 const environment = Deno.env.get("ENVIRONMENT") ?? "development";
-const grafanaUrl = Deno.env.get("GRAFANA_URL");
 
 const env = {
   connectionString,
@@ -43,7 +42,6 @@ const env = {
   verifierEndpoint,
   maxPoolSize,
   environment,
-  grafanaUrl,
 };
 
 logger.info({

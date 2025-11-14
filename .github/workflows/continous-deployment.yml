@@ -47,7 +47,6 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           VERIFIER_ENDPOINT: ${{ secrets.VERIFIER_ENDPOINT }}
           DATABASE_MAX_POOL_SIZE: ${{ secrets.DATABASE_MAX_POOL_SIZE }}
-          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
           ENVIRONMENT: ${{ needs.set-env.outputs.deploy_env }}
       - run: flyctl deploy --remote-only
         env:
