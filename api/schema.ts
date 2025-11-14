@@ -86,7 +86,7 @@ export const events = pgTable("events", {
   speaker: text("speaker"),
   live: boolean("live").notNull().default(false),
 }, (table) => [
-  uniqueIndex("events_uid_uniq").on(lower(table.uid)),
+  uniqueIndex("events_uid_uniq").on(table.uid),
   index("events_conference_id_idx").on(table.conferenceId),
 ]);
 

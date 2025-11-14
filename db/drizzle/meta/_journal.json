@@ -29,6 +29,13 @@
       "when": 1763150846581,
       "tag": "0003_outgoing_mephistopheles",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1763153825309,
+      "tag": "0004_useful_fixer",
+      "breakpoints": true
     }
   ]
 }

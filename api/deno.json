@@ -15,8 +15,8 @@
   },
   "tasks": {
     "lint": "deno lint",
-    "dev": "DENO_TLS_CA_STORE=system deno run --inspect --env-file=.env --allow-read --allow-net --allow-sys=hostname --allow-env --watch ./dev.ts",
-    "start": "deno run --allow-env --allow-net --allow-read --allow-sys=hostname ./main.ts",
+    "dev": "DENO_TLS_CA_STORE=system deno run --inspect --env-file=.env --allow-read --allow-net --allow-ffi --allow-sys=hostname --allow-env --watch ./dev.ts",
+    "start": "deno run --allow-env --allow-net --allow-read --allow-ffi --allow-sys=hostname ./main.ts",
     "build": "NODE_ENV=production react-router build",
     "format": "deno fmt",
     "typecheck": {

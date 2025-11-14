@@ -3,7 +3,7 @@ import { createDevconnectClient } from "./api.ts";
 import { fetchSessions } from "./api.ts";
 import { parseSessions } from "./parse.ts";
 import { createMeerkatClient } from "./meerkat.ts";
-import { createInvalidSessionsCSV } from "./csv.ts";
+import { writeSessionsCSV } from "./csv.ts";
 import { upsertEvents } from "./meerkat.ts";
 
 const API_KEY = Deno.env.get("IMPORT_API_KEY");
@@ -39,9 +39,16 @@ console.info(
   `Parsed ${validSessions.length} sessions (${invalidSessions.length} failed parsing)`,
 );
 
+await writeSessionsCSV(
+  "sessions.csv",
+  validSessions.map((session) => ({
+    session,
+    error: undefined,
+  })),
+);
 // Create CSV with invalid sessions
 if (invalidSessions.length > 0) {
-  await createInvalidSessionsCSV(invalidSessions);
+  await writeSessionsCSV("invalid-sessions.csv", invalidSessions);
 }
 
 const events: Array<{
@@ -53,15 +60,23 @@ const events: Array<{
   stage: string;
 }> = [];
 
+const uidSet = new Set();
+
 for (const session of validSessions) {
   const conferenceId = conferenceMap[session.event];
   if (!conferenceId) {
     console.warn(`Conference not found for event "${session.event}"`);
     continue;
   }
+  const uid = slugify(session.title);
+  if (uidSet.has(uid)) {
+    console.warn(`Slug ${uid} already exists`);
+    continue;
+  }
+  uidSet.add(uid);
   events.push({
     conferenceId,
-    uid: slugify(session.title),
+    uid,
     title: session.title,
     start: session.start,
     stage: session.stage,
@@ -69,9 +84,13 @@ for (const session of validSessions) {
   });
 }
 
-await upsertEvents(meerkatClient, events);
+if (events.length === 0) {
+  console.warn("No events to upsert");
+} else {
+  await upsertEvents(meerkatClient, events);
 
-console.info("\nSession import completed!");
+  console.info("\nSession import completed!");
+}
 
 if (typeof self !== "undefined" && "postMessage" in self) {
   self.postMessage({ type: "done" });

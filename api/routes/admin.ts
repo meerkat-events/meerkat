@@ -30,7 +30,11 @@ app.post(
   zValidator("json", batchUpsertEventsSchema),
   async (c) => {
     const events = c.req.valid("json");
-    const results = await upsertEvents(events);
+    let results: unknown = [];
+
+    if (events.length > 0) {
+      results = await upsertEvents(events);
+    }
 
     return c.json({ data: results });
   },

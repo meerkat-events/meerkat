@@ -5,7 +5,7 @@ import { events, lower, questions, votes } from "../schema.ts";
 import { buildConflictUpdateColumns } from "./utils.ts";
 import { DEFAULT_COVER } from "./event.ts";
 
-export async function upsertEvents(
+export function upsertEvents(
   newEvents: typeof events.$inferInsert[],
 ) {
   const allColumns = getTableColumns(events);
@@ -17,7 +17,7 @@ export async function upsertEvents(
         ),
     );
 
-  const results = await db.insert(events)
+  return db.insert(events)
     .values(newEvents)
     .onConflictDoUpdate({
       target: events.uid,
@@ -25,7 +25,6 @@ export async function upsertEvents(
     })
     .returning()
     .execute();
-  return results;
 }
 
 export async function getEvents(

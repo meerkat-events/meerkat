@@ -1,9 +1,10 @@
 import { stringify } from "csv-stringify/sync";
 
-export async function createInvalidSessionsCSV(
-  invalidSessions: Array<{ session: unknown; error: string }>,
+export async function writeSessionsCSV(
+  filename: string,
+  sessions: Array<{ session: unknown; error?: string | undefined }>,
 ) {
-  const csvRows = invalidSessions.map(({ session, error }) => {
+  const csvRows = sessions.map(({ session, error }) => {
     const s = session as Record<string, unknown>;
     return {
       event: String(s?.event || ""),
@@ -31,8 +32,8 @@ export async function createInvalidSessionsCSV(
     ],
   });
 
-  await Deno.writeTextFile("invalid-sessions.csv", csv);
+  await Deno.writeTextFile(filename, csv);
   console.info(
-    `Wrote ${invalidSessions.length} invalid sessions to invalid-sessions.csv`,
+    `Wrote ${sessions.length} sessions to ${filename}`,
   );
 }
