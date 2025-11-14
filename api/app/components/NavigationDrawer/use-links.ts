@@ -13,13 +13,13 @@ export function useLinks({ event }: UseLinksProps) {
   return useMemo(
     () => [
       {
-        label: "Q&A",
+        label: "Questions",
         href: qa(event?.uid ?? ""),
         active: location.pathname.endsWith("/qa"),
       },
       ...(event?.conference.features["collect"]
         ? [{
-          label: "Collect",
+          label: "Event Card",
           href: card(event?.uid ?? ""),
           active: location.pathname.endsWith("/card"),
         }]

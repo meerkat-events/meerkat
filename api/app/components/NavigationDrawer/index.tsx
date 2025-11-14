@@ -25,7 +25,6 @@ function NavLink({ label, href, active }: NavLinkProps) {
         padding="2"
         borderRadius="md"
         display="block"
-        {...(active && { background: "gray.800" })}
       >
         <ReactRouterLink to={href}>
           {label}
