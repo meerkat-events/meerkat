@@ -40,7 +40,7 @@ console.info(
 );
 
 await writeSessionsCSV(
-  "sessions.csv",
+  "reports/sessions.csv",
   validSessions.map((session) => ({
     session,
     error: undefined,
@@ -48,7 +48,7 @@ await writeSessionsCSV(
 );
 // Create CSV with invalid sessions
 if (invalidSessions.length > 0) {
-  await writeSessionsCSV("invalid-sessions.csv", invalidSessions);
+  await writeSessionsCSV("reports/invalid-sessions.csv", invalidSessions);
 }
 
 const events: Array<{
