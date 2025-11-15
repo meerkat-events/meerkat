@@ -74,6 +74,7 @@ export function Question(
 
   const handleAnswered = async () => {
     await markAsAnswered();
+    refresh();
     toaster.create({
       title: "Question marked as answered ✅",
       type: "success",
@@ -93,6 +94,7 @@ export function Question(
 
   const handleSelected = async () => {
     await selectQuestion();
+    refresh();
     toaster.create({
       title: "Question selected ✅",
       type: "success",

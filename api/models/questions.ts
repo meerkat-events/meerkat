@@ -10,6 +10,8 @@ const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
   "votes",
 );
 
+export type Questions = Awaited<ReturnType<typeof getQuestions>>;
+
 export function getQuestions(
   eventId: number,
   sort: Sort = "popular",
@@ -35,6 +37,8 @@ export function getQuestions(
     conditions.push(isNull(questions.answeredAt));
   }
 
+  const where = and(...conditions);
+
   return db
     .select({
       id: questions.id,
@@ -53,19 +57,14 @@ export function getQuestions(
     .from(questions)
     .leftJoin(votes, eq(questions.id, votes.questionId))
     .leftJoin(users, eq(questions.userId, users.id))
-    .where(
-      and(...conditions),
-    )
+    .where(where)
     .groupBy(questions.id, users.id)
     .orderBy(...orderBy)
     .execute();
 }
 
 export async function createQuestion(
-  question: Omit<
-    Question,
-    "uid" | "createdAt" | "id" | "answeredAt" | "selectedAt" | "deletedAt"
-  >,
+  question: Omit<typeof questions.$inferInsert, "uid">,
 ) {
   const result = await db.insert(questions).values({
     ...question,

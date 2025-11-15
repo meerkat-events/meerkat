@@ -195,13 +195,13 @@ export default function QnA() {
               <Portal>
                 <Menu.Positioner>
                   <Menu.Content>
-                    {past.length > 9 && (
+                    {past.length > 0 && (
                       <>
                         <EventMenuGroup label="Past" events={past} />
                         <Menu.Separator />
                       </>
                     )}
-                    {live.length > 9 && (
+                    {live.length > 0 && (
                       <>
                         <EventMenuGroup label="Live" events={live} />
                         <Menu.Separator />

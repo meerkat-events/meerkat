@@ -42,6 +42,8 @@ import { getConferenceRolesForConference } from "../models/roles.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
 import { supabase } from "../supabase.ts";
+import { getStageLiveEvent } from "../models/events.ts";
+import { Questions } from "../models/questions.ts";
 
 const app = new Hono();
 
@@ -315,10 +317,7 @@ app.post(
       throw new HTTPException(403, { message: `User is not an organizer` });
     }
 
-    const [result, features] = await Promise.all([
-      setEventLive(event.id),
-      getFeatures(event.conferenceId),
-    ]);
+    const result = await setEventLive(event.id);
 
     if (!result) {
       throw new HTTPException(500, { message: `Failed to set event live` });
@@ -332,13 +331,24 @@ app.post(
         "event": "live",
         "data": {
           "eventId": event.id,
+          "eventUid": event.uid,
+        },
+      });
+
+      const channelTwo = supabase.channel(`stage-${event.stage}`);
+
+      await channelTwo.send({
+        "type": "broadcast",
+        "event": "live",
+        "data": {
+          "event": event,
         },
       });
     }
 
     logger.info({ result, event, user }, "Set event live");
 
-    return c.json({ data: toApiEvent(result, features) });
+    return c.json({ data: result });
   },
 );
 
@@ -361,12 +371,8 @@ app.get(
       });
     }
 
-    const [events, features] = await Promise.all([
-      getEvents(conferenceId),
-      getFeatures(conferenceId),
-    ]);
-
-    return c.json({ data: events.map((event) => toApiEvent(event, features)) });
+    const events = await getEvents(conferenceId);
+    return c.json({ data: events });
   },
 );
 
@@ -412,32 +418,72 @@ app.get("/api/v1/conferences/:id/events/live", async (c) => {
   });
 });
 
-const toApiEvent = (
-  event: Event,
-  features: Feature[],
-) => ({
-  ...event,
-  features: features.reduce((acc, val) => {
-    acc[val.name] = val.active;
-    return acc;
-  }, {} as Record<string, boolean>),
+app.get("/stage/:stage", async (c) => {
+  const stage = c.req.param("stage");
+  const liveEvent = await getStageLiveEvent(stage);
+
+  if (!liveEvent) {
+    throw new HTTPException(404, {
+      message: `No live event found for stage ${stage}`,
+    });
+  }
+
+  const url = new URL(`/e/${liveEvent.uid}`, env.base);
+  url.searchParams.append("keep-live", "true");
+
+  return c.redirect(url);
+});
+
+app.get("/stage/:stage/qa", async (c) => {
+  const stage = c.req.param("stage");
+  const liveEvent = await getStageLiveEvent(stage);
+
+  if (!liveEvent) {
+    throw new HTTPException(404, {
+      message: `No live event found for stage ${stage}`,
+    });
+  }
+
+  const url = new URL(`/e/${liveEvent.uid}/qa`, env.base);
+  url.searchParams.append("keep-live", "true");
+
+  return c.redirect(url);
+});
+
+app.get("api/v1/events/stage/:stage/live", async (c) => {
+  const stage = c.req.param("stage");
+  const liveEvent = await getStageLiveEvent(stage);
+
+  if (!liveEvent) {
+    throw new HTTPException(404, {
+      message: `No live event found for stage ${stage}`,
+    });
+  }
+
+  return c.json({ data: liveEvent });
 });
 
 const toFullApiEvent = (
   { event, features, questions, conference, participants }: {
     event: Event;
     features: Feature[];
-    questions: Awaited<ReturnType<typeof getQuestions>>;
+    questions: Questions;
     conference: Conference;
     participants: number;
   },
 ) => {
   return {
-    ...toApiEvent(event, features),
+    ...event,
     questions: questions.map(toApiQuestion),
     votes: questions.reduce((acc, question) => acc + question.votes, 0),
     participants,
-    conference,
+    conference: {
+      ...conference,
+      features: features.reduce((acc, val) => {
+        acc[val.name] = val.active;
+        return acc;
+      }, {} as Record<string, boolean>),
+    },
   };
 };
 

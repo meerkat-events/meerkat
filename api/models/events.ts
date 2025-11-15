@@ -1,4 +1,4 @@
-import { and, eq, getTableColumns, sql } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, not, sql } from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import db from "../db.ts";
 import { events, lower, questions, votes } from "../schema.ts";
@@ -90,15 +90,35 @@ export async function getLiveEvent(conferenceId: number) {
   return result.at(0);
 }
 
+export async function getStageLiveEvent(stage: string) {
+  const result = await db.select().from(events).where(
+    and(
+      eq(events.stage, stage),
+      eq(events.live, true),
+    ),
+  ).orderBy(desc(events.start)).limit(1).execute();
+
+  return result.at(0) ?? null;
+}
+
 export async function setEventLive(eventId: number) {
   return await db.transaction(async (tx) => {
-    await tx.update(events).set({ live: false }).where(
-      eq(events.live, true),
-    );
     const result = await tx.update(events).set({ live: true }).where(
       eq(events.id, eventId),
     ).returning();
-    return result.at(0);
+    const event = result.at(0);
+
+    if (!event) {
+      throw new Error(`No event with id ${eventId}`);
+    }
+    await tx.update(events).set({ live: false }).where(
+      and(
+        eq(events.stage, event.stage),
+        not(eq(events.id, event.id)),
+      ),
+    );
+
+    return event;
   });
 }
 
