@@ -32,11 +32,11 @@ import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
 import { toaster } from "~/components/ui/toaster.tsx";
-import { useConferenceEvents } from "../hooks/use-conference-events.ts";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
+import { useStageEvents } from "../hooks/use-stage-events.ts";
 
 const sortOptions = createListCollection({
   items: [
@@ -47,10 +47,12 @@ const sortOptions = createListCollection({
 
 export default function QnA() {
   const { uid } = useParams();
-  const { data: event, mutate: refreshEvent } = useEvent(uid);
-  const { data: events, mutate: refreshEvents } = useConferenceEvents(
-    event?.conferenceId,
+  const { data, mutate: refreshEvent } = useEvent(uid);
+  const event = data?.data;
+  const { data: eventsData, mutate: refreshEvents } = useStageEvents(
+    event?.stage,
   );
+  const events = eventsData?.data;
   const { past, live, upcoming } = useMemo(
     () => groupByState(computeFields(events ?? [], uid ?? "")),
     [events, uid],
@@ -319,7 +321,7 @@ const groupByState = <E extends { live?: boolean; start?: Date; end?: Date }>(
   return events.reduce((acc, event) => {
     if (event === liveEvent) {
       acc.live.push(event);
-    } else if (event.end && event.end < groupingDate) {
+    } else if (event.start && event.start < groupingDate) {
       acc.past.push(event);
     } else {
       acc.upcoming.push(event);

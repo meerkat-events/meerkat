@@ -1,4 +1,4 @@
-import { and, desc, eq, getTableColumns, not, sql } from "drizzle-orm";
+import { and, between, desc, eq, getTableColumns, not, sql } from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import db from "../db.ts";
 import { events, lower, questions, votes } from "../schema.ts";
@@ -27,12 +27,29 @@ export function upsertEvents(
     .execute();
 }
 
-export async function getEvents(
-  conferenceId: number,
-  limit: number = 100,
-) {
+export async function getEvents(options: {
+  stage?: string;
+  date?: string;
+  limit?: number;
+  conferenceId?: number;
+} = {}) {
+  const conditions = [];
+
+  if (options.stage) {
+    conditions.push(eq(events.stage, options.stage));
+  }
+  if (options.conferenceId) {
+    conditions.push(eq(events.conferenceId, options.conferenceId));
+  }
+  if (options.date) {
+    const { start, end } = dateBoundaries(options.date);
+    conditions.push(between(events.start, start, end));
+  }
+
+  const limit = options.limit ?? 100;
+
   const results = await db.select().from(events).where(
-    eq(events.conferenceId, conferenceId),
+    and(...conditions),
   ).orderBy(events.start).limit(limit).execute();
   return results;
 }
@@ -120,6 +137,15 @@ export async function setEventLive(eventId: number) {
 
     return event;
   });
+}
+
+function dateBoundaries(date: string) {
+  const [y, m, d] = date.split("-").map(Number);
+  const start = new Date(y, m - 1, d);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(y, m - 1, d);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
 }
 
 export type Event = typeof events.$inferSelect & { speaker: string | null };

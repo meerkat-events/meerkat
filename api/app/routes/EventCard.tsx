@@ -23,7 +23,8 @@ import { NavigationDrawer } from "~/components/NavigationDrawer/index.tsx";
 
 export default function EventCard() {
   const { uid } = useParams();
-  const { data: event } = useEvent(uid);
+  const { data } = useEvent(uid);
+  const event = data?.data;
   const [isCollected, setIsCollected] = useState(false);
   useDocumentTitle(pageTitle(event));
   const [isCollecting, setIsCollecting] = useState(false);

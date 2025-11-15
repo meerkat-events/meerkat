@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, isNull, lte, not, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  isNotNull,
+  isNull,
+  lte,
+  not,
+  or,
+  sql,
+} from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import { questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
@@ -87,11 +98,30 @@ export async function getQuestionByUID(uid: string) {
 }
 
 export async function selectQuestion(id: number) {
-  const result = await db.update(questions).set({
-    selectedAt: new Date(),
-  }).where(eq(questions.id, id)).returning().execute();
+  const result = await db.transaction(async (tx) => {
+    const result = await tx.update(questions).set({
+      selectedAt: new Date(),
+    }).where(eq(questions.id, id)).returning().execute();
 
-  return result.length === 1 ? result[0] : null;
+    if (result.length !== 1) {
+      return null;
+    }
+    const question = result[0];
+
+    await tx.update(questions).set({
+      answeredAt: new Date(),
+    }).where(
+      and(
+        not(eq(questions.id, question.id)),
+        eq(questions.eventId, question.eventId),
+        isNotNull(questions.selectedAt),
+      ),
+    ).execute();
+
+    return question;
+  });
+
+  return result;
 }
 
 export async function markAsAnswered(

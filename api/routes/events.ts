@@ -371,10 +371,25 @@ app.get(
       });
     }
 
-    const events = await getEvents(conferenceId);
+    const events = await getEvents({ conferenceId });
     return c.json({ data: events });
   },
 );
+
+app.get("/api/v1/events", async (c) => {
+  const limit = parseInt(c.req.query("limit") ?? "100");
+  const stage = c.req.query("stage");
+  const date = c.req.query("date");
+
+  if (isNaN(limit) || limit < 1 || limit > 100) {
+    throw new HTTPException(400, {
+      message: `Invalid limit ${limit}`,
+    });
+  }
+
+  const events = await getEvents({ limit, stage, date });
+  return c.json({ data: events });
+});
 
 app.get("/api/v1/conferences/:id/events/live", async (c) => {
   const conferenceId = parseInt(c.req.param("id"));
@@ -450,7 +465,7 @@ app.get("/stage/:stage/qa", async (c) => {
   return c.redirect(url);
 });
 
-app.get("api/v1/events/stage/:stage/live", async (c) => {
+app.get("/api/v1/events/stage/:stage/live", async (c) => {
   const stage = c.req.param("stage");
   const liveEvent = await getStageLiveEvent(stage);
 

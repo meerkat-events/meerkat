@@ -3,11 +3,11 @@ import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import type { Event } from "../types.ts";
 
-export const useEvent = (
+export function useEvent(
   uid: string | undefined,
   options?: { swr?: SWRConfiguration },
-) => {
-  const { data, error, isLoading, mutate } = useSWR<{ data: Event }, HTTPError>(
+) {
+  return useSWR<{ data: Event }, HTTPError>(
     uid ? `/api/v1/events/${uid}` : undefined,
     fetcher,
     {
@@ -15,6 +15,4 @@ export const useEvent = (
       ...options?.swr,
     },
   );
-
-  return { data: data?.data, error, isLoading, mutate };
-};
+}
