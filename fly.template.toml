@@ -39,7 +39,7 @@ timeout = "5s"
 path = "/api/v1/conferences"
 
 [[vm]]
-cpus = "$CPUS"
+cpus = $CPUS
 cpu_kind = "$CPU_KIND"
 memory = "$MEMORY"
 
