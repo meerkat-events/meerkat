@@ -39,9 +39,9 @@ timeout = "5s"
 path = "/api/v1/conferences"
 
 [[vm]]
-cpu_kind = "shared"
-cpus = 1
-memory = "1gb"
+cpus = "$CPUS"
+cpu_kind = "$CPU_KIND"
+memory = "$MEMORY"
 
 [[statics]]
 guest_path = "/app/build/client/assets"

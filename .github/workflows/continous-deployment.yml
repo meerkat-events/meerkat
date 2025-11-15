@@ -48,6 +48,9 @@ jobs:
           VERIFIER_ENDPOINT: ${{ secrets.VERIFIER_ENDPOINT }}
           DATABASE_MAX_POOL_SIZE: ${{ secrets.DATABASE_MAX_POOL_SIZE }}
           ENVIRONMENT: ${{ needs.set-env.outputs.deploy_env }}
+          CPUS: ${{ vars.CPUS }}
+          CPU_KIND: ${{ vars.CPU_KIND }}
+          MEMORY: ${{ vars.MEMORY }}
       - run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
