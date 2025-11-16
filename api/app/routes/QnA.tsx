@@ -302,10 +302,10 @@ function EventMenuGroup(
           asChild
         >
           {event.selected
-            ? <span>{event.title}</span>
+            ? <span>{event.title.slice(0, 30)}</span>
             : (
               <a href={qa(event.uid)}>
-                {event.title}
+                {event.title.slice(0, 30)}
               </a>
             )}
         </Menu.Item>
