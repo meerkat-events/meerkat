@@ -1,4 +1,13 @@
-import { and, between, desc, eq, getTableColumns, not, sql } from "drizzle-orm";
+import {
+  and,
+  between,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  not,
+  sql,
+} from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import db from "../db.ts";
 import { events, lower, questions, votes } from "../schema.ts";
@@ -42,7 +51,21 @@ export async function getEvents(options: {
     conditions.push(eq(events.conferenceId, options.conferenceId));
   }
   if (options.date) {
-    const { start, end } = dateBoundaries(options.date);
+    let date = options.date;
+    if (options.date === "current" && options.stage) {
+      const nextEvents = await db.select({
+        start: events.start,
+      }).from(events).where(
+        and(
+          eq(events.stage, options.stage),
+          gte(events.start, new Date()),
+        ),
+      ).orderBy(events.start).limit(1).execute();
+      if (nextEvents.length > 0) {
+        date = nextEvents[0].start.toISOString().slice(0, 10);
+      }
+    }
+    const { start, end } = dateBoundaries(date);
     conditions.push(between(events.start, start, end));
   }
 
@@ -108,12 +131,24 @@ export async function getLiveEvent(conferenceId: number) {
 }
 
 export async function getStageLiveEvent(stage: string) {
-  const result = await db.select().from(events).where(
+  let result = await db.select().from(events).where(
     and(
       eq(events.stage, stage),
       eq(events.live, true),
     ),
   ).orderBy(desc(events.start)).limit(1).execute();
+
+  if (result.length < 1) {
+    result = await db.select().from(events).where(
+      and(
+        eq(events.stage, stage),
+        gte(
+          events.start,
+          new Date(),
+        ),
+      ),
+    ).orderBy(desc(events.start)).limit(1).execute();
+  }
 
   return result.at(0) ?? null;
 }
