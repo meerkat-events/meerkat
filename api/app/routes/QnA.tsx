@@ -9,7 +9,7 @@ import {
   NativeSelect,
   Portal,
 } from "@chakra-ui/react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { Header } from "../components/Header/Header.tsx";
 import { Modal } from "../components/Modal/Modal.tsx";
 import { NavigationDrawer } from "../components/NavigationDrawer/index.tsx";
@@ -47,11 +47,13 @@ const sortOptions = createListCollection({
 
 export default function QnA() {
   const { uid } = useParams();
+  const [searchParams] = useSearchParams();
   const { data, mutate: refreshEvent } = useEvent(uid);
   const event = data?.data;
-  const { data: eventsData, mutate: refreshEvents } = useStageEvents(
-    event?.stage,
-  );
+  const { data: eventsData, mutate: refreshEvents } = useStageEvents({
+    stage: event?.stage,
+    date: searchParams.get("date") ?? undefined,
+  });
   const events = eventsData?.data;
   const { past, live, upcoming } = useMemo(
     () => groupByState(computeFields(events ?? [], uid ?? "")),
