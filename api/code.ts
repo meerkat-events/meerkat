@@ -5,7 +5,7 @@ export const generateQRCodePNG = async (url: string, width: number) => {
     width,
     margin: 1,
     color: {
-      dark: "#342749",
+      dark: "#36364c",
     },
   });
   const [, base64Data] = dataUrl.split(",");
