@@ -1,3 +1,6 @@
+import { Event } from "../../models/events.ts";
+import { Conference } from "../../models/conferences.ts";
+
 export function createMeerkatClient(
   { baseUrl, apiKey }: { baseUrl: string; apiKey: string },
 ) {
@@ -12,17 +15,34 @@ export function createMeerkatClient(
 
 export type MeerkatClient = ReturnType<typeof createMeerkatClient>;
 
+export async function fetchConferences(
+  client: MeerkatClient,
+): Promise<Conference[]> {
+  const url = new URL("/api/v1/conferences", client.base);
+  const response = await fetch(url, {
+    headers: client.headers,
+  });
+  const { data: conferences } = await response.json();
+  return conferences;
+}
+
+export async function createConference(
+  client: MeerkatClient,
+  conference: Omit<Conference, "id">,
+) {
+  const url = new URL("/api/v1/admin/conferences", client.base);
+  const response = await fetch(url, {
+    method: "POST",
+    headers: client.headers,
+    body: JSON.stringify(conference),
+  });
+  const { data: createdConference } = await response.json();
+  return createdConference as Conference;
+}
+
 export async function upsertEvents(
   client: MeerkatClient,
-  events: Array<{
-    conferenceId: number;
-    uid: string;
-    title: string;
-    start: Date;
-    end: Date;
-    speaker?: string;
-    stage?: string;
-  }>,
+  events: Array<Omit<Event, "id">>,
 ) {
   const url = new URL(
     `/api/v1/admin/events`,

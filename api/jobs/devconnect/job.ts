@@ -1,25 +1,28 @@
 import { slugify } from "../../utils/slugify.ts";
-import { createDevconnectClient } from "./api.ts";
-import { fetchSessions } from "./api.ts";
-import { parseSessions } from "./parse.ts";
-import { createMeerkatClient } from "./meerkat.ts";
+import {
+  createDevconnectClient,
+  fetchEvents,
+  fetchSessionsByEvent,
+  SessionByEvent,
+} from "./api.ts";
+import { parseEventSessions } from "./parse.ts";
+import {
+  createConference,
+  createMeerkatClient,
+  fetchConferences,
+} from "./meerkat.ts";
 import { writeSessionsCSV } from "./csv.ts";
 import { upsertEvents } from "./meerkat.ts";
+import { devconnect } from "~/theme/index.ts";
 
 const API_KEY = Deno.env.get("IMPORT_API_KEY");
 const DEVCONNECT_BASE = Deno.env.get("DEVCONNECT_BASE") ??
   "https://devconnect.pblvrt.com";
 const MEERKAT_BASE = Deno.env.get("MEERKAT_BASE") ?? "http://localhost:8000";
-const EVENT_CONFERENCE_MAP = Deno.env.get("EVENT_CONFERENCE_MAP") ?? "{}";
 
 if (!API_KEY) {
   throw new Error("IMPORT_API_KEY environment variable is required");
 }
-
-const conferenceMap = JSON.parse(EVENT_CONFERENCE_MAP) as Record<
-  string,
-  number
->;
 
 const devconnectClient = createDevconnectClient({ baseUrl: DEVCONNECT_BASE });
 const meerkatClient = createMeerkatClient({
@@ -27,69 +30,79 @@ const meerkatClient = createMeerkatClient({
   apiKey: API_KEY,
 });
 
-console.info("Starting session import...");
+const devconnectEvents = await fetchEvents(devconnectClient);
 
-const rawSessions = await fetchSessions(devconnectClient);
-console.info(`Fetched ${rawSessions.length} raw sessions`);
+console.info(`Found ${devconnectEvents.length} devconnect events`);
 
-const { valid: validSessions, invalid: invalidSessions } = parseSessions(
-  rawSessions,
-);
-console.info(
-  `Parsed ${validSessions.length} sessions (${invalidSessions.length} failed parsing)`,
-);
+const conferences = await fetchConferences(meerkatClient);
 
-await writeSessionsCSV(
-  "reports/sessions.csv",
-  validSessions.map((session) => ({
-    session,
-    error: undefined,
-  })),
-);
-// Create CSV with invalid sessions
-if (invalidSessions.length > 0) {
-  await writeSessionsCSV("reports/invalid-sessions.csv", invalidSessions);
-}
+console.info(`Found ${conferences.length} conferences`);
 
-const events: Array<{
-  uid: string;
-  title: string;
-  start: Date;
-  end: Date;
-  conferenceId: number;
-  stage: string;
-}> = [];
+for (const event of devconnectEvents) {
+  let conference = conferences.find((conference) =>
+    conference.externalId === event.folderId
+  );
 
-const uidSet = new Set();
-
-for (const session of validSessions) {
-  const conferenceId = conferenceMap[session.event];
-  if (!conferenceId) {
-    console.warn(`Conference not found for event "${session.event}"`);
+  let eventSessions: SessionByEvent[] = [];
+  try {
+    eventSessions = await fetchSessionsByEvent(devconnectClient, event);
+  } catch (error) {
+    console.error(`Failed to fetch sessions by event ${event.name}: ${error}`);
     continue;
   }
-  const uid = slugify(session.title);
-  if (uidSet.has(uid)) {
-    console.warn(`Slug ${uid} already exists`);
-    continue;
+  console.info(
+    `Found ${eventSessions.length} sessions for event ${event.name} (${event.folderId})`,
+  );
+
+  if (!conference) {
+    const createdConference = await createConference(meerkatClient, {
+      name: event.name,
+      logoUrl: "/logo.png",
+      externalId: event.folderId,
+      theme: devconnect as any,
+    });
+    conference = createdConference;
+    console.info(`Created conference ${conference.id} for event ${event.name}`);
   }
-  uidSet.add(uid);
-  events.push({
-    conferenceId,
-    uid,
-    title: session.title,
-    start: session.start,
-    stage: session.stage,
-    end: session.end,
-  });
-}
 
-if (events.length === 0) {
-  console.warn("No events to upsert");
-} else {
-  await upsertEvents(meerkatClient, events);
+  const { valid: validSessions, invalid: invalidSessions } = parseEventSessions(
+    eventSessions,
+  );
 
-  console.info("\nSession import completed!");
+  console.info(
+    `Parsed ${validSessions.length} sessions (${invalidSessions.length} failed parsing)`,
+  );
+
+  if (invalidSessions.length > 0) {
+    await writeSessionsCSV(
+      `reports/invalid-sessions-${slugify(conference.name)}.csv`,
+      invalidSessions,
+    );
+  }
+
+  const events = [];
+
+  for (const session of validSessions) {
+    events.push({
+      conferenceId: conference.id,
+      uid: slugify(`${session.id}-${conference.name}`),
+      title: session.title,
+      start: session.start,
+      end: session.end,
+      stage: event.stage,
+      description: "",
+      cover: "",
+      live: false,
+      speaker: session.speakers.join(", "),
+    });
+  }
+
+  try {
+    await upsertEvents(meerkatClient, events);
+    console.info(`Upserted ${events.length} events for event ${event.name}`);
+  } catch (error) {
+    console.error(`Failed to upsert events for event ${event.name}: ${error}`);
+  }
 }
 
 if (typeof self !== "undefined" && "postMessage" in self) {
