@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import zod from "zod";
 import { apiKey } from "../middlewares/api-key.ts";
 import { upsertEvents } from "../models/events.ts";
+import { createConference } from "../models/conferences.ts";
 
 const app = new Hono();
 
@@ -37,6 +38,24 @@ app.post(
     }
 
     return c.json({ data: results });
+  },
+);
+
+const createConferenceSchema = zod.object({
+  name: zod.string().min(1),
+  logoUrl: zod.string().optional(),
+  externalId: zod.string().optional(),
+  theme: zod.any(),
+});
+
+app.post(
+  "/api/v1/admin/conferences",
+  apiKey(),
+  zValidator("json", createConferenceSchema),
+  async (c) => {
+    const conferenceData = c.req.valid("json");
+    const conference = await createConference(conferenceData);
+    return c.json({ data: conference });
   },
 );
 

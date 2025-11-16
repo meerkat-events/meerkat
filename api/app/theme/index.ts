@@ -7,6 +7,7 @@ import { darken, lighten } from "color2k";
 import type { Theme } from "../types.ts";
 
 export { meerkat } from "./meerkat.ts";
+export { devconnect } from "./devconnect.ts";
 
 const generateColorScale = (baseColor: string) => {
   return {

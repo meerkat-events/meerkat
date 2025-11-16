@@ -8,4 +8,5 @@ export const devconnect: Theme = {
   textColor: "#36364c",
   headingFontFamily: "Roboto Condensed",
   bodyFontFamily: "Roboto",
+  systemTheme: "light",
 };

@@ -36,6 +36,13 @@
       "when": 1763153825309,
       "tag": "0004_useful_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1763320077011,
+      "tag": "0005_rare_red_ghost",
+      "breakpoints": true
     }
   ]
 }

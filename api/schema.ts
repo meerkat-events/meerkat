@@ -42,10 +42,13 @@ export const conferences = pgTable("conferences", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   logoUrl: text("logo_url"),
+  externalId: text("external_id"),
   theme: jsonb("theme").$type<{
     brandColor: string;
+    textColor: string;
     contrastColor: string;
     background: string;
+    systemTheme: "light" | "dark";
     headingFontFamily?: string;
     bodyFontFamily?: string;
   }>(),

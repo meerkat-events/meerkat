@@ -1,0 +1,1 @@
+ALTER TABLE "conferences" ADD COLUMN "external_id" text;
