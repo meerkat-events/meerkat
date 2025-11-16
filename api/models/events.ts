@@ -1,5 +1,6 @@
 import {
   and,
+  asc,
   between,
   desc,
   eq,
@@ -60,7 +61,7 @@ export async function getEvents(options: {
           eq(events.stage, options.stage),
           gte(events.start, new Date()),
         ),
-      ).orderBy(events.start).limit(1).execute();
+      ).orderBy(asc(events.start)).limit(1).execute();
       if (nextEvents.length > 0) {
         date = nextEvents[0].start.toISOString().slice(0, 10);
       }
@@ -147,7 +148,7 @@ export async function getStageLiveEvent(stage: string) {
           new Date(),
         ),
       ),
-    ).orderBy(desc(events.start)).limit(1).execute();
+    ).orderBy(asc(events.start)).limit(1).execute();
   }
 
   return result.at(0) ?? null;
