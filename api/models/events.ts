@@ -15,6 +15,8 @@ import { events, lower, questions, votes } from "../schema.ts";
 import { buildConflictUpdateColumns } from "./utils.ts";
 import { DEFAULT_COVER } from "./event.ts";
 
+const toDay = (date: Date) => date.toISOString().slice(0, 10);
+
 export function upsertEvents(
   newEvents: typeof events.$inferInsert[],
 ) {
@@ -51,22 +53,23 @@ export async function getEvents(options: {
   if (options.conferenceId) {
     conditions.push(eq(events.conferenceId, options.conferenceId));
   }
-  if (options.date) {
-    let date = options.date;
-    if (options.date === "current" && options.stage) {
-      const nextEvents = await db.select({
-        start: events.start,
-      }).from(events).where(
-        and(
-          eq(events.stage, options.stage),
-          gte(events.start, new Date()),
-        ),
-      ).orderBy(asc(events.start)).limit(1).execute();
-      if (nextEvents.length > 0) {
-        date = nextEvents[0].start.toISOString().slice(0, 10);
-      }
-    }
-    const { start, end } = dateBoundaries(date);
+  if (options.date === "upcoming" && options.stage) {
+    const nextEvents = await db.select({
+      start: events.start,
+    }).from(events).where(
+      and(
+        eq(events.stage, options.stage),
+        gte(events.start, new Date()),
+      ),
+    ).orderBy(asc(events.start)).limit(1).execute();
+    const representativeDate = nextEvents.length > 0
+      ? nextEvents[0].start
+      : new Date();
+    const day = toDay(representativeDate);
+    const { start, end } = dateBoundaries(day);
+    conditions.push(between(events.start, start, end));
+  } else if (options.date) {
+    const { start, end } = dateBoundaries(options.date);
     conditions.push(between(events.start, start, end));
   }
 

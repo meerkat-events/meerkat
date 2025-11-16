@@ -16,7 +16,7 @@ export function useStageEvents(options?: UseStageEventsOptions) {
     searchParams.set("stage", options.stage);
     searchParams.set(
       "date",
-      options.date ? options.date : "current",
+      options.date ? options.date : "upcoming",
     );
     key = `/api/v1/events?${searchParams.toString()}`;
   }
