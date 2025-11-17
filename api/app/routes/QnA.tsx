@@ -37,6 +37,7 @@ import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
+import { useTicketProof } from "../hooks/use-ticket-proof.ts";
 
 const sortOptions = createListCollection({
   items: [
@@ -302,10 +303,10 @@ function EventMenuGroup(
           asChild
         >
           {event.selected
-            ? <span>{event.title.slice(0, 30)}</span>
+            ? <span style={{ maxWidth: "85vw" }}>{event.title}</span>
             : (
-              <a href={qa(event.uid)}>
-                {event.title.slice(0, 30)}
+              <a href={qa(event.uid)} style={{ maxWidth: "85vw" }}>
+                {event.title}
               </a>
             )}
         </Menu.Item>
