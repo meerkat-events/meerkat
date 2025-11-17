@@ -13,7 +13,7 @@ export const useAskQuestion = (event: Event | undefined, {
 }: { onSuccess: () => void; onError: (error: HTTPError) => void }) => {
   const { setIsOnCooldown } = useContext(UserContext);
   const { session } = useAuth();
-  const { trigger } = useSWRMutation<
+  return useSWRMutation<
     { data: Question[] },
     HTTPError,
     string | undefined,
@@ -37,8 +37,4 @@ export const useAskQuestion = (event: Event | undefined, {
       },
     },
   );
-
-  return {
-    trigger,
-  };
 };

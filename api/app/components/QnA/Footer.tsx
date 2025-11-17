@@ -49,7 +49,7 @@ export function Footer({
     false,
   );
 
-  const { trigger } = useAskQuestion(event, {
+  const { trigger, isMutating } = useAskQuestion(event, {
     onSuccess: () => {
       toaster.create({
         title: "Question added 🎉",
@@ -119,6 +119,7 @@ export function Footer({
               maxLength={MAX_QUESTION_LENGTH}
             />
             <IconButton
+              loading={isMutating}
               disabled={!isAuthenticated}
               size="lg"
               onClick={submitQuestion}
