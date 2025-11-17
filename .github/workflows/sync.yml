@@ -16,6 +16,10 @@ jobs:
         with:
           deno-version: v2.x
           cache: true
+      - name: Install dependencies
+        working-directory: api
+        run: |
+          deno install
       - name: Run script
         working-directory: api
         env:
