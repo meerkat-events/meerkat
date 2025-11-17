@@ -30,6 +30,8 @@ const meerkatClient = createMeerkatClient({
   apiKey: API_KEY,
 });
 
+await Deno.mkdir("reports", { recursive: true });
+
 const devconnectEvents = await fetchEvents(devconnectClient);
 
 console.info(`Found ${devconnectEvents.length} devconnect events`);
