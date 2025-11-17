@@ -22,10 +22,7 @@ export function useStageEvents(options?: UseStageEventsOptions) {
   }
   return useSWR<
     { data: Event[] },
-    HTTPError,
-    {
-      revalidateOnFocus: false;
-    }
+    HTTPError
   >(
     key,
     fetcher,
