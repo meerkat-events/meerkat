@@ -19,8 +19,30 @@ import {
 } from "../models/votes.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import logger from "../logger.ts";
+import { getAllQuestions } from "../models/questions.ts";
 
 const app = new Hono();
+
+app.get("/api/v1/questions", async (c) => {
+  const questions = await getAllQuestions();
+
+  return c.json({
+    data: questions.map(({ userId: _userId, user, event, ...rest }) => ({
+      ...rest,
+      user: user
+        ? {
+          id: user.id,
+          name: user.userMetadata?.["name"] ?? user.id,
+        }
+        : undefined,
+      event: {
+        id: event.id,
+        uid: event.uid,
+        title: event.title,
+      },
+    })),
+  });
+});
 
 app.post(
   "/api/v1/questions/:uid/upvote",

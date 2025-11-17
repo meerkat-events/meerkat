@@ -460,7 +460,6 @@ app.get("/stage/:stage/qa", async (c) => {
   }
 
   const url = new URL(`/e/${liveEvent.uid}/qa`, env.base);
-  url.searchParams.append("keep-live", "true");
 
   return c.redirect(url);
 });
