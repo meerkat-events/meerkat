@@ -64,6 +64,42 @@ export default function Root() {
   return <Outlet />;
 }
 
+export function HydrateFallback() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Inter, sans-serif",
+        height: "100vh",
+        width: "100vw",
+        gap: "1rem",
+      }}
+    >
+      <div
+        style={{
+          width: "40px",
+          height: "40px",
+          border: "4px solid #e2e8f0",
+          borderTopColor: "#3182ce",
+          borderRadius: "50%",
+          animation: "spin 1s linear infinite",
+        }}
+      />
+      <div style={{ fontSize: "1rem", color: "#718096" }}>Loading...</div>
+      <style>
+        {`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+    </div>
+  );
+}
+
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let message = "Oops!";
   let details = "An unexpected error occurred.";
