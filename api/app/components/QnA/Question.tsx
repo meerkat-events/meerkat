@@ -29,7 +29,7 @@ interface QuestionProps {
 export function Question(
   { event, canVote, canModerate, question, voted, refresh }: QuestionProps,
 ) {
-  const { trigger: toggleVote } = useVote(question.uid, {
+  const { trigger: toggleVote, isMutating: isVoting } = useVote(question.uid, {
     onSuccess: () => {
       refresh();
       toaster.create({
@@ -172,8 +172,9 @@ export function Question(
           {question.votes}
         </div>
         <UpVoteButton
+          loading={isVoting}
           onClick={() => toggleVote({ uid: question.uid })}
-          isDisabled={!canVote || isAnswered}
+          disabled={!canVote || isAnswered}
         />
       </div>
     </li>

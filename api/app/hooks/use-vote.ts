@@ -6,17 +6,13 @@ import { posthog } from "posthog-js";
 import type { HTTPError } from "./http-error.ts";
 import { useAuth } from "./use-auth.ts";
 
-export type UseReactReturnType = {
-  trigger: (obj: { uid: string }) => void;
-};
-
 export function useVote(
   uid: string,
   { onError, onSuccess }: {
     onError?: (error: HTTPError) => void;
     onSuccess?: () => void;
   },
-): UseReactReturnType {
+) {
   const { setIsOnCooldown } = useContext(UserContext);
   const { session } = useAuth();
   return useSWRMutation(
