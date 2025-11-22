@@ -32,3 +32,6 @@ export const useQuestions = (uid: string | undefined, options?: Options) => {
 
   return { data: data?.data, error, isLoading, mutate };
 };
+
+export const parseSort = (sort: string): Sort =>
+  sort === "popular" ? "popular" : "newest";

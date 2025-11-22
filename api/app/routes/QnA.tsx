@@ -27,7 +27,7 @@ import { HeartIcon } from "../components/QnA/HeartIcon.tsx";
 import { uuidv7 } from "uuidv7";
 import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
 import { useQuestionsSubscription } from "../hooks/use-questions-subscription.ts";
-import { useQuestions } from "../hooks/use-questions.ts";
+import { parseSort, useQuestions } from "../hooks/use-questions.ts";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
@@ -37,7 +37,6 @@ import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
-import { useTicketProof } from "../hooks/use-ticket-proof.ts";
 
 const sortOptions = createListCollection({
   items: [
@@ -48,7 +47,7 @@ const sortOptions = createListCollection({
 
 export default function QnA() {
   const { uid } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data, mutate: refreshEvent } = useEvent(uid);
   const event = data?.data;
   const { data: eventsData, mutate: refreshEvents } = useStageEvents({
@@ -61,8 +60,10 @@ export default function QnA() {
     [events, uid],
   );
   useDocumentTitle(pageTitle(event));
-  const [selectValue, setSelectValue] = useState<string>("newest");
-  const isSortByPopularity = selectValue === "popular";
+
+  const sort = parseSort(
+    searchParams.get("sort") ?? "newest",
+  );
 
   const {
     data: questions,
@@ -71,9 +72,16 @@ export default function QnA() {
   } = useQuestions(
     uid,
     {
-      sort: isSortByPopularity ? "popular" : "newest",
+      sort,
     },
   );
+  const changeSort = (sort: string) => {
+    setSearchParams((searchParams) => {
+      const vettedSort = parseSort(sort);
+      searchParams.set("sort", vettedSort);
+      return searchParams;
+    });
+  };
   const { data: votes, mutate: refreshVotes } = useVotes();
   const { data: roles } = useConferenceRoles();
   const refresh = useCallback(
@@ -230,8 +238,8 @@ export default function QnA() {
               color="gray.400"
             >
               <NativeSelect.Field
-                value={selectValue}
-                onChange={(e) => setSelectValue(e.target.value)}
+                value={sort}
+                onChange={(e) => changeSort(e.target.value)}
               >
                 {sortOptions.items.map((option) => (
                   <option value={option.value}>{option.label}</option>
