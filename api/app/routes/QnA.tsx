@@ -162,10 +162,8 @@ export default function QnA() {
         <header className="header flex">
           {isntLive && (
             <Alert.Root
-              status="info"
+              status="warning"
               title="You're viewing a past or upcoming event"
-              colorPalette="brand"
-              color="brand.contrast"
               borderRadius="0"
               display="flex"
               flexDirection="row"

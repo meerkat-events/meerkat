@@ -13,8 +13,6 @@ export function LiveDialog({ event, onConfirm }: LiveDialogProps) {
         <Button
           variant="outline"
           size="sm"
-          colorPalette="brand"
-          color="brand.contrast"
         >
           Go Live
         </Button>
