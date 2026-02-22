@@ -6,7 +6,7 @@ import {
   useSessionUrl,
 } from "@meerkat-events/react";
 
-const API_URL = "https://dev.meerkat.events";
+const API_URL = "";
 const DEFAULT_SESSION_ID = "schelling-point-2025";
 
 function Questions({ sessionId }: { sessionId: string }) {
