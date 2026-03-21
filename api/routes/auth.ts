@@ -9,11 +9,13 @@ const app = new Hono();
 
 app.get("/api/v1/auth/devcon", async (c) => {
   const token = c.req.query("token");
-  const redirectUri = c.req.query("redirect_uri");
+  const rawRedirectUri = c.req.query("redirect_uri");
 
-  if (!token || !redirectUri) {
+  if (!token || !rawRedirectUri) {
     throw new HTTPException(400, { message: "Missing token or redirect_uri" });
   }
+
+  const redirectUri = decodeURIComponent(rawRedirectUri);
 
   // Guard against open redirect — only allow internal event paths
   if (!redirectUri.startsWith("/e/")) {
