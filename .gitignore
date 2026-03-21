@@ -25,3 +25,5 @@ caddy_data/
 
 .playwright-mcp
 .backups
+
+.claude
