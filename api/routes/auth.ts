@@ -15,7 +15,12 @@ app.get("/api/v1/auth/devcon", async (c) => {
     throw new HTTPException(400, { message: "Missing token or redirect_uri" });
   }
 
-  const redirectUri = decodeURIComponent(rawRedirectUri);
+  let redirectUri: string;
+  try {
+    redirectUri = decodeURIComponent(rawRedirectUri);
+  } catch {
+    throw new HTTPException(400, { message: "Invalid redirect_uri" });
+  }
 
   // Guard against open redirect — only allow internal event paths
   if (!redirectUri.startsWith("/e/")) {
