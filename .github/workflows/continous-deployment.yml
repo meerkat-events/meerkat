@@ -51,6 +51,8 @@ jobs:
           CPUS: ${{ vars.CPUS }}
           CPU_KIND: ${{ vars.CPU_KIND }}
           MEMORY: ${{ vars.MEMORY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DEVCON_JWT_SECRET: ${{ secrets.DEVCON_JWT_SECRET }}
       - run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
