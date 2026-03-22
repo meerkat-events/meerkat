@@ -20,6 +20,7 @@ import {
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import logger from "../logger.ts";
 import { getAllQuestions } from "../models/questions.ts";
+import { broadcastQuestionsUpdate } from "../utils/broadcast.ts";
 
 const app = new Hono();
 
@@ -103,6 +104,8 @@ app.post(
       await createVote(question.id, user.id);
     }
 
+    await broadcastQuestionsUpdate(event.id);
+
     const { id: _id, userId: _userId, ...rest } = question;
 
     logger.info({ question, user, event }, "Upvoted question");
@@ -158,6 +161,9 @@ app.post(
     if (!result) {
       throw new HTTPException(500, { message: `Failed to select question` });
     }
+
+    await broadcastQuestionsUpdate(event.id);
+
     const { id: _id, userId: _userId, ...rest } = result;
 
     logger.info({ question, user, event }, "Selected question");
@@ -213,6 +219,9 @@ app.post(
     if (!result) {
       throw new HTTPException(500, { message: `Failed to mark as answered` });
     }
+
+    await broadcastQuestionsUpdate(event.id);
+
     const { id: _id, userId: _userId, ...rest } = result;
 
     logger.info({ question, user, event }, "Marked question as answered");
@@ -270,6 +279,9 @@ app.delete(
         message: `Failed to delete question ${uid}`,
       });
     }
+
+    await broadcastQuestionsUpdate(event.id);
+
     const { id: _id, userId: _userId, ...rest } = result;
 
     logger.info({ question, user, event }, "Deleted question");

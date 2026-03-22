@@ -44,6 +44,11 @@ import { generateQRCodePNG } from "../code.ts";
 import { supabase } from "../supabase.ts";
 import { getStageLiveEvent } from "../models/events.ts";
 import { Questions } from "../models/questions.ts";
+import { streamSSE } from "@hono/hono/streaming";
+import {
+  broadcastQuestionsUpdate,
+  subscribeToEventQuestions,
+} from "../utils/broadcast.ts";
 
 const app = new Hono();
 
@@ -236,6 +241,7 @@ app.post(
       userId: user.id,
     });
 
+    await broadcastQuestionsUpdate(event.id);
     logger.info({ question, event, user }, "Created question");
 
     return c.json({
@@ -500,5 +506,32 @@ const toFullApiEvent = (
     },
   };
 };
+
+app.get(
+  "/api/v1/events/:uid/questions/stream",
+  eventMiddleware,
+  async (c) => {
+    if (!supabase) {
+      throw new HTTPException(503, { message: "Realtime unavailable" });
+    }
+
+    const event = c.get("event");
+
+    return streamSSE(c, async (stream) => {
+      const unsubscribe = subscribeToEventQuestions(event.id, async () => {
+        await stream.writeSSE({ data: "update" });
+      });
+
+      stream.onAbort(unsubscribe);
+
+      while (!stream.closed) {
+        await stream.sleep(30_000);
+        if (!stream.closed) await stream.writeSSE({ data: "ping" });
+      }
+
+      unsubscribe();
+    });
+  },
+);
 
 export default app;

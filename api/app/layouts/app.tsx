@@ -3,6 +3,7 @@ import { Provider } from "../components/ui/provider.tsx";
 import { ZAPIProvider } from "../zapi/context.tsx";
 import { UserProvider } from "../context/user.tsx";
 import { SupabaseProvider } from "../context/supabase.tsx";
+import { MeerkatProvider } from "@meerkat-events/react";
 import { createClient } from "@supabase/supabase-js";
 import type { Route } from "../../.react-router/types/app/layouts/+types/app.ts";
 import { useMemo } from "react";
@@ -54,22 +55,27 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const systemTheme = event?.conference?.theme?.systemTheme ?? "dark";
 
   const content = (
-    <SWRConfig>
-      <ZAPIProvider
-        zappName={config.zappName}
-        zupassUrl={config.zupassUrl}
-      >
-        <UserProvider>
-          <Provider
-            colorMode={{ defaultTheme: systemTheme, forcedTheme: systemTheme }}
-            value={system}
-          >
-            <Outlet />
-            <Toaster />
-          </Provider>
-        </UserProvider>
-      </ZAPIProvider>
-    </SWRConfig>
+    <MeerkatProvider apiUrl="">
+      <SWRConfig>
+        <ZAPIProvider
+          zappName={config.zappName}
+          zupassUrl={config.zupassUrl}
+        >
+          <UserProvider>
+            <Provider
+              colorMode={{
+                defaultTheme: systemTheme,
+                forcedTheme: systemTheme,
+              }}
+              value={system}
+            >
+              <Outlet />
+              <Toaster />
+            </Provider>
+          </UserProvider>
+        </ZAPIProvider>
+      </SWRConfig>
+    </MeerkatProvider>
   );
 
   if (supabase) {

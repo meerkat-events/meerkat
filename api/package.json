@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "author": "Florian Dreschner <code@dreschner.eu>",
   "dependencies": {
+    "@meerkat-events/react": "file:../packages/react",
     "@chakra-ui/react": "^3.28.0",
     "@date-fns/tz": "^1.4.1",
     "@emotion/react": "^11.14.0",

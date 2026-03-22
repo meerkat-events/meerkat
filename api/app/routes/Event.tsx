@@ -1,4 +1,4 @@
-import { useQuestionsSubscription } from "../hooks/use-questions-subscription.ts";
+import { useEventSource } from "@meerkat-events/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useCallback, useMemo } from "react";
 import { useEvent } from "~/hooks/use-event.ts";
@@ -41,8 +41,9 @@ export default function EventPage() {
     [refreshEvent],
   );
 
-  useQuestionsSubscription(event, {
-    onUpdate: throttleRefresh,
+  useEventSource({
+    url: event ? `/api/v1/events/${event.uid}/questions/stream` : undefined,
+    onMessage: throttleRefresh,
   });
 
   return <Presenter event={event} url={event?.url} />;

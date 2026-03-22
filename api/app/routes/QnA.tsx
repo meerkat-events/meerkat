@@ -26,8 +26,7 @@ import { Reaction } from "../components/QnA/Reaction.tsx";
 import { HeartIcon } from "../components/QnA/HeartIcon.tsx";
 import { uuidv7 } from "uuidv7";
 import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
-import { useQuestionsSubscription } from "../hooks/use-questions-subscription.ts";
-import { parseSort, useQuestions } from "../hooks/use-questions.ts";
+import { useQuestions } from "@meerkat-events/react";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
@@ -37,6 +36,9 @@ import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
+
+const parseSort = (sort: string): "newest" | "popular" =>
+  sort === "popular" ? "popular" : "newest";
 
 const sortOptions = createListCollection({
   items: [
@@ -61,20 +63,21 @@ export default function QnA() {
   );
   useDocumentTitle(pageTitle(event));
 
-  const sort = parseSort(
-    searchParams.get("sort") ?? "newest",
-  );
+  const sort = parseSort(searchParams.get("sort") ?? "newest");
 
   const {
     data: questions,
     mutate: refreshQuestions,
     isLoading: isQuestionsLoading,
-  } = useQuestions(
-    uid,
-    {
-      sort,
-    },
-  );
+  } = useQuestions({
+    sessionId: uid ?? "",
+    sort,
+    realtime: true,
+  }) as {
+    data: import("../types.ts").Question[] | undefined;
+    mutate: () => void;
+    isLoading: boolean;
+  };
   const changeSort = (sort: string) => {
     setSearchParams((searchParams) => {
       const vettedSort = parseSort(sort);
@@ -117,10 +120,6 @@ export default function QnA() {
     onUpdate: (reaction) => {
       addReaction(reaction);
     },
-  });
-
-  useQuestionsSubscription(event, {
-    onUpdate: refresh,
   });
 
   const { user, isAuthenticated, isLoading } = useAuth();
