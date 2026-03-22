@@ -1,4 +1,5 @@
 import { supabase } from "../supabase.ts";
+import env from "../env.ts";
 
 const BROADCAST_EVENT = "questions";
 
@@ -45,7 +46,24 @@ export function subscribeToEventQuestions(
 
 /** Broadcast a questions-updated signal for an event to all subscribers. */
 export async function broadcastQuestionsUpdate(eventId: number): Promise<void> {
-  if (!supabase) return;
-  const channel = supabase.channel(`event-${eventId}`);
-  await channel.send({ type: "broadcast", event: BROADCAST_EVENT, data: {} });
+  if (!supabase || !env.supabaseUrl || !env.supabaseServiceRoleKey) return;
+
+  // Use the REST broadcast API — works without a WebSocket subscription and
+  // supports horizontal scaling (all server instances receive via their own
+  // Supabase channel subscriptions).
+  await fetch(`${env.supabaseUrl}/realtime/v1/api/broadcast`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${env.supabaseServiceRoleKey}`,
+      "apikey": env.supabaseServiceRoleKey,
+    },
+    body: JSON.stringify({
+      messages: [{
+        topic: `event-${eventId}`,
+        event: BROADCAST_EVENT,
+        payload: {},
+      }],
+    }),
+  });
 }

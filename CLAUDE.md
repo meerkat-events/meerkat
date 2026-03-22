@@ -51,8 +51,8 @@ cd verifier && npm run dev
 ### API (`api/`)
 
 ```bash
-deno task dev        # dev server with watch + inspect
-deno task build      # production build (required after changes — no live reload)
+deno task dev        # dev server with watch + inspect (reloads Deno/API code only)
+deno task build      # production build — REQUIRED after any frontend (React) changes
 deno task start      # run production build
 deno lint            # lint
 deno fmt             # format
