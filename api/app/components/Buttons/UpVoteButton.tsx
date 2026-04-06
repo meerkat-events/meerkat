@@ -1,4 +1,4 @@
-import { IconButton, IconButtonProps } from "@chakra-ui/react";
+import { IconButton, type IconButtonProps } from "@chakra-ui/react";
 import { FiChevronUp as TriangleUpIcon } from "react-icons/fi";
 
 export function UpVoteButton(props: IconButtonProps) {

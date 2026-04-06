@@ -11,7 +11,7 @@ export async function getConferenceById(
     eq(conferences.id, id),
   ).limit(1);
 
-  return results.length === 1 ? results[0] : null;
+  return results.at(0) ?? null;
 }
 
 export function getConferences(): Promise<Conference[]> {
@@ -24,11 +24,9 @@ export async function createConference(
   const result = await db.insert(conferences).values(newConference)
     .returning().execute();
 
-  if (result.length !== 1) {
-    throw new Error("Failed to create conference");
-  }
-
-  return result[0];
+  const conference = result.at(0);
+  if (!conference) throw new Error("Failed to create conference");
+  return conference;
 }
 
 export async function getConferenceByTicket(
@@ -50,7 +48,7 @@ export async function getConferenceByTicket(
     ),
   ).limit(1).orderBy(conferenceTickets.productId).execute();
 
-  return result.length === 1 ? result[0] : null;
+  return result.at(0) ?? null;
 }
 
 export function getTickets(conferenceId: number) {

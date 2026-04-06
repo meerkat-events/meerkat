@@ -62,7 +62,7 @@ export default function EventCard() {
         attendancePodType,
       );
       const hasEventPods = pods.some((p) =>
-        p.entries.code.value === event?.uid
+        p.entries["code"]?.value === event?.uid
       );
 
       if (hasEventPods) {

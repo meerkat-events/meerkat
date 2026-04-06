@@ -10,7 +10,7 @@ export type Config = {
 
 export async function getConfig() {
   const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/api/v1/config`,
+    `${import.meta.env["VITE_API_URL"]}/api/v1/config`,
   );
 
   const config = await response.json() as Config;

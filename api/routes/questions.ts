@@ -1,5 +1,5 @@
-import { Hono } from "@hono/hono";
-import { HTTPException } from "@hono/hono/http-exception";
+import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { MAX_VOTES_PER_EVENT } from "../moderation.ts";
 import { jwt } from "../middlewares/jwt.ts";
 import { getEventById } from "../models/events.ts";

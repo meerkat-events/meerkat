@@ -8,7 +8,8 @@ export const generateQRCodePNG = async (url: string, width: number) => {
       dark: "#36364c",
     },
   });
-  const [, base64Data] = dataUrl.split(",");
+  const base64Data = dataUrl.split(",")[1];
+  if (!base64Data) throw new Error("Invalid QR code data URL");
   const imageBytes = Uint8Array.from(
     atob(base64Data),
     (c) => c.charCodeAt(0),

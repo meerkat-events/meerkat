@@ -13,7 +13,7 @@ export function Reaction({ uid, icon, setReactions }: ReactionProps) {
     setReactions((prevReactions) => {
       return prevReactions.filter((reaction) => reaction.uid !== uid);
     });
-  }, [uid]);
+  }, [setReactions]);
 
   useEffect(() => {
     const reactionElement = reactionRef.current;

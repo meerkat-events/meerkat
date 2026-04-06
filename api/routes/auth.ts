@@ -1,6 +1,6 @@
-import { Hono } from "@hono/hono";
-import { HTTPException } from "@hono/hono/http-exception";
-import { verify } from "@hono/hono/jwt";
+import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { verify } from "hono/jwt";
 import { createClient } from "@supabase/supabase-js";
 import env from "../env.ts";
 import logger from "../logger.ts";
@@ -30,13 +30,13 @@ app.get("/api/v1/auth/devcon", async (c) => {
   // Verify Devcon JWT (checks signature + exp/iat)
   let payload: Record<string, unknown>;
   try {
-    payload = await verify(token, env.devconJwtSecret);
+    payload = await verify(token, env.devconJwtSecret, "HS256");
   } catch {
     throw new HTTPException(401, { message: "Invalid or expired token" });
   }
 
-  const email = payload.email as string | undefined;
-  if (!email) {
+  const { email } = payload;
+  if (typeof email !== "string" || !email) {
     throw new HTTPException(400, { message: "Token missing email claim" });
   }
 

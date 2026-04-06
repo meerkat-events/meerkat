@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useRef } from "react";
 import useSWR, { type SWRConfiguration } from "swr";
 import useSWRSubscription from "swr/subscription";
 import { HTTPError } from "./http-error.ts";
@@ -41,12 +41,9 @@ export const useAllQuestions = (options?: Options) => {
     { fallbackData: { data: [] }, ...options?.swr },
   );
 
-  const refresh = useCallback(
-    throttle(() => {
-      mutate();
-    }, 500),
-    [mutate],
-  );
+  const mutateRef = useRef(mutate);
+  mutateRef.current = mutate;
+  const refresh = useRef(throttle(() => mutateRef.current(), 500)).current;
 
   const { client: supabase } = useSupabase();
   useSWRSubscription(

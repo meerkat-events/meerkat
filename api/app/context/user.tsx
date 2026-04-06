@@ -58,7 +58,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       if (session) {
         Sentry.setUser({
           id: session.user.id,
-          username: session.user.user_metadata?.name,
+          ...(session.user.user_metadata?.["name"]
+            ? { username: session.user.user_metadata["name"] as string }
+            : {}),
         });
       } else {
         Sentry.setUser(null);

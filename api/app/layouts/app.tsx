@@ -20,8 +20,8 @@ import "./app.css";
 export async function clientLoader(args: Route.LoaderArgs) {
   const [eventResult, config]: [{ data: Event | undefined }, Config] =
     await Promise.all([
-      args.params?.uid
-        ? fetcher(`/api/v1/events/${args.params.uid}`)
+      args.params?.["uid"]
+        ? fetcher(`/api/v1/events/${args.params["uid"]}`)
         : undefined,
       getConfig(),
     ]);

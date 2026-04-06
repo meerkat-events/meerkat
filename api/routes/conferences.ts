@@ -1,7 +1,7 @@
-import { Hono } from "@hono/hono";
+import { Hono } from "hono";
 import env from "../env.ts";
 import { getConferences, getTickets } from "../models/conferences.ts";
-import { HTTPException } from "@hono/hono/http-exception";
+import { HTTPException } from "hono/http-exception";
 import { getLiveEvent } from "../models/events.ts";
 
 const app = new Hono();

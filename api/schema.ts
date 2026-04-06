@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
-  AnyPgColumn,
+  type AnyPgColumn,
   boolean,
   index,
   integer,

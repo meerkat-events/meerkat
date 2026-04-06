@@ -23,7 +23,7 @@ export function QuestionsSection(
       acc.add(vote.questionUid);
       return acc;
     }, new Set());
-  }, [votes, questions]);
+  }, [votes]);
 
   const hasQuestions = !!questions?.length;
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FiChevronDown } from "react-icons/fi";
 import {
   Alert,
@@ -53,8 +53,8 @@ export default function QnA() {
   const { data, mutate: refreshEvent } = useEvent(uid);
   const event = data?.data;
   const { data: eventsData, mutate: refreshEvents } = useStageEvents({
-    stage: event?.stage,
-    date: searchParams.get("date") ?? undefined,
+    ...(event?.stage ? { stage: event.stage } : {}),
+    ...(searchParams.get("date") ? { date: searchParams.get("date")! } : {}),
   });
   const events = eventsData?.data;
   const { past, live, upcoming } = useMemo(
@@ -87,13 +87,14 @@ export default function QnA() {
   };
   const { data: votes, mutate: refreshVotes } = useVotes();
   const { data: roles } = useConferenceRoles();
-  const refresh = useCallback(
-    throttle(() => {
-      refreshQuestions();
-      refreshVotes();
-    }, 500),
-    [refreshQuestions, refreshVotes],
-  );
+  const refreshQuestionsRef = useRef(refreshQuestions);
+  refreshQuestionsRef.current = refreshQuestions;
+  const refreshVotesRef = useRef(refreshVotes);
+  refreshVotesRef.current = refreshVotes;
+  const refresh = useRef(throttle(() => {
+    refreshQuestionsRef.current();
+    refreshVotesRef.current();
+  }, 500)).current;
 
   const { trigger } = useReact(
     event?.uid ?? "",

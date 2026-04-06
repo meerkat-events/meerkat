@@ -3,23 +3,24 @@ set -e
 
 echo "Starting Meerkat setup..."
 
+# Enable corepack and install pnpm if not already available
+if ! command -v pnpm &> /dev/null; then
+  echo "Installing pnpm via corepack..."
+  corepack enable
+  corepack prepare --activate
+fi
+
 echo "Setting up environment files..."
 cp api/.env.example api/.env
-cp db/.env.example db/.env
 
-echo "Installing Verifier dependencies..."
-cd verifier
-npm install
-cd ..
+echo "Installing dependencies..."
+pnpm install
 
-echo "Setting up database..."
-cd db
-npm install
-npm run migrate
-cd ..
+echo "Running database migrations..."
+cd api
+pnpm migrate
 
 echo "Seeding database..."
-cd db
 ./scripts/seed.sh
 cd ..
 

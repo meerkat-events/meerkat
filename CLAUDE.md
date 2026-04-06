@@ -11,17 +11,14 @@ via zero-knowledge proofs.
 
 ## Repository Structure
 
-This is a multi-service monorepo:
+This is a monorepo managed with pnpm workspaces (installed via corepack):
 
-- **`api/`** — Main application: Deno + React Router 7 (full-stack, SSR). Both
-  the HTTP API (Hono) and the React frontend live here.
-- **`db/`** — Database schema (Drizzle ORM) and migrations against PostgreSQL
-  (Supabase).
-- **`verifier/`** — Separate Node.js/Hono service for cryptographic PCD ticket
-  verification.
+- **`api/`** — Main application: Node.js + React Router 7 (full-stack, SSR). The
+  HTTP API (Hono), React frontend, DB schema/migrations (Drizzle ORM), and
+  cryptographic PCD ticket verification all live here.
 - **`packages/react/`** — Published npm package `@meerkat-events/react` with
   React hooks for external consumers.
-- **`scripts/`** — Dev setup/teardown scripts (tmux-based).
+- **`scripts/`** — Dev setup/teardown scripts.
 
 ## Initial Setup
 
@@ -33,17 +30,7 @@ This is a multi-service monorepo:
 ## Development
 
 ```bash
-./scripts/dev.sh     # starts tmux session: API (pane 1) + Verifier (pane 2), opens https://localhost:8000
-```
-
-Or run services individually:
-
-```bash
-# API (Deno)
-cd api && deno task dev
-
-# Verifier (Node.js)
-cd verifier && npm run dev
+cd api && pnpm dev
 ```
 
 ## Key Commands
@@ -51,32 +38,20 @@ cd verifier && npm run dev
 ### API (`api/`)
 
 ```bash
-deno task dev        # dev server with watch + inspect (reloads Deno/API code only)
-deno task build      # production build — REQUIRED after any frontend (React) changes
-deno task start      # run production build
-deno lint            # lint
-deno fmt             # format
-```
-
-### Database (`db/`)
-
-```bash
-npm run generate     # generate Drizzle migration from schema changes
-npm run migrate      # apply pending migrations
+pnpm dev             # dev server with node --watch (reloads on changes)
+pnpm build           # production build — REQUIRED after any frontend (React) changes
+pnpm start           # run production build
+pnpm typecheck       # runs build then type-checks all files
+pnpm lint            # ESLint
+pnpm generate        # generate Drizzle migration from schema changes
+pnpm migrate         # apply pending migrations
 ```
 
 ### React Package (`packages/react/`)
 
 ```bash
-npm run build        # tsup build (ESM + CJS)
-npm run dev          # tsup watch
-```
-
-### Verifier (`verifier/`)
-
-```bash
-npm run dev          # tsx watch
-npm run build        # tsc compile to dist/
+pnpm build           # tsup build (ESM + CJS)
+pnpm dev             # tsup watch
 ```
 
 ## Architecture
@@ -87,12 +62,15 @@ The API (`api/`) uses React Router 7 for the frontend (with SSR) and Hono for
 the HTTP API layer:
 
 - `api/routes/` — Hono HTTP endpoints: `conferences.ts`, `users.ts`,
-  `events.ts`, `questions.ts`, `admin.ts`
+  `events.ts`, `questions.ts`, `admin.ts`, `auth.ts`
 - `api/models/` — Data access layer (Drizzle queries)
+- `api/lib/` — Shared utilities: `pod.ts` (Zupass POD signing), `verify.ts` (GPC
+  ticket proof verification via `@pcd/gpc`)
 - `api/app/routes/` — React Router page components
 - `api/app/hooks/` — Custom data-fetching hooks (pattern: `use-[resource].ts`)
 - `api/app/components/` — Shared UI components (Chakra UI)
 - `api/schema.ts` — Single source of truth for the DB schema (Drizzle ORM)
+- `api/drizzle/` — Migration SQL files and snapshots
 
 Real-time Q&A updates use Server-Sent Events (SSE). The frontend hooks use SWR
 for caching.
@@ -108,19 +86,41 @@ The `PRIVATE_KEY` env var is only for Zupass POD signing, not JWT auth.
 
 1. Browser → Hono API routes → models (Drizzle) → PostgreSQL (Supabase)
 2. Zupass authentication → JWT tokens → `api/middlewares/` auth middleware
-3. For ticket proof verification → call the separate `verifier` service
+3. For ticket proof verification → `api/lib/verify.ts` calls `@pcd/gpc` directly
 4. Real-time updates → SSE stream from API → `useQuestions` hook
    auto-revalidates
 
 ### Database Changes
 
 1. Edit `api/schema.ts`
-2. `cd db && npm run generate` — creates migration file
-3. `cd db && npm run migrate` — applies it
+2. `cd api && pnpm generate` — creates migration file in `api/drizzle/`
+3. `cd api && pnpm migrate` — applies it
+
+## Validation Checklist
+
+Before considering any change complete, always run all four checks from the
+`api/` directory (or the repo root for Docker):
+
+```bash
+# 1. Type-check (also runs the build internally)
+cd api && pnpm typecheck
+
+# 2. Lint
+cd api && pnpm lint
+
+# 3. Build & run the Docker image
+docker build -t meerkat:latest .
+docker run --rm --env-file api/.env -p 8000:8000 meerkat:latest &
+sleep 4 && curl -s http://localhost:8000 -o /dev/null -w "HTTP %{http_code}\n"
+docker stop $(docker ps -q --filter ancestor=meerkat:latest)
+```
+
+All four must pass (typecheck clean, lint clean, Docker build succeeds,
+HTTP 200) before the task is done.
 
 ## Code Style
 
-- **Deno compatibility**: use `globalThis` instead of `window` (e.g.,
+- **Browser globals**: use `globalThis` instead of `window` (e.g.,
   `globalThis.open(url, '_blank')` for new tabs)
 - **Ternary formatting**: condition on same line, branches on new lines with
   indentation:
@@ -150,7 +150,7 @@ Required (in `api/.env`):
 | `SUPABASE_URL`              | Supabase project URL                                 |
 | `SUPABASE_ANON_KEY`         | Supabase anon key                                    |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (admin API)                |
-| `VERIFIER_ENDPOINT`         | Verifier service URL                                 |
 | `DEVCON_JWT_SECRET`         | Shared HS256 secret for validating Devcon SSO tokens |
 
-Optional: `POSTHOG_TOKEN`, `SENTRY_DSN`
+Optional: `POSTHOG_TOKEN`, `SENTRY_DSN`, `DATABASE_POOLER_URL`,
+`DATABASE_MAX_POOL_SIZE`, `ENVIRONMENT`

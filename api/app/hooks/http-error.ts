@@ -1,5 +1,7 @@
 export class HTTPError extends Error {
-  constructor(private readonly response: Response, error?: string) {
+  private readonly response: Response;
+
+  constructor(response: Response, error?: string) {
     let errorMessage = "";
     if (error) {
       errorMessage = error;
@@ -8,6 +10,7 @@ export class HTTPError extends Error {
     }
 
     super(errorMessage);
+    this.response = response;
   }
 
   get status() {

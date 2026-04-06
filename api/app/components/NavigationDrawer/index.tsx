@@ -17,7 +17,7 @@ interface NavLinkProps {
   active: boolean;
 }
 
-function NavLink({ label, href, active }: NavLinkProps) {
+function NavLink({ label, href, active: _active }: NavLinkProps) {
   return (
     <List.Item>
       <Link

@@ -17,10 +17,13 @@ export const useZAPIConnect = () => {
 
     let zapi;
     try {
+      if (!context?.ref.current) {
+        throw new Error("Zupass container not mounted");
+      }
       zapi = await connect(
         zapp,
-        context?.ref.current!,
-        context?.config.zupassUrl,
+        context.ref.current,
+        context.config.zupassUrl,
       );
     } catch (error) {
       throw error;

@@ -1,6 +1,6 @@
-import { Hono } from "@hono/hono";
-import { createMiddleware } from "@hono/hono/factory";
-import { HTTPException } from "@hono/hono/http-exception";
+import { Hono } from "hono";
+import { createMiddleware } from "hono/factory";
+import { HTTPException } from "hono/http-exception";
 import { jwt } from "../middlewares/jwt.ts";
 import { zValidator } from "@hono/zod-validator";
 import zod from "zod";
@@ -23,7 +23,7 @@ import {
 import {
   createQuestion,
   getQuestions,
-  Sort,
+  type Sort,
   Sorts,
 } from "../models/questions.ts";
 import {
@@ -36,15 +36,15 @@ import {
   getUserPostCountPerTalk,
 } from "../models/user.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
-import { Feature, getFeatures } from "../models/features.ts";
+import { type Feature, getFeatures } from "../models/features.ts";
 import { createAttendancePOD } from "../zupass.ts";
 import { getConferenceRolesForConference } from "../models/roles.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
 import { supabase } from "../supabase.ts";
 import { getStageLiveEvent } from "../models/events.ts";
-import { Questions } from "../models/questions.ts";
-import { streamSSE } from "@hono/hono/streaming";
+import type { Questions } from "../models/questions.ts";
+import { streamSSE } from "hono/streaming";
 import {
   broadcastQuestionsUpdate,
   subscribeToEventQuestions,
@@ -393,7 +393,11 @@ app.get("/api/v1/events", async (c) => {
     });
   }
 
-  const events = await getEvents({ limit, stage, date });
+  const events = await getEvents({
+    limit,
+    ...(stage ? { stage } : {}),
+    ...(date ? { date } : {}),
+  });
   return c.json({ data: events });
 });
 

@@ -25,6 +25,6 @@ export function useLinks({ event }: UseLinksProps) {
         }]
         : []),
     ],
-    [event?.uid, location.pathname],
+    [event?.uid, event?.conference.features, location.pathname],
   );
 }

@@ -7,8 +7,11 @@ fly.template.toml
 
 node_modules
 api/node_modules
+packages/react/node_modules
 .vscode
 .react-router
+api/.react-router
+api/build
 .github
 db
 scripts

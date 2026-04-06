@@ -1,5 +1,5 @@
-import { createMiddleware } from "@hono/hono/factory";
-import { HTTPException } from "@hono/hono/http-exception";
+import { createMiddleware } from "hono/factory";
+import { HTTPException } from "hono/http-exception";
 import { getAllApiKeys } from "../models/api-keys.ts";
 import { verify } from "argon2";
 

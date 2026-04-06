@@ -1,5 +1,6 @@
 {
-  "dependencies": {
-    "drizzle-orm": "^0.45.2"
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": ["argon2", "esbuild"]
   }
 }

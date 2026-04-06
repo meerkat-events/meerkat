@@ -40,7 +40,7 @@ export function useKeepLive({ event, onUpdate }: UseKeepLiveProps) {
             event: "live",
           },
           (_payload) => {
-            const newEvent = _payload.new as Event;
+            const newEvent = _payload["new"] as Event;
             onUpdate?.(newEvent);
           },
         )

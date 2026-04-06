@@ -62,9 +62,7 @@ export async function getEvents(options: {
         gte(events.start, new Date()),
       ),
     ).orderBy(asc(events.start)).limit(1).execute();
-    const representativeDate = nextEvents.length > 0
-      ? nextEvents[0].start
-      : new Date();
+    const representativeDate = nextEvents.at(0)?.start ?? new Date();
     const day = toDay(representativeDate);
     const { start, end } = dateBoundaries(day);
     conditions.push(between(events.start, start, end));
@@ -121,7 +119,7 @@ export async function countParticipants(eventId: number) {
       ),
     ).as("participants"),
   ).execute();
-  return results[0].count;
+  return results.at(0)?.count ?? 0;
 }
 
 export async function getLiveEvent(conferenceId: number) {
@@ -179,7 +177,7 @@ export async function setEventLive(eventId: number) {
 }
 
 function dateBoundaries(date: string) {
-  const [y, m, d] = date.split("-").map(Number);
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
   const start = new Date(y, m - 1, d);
   start.setHours(0, 0, 0, 0);
   const end = new Date(y, m - 1, d);

@@ -1,5 +1,5 @@
-import { Hono } from "@hono/hono";
-import { logger as honoLogger } from "@hono/hono/logger";
+import { Hono } from "hono";
+import { logger as honoLogger } from "hono/logger";
 import conferences from "./routes/conferences.ts";
 import users from "./routes/users.ts";
 import events from "./routes/events.ts";
@@ -8,7 +8,7 @@ import admin from "./routes/admin.ts";
 import auth from "./routes/auth.ts";
 import { config } from "./models/config.ts";
 import logger from "./logger.ts";
-import { HTTPException } from "@hono/hono/http-exception";
+import { HTTPException } from "hono/http-exception";
 
 const app = new Hono();
 

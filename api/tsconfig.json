@@ -1,0 +1,41 @@
+{
+  "extends": [
+    "@tsconfig/node24/tsconfig.json",
+    "@tsconfig/strictest/tsconfig.json"
+  ],
+  "compilerOptions": {
+    // Node recommends "nodenext" module + "rewriteRelativeImportExtensions" for .ts files,
+    // but Vite requires "bundler" resolution. Instead we use explicit .ts extensions in
+    // imports (allowImportingTsExtensions) which Node 24 resolves natively without rewriting.
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    // Enforce Node-compatible TypeScript: no enums, namespaces with values, or parameter
+    // properties — only syntax that Node 24 can erase without code generation.
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+
+    // node24 only includes ES libs; add DOM since the frontend runs in the browser.
+    "lib": [
+      "ES2024",
+      "ESNext.Array",
+      "ESNext.Collection",
+      "ESNext.Error",
+      "ESNext.Iterator",
+      "ESNext.Promise",
+      "DOM",
+      "DOM.Iterable"
+    ],
+
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "rootDirs": [".", "./.react-router/types"],
+    "types": ["vite/client", "node"],
+    "paths": {
+      "~/*": ["./app/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["build", "node_modules"]
+}

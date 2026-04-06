@@ -1,4 +1,4 @@
-import { Hono } from "@hono/hono";
+import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import zod from "zod";
 import { apiKey } from "../middlewares/api-key.ts";

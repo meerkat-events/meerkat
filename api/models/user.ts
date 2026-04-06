@@ -44,7 +44,7 @@ export async function getUserPostCountAfterDate(
     )
     .execute();
 
-  return Number(result[0].count);
+  return Number(result.at(0)?.count ?? 0);
 }
 
 export async function getUserPostCountPerTalk(
@@ -62,7 +62,7 @@ export async function getUserPostCountPerTalk(
     )
     .execute();
 
-  return Number(result[0].count);
+  return Number(result.at(0)?.count ?? 0);
 }
 
 export type User = typeof users.$inferSelect;

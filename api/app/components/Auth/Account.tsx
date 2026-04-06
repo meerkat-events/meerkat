@@ -131,7 +131,7 @@ export function Account({ user }: AccountProps) {
 
               <VStack gap="0.25rem" alignItems="center">
                 <Text fontSize="sm" color="gray.500">
-                  Signed in as {user.user_metadata?.name || "anonymous"}
+                  Signed in as {user.user_metadata?.["name"] || "anonymous"}
                 </Text>
                 <Text fontSize="xs" color="gray.600">
                   {user.id}

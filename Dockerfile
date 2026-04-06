@@ -1,18 +1,26 @@
-FROM denoland/deno:2.5.6
-
-WORKDIR /app
+FROM node:24-bookworm-slim
 
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
-COPY ./api/deno.json ./api/deno.lock ./api/package.json /app/
 
-RUN deno install
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
-COPY ./api/ /app/
+WORKDIR /workspace
+
+# Copy workspace manifests first for dependency layer caching
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/react/package.json ./packages/react/
+COPY api/package.json ./api/
+
+RUN pnpm install --frozen-lockfile
+
+COPY packages/react/ ./packages/react/
+COPY api/ ./api/
 
 ENV NODE_ENV=production
 
-RUN	deno task typecheck && \
- 		deno task build
+RUN pnpm -r build
 
-CMD ["task", "start"]
+WORKDIR /workspace/api
+
+CMD ["node", "./main.ts"]

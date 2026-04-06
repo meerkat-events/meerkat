@@ -5,7 +5,9 @@ export async function getConferenceTickets(
   conferenceId: number,
 ): Promise<ConferenceTicket[]> {
   const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/api/v1/conferences/${conferenceId}/tickets`,
+    `${
+      import.meta.env["VITE_API_URL"]
+    }/api/v1/conferences/${conferenceId}/tickets`,
   );
   if (!response.ok) {
     throw await extractHTTPError(response);

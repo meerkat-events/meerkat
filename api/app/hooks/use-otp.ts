@@ -10,7 +10,7 @@ export function useOTP() {
   const signUp = async (email: string) => {
     if (!client) {
       setError("Supabase client not found");
-      return;
+      return undefined;
     }
     setIsLoading(true);
     try {
@@ -32,6 +32,7 @@ export function useOTP() {
       } else {
         setError("An unknown error occurred");
       }
+      return undefined;
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +41,7 @@ export function useOTP() {
   const verify = async (email: string, otp: string) => {
     if (!client) {
       setError("Supabase client not found");
-      return;
+      return undefined;
     }
     setIsLoading(true);
     try {
@@ -62,6 +63,7 @@ export function useOTP() {
       } else {
         setError("An unknown error occurred");
       }
+      return undefined;
     } finally {
       setIsLoading(false);
     }

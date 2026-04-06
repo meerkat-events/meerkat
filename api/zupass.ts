@@ -1,5 +1,5 @@
-import { POD, PODEntries } from "@pcd/pod";
 import env from "./env.ts";
+import { POD, type PODEntries } from "./lib/pod.ts";
 import type { Event } from "./models/events.ts";
 import type { Conference } from "./models/conferences.ts";
 

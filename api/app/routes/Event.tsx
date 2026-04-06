@@ -1,6 +1,6 @@
 import { useEventSource } from "@meerkat-events/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { useCallback, useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useEvent } from "~/hooks/use-event.ts";
 import throttle from "lodash.throttle";
 import Presenter from "../components/Presenter/index.tsx";
@@ -36,10 +36,10 @@ export default function EventPage() {
     },
   });
 
-  const throttleRefresh = useCallback(
-    throttle(refreshEvent, 300),
-    [refreshEvent],
-  );
+  const refreshEventRef = useRef(refreshEvent);
+  refreshEventRef.current = refreshEvent;
+  const throttleRefresh =
+    useRef(throttle(() => refreshEventRef.current(), 300)).current;
 
   useEventSource({
     url: event ? `/api/v1/events/${event.uid}/questions/stream` : undefined,

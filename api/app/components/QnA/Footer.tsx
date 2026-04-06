@@ -15,7 +15,7 @@ import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { useLogout } from "../../hooks/use-logout.ts";
 import { toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
-import { User } from "../../hooks/use-auth.ts";
+import type { User } from "../../hooks/use-auth.ts";
 import { LogoutConfirmDialog } from "../Auth/LogoutConfirmDialog.tsx";
 
 import "./Footer.css";
@@ -158,7 +158,7 @@ export function Footer({
           <span className="signin-name">
             Signed as{" "}
             <ChakraLink onClick={onOpen}>
-              {user?.user_metadata.name ?? user?.id ?? "Anonymous"}
+              {user?.user_metadata["name"] ?? user?.id ?? "Anonymous"}
             </ChakraLink>
           </span>
         </div>

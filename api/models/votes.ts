@@ -1,7 +1,7 @@
 import { and, eq, gt, sql } from "drizzle-orm";
 import db from "../db.ts";
 import { questions, votes } from "../schema.ts";
-import { Question } from "./questions.ts";
+import type { Question } from "./questions.ts";
 
 export async function createVote(
   questionId: number,
@@ -11,8 +11,9 @@ export async function createVote(
     questionId: questionId,
     userId: userId,
     createdAt: new Date(),
-  }).execute();
+  }).returning().execute();
 
+  if (!newVote) throw new Error("Failed to create vote");
   return newVote;
 }
 
@@ -87,7 +88,7 @@ export async function getUserVoteCountAfterDate(
     )
     .execute();
 
-  return Number(result[0].count);
+  return Number(result.at(0)?.count ?? 0);
 }
 
 export type Vote = typeof votes.$inferSelect;

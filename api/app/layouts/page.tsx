@@ -12,10 +12,10 @@ import { fetcher } from "../hooks/fetcher.ts";
 import { createSystem } from "../theme/index.ts";
 
 export async function clientLoader(args: Route.LoaderArgs) {
-  const hasUid = args.params.uid;
+  const hasUid = args.params["uid"];
   const [result, config]: [{ data: Event } | undefined, Config] = await Promise
     .all([
-      hasUid ? fetcher(`/api/v1/events/${args.params.uid}`) : undefined,
+      hasUid ? fetcher(`/api/v1/events/${args.params["uid"]}`) : undefined,
       getConfig(),
     ]);
 
@@ -49,7 +49,7 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
 
   const content = (
     <SWRConfig
-      value={{ fallback: { [`/api/v1/events/${event?.uid}`]: event } }}
+      value={{ fallback: { [`/api/v1/events/${event?.["uid"]}`]: event } }}
     >
       <Provider
         colorMode={{

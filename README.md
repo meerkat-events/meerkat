@@ -1,14 +1,12 @@
 ## Meerkat
 
-A privacy-preserving audience engagement tool for in-person and virtual
-conferences. Meerkat uses Zupass for authentication and collection of associated
-data.
+The audience engagement tool for in-person and virtual conferences, used by the
+Ethereum Foundation for Devcon, Devconnect, and others.
 
 ### Prerequisites
 
-- [Deno v2](https://deno.land/)
-- [Node.js v24](https://nodejs.org/)
-- [Tmux](https://github.com/tmux/tmux/wiki)
+- [Node.js v24](https://nodejs.org/) (includes corepack, which installs pnpm
+  automatically)
 
 ## Get Started
 
@@ -16,7 +14,7 @@ To get started, run `./scripts/setup.sh` from the root directory. It will:
 
 1. Copy `.env.example` to `.env`, update the values as needed
 2. Install dependencies.
-3. Run database migration.
+3. Run database migrations.
 4. Seed the database.
 
 If you wish to tear down the development environment, run
@@ -24,37 +22,41 @@ If you wish to tear down the development environment, run
 
 ## Development
 
-To start the development environment, run `./scripts/dev.sh` from the root
-directory. It will start the development environment with tmux and open a new
-terminal window, then open `https://localhost:8000` in your browser.
+```bash
+cd api && pnpm dev
+```
+
+The app will be available at `http://localhost:8000`.
 
 ## Environment Variables
 
-The following environment variables are required to run the application:
+The following environment variables are required (place them in `api/.env`):
 
-- DATABASE_URL: The connection string for the database.
-- PRIVATE_KEY: The private key used to sign PODs.
-- BASE_URL: The base URL of the application.
-- ZUPASS_URL: The URL of the Zupass server.
-- ZUPASS_ZAPP_NAME: The name of the Zupass zapp.
-- SUPABASE_URL: The URL of the Supabase server.
-- SUPABASE_ANON_KEY: The anon key for the Supabase server.
-- VERIFIER_ENDPOINT: The URL of the verifier endpoint.
+- `DATABASE_URL`: PostgreSQL connection string.
+- `PRIVATE_KEY`: Signs Zupass PODs (generate: `openssl rand -hex 32`).
+- `BASE_URL`: Base URL of the application.
+- `ZUPASS_URL`: Zupass server URL.
+- `ZUPASS_ZAPP_NAME`: Zupass zapp name.
+- `SUPABASE_URL`: Supabase project URL.
+- `SUPABASE_ANON_KEY`: Supabase anon key.
+- `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key (admin API).
+- `DEVCON_JWT_SECRET`: Shared HS256 secret for validating Devcon SSO tokens.
 
-Optionally, you can set the following environment variables to enable additional
-features:
+Optional:
 
-- POSTHOG_TOKEN: The token for the PostHog server.
-- SENTRY_DSN: The DSN for the Sentry server.
+- `POSTHOG_TOKEN`: PostHog analytics token.
+- `SENTRY_DSN`: Sentry error tracking DSN.
+- `DATABASE_POOLER_URL`: Alternative connection string for a connection pooler.
+- `DATABASE_MAX_POOL_SIZE`: Max DB pool size (default: 10).
 
 ## FAQ
 
-### How to generate secrets?
-
-To generate a 32 bytes secret, you can run `openssl rand -hex 32`.
-
 ### How to create and apply a migration?
 
-After modifying the database schema in api/schema.ts, you will need to generate
-a new migration using `npm run generate` in the `db` folder and apply it by
-`npm run migrate`.
+After modifying the database schema in `api/schema.ts`:
+
+```bash
+cd api
+pnpm generate   # create migration file in api/drizzle/
+pnpm migrate    # apply pending migrations
+```

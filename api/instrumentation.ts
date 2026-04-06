@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/deno";
+import * as Sentry from "@sentry/node";
 import env from "./env.ts";
 import logger from "./logger.ts";
 

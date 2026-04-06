@@ -1,5 +1,5 @@
 import { Button, Flex, Input, Text } from "@chakra-ui/react";
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import { useOTP } from "../../hooks/use-otp.ts";
 
 export function LoginForm() {
@@ -8,7 +8,7 @@ export function LoginForm() {
   const [otp, setOtp] = useState("");
   const [emailSubmitted, setEmailSubmitted] = useState(false);
 
-  const handleEmailSubmit = async (e: FormEvent) => {
+  const handleEmailSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email) return;
 
@@ -18,7 +18,7 @@ export function LoginForm() {
     }
   };
 
-  const handleOtpSubmit = async (e: FormEvent) => {
+  const handleOtpSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!otp) return;
 

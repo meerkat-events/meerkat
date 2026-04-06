@@ -11,6 +11,7 @@ export async function createReaction(
     uid: uid,
   }).returning().execute();
 
+  if (!newReaction) throw new Error("Failed to create reaction");
   return newReaction;
 }
 
@@ -29,7 +30,7 @@ export async function getUserReactionCountAfterDate(
     )
     .execute();
 
-  return Number(result[0].count);
+  return Number(result.at(0)?.count ?? 0);
 }
 
 export type Reaction = typeof reactions.$inferSelect;

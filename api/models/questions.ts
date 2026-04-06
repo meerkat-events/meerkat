@@ -82,11 +82,9 @@ export async function createQuestion(
     uid: uuidv7(),
   }).returning().execute();
 
-  if (result.length !== 1) {
-    throw new Error("Failed to create question");
-  }
-
-  return result[0];
+  const created = result.at(0);
+  if (!created) throw new Error("Failed to create question");
+  return created;
 }
 
 export async function getQuestionByUID(uid: string) {
@@ -94,7 +92,7 @@ export async function getQuestionByUID(uid: string) {
     eq(questions.uid, uid),
   );
 
-  return result.length === 1 ? result[0] : null;
+  return result.at(0) ?? null;
 }
 
 export async function selectQuestion(id: number) {
@@ -103,10 +101,8 @@ export async function selectQuestion(id: number) {
       selectedAt: new Date(),
     }).where(eq(questions.id, id)).returning().execute();
 
-    if (result.length !== 1) {
-      return null;
-    }
-    const question = result[0];
+    const question = result.at(0);
+    if (!question) return null;
 
     await tx.update(questions).set({
       answeredAt: new Date(),
