@@ -15,7 +15,6 @@ BASE_URL = '$BASE_URL'
 ZUPASS_ZAPP_NAME = '$ZUPASS_ZAPP_NAME'
 ZUPASS_URL = '$ZUPASS_URL'
 SENTRY_DSN = '$SENTRY_DSN'
-VERIFIER_ENDPOINT = '$VERIFIER_ENDPOINT'
 DATABASE_MAX_POOL_SIZE = '$DATABASE_MAX_POOL_SIZE'
 ENVIRONMENT = '$ENVIRONMENT'
 VITE_API_URL = '$VITE_API_URL'
@@ -23,7 +22,7 @@ SUPABASE_SERVICE_ROLE_KEY = '$SUPABASE_SERVICE_ROLE_KEY'
 DEVCON_JWT_SECRET = '$DEVCON_JWT_SECRET'
 
 [processes]
-app = 'task start'
+app = 'node /workspace/api/main.ts'
 
 [http_service]
 internal_port = 8000
@@ -46,5 +45,5 @@ cpu_kind = "$CPU_KIND"
 memory = "$MEMORY"
 
 [[statics]]
-guest_path = "/app/build/client/assets"
+guest_path = "/workspace/api/build/client/assets"
 url_prefix = "/assets"
