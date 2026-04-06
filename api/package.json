@@ -52,7 +52,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@deno/vite-plugin": "^1.0.5",
+    "@deno/vite-plugin": "^2.0.2",
     "@react-router/dev": "^7.9.5",
     "@types/d3-random": "^3.0.3",
     "@types/lodash.throttle": "^4.1.9",
