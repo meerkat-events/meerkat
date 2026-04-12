@@ -8,5 +8,5 @@ export const jwt: () => MiddlewareHandler<
 > = () =>
   jwk({
     jwks_uri: `${env.supabaseUrl}/auth/v1/.well-known/jwks.json`,
-    alg: ["RS256"],
+    alg: ["RS256", "ES256"],
   });
