@@ -17,14 +17,15 @@ This is a monorepo managed with pnpm workspaces (installed via corepack):
   HTTP API (Hono), React frontend, and DB schema/migrations (Drizzle ORM) all
   live here.
 - **`packages/react/`** — Published npm package `@meerkat-events/react` with
-  React hooks for external consumers.
-- **`scripts/`** — Dev setup/teardown scripts.
+  React hooks (`useQuestions`, `useEventSource`) for external consumers
+  embedding Meerkat Q&A.
+- **`scripts/setup.sh`** — Top-level dev bootstrap (env, deps, migrations, seed).
+- **`api/scripts/seed.sh`** — DB seed script (invoked by `setup.sh`).
 
 ## Initial Setup
 
 ```bash
 ./scripts/setup.sh   # copies .env, installs deps, runs migrations, seeds DB
-./scripts/teardown.sh  # tear down dev environment
 ```
 
 ## Working in a new git worktree
@@ -70,29 +71,55 @@ the HTTP API layer:
 
 - `api/routes/` — Hono HTTP endpoints: `conferences.ts`, `users.ts`,
   `events.ts`, `questions.ts`, `admin.ts`, `auth.ts`
+- `api/middlewares/` — `jwt.ts` (Supabase JWT validation) and `api-key.ts`
+  (admin)
 - `api/models/` — Data access layer (Drizzle queries)
-- `api/lib/` — Shared utilities: `pod.ts` (Zupass POD signing)
+- `api/lib/pod.ts` — CommonJS shim around `@pcd/pod` (its ESM build pulls in
+  CJS-only deps); the actual POD construction lives in `api/zupass.ts`
+- `api/utils/broadcast.ts` — Supabase Realtime fan-out for SSE
 - `api/app/routes/` — React Router page components
 - `api/app/hooks/` — Custom data-fetching hooks (pattern: `use-[resource].ts`)
-- `api/app/components/` — Shared UI components (Chakra UI)
+- `api/app/components/` — Shared UI components (Chakra UI v3)
 - `api/schema.ts` — Single source of truth for the DB schema (Drizzle ORM)
 - `api/drizzle/` — Migration SQL files and snapshots
 
-Real-time Q&A updates use Server-Sent Events (SSE). The frontend hooks use SWR
-for caching.
+Detailed API guidance lives in [api/CLAUDE.md](api/CLAUDE.md).
 
-**Authentication:** `api/middlewares/jwt.ts` uses Hono's `jwk()` to validate
-Bearer tokens against Supabase's JWKS endpoint
-(`${supabaseUrl}/auth/v1/.well-known/jwks.json`). All user tokens are
-Supabase-issued (via OTP email or anonymous sign-in). Admin routes use a
-separate `api/middlewares/api-key.ts` with argon2-hashed keys stored in the DB.
-The `PRIVATE_KEY` env var is only for Zupass POD signing, not JWT auth.
+### Real-time updates
+
+Two parallel mechanisms, both fanned out across instances via Supabase
+Realtime:
+
+- **SSE (`/api/v1/events/:uid/questions/stream`)** — the public-facing channel
+  consumed by `@meerkat-events/react`'s `useEventSource` / `useQuestions`. The
+  Hono handler subscribes to a per-event Supabase channel via
+  `utils/broadcast.ts`; mutations call `broadcastQuestionsUpdate(eventId)` so
+  every server instance pushes an SSE message to its connected clients.
+- **Supabase Realtime directly from the browser** — internal hooks
+  (`useAllQuestions`, `useLiveEventSubscription`, `use-reactions-subscription`)
+  subscribe to `postgres_changes` or broadcast channels via the supabase-js
+  client, then revalidate SWR caches.
+
+Frontend data fetching uses SWR throughout (`hooks/fetcher.ts`).
+
+### Authentication
+
+- **User auth:** `api/middlewares/jwt.ts` uses Hono's `jwk()` against Supabase's
+  JWKS endpoint (`${supabaseUrl}/auth/v1/.well-known/jwks.json`). Tokens are
+  Supabase-issued via OTP email or anonymous sign-in. A separate Devcon SSO
+  flow in `routes/auth.ts` validates HS256 JWTs against `DEVCON_JWT_SECRET`
+  and exchanges them for a Supabase session.
+- **Admin auth:** `api/middlewares/api-key.ts` — argon2-hashed keys stored in
+  the DB, passed via `x-api-key`.
+- The `PRIVATE_KEY` env var is only for signing Zupass attendance PODs, not
+  for JWT auth.
 
 ### Data Flow
 
 1. Browser → Hono API routes → models (Drizzle) → PostgreSQL (Supabase)
-2. Zupass authentication → JWT tokens → `api/middlewares/` auth middleware
-3. Real-time updates → SSE stream from API → `useQuestions` hook
+2. Auth: Supabase JWT (or Devcon SSO → Supabase session) → `middlewares/jwt.ts`
+3. Mutations broadcast via Supabase Realtime → SSE stream to embedded clients
+   and direct realtime subscriptions to the in-app frontend → SWR
    auto-revalidates
 
 ### Database Changes
