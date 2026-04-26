@@ -40,7 +40,6 @@ The following environment variables are required (place them in `api/.env`):
 
 Optional:
 
-- `POSTHOG_TOKEN`: PostHog analytics token.
 - `SENTRY_DSN`: Sentry error tracking DSN.
 - `DATABASE_POOLER_URL`: Alternative connection string for a connection pooler.
 - `DATABASE_MAX_POOL_SIZE`: Max DB pool size (default: 10).

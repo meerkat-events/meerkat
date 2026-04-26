@@ -4,7 +4,6 @@ import type { Event, Question } from "../types.ts";
 import { useContext } from "react";
 import { UserContext } from "../context/user.tsx";
 import { HTTPError } from "./http-error.ts";
-import { posthog } from "posthog-js";
 import { useAuth } from "./use-auth.ts";
 
 export const useAskQuestion = (event: Event | undefined, {
@@ -24,9 +23,6 @@ export const useAskQuestion = (event: Event | undefined, {
     {
       onSuccess: () => {
         onSuccess();
-        posthog.capture("question_asked", {
-          event_uid: event?.uid,
-        });
       },
       onError: (error) => {
         if (error.status === 429) {

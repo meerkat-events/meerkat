@@ -4,7 +4,6 @@ import { POD } from "@pcd/pod";
 import { poster } from "./fetcher.ts";
 import { useZAPI } from "../zapi/context.tsx";
 import { type ParcnetAPI } from "@parcnet-js/app-connector";
-import { posthog } from "posthog-js";
 import { collectionName } from "~/zapi/collections.ts";
 
 export function useCollect(event: Event | undefined) {
@@ -30,9 +29,6 @@ export function useCollect(event: Event | undefined) {
         signature: pod.signature,
         signerPublicKey: pod.signerPublicKey,
       });
-    posthog.capture("attendance_collected", {
-      event_uid: event?.uid,
-    });
   };
 
   return {

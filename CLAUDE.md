@@ -166,5 +166,5 @@ Required (in `api/.env`):
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (admin API)                |
 | `DEVCON_JWT_SECRET`         | Shared HS256 secret for validating Devcon SSO tokens |
 
-Optional: `POSTHOG_TOKEN`, `SENTRY_DSN`, `DATABASE_POOLER_URL`,
-`DATABASE_MAX_POOL_SIZE`, `ENVIRONMENT`
+Optional: `SENTRY_DSN`, `DATABASE_POOLER_URL`, `DATABASE_MAX_POOL_SIZE`,
+`ENVIRONMENT`

@@ -2,7 +2,6 @@ import { useContext } from "react";
 import useSWRMutation from "swr/mutation";
 import { UserContext } from "../context/user.tsx";
 import { poster } from "./fetcher.ts";
-import { posthog } from "posthog-js";
 import type { HTTPError } from "./http-error.ts";
 import { useAuth } from "./use-auth.ts";
 
@@ -21,9 +20,6 @@ export function useVote(
       poster(path, { arg }, session?.access_token),
     {
       onSuccess: () => {
-        posthog.capture("vote_toggled", {
-          question_uid: uid,
-        });
         onSuccess?.();
       },
       onError: (error) => {

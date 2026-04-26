@@ -2,7 +2,6 @@ export type Config = {
   zupassUrl: string;
   zappName: string;
   environment: string;
-  posthogToken: string | undefined;
   supabaseUrl: string | undefined;
   supabaseAnonKey: string | undefined;
   sentryDSN: string | undefined;

@@ -6,11 +6,10 @@ import {
 } from "react-icons/fi";
 import { Box, Icon, IconButton, Menu, Portal, Text } from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
-import type { Event, Question as QuestionType } from "../../types.ts";
+import type { Question as QuestionType } from "../../types.ts";
 import { useMarkAsAnswered } from "../../hooks/use-mark-as-answered.ts";
 import { UpVoteButton } from "../Buttons/UpVoteButton.tsx";
 import { useDeleteQuestion } from "../../hooks/use-delete-question.ts";
-import { posthog } from "posthog-js";
 import { FiRadio } from "react-icons/fi";
 import { RxCursorArrow } from "react-icons/rx";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
@@ -18,7 +17,6 @@ import { toaster } from "../../components/ui/toaster.tsx";
 import { useVote } from "../../hooks/use-vote.ts";
 
 interface QuestionProps {
-  event: Event | undefined;
   canVote: boolean;
   canModerate: boolean;
   question: QuestionType;
@@ -27,7 +25,7 @@ interface QuestionProps {
 }
 
 export function Question(
-  { event, canVote, canModerate, question, voted, refresh }: QuestionProps,
+  { canVote, canModerate, question, voted, refresh }: QuestionProps,
 ) {
   const { trigger: toggleVote, isMutating: isVoting } = useVote(question.uid, {
     onSuccess: () => {
@@ -36,10 +34,6 @@ export function Question(
         title: "Vote recorded 🗳️",
         type: "success",
         duration: 1000,
-      });
-      posthog.capture("vote_toggled", {
-        question_uid: question.uid,
-        event_uid: event?.uid,
       });
     },
     onError: (error) => {

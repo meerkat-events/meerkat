@@ -16,7 +16,6 @@ if (!privateKey) {
 const zupassUrl = process.env["ZUPASS_URL"] ?? "https://zupass.org";
 const zappName = process.env["ZUPASS_ZAPP_NAME"] ?? "meerkat-local";
 const base = process.env["BASE_URL"] ?? "";
-const posthogToken = process.env["POSTHOG_TOKEN"];
 const supabaseUrl = process.env["SUPABASE_URL"];
 const supabaseAnonKey = process.env["SUPABASE_ANON_KEY"];
 
@@ -39,7 +38,6 @@ const env = {
   privateKey,
   zupassUrl,
   zappName,
-  posthogToken,
   supabaseUrl,
   supabaseAnonKey,
   supabaseServiceRoleKey,

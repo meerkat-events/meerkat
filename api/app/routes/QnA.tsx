@@ -249,7 +249,6 @@ export default function QnA() {
         </header>
         <main className="content flex">
           <QuestionsSection
-            event={event}
             questions={questions}
             votes={votes}
             isOrganizer={isOrganizer}
