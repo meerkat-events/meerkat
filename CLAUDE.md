@@ -27,6 +27,13 @@ This is a monorepo managed with pnpm workspaces (installed via corepack):
 ./scripts/teardown.sh  # tear down dev environment
 ```
 
+## Working in a new git worktree
+
+Each git worktree has its own `node_modules`. After creating a worktree, run
+`pnpm install` from the worktree root before doing anything else — the shared
+pre-commit hook (lint-on-commit) needs `api/node_modules/.bin/eslint` to be
+present and will skip linting with a warning otherwise.
+
 ## Development
 
 ```bash
