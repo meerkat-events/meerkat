@@ -1,5 +1,5 @@
-import { and, eq, isNull, or } from "drizzle-orm";
-import { conferences, conferenceTickets } from "../schema.ts";
+import { eq } from "drizzle-orm";
+import { conferences } from "../schema.ts";
 import db from "../db.ts";
 
 export type Conference = typeof conferences.$inferSelect;
@@ -27,32 +27,4 @@ export async function createConference(
   const conference = result.at(0);
   if (!conference) throw new Error("Failed to create conference");
   return conference;
-}
-
-export async function getConferenceByTicket(
-  eventId: string,
-  signerPublicKey: string,
-  productId: string,
-) {
-  const result = await db.select().from(conferences).innerJoin(
-    conferenceTickets,
-    eq(conferences.id, conferenceTickets.conferenceId),
-  ).where(
-    and(
-      eq(conferenceTickets.eventId, eventId),
-      eq(conferenceTickets.signerPublicKey, signerPublicKey),
-      or(
-        isNull(conferenceTickets.productId),
-        eq(conferenceTickets.productId, productId),
-      ),
-    ),
-  ).limit(1).orderBy(conferenceTickets.productId).execute();
-
-  return result.at(0) ?? null;
-}
-
-export function getTickets(conferenceId: number) {
-  return db.select().from(conferenceTickets).where(
-    eq(conferenceTickets.conferenceId, conferenceId),
-  ).execute();
 }

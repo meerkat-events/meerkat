@@ -94,8 +94,6 @@ Build: `npm run build` — REQUIRED after any changes to `app/` files.
   anonymous sign-in.
 - **Admin auth**: argon2-hashed API keys in DB (`middlewares/api-key.ts`). Pass
   via `x-api-key` header.
-- **Zupass/PCD**: ticket proof verification handled in-process via `@pcd/gpc`
-  (`api/lib/verify.ts`).
 
 ## Import conventions
 

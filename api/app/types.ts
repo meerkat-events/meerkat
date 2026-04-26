@@ -62,10 +62,3 @@ export type Reaction = {
   uid: string;
 };
 
-export type ConferenceTicket = {
-  collectionName: string;
-  signerPublicKey: string;
-  eventId: string;
-  productId: string;
-  role: string;
-};

@@ -14,8 +14,8 @@ via zero-knowledge proofs.
 This is a monorepo managed with pnpm workspaces (installed via corepack):
 
 - **`api/`** — Main application: Node.js + React Router 7 (full-stack, SSR). The
-  HTTP API (Hono), React frontend, DB schema/migrations (Drizzle ORM), and
-  cryptographic PCD ticket verification all live here.
+  HTTP API (Hono), React frontend, and DB schema/migrations (Drizzle ORM) all
+  live here.
 - **`packages/react/`** — Published npm package `@meerkat-events/react` with
   React hooks for external consumers.
 - **`scripts/`** — Dev setup/teardown scripts.
@@ -64,8 +64,7 @@ the HTTP API layer:
 - `api/routes/` — Hono HTTP endpoints: `conferences.ts`, `users.ts`,
   `events.ts`, `questions.ts`, `admin.ts`, `auth.ts`
 - `api/models/` — Data access layer (Drizzle queries)
-- `api/lib/` — Shared utilities: `pod.ts` (Zupass POD signing), `verify.ts` (GPC
-  ticket proof verification via `@pcd/gpc`)
+- `api/lib/` — Shared utilities: `pod.ts` (Zupass POD signing)
 - `api/app/routes/` — React Router page components
 - `api/app/hooks/` — Custom data-fetching hooks (pattern: `use-[resource].ts`)
 - `api/app/components/` — Shared UI components (Chakra UI)
@@ -86,8 +85,7 @@ The `PRIVATE_KEY` env var is only for Zupass POD signing, not JWT auth.
 
 1. Browser → Hono API routes → models (Drizzle) → PostgreSQL (Supabase)
 2. Zupass authentication → JWT tokens → `api/middlewares/` auth middleware
-3. For ticket proof verification → `api/lib/verify.ts` calls `@pcd/gpc` directly
-4. Real-time updates → SSE stream from API → `useQuestions` hook
+3. Real-time updates → SSE stream from API → `useQuestions` hook
    auto-revalidates
 
 ### Database Changes

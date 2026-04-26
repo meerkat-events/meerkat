@@ -6,8 +6,7 @@ import app from "./app.ts";
 import logger from "./logger.ts";
 
 // @ts-expect-error - generated React Router build output has no TypeScript declarations
-const build =
-  (await import("./build/server/index.js")) as unknown as ServerBuild;
+const build = (await import("./build/server/index.js")) as unknown as ServerBuild;
 const handler = createRequestHandler(build, "production");
 
 app.get(

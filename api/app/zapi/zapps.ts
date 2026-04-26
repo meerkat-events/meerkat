@@ -13,12 +13,10 @@ export function constructLoginZapp(name: string): Zapp {
 export function constructZapp(
   name: string,
   podCollections: string[],
-  ticketCollections: string[],
 ): Zapp {
   return {
     name,
     permissions: {
-      REQUEST_PROOF: { collections: ticketCollections },
       READ_POD: { collections: podCollections },
       INSERT_POD: { collections: podCollections },
     },

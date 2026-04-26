@@ -17,7 +17,6 @@ import { constructZapp } from "../zapi/zapps.ts";
 import { collectionName } from "../zapi/collections.ts";
 import { isError } from "../utils/error.ts";
 import { toaster } from "../components/ui/toaster.tsx";
-import { getConferenceTickets } from "~/hooks/use-conference-tickets.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { NavigationDrawer } from "~/components/NavigationDrawer/index.tsx";
 
@@ -43,17 +42,11 @@ export default function EventCard() {
         context?.config.zappName ?? "",
         event?.conference.name,
       );
-      const tickets = await getConferenceTickets(event?.conferenceId);
-      const ticketCollectionsSet = new Set(
-        tickets.map((ticket) => ticket.collectionName),
-      );
-      const ticketCollections = Array.from(ticketCollectionsSet);
 
       const zapi = await connect(
         constructZapp(
           context?.config.zappName ?? "",
           [collection],
-          ticketCollections,
         ),
       );
       const pods = await getZupassPods(
