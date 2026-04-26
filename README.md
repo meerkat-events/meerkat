@@ -1,7 +1,6 @@
 ## Meerkat
 
-The audience engagement tool for in-person and virtual conferences, used by the
-Ethereum Foundation for Devcon, Devconnect, and others.
+The audience engagement tool for in-person and virtual conferences, used by the Ethereum Foundation for Devcon, Devconnect, and others.
 
 ### Prerequisites
 
@@ -16,9 +15,6 @@ To get started, run `./scripts/setup.sh` from the root directory. It will:
 2. Install dependencies.
 3. Run database migrations.
 4. Seed the database.
-
-If you wish to tear down the development environment, run
-`./scripts/teardown.sh` from the root directory.
 
 ## Development
 

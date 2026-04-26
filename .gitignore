@@ -27,3 +27,5 @@ caddy_data/
 .backups
 
 .claude
+
+supabase
