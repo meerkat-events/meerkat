@@ -136,6 +136,15 @@ HTTP 200) before the task is done.
 - **Routing helpers**: use `qa(uid)` and `card(uid)` from `routing.ts` — don't
   construct URLs manually
 
+## Git Workflow
+
+- **Stashes**: multiple agents run in parallel against this repo, so
+  `git stash` / `git stash pop` is unsafe — the index is shared and another
+  agent may pop your stash (or you may pop theirs). Always use named stashes
+  via `git stash push -m "<descriptive-name>"` and pop them by reference with
+  `git stash pop stash^{/<descriptive-name>}` (or look up the exact stash
+  index with `git stash list` and pop that index explicitly).
+
 ## Environment Variables
 
 Required (in `api/.env`):
