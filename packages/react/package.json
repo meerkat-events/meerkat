@@ -54,10 +54,10 @@
     "swr": "^2.4.1"
   },
   "devDependencies": {
-    "@types/react": "^19.2.14",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "@types/react": "^19.2.15",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }
