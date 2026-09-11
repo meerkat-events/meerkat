@@ -2,10 +2,22 @@ ALTER SEQUENCE conferences_id_seq RESTART WITH 1;
 ALTER SEQUENCE events_id_seq RESTART WITH 1;
 ALTER SEQUENCE questions_id_seq RESTART WITH 1;
 ALTER SEQUENCE conference_tickets_id_seq RESTART WITH 1;
-INSERT INTO conferences (name, logo_url)
-VALUES 
-	('Devconnect ARG', '/logo.png'),
-	('DuneCon 2025', '/logo.png') 
+-- Default theme for seeded conferences (mirrors app/theme/devconnect.ts)
+WITH devconnect_theme AS (
+	SELECT '{
+		"brandColor": "#74acdf",
+		"contrastColor": "#FFFFFF",
+		"background": "linear-gradient(360deg, #F6B61326 0%, #FF85A626 17%, #9894FF26 35%, #74ACDF26 64%, #F2F9FF26 100%)",
+		"textColor": "#36364c",
+		"systemTheme": "light",
+		"headingFontFamily": "Roboto Condensed",
+		"bodyFontFamily": "Roboto"
+	}'::jsonb AS theme
+)
+INSERT INTO conferences (name, logo_url, theme)
+VALUES
+	('Devconnect ARG', '/logo.png', (SELECT theme FROM devconnect_theme)),
+	('DuneCon 2025', '/logo.png', (SELECT theme FROM devconnect_theme))
 ON CONFLICT DO NOTHING;
 INSERT INTO events (
 		conference_id,

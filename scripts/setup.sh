@@ -16,6 +16,9 @@ cp api/.env.example api/.env
 echo "Installing dependencies..."
 pnpm install
 
+echo "Building workspace packages..."
+pnpm -r build
+
 echo "Running database migrations..."
 cd api
 pnpm migrate
