@@ -22,6 +22,9 @@ pnpm -r build
 echo "Running database migrations..."
 cd api
 pnpm migrate
+# On a fresh Supabase project also apply scripts/supabase-policies.sql (RLS,
+# realtime policies, publication) — not run here because it needs Supabase's
+# supabase_realtime publication and anon/authenticated roles.
 
 echo "Seeding database..."
 ./scripts/seed.sh

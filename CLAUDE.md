@@ -128,6 +128,15 @@ Frontend data fetching uses SWR throughout (`hooks/fetcher.ts`).
 2. `cd api && pnpm generate` — creates migration file in `api/drizzle/`
 3. `cd api && pnpm migrate` — applies it
 
+Drizzle migrations do not manage Supabase-specific setup (Row Level Security,
+the "Realtime" SELECT policies, membership in the `supabase_realtime`
+publication). Run `api/scripts/supabase-policies.sql` once per new Supabase
+project, after the first `pnpm migrate`:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql
+```
+
 ## Validation Checklist
 
 Before considering any change complete, always run all four checks from the

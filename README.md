@@ -55,3 +55,17 @@ cd api
 pnpm generate   # create migration file in api/drizzle/
 pnpm migrate    # apply pending migrations
 ```
+
+### How to set up a new Supabase project?
+
+1. Point `DATABASE_URL` in `api/.env` at the project and run `pnpm migrate`.
+2. Apply the Supabase-specific setup that migrations do not cover (Row Level
+   Security, realtime SELECT policies, `supabase_realtime` publication):
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql
+```
+
+3. In the dashboard: enable anonymous sign-ins, configure custom SMTP and the
+   OTP e-mail templates (they must render `{{ .Token }}`), and set the Site URL
+   and redirect URLs to the app's `BASE_URL`.

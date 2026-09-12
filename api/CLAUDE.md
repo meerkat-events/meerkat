@@ -126,6 +126,9 @@ server build is imported at runtime by `main.ts`).
 2. `cd api && pnpm generate` — creates a Drizzle migration file in
    `api/drizzle/`
 3. `cd api && pnpm migrate` — applies pending migrations
+4. New Supabase project only: `psql "$DATABASE_URL" -f scripts/supabase-policies.sql`
+   (RLS, realtime SELECT policies, `supabase_realtime` publication — not covered
+   by Drizzle)
 
 ## pnpm scripts
 
