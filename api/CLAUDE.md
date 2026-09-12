@@ -165,6 +165,9 @@ The admin API is separate: argon2-hashed API keys in the DB
    `api/drizzle/`
 3. `cd api && pnpm migrate` — applies pending migrations locally; deploys run
    `migrate.ts` as Fly's `release_command` instead
+4. New Supabase project only: `psql "$DATABASE_URL" -f scripts/supabase-policies.sql`
+   (RLS, realtime SELECT policies, `supabase_realtime` publication — not covered
+   by Drizzle)
 
 ## pnpm scripts
 
