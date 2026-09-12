@@ -1,3 +1,4 @@
+import { apiUrl } from "../lib/api-url.ts";
 import { HTTPError } from "./http-error.ts";
 import { extractHTTPError } from "./request.ts";
 
@@ -7,7 +8,7 @@ const SHARED_HEADERS = {
 };
 
 export const fetcher = async (endpoint: string, token?: string) => {
-  const res = await fetch(`${import.meta.env["VITE_API_URL"]}${endpoint}`, {
+  const res = await fetch(apiUrl(endpoint), {
     headers: {
       ...SHARED_HEADERS,
       ...(token ? { "Authorization": `Bearer ${token}` } : {}),
@@ -24,7 +25,7 @@ export const poster = async (
   { arg }: { arg: Record<string, unknown> },
   token?: string,
 ) => {
-  const res = await fetch(`${import.meta.env["VITE_API_URL"]}${endpoint}`, {
+  const res = await fetch(apiUrl(endpoint), {
     method: "POST",
     headers: {
       ...SHARED_HEADERS,
@@ -39,7 +40,7 @@ export const poster = async (
 };
 
 export const deleter = async (endpoint: string, token?: string) => {
-  const res = await fetch(`${import.meta.env["VITE_API_URL"]}${endpoint}`, {
+  const res = await fetch(apiUrl(endpoint), {
     headers: {
       ...SHARED_HEADERS,
       ...(token ? { "Authorization": `Bearer ${token}` } : {}),

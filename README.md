@@ -60,7 +60,10 @@ Optionally, attendees can collect a signed attendance proof (a
 cd api && pnpm dev
 ```
 
-The app is served at `http://localhost:8000`.
+The app is served at `http://localhost:8000`. Set `PORT` to use a different
+port; the frontend follows automatically. In a new git worktree, run
+`./scripts/worktree-setup.sh` once to copy `api/.env`, install dependencies
+and build (it also runs automatically at the start of a Claude Code session).
 
 `pnpm dev` runs the Node server with `--watch` and serves the **built**
 frontend from `api/build/`. Backend changes reload automatically; after
@@ -84,12 +87,14 @@ so rebuild it after changing the package.
 ## Docker
 
 ```bash
-docker build --build-arg VITE_API_URL=http://localhost:8000 -t meerkat .
+docker build -t meerkat .
 docker run --rm --env-file api/.env -p 8000:8000 meerkat
 ```
 
-`VITE_API_URL` is compiled into the frontend, so pass the public origin of the
-deployment as a build argument.
+`VITE_API_URL` is compiled into the frontend at build time; leave it unset (as
+above) and the frontend calls the origin it was served from, which is what
+this single container needs. Pass `--build-arg VITE_API_URL=<origin>` only
+when the frontend and API are served from different origins.
 
 ## Deployment
 
@@ -108,8 +113,6 @@ Required:
 | --------------------------- | ------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`              | Postgres connection string. `DATABASE_POOLER_URL`, if set, takes precedence at runtime.     |
 | `PRIVATE_KEY`               | Signs attendance PODs. Generate with `openssl rand -hex 32`.                                |
-| `BASE_URL`                  | Public origin of the app, used for redirects and QR codes.                                  |
-| `VITE_API_URL`              | API origin compiled into the frontend. Usually the same as `BASE_URL`.                      |
 | `SUPABASE_URL`              | Supabase project URL.                                                                       |
 | `SUPABASE_ANON_KEY`         | Supabase anon key, used by the browser for Auth and Realtime.                               |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for broadcasts and SSO logins.                  |
@@ -121,6 +124,9 @@ Optional:
 
 | Variable                 | Purpose                                                                          |
 | ------------------------ | -------------------------------------------------------------------------------- |
+| `PORT`                   | Listen port (default `8000`).                                                    |
+| `BASE_URL`               | Public origin of the app, used for redirects and QR codes. Default `http://localhost:$PORT`. |
+| `VITE_API_URL`           | API origin compiled into the frontend. Default empty: the frontend calls the origin it was served from. |
 | `CORS_ORIGINS`           | Comma-separated origins allowed to call `/api/*` from a browser. Default: `*`.   |
 | `DATABASE_POOLER_URL`    | Connection string of a connection pooler, preferred over `DATABASE_URL`.          |
 | `DATABASE_MAX_POOL_SIZE` | Max DB pool size (default: 10).                                                  |

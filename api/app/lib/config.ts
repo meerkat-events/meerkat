@@ -1,3 +1,5 @@
+import { apiUrl } from "./api-url.ts";
+
 export type Config = {
   zupassUrl: string;
   zappName: string;
@@ -8,9 +10,7 @@ export type Config = {
 };
 
 export async function getConfig() {
-  const response = await fetch(
-    `${import.meta.env["VITE_API_URL"]}/api/v1/config`,
-  );
+  const response = await fetch(apiUrl("/api/v1/config"));
 
   const config = await response.json() as Config;
 

@@ -26,6 +26,10 @@ caddy_data/
 .playwright-mcp
 .backups
 
-.claude
+# Claude Code: worktrees, local settings and transcripts stay local; the
+# launch config (preview server) and project hooks are shared.
+.claude/*
+!.claude/launch.json
+!.claude/settings.json
 
 supabase

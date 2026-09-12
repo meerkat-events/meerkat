@@ -13,9 +13,19 @@ if (!privateKey) {
   throw new Error("PRIVATE_KEY is required");
 }
 
+// Port the HTTP server listens on. Fly sets it explicitly; the desktop app's
+// launch.json uses `autoPort`, so a worktree whose preferred port is taken gets
+// a free one through this variable (process env wins over `--env-file`).
+const portRaw = process.env["PORT"] ?? "8000";
+const port = Number(portRaw);
+if (!Number.isInteger(port) || port < 0 || port > 65535) {
+  throw new Error(`PORT must be an integer in 0..65535, got "${portRaw}"`);
+}
+
 const zupassUrl = process.env["ZUPASS_URL"] ?? "https://zupass.org";
 const zappName = process.env["ZUPASS_ZAPP_NAME"] ?? "meerkat-local";
-const base = process.env["BASE_URL"] ?? "";
+// Public origin of this deployment (used for the POD type's reverse domain).
+const base = process.env["BASE_URL"] ?? `http://localhost:${port}`;
 const supabaseUrl = process.env["SUPABASE_URL"];
 const supabaseAnonKey = process.env["SUPABASE_ANON_KEY"];
 
@@ -44,6 +54,7 @@ const corsOrigins: "*" | string[] = !corsOriginsRaw || corsOriginsRaw === "*"
 
 const env = {
   connectionString,
+  port,
   base,
   privateKey,
   zupassUrl,

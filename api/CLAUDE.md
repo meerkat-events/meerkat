@@ -16,6 +16,9 @@ enums, no namespaces with runtime values, no parameter properties).
 
 The dev script (`pnpm dev`) launches with `node --env-file=.env --watch
 ./main.ts` — Node loads the env file natively and restarts on file changes.
+The server listens on `PORT` (default 8000); a `PORT` already in the process
+environment wins over the one in `.env`, which is how the desktop app's
+`autoPort` hands each worktree its own port.
 
 ## Architecture
 
@@ -96,6 +99,10 @@ React Router 7 with SSR. Chakra UI v3 for components. SWR for data fetching.
 - Route config: `app/routes.ts`
 - Data hooks: `app/hooks/use-[resource].ts` — return
   `{ data, isLoading, error }` using SWR + `hooks/fetcher.ts`
+- API origin: `app/lib/api-url.ts` — `apiUrl(endpoint)` for fetches and
+  `appOrigin()` for absolute links. With `VITE_API_URL` empty (the default)
+  both resolve to the page's own origin, so a build works on any port. Never
+  read `import.meta.env.VITE_API_URL` elsewhere.
 - Routing helpers: `app/routing.ts` exports `qa(uid)` and `card(uid)` — always
   use these, never construct URLs manually
 
