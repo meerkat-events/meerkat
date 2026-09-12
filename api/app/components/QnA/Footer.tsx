@@ -10,7 +10,7 @@ import { useLocalStorage } from "@uidotdev/usehooks";
 import type { Event } from "../../types.ts";
 import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
 import { HeartIcon } from "./HeartIcon.tsx";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { useLogout } from "../../hooks/use-logout.ts";
 import { toaster } from "../ui/toaster.tsx";
@@ -44,6 +44,16 @@ export function Footer({
   const { login: loginAnonymousUser } = useAnonymousUser();
 
   const [question, setQuestion] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Grow and shrink the input with its content (capped by maxH below).
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    const borders = textarea.offsetHeight - textarea.clientHeight;
+    textarea.style.height = `${textarea.scrollHeight + borders}px`;
+  }, [question]);
   const [isTutorialHeartFinished, setIsTutorialHeartFinished] = useLocalStorage(
     "tutorial-heart",
     false,
@@ -94,7 +104,11 @@ export function Footer({
         <div className="target question-input">
           <Flex gap={2} flexFlow="row" alignItems="flex-start">
             <Textarea
-              resize="vertical"
+              ref={textareaRef}
+              resize="none"
+              rows={1}
+              maxH="9.25rem"
+              overflowY="auto"
               size="lg"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
@@ -109,10 +123,10 @@ export function Footer({
               name="question"
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              rows={isQuestionMode ? 3 : 1}
               borderRadius="md"
-              borderColor="gray.700"
+              borderColor="transparent"
               background="bg.subtle"
+              _placeholder={{ color: "fg.muted" }}
               _focusVisible={{
                 borderColor: "transparent",
               }}
@@ -126,6 +140,7 @@ export function Footer({
               aria-label="Submit question"
               h="50px"
               w="50px"
+              borderRadius="full"
             >
               <FiSend />
             </IconButton>
