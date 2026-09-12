@@ -30,9 +30,13 @@ import { useAuth } from "../hooks/use-auth.ts";
 import { useVotes } from "../hooks/use-votes.ts";
 import { qa } from "../routing.ts";
 import { useReact } from "../hooks/use-react.ts";
-import { Reaction } from "../components/QnA/Reaction.tsx";
-import { HeartIcon } from "../components/QnA/HeartIcon.tsx";
+import { Reaction, type ReactionItem } from "../components/QnA/Reaction.tsx";
+import {
+  ReactButton,
+  type ReactionOrigin,
+} from "../components/QnA/ReactButton.tsx";
 import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
+import type { ReactionEmoji } from "../../reactions.ts";
 import { uuidv7 } from "uuidv7";
 import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
 import { useQuestions } from "@meerkat-events/react";
@@ -159,11 +163,25 @@ export default function QnA() {
     },
   );
 
-  const [reactions, setReactions] = useState<{ uid: string }[]>([]);
-  const addReaction = (reaction: { uid: string }) => {
-    setReactions((prevReactions: { uid: string }[]) => {
+  const reactButtonRef = useRef<HTMLButtonElement>(null);
+  const [reactions, setReactions] = useState<ReactionItem[]>([]);
+  const addReaction = (
+    reaction: { uid: string; emoji?: ReactionEmoji | undefined },
+    origin?: ReactionOrigin,
+  ) => {
+    // Reactions float up from where they were tapped; other people's float
+    // up from the heart button.
+    const rect = reactButtonRef.current?.getBoundingClientRect();
+    const from = origin ?? (rect
+      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+      : { x: globalThis.innerWidth - 48, y: globalThis.innerHeight - 120 });
+    setReactions((prevReactions) => {
       const hasReaction = prevReactions.some((r) => r.uid === reaction.uid);
-      return hasReaction ? prevReactions : [...prevReactions, reaction];
+      return hasReaction ? prevReactions : [...prevReactions, {
+        uid: reaction.uid,
+        emoji: reaction.emoji ?? "heart",
+        ...from,
+      }];
     });
   };
 
@@ -190,12 +208,13 @@ export default function QnA() {
       role.role === "organizer" && role.conferenceId === event?.conferenceId
     ) ?? false;
 
-  const onReactClick = () => {
+  const onReactClick = (emoji: ReactionEmoji, origin: ReactionOrigin) => {
     const reaction = {
       uid: uuidv7(),
+      emoji,
     };
     trigger(reaction);
-    addReaction(reaction);
+    addReaction(reaction, origin);
   };
 
   const isntLive = event === undefined ? false : !event.live;
@@ -357,23 +376,30 @@ export default function QnA() {
           />
         </main>
         <footer className="footer">
-          {reactions.map((reaction: { uid: string }) => (
-            <Reaction
-              key={reaction.uid}
-              uid={reaction.uid}
-              icon={<HeartIcon />}
-              setReactions={setReactions}
+          <div className="react-bubble">
+            <ReactButton
+              ref={reactButtonRef}
+              disabled={!isAuthenticated}
+              onReact={onReactClick}
             />
-          ))}
+          </div>
           <Footer
             event={event}
             user={user}
             isUserLoading={isLoading}
             isAuthenticated={isAuthenticated}
-            onReactClick={onReactClick}
             refresh={refresh}
           />
         </footer>
+      </div>
+      <div className="reactions-overlay" aria-hidden="true">
+        {reactions.map((reaction) => (
+          <Reaction
+            key={reaction.uid}
+            reaction={reaction}
+            setReactions={setReactions}
+          />
+        ))}
       </div>
       {isBlocked && (
         <Modal

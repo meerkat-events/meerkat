@@ -1,4 +1,5 @@
 import type { PODData } from "@parcnet-js/podspec";
+import type { ReactionEmoji } from "../reactions.ts";
 export type Theme = {
   brandColor: string;
   contrastColor: string;
@@ -60,5 +61,6 @@ export type Reaction = {
   created_at: string;
   event_id: number;
   uid: string;
+  emoji?: ReactionEmoji | undefined;
 };
 
