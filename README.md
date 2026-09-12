@@ -13,7 +13,7 @@ Optionally, attendees can collect a signed attendance proof (a
 
 | Path               | What it is                                                                                        |
 | ------------------ | ------------------------------------------------------------------------------------------------- |
-| `api/`             | The application: Hono HTTP API, React Router 7 frontend (SSR), Drizzle schema and migrations      |
+| `api/`             | The application: Hono HTTP API, React Router 8 frontend (SSR), Drizzle schema and migrations      |
 | `packages/react/`  | [`@meerkat-events/react`](packages/react/README.md) — hooks to embed live questions in your own site |
 | `scripts/setup.sh` | One-shot local setup                                                                              |
 
