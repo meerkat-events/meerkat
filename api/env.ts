@@ -32,6 +32,16 @@ const sentryDSN = process.env["SENTRY_DSN"];
 const maxPoolSize = process.env["DATABASE_MAX_POOL_SIZE"];
 const environment = process.env["ENVIRONMENT"] ?? "development";
 
+// Origins allowed to call /api/* from a browser (comma-separated), e.g. the
+// Devcon event app embedding `@meerkat-events/react`. Defaults to "*": the API
+// authenticates with bearer tokens / API keys rather than cookies, so allowing
+// any origin does not enable CSRF, and the public read endpoints are meant to
+// be embeddable anywhere.
+const corsOriginsRaw = process.env["CORS_ORIGINS"]?.trim();
+const corsOrigins: "*" | string[] = !corsOriginsRaw || corsOriginsRaw === "*"
+  ? "*"
+  : corsOriginsRaw.split(",").map((origin) => origin.trim()).filter(Boolean);
+
 const env = {
   connectionString,
   base,
@@ -45,6 +55,7 @@ const env = {
   maxPoolSize,
   environment,
   devconJwtSecret,
+  corsOrigins,
 };
 
 logger.info({
