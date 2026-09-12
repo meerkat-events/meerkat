@@ -115,8 +115,8 @@ Required:
 | `PRIVATE_KEY`               | Signs attendance PODs. Generate with `openssl rand -hex 32`.                                |
 | `SUPABASE_URL`              | Supabase project URL.                                                                       |
 | `SUPABASE_ANON_KEY`         | Supabase anon key, used by the browser for Auth and Realtime.                               |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for broadcasts and SSO logins.                  |
-| `DEVCON_JWT_SECRET`         | Shared HS256 secret for validating Devcon SSO tokens.                                       |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for broadcasts and Devcon handover sign-ins.    |
+| `DEVCON_VERIFICATION_SECRET` | Shared HS256 secret for verifying Devcon handover tokens (the Devcon app's `VERIFICATION_SECRET`). |
 | `ZUPASS_URL`                | Zupass server URL.                                                                          |
 | `ZUPASS_ZAPP_NAME`          | Name of the Zupass zapp; also namespaces the POD collection.                                |
 

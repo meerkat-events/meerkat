@@ -1,6 +1,5 @@
 import { reactRouter } from "@react-router/dev/vite";
 import { defineConfig } from "vite";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -10,12 +9,7 @@ export default defineConfig({
   build: {
     target: "esnext",
   },
-  plugins: [
-    reactRouter(),
-    nodePolyfills({
-      include: ["buffer", "constants"],
-    }),
-  ],
+  plugins: [reactRouter()],
   resolve: {
     alias: {
       "~": path.resolve(__dirname, "./app"),
