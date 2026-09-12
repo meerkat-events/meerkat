@@ -1,3 +1,8 @@
 packages:
   - "api"
   - "packages/*"
+
+# Packages allowed to run install/build scripts (pnpm >= 10.26 syntax).
+allowBuilds:
+  argon2: true
+  esbuild: true
