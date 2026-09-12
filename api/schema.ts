@@ -16,6 +16,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { ReactionEmoji } from "./reactions.ts";
 
 const authSchema = pgSchema("auth");
 
@@ -200,6 +201,7 @@ export const reactions = pgTable(
     eventId: integer("event_id")
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
+    emoji: text("emoji").$type<ReactionEmoji>().notNull().default("heart"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (
