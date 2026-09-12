@@ -77,6 +77,19 @@ sleep 4 && curl -s http://localhost:8000 -o /dev/null -w "HTTP %{http_code}\n"
 docker stop $(docker ps -q --filter ancestor=meerkat:latest)
 ```
 
+## Dependency updates and the pnpm cooldown
+
+pnpm 12 (pinned via `packageManager`) refuses to install any package version
+published less than 24 hours ago (`minimumReleaseAge`, default 1440 minutes).
+If `pnpm install` fails with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` after a
+dependency bump, keep the policy and re-resolve the lockfile instead:
+
+```bash
+pnpm clean --lockfile && pnpm install
+```
+
+pnpm then picks the newest versions that are old enough.
+
 ## Architecture
 
 ### One process, three layers
