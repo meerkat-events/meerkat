@@ -5,7 +5,8 @@ import { useReactionsSubscription } from "../../hooks/use-reactions-subscription
 import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
 import { useCallback, useState } from "react";
-import type { Event } from "../../types.ts";
+import type { Event, Reaction } from "../../types.ts";
+import { REACTION_GLYPHS, type ReactionEmoji } from "../../../reactions.ts";
 import { randomNormal } from "d3-random";
 
 import "./styles.css";
@@ -19,15 +20,18 @@ export type PresenterProps = {
 
 export default function Presenter({ event, url }: PresenterProps) {
   const [searchParams] = useSearchParams();
-  const [reactions, setReactions] = useState<{ id: string; x: number }[]>([]);
+  const [reactions, setReactions] = useState<
+    { id: string; x: number; emoji: ReactionEmoji }[]
+  >([]);
 
   const hideQRCode = searchParams.get("hide-qr-code") === "true";
 
-  const addReaction = useCallback(() => {
+  const addReaction = useCallback((reaction: Reaction) => {
     const id = globalThis.crypto.randomUUID();
     const x = Math.max(0, Math.min(100, randomX()));
+    const emoji = reaction.emoji ?? "heart";
 
-    setReactions((prev) => [...prev, { id, x }]);
+    setReactions((prev) => [...prev, { id, x, emoji }]);
 
     setTimeout(() => {
       setReactions((prev) => prev.filter((reaction) => reaction.id !== id));
@@ -66,14 +70,26 @@ export default function Presenter({ event, url }: PresenterProps) {
       </aside>
 
       <div className="reactions-container">
-        {reactions.map((reaction) => (
-          <div
-            key={reaction.id}
-            className="reaction"
-            style={{ left: `${reaction.x}%` }}
-            dangerouslySetInnerHTML={{ __html: HeartIcon }}
-          />
-        ))}
+        {reactions.map((reaction) =>
+          reaction.emoji === "heart"
+            ? (
+              <div
+                key={reaction.id}
+                className="reaction"
+                style={{ left: `${reaction.x}%` }}
+                dangerouslySetInnerHTML={{ __html: HeartIcon }}
+              />
+            )
+            : (
+              <div
+                key={reaction.id}
+                className="reaction reaction-emoji"
+                style={{ left: `${reaction.x}%` }}
+              >
+                {REACTION_GLYPHS[reaction.emoji]}
+              </div>
+            )
+        )}
       </div>
     </div>
   );

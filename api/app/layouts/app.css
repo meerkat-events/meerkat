@@ -61,7 +61,8 @@ ul {
 }
 
 .question-list {
-  padding: 1rem 0 1rem 0;
+  /* Extra bottom space so the last question scrolls clear of the heart bubble */
+  padding: 1rem 0 4.5rem 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -192,13 +193,101 @@ ul {
   );
 }
 
-.reaction {
+/* The heart button floats above the send button (the footer is its
+   positioning context), over the bottom of the question list. */
+.react-bubble {
   position: absolute;
-  top: 0;
-  animation: floatUp 3s ease-out forwards;
+  right: 1rem;
+  bottom: calc(100% + 0.25rem);
+  z-index: 5;
 }
 
-@keyframes floatUp {
+/* Heart bubble, with the bar of more reactions sliding out to its left. The
+   heart comes first in the DOM so Tab moves from it into the bar. */
+.reaction-picker {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reaction-bar {
+  display: flex;
+  flex-direction: row-reverse; /* first reaction sits nearest the heart */
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background-color: var(--chakra-colors-bg-panel);
+  box-shadow:
+    0 8px 16px
+      color-mix(in srgb, var(--chakra-colors-brand-solid) 35%, transparent),
+    0 0 1px
+      color-mix(in srgb, var(--chakra-colors-brand-solid) 60%, transparent);
+  transform-origin: right center;
+  animation: reaction-bar-in 180ms ease-out;
+}
+
+.reaction-bar-item {
+  animation: reaction-bar-item-in 180ms ease-out both;
+}
+
+@keyframes reaction-bar-in {
+  from {
+    transform: scaleX(0.6);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes reaction-bar-item-in {
+  from {
+    transform: translateX(8px) scale(0.8);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction-bar,
+  .reaction-bar-item {
+    animation: none;
+  }
+}
+
+/* Emoji reactions in the same 24px box as the heart icon. */
+.reaction-glyph {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  font-size: 22px;
+  line-height: 24px;
+  text-align: center;
+}
+
+/* Reaction hearts float up from the heart button, growing and fading out. */
+.reactions-overlay {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.reaction-heart {
+  position: absolute;
+  margin: -12px 0 0 -12px; /* center the 24px heart on its origin */
+  animation: heart-float-up 3s ease-out forwards;
+}
+
+@keyframes heart-float-up {
   0% {
     transform: translateY(0) scale(1);
     opacity: 1;
@@ -207,6 +296,57 @@ ul {
   100% {
     transform: translateY(-40dvh) scale(2);
     opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction-heart {
+    animation: heart-fade 1s ease-out forwards;
+  }
+}
+
+@keyframes heart-fade {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  30% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* The heart button keeps beating while it can be used. */
+.heart-pulsate {
+  animation: heart-pulsate 1s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* A gentle beat: never smaller than 1.1x, never bigger than 1.35x. */
+@keyframes heart-pulsate {
+  0% {
+    transform: scale(1.1);
+  }
+
+  50% {
+    transform: scale(1.35);
+  }
+
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heart-pulsate {
+    animation: none;
+    transform: scale(1.2);
   }
 }
 

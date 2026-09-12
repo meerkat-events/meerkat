@@ -134,6 +134,12 @@
   animation: floatUp 3s ease-out forwards;
 }
 
+/* Emoji reactions, sized to match the 24px heart. */
+.reaction-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
 .reactions-container {
   position: fixed;
   top: 0;
