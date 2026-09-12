@@ -82,6 +82,14 @@ sleep 4 && curl -s http://localhost:8000 -o /dev/null -w "HTTP %{http_code}\n"
 docker stop $(docker ps -q --filter ancestor=meerkat:latest)
 ```
 
+## TypeScript stays on 6.x
+
+Do not bump `typescript` to 7 yet. typescript-eslint's peer range caps at
+`<6.1.0`, and TypeScript 7.0 ships no programmatic API (expected in 7.1), so
+typescript-eslint, tsup's `dts` build and `react-router typegen` cannot load it.
+Running 7 for `tsc` alone means installing both versions side by side, which
+isn't worth the confusion here. Revisit once typescript-eslint supports 7.
+
 ## Dependency updates and the pnpm cooldown
 
 pnpm 12 (pinned via `packageManager`) refuses to install any package version
