@@ -14,7 +14,8 @@ their Zupass.
 
 ## Repository layout
 
-pnpm workspace (Node.js 24, pnpm via corepack). Two packages:
+pnpm workspace (Node.js 26; pnpm installed via its own installer, since Node 26
+dropped corepack). Two packages:
 
 - **`api/`** (package name `ui`) — the whole application: Hono HTTP API,
   React Router 8 SSR frontend, Drizzle schema + migrations. Deeper notes in
@@ -80,6 +81,14 @@ docker run --rm --env-file api/.env -p 8000:8000 meerkat:latest &
 sleep 4 && curl -s http://localhost:8000 -o /dev/null -w "HTTP %{http_code}\n"
 docker stop $(docker ps -q --filter ancestor=meerkat:latest)
 ```
+
+## TypeScript stays on 6.x
+
+Do not bump `typescript` to 7 yet. typescript-eslint's peer range caps at
+`<6.1.0`, and TypeScript 7.0 ships no programmatic API (expected in 7.1), so
+typescript-eslint, tsup's `dts` build and `react-router typegen` cannot load it.
+Running 7 for `tsc` alone means installing both versions side by side, which
+isn't worth the confusion here. Revisit once typescript-eslint supports 7.
 
 ## Dependency updates and the pnpm cooldown
 
@@ -197,7 +206,7 @@ the theme. `conferences.features` rows are boolean feature flags surfaced as
 
 ### Runtime constraints
 
-- Node 24 runs `.ts` directly (type stripping): imports use explicit `.ts`
+- Node 26 runs `.ts` directly (type stripping): imports use explicit `.ts`
   extensions, `erasableSyntaxOnly` forbids enums/namespaces/parameter
   properties, ESM only, no `npm:`/`jsr:` specifiers.
 - `@pcd/pod` and friends pull in CJS-only deps: server code imports them via

@@ -4,12 +4,12 @@ Detailed guidance for working in the `api/` directory.
 
 ## Runtime
 
-Node.js 24 — runs `.ts` files directly via the native type-stripping loader.
+Node.js 26 — runs `.ts` files directly via the native type-stripping loader.
 No `tsx`, no `ts-node`, no compile step at runtime. ESM throughout
 (`"type": "module"` in `package.json`).
 
 `tsconfig.json` sets `allowImportingTsExtensions: true` so `.ts` extension
-imports are valid — Node 24 resolves them natively, and Vite handles them
+imports are valid — Node 26 resolves them natively, and Vite handles them
 during the frontend build. The config also enforces `erasableSyntaxOnly` so
 only TypeScript syntax that Node can strip without codegen is allowed (no
 enums, no namespaces with runtime values, no parameter properties).
@@ -151,7 +151,7 @@ The admin API is separate: argon2-hashed API keys in the DB
 ## Import conventions
 
 - `.ts` extensions in all local imports (e.g. `from "./env.ts"`) — required by
-  Node 24's native loader and consistent with the codebase
+  Node 26's native loader and consistent with the codebase
 - `~/` alias for `app/` directory
 - All packages imported by npm name (e.g. `hono`, `hono/streaming`)
 - No `npm:` or `jsr:` prefixes — this is Node.js, not Deno
