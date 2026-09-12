@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "meerkat-api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "api", "dev"],
+      "port": 8000,
+      "autoPort": true
+    }
+  ]
+}

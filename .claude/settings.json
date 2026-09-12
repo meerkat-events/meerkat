@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd \"$(jq -r .cwd 2>/dev/null || pwd)\" 2>/dev/null; if [ -x ./scripts/worktree-setup.sh ]; then ./scripts/worktree-setup.sh --if-needed; fi'",
+            "timeout": 180
+          }
+        ]
+      }
+    ]
+  }
+}

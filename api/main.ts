@@ -3,6 +3,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { createRequestHandler, type ServerBuild } from "react-router";
 import app from "./app.ts";
+import env from "./env.ts";
 import logger from "./logger.ts";
 
 // @ts-expect-error - generated React Router build output has no TypeScript declarations
@@ -25,6 +26,6 @@ app.get(
 
 app.get("*", (c) => handler(c.req.raw));
 
-serve({ fetch: app.fetch, hostname: "0.0.0.0", port: 8000 }, (info) => {
+serve({ fetch: app.fetch, hostname: "0.0.0.0", port: env.port }, (info) => {
   logger.info({ address: info.address, port: info.port }, "Server running");
 });

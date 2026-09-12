@@ -1,0 +1,3 @@
+# Gitignored files Claude Code copies into every worktree it creates
+# (desktop sessions, --worktree, subagent worktrees). .gitignore syntax.
+api/.env

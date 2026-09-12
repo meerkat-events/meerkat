@@ -31,14 +31,16 @@ There is no test suite. Validation is typecheck + lint (+ Docker build).
 ## Commands
 
 ```bash
-./scripts/setup.sh        # first time: copy .env, pnpm install, pnpm -r build, migrate, seed
-pnpm install && pnpm -r build   # in every new git worktree (node_modules and dist are per-worktree)
+./scripts/setup.sh          # first time: copy .env, pnpm install, pnpm -r build, migrate, seed
+./scripts/worktree-setup.sh # new git worktree: copy api/.env, pnpm install, pnpm -r build.
+                             # Idempotent, and runs automatically (--if-needed) from the
+                             # SessionStart hook — see Git workflow below.
 ```
 
 ### `api/`
 
 ```bash
-pnpm dev        # node --env-file=.env --watch main.ts on port 8000 (port is hardcoded in main.ts)
+pnpm dev        # node --env-file=.env --watch main.ts on $PORT (default 8000)
 pnpm build      # react-router build → build/client + build/server
 pnpm typecheck  # react-router typegen && build && tsc --noEmit
 pnpm lint       # eslint
@@ -53,8 +55,10 @@ pnpm start      # production: node main.ts (needs build/)
 restarts on the new bundle. Backend `.ts` changes reload directly.
 
 `VITE_API_URL` is baked into the client bundle at build time (Vite reads
-`api/.env`; Docker takes it as a build arg). It must equal the origin that
-serves the app or the browser calls the wrong host.
+`api/.env`; Docker takes it as a build arg). Leave it empty — the default —
+and the frontend calls the origin it was served from instead
+(`app/lib/api-url.ts`), so one build works behind any port; set it only when
+the frontend and API are served from different origins.
 
 ### `packages/react/`
 
@@ -198,6 +202,10 @@ the theme. `conferences.features` rows are boolean feature flags surfaced as
 4. If a new table needs browser `postgres_changes`, add it to the realtime
    publication in Supabase.
 
+All worktrees point at the same Supabase database (`api/.env` is a copy, not
+per-worktree), so `pnpm migrate` from one branch changes the schema under
+every other worktree. Coordinate before migrating locally.
+
 ## Code style
 
 - Prefer `globalThis` over `window` (`globalThis.location`,
@@ -226,6 +234,17 @@ the theme. `conferences.features` rows are boolean feature flags surfaced as
 - A local (untracked) pre-commit hook lints staged `api/**/*.ts(x)` with
   `eslint --fix`; it silently skips when `api/node_modules` is missing, so
   run `pnpm install` in a fresh worktree to get lint-on-commit.
+- Each worktree runs its own dev server: `api/main.ts` listens on `PORT`
+  (default 8000), and `.claude/launch.json` has `autoPort: true`, so the
+  desktop app hands a worktree a free port when 8000 is taken (passed via
+  `PORT`, which wins over `.env` under Node's `--env-file`). Never test
+  against a server you didn't start yourself — it may be serving another
+  worktree's branch; check its owner with `lsof -nP -iTCP:<port>
+  -sTCP:LISTEN` and `lsof -p <pid> | grep cwd`.
+- `.worktreeinclude` copies the gitignored `api/.env` into every worktree
+  Claude Code creates, and a `SessionStart` hook (`.claude/settings.json`)
+  runs `scripts/worktree-setup.sh --if-needed`, so a fresh worktree is
+  installed and built within a few seconds, before you look at it.
 
 ## Deployment
 
@@ -244,8 +263,9 @@ stale manual workflow from the Deno era (`deno task sync` no longer exists).
 | `DEVCON_JWT_SECRET`         | Required; HS256 secret for Devcon SSO tokens                 |
 | `SUPABASE_SERVICE_ROLE_KEY` | Required; REST broadcast + magic-link generation             |
 | `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Optional in code, but without them there is no auth and no realtime |
-| `BASE_URL`                  | Public origin; used for redirects, QR codes, POD type prefix |
-| `VITE_API_URL`              | Build-time client API origin (see Commands)                  |
+| `PORT`                      | Listen port; default `8000`. The desktop app's `autoPort` sets this via the environment when 8000 is taken |
+| `BASE_URL`                  | Public origin; used for redirects, QR codes, POD type prefix. Default `http://localhost:$PORT` |
+| `VITE_API_URL`              | Build-time client API origin (see Commands). Default empty — same origin as the page |
 | `CORS_ORIGINS`              | Comma-separated allowed origins for `/api/*`; default `*`    |
 | `ZUPASS_URL`, `ZUPASS_ZAPP_NAME` | Zupass connector config                                 |
 | `SENTRY_DSN`, `ENVIRONMENT`, `DATABASE_MAX_POOL_SIZE` | Optional                              |
