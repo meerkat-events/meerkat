@@ -6,10 +6,8 @@ import {
   Textarea,
   useDisclosure,
 } from "@chakra-ui/react";
-import { useLocalStorage } from "@uidotdev/usehooks";
 import type { Event } from "../../types.ts";
 import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
-import { HeartIcon } from "./HeartIcon.tsx";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { useLogout } from "../../hooks/use-logout.ts";
@@ -28,7 +26,6 @@ export type FooterProps = {
   isUserLoading: boolean;
   user: User | undefined;
   refresh: () => void;
-  onReactClick: () => void;
 };
 
 export function Footer({
@@ -37,10 +34,7 @@ export function Footer({
   isUserLoading,
   user,
   refresh,
-  onReactClick,
 }: FooterProps) {
-  const [focused, setFocused] = useState(false);
-
   const { login: loginAnonymousUser } = useAnonymousUser();
 
   const [question, setQuestion] = useState("");
@@ -54,10 +48,6 @@ export function Footer({
     const borders = textarea.offsetHeight - textarea.clientHeight;
     textarea.style.height = `${textarea.scrollHeight + borders}px`;
   }, [question]);
-  const [isTutorialHeartFinished, setIsTutorialHeartFinished] = useLocalStorage(
-    "tutorial-heart",
-    false,
-  );
 
   const { trigger, isMutating } = useAskQuestion(event, {
     onSuccess: () => {
@@ -91,8 +81,6 @@ export function Footer({
     }
   };
 
-  const isQuestionMode = focused || question;
-
   const onLogout = async () => {
     await logout();
     globalThis.location.reload();
@@ -121,8 +109,6 @@ export function Footer({
               disabled={!isAuthenticated}
               placeholder="Type a question..."
               name="question"
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
               borderRadius="md"
               borderColor="transparent"
               background="bg.subtle"
@@ -144,31 +130,6 @@ export function Footer({
             >
               <FiSend />
             </IconButton>
-            {!isQuestionMode
-              ? (
-                <IconButton
-                  disabled={!isAuthenticated}
-                  onClick={() => {
-                    onReactClick();
-                    setIsTutorialHeartFinished(true);
-                  }}
-                  variant="ghost"
-                  size="lg"
-                  aria-label="React to event"
-                  type="button"
-                  h="50px"
-                  w="50px"
-                >
-                  <div
-                    className={!isTutorialHeartFinished && isAuthenticated
-                      ? "pulsate"
-                      : undefined}
-                  >
-                    <HeartIcon />
-                  </div>
-                </IconButton>
-              )
-              : null}
           </Flex>
           <span className="signin-name">
             Signed as{" "}

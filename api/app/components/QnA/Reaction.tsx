@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useRef } from "react";
+import type { ReactionEmoji } from "../../../reactions.ts";
+import { ReactionGlyph } from "./ReactionGlyph.tsx";
+
+/** A reaction to animate, with the viewport point it floats up from. */
+export type ReactionItem = {
+  uid: string;
+  emoji: ReactionEmoji;
+  x: number;
+  y: number;
+};
 
 interface ReactionProps {
-  uid: string;
-  icon: React.ReactNode;
-  setReactions: React.Dispatch<React.SetStateAction<{ uid: string }[]>>;
+  reaction: ReactionItem;
+  setReactions: React.Dispatch<React.SetStateAction<ReactionItem[]>>;
 }
 
-export function Reaction({ uid, icon, setReactions }: ReactionProps) {
+export function Reaction({ reaction, setReactions }: ReactionProps) {
+  const { uid, emoji, x, y } = reaction;
   const reactionRef = useRef<HTMLDivElement | null>(null);
 
   const removeReaction = useCallback((uid: string) => {
@@ -29,11 +39,15 @@ export function Reaction({ uid, icon, setReactions }: ReactionProps) {
     };
   }, [uid, removeReaction]);
 
-  // "Random" starting position
-  const right = ((getTimestamp(uid) % 100) / 100) * 2 + 5;
+  // "Random" starting position, up to 2% of the screen left of the button
+  const nudge = ((getTimestamp(uid) % 100) / 100) * 2;
   return (
-    <div className="reaction" ref={reactionRef} style={{ right: `${right}%` }}>
-      {icon}
+    <div
+      className="reaction-heart"
+      ref={reactionRef}
+      style={{ left: `calc(${x}px - ${nudge}vw)`, top: y }}
+    >
+      <ReactionGlyph emoji={emoji} />
     </div>
   );
 }
