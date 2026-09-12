@@ -36,6 +36,7 @@ import {
   getUserPostCountPerTalk,
 } from "../models/user.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
+import { REACTION_EMOJIS } from "../reactions.ts";
 import { type Feature, getFeatures } from "../models/features.ts";
 import { createAttendancePOD } from "../zupass.ts";
 import { getConferenceRolesForConference } from "../models/roles.ts";
@@ -252,6 +253,7 @@ app.post(
 
 const reactionScheme = zod.object({
   uid: zod.string(),
+  emoji: zod.enum(REACTION_EMOJIS).default("heart"),
 });
 
 app.post(
@@ -261,7 +263,7 @@ app.post(
   eventMiddleware,
   async (c) => {
     const payload = c.get("jwtPayload");
-    const uid = c.req.valid("json").uid;
+    const { uid, emoji } = c.req.valid("json");
     const user = await getUserById(payload.sub);
     const event = c.get("event");
 
@@ -287,6 +289,7 @@ app.post(
       uid,
       eventId: event.id,
       userId: user.id,
+      emoji,
     });
 
     logger.info({ reaction, event, user }, "Created reaction");
@@ -294,6 +297,7 @@ app.post(
     return c.json({
       data: {
         uid,
+        emoji: reaction.emoji,
         createdAt: reaction.createdAt,
       },
     });

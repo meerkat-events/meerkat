@@ -43,6 +43,13 @@
       "when": 1763320077011,
       "tag": "0005_rare_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789236307230,
+      "tag": "0006_crazy_blazing_skull",
+      "breakpoints": true
     }
   ]
 }
