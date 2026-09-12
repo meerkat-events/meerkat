@@ -19,7 +19,9 @@ Optionally, attendees can collect a signed attendance proof (a
 
 ## Prerequisites
 
-- [Node.js 24](https://nodejs.org/) (ships corepack, which provides pnpm)
+- [Node.js 26](https://nodejs.org/). It no longer ships corepack, so install
+  pnpm with `npm install -g pnpm`; it then switches itself to the version
+  pinned in `packageManager`
 - A [Supabase](https://supabase.com) project — it provides Postgres, Auth and
   Realtime
 - `psql`, used by the seed script

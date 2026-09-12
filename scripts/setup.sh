@@ -3,11 +3,11 @@ set -e
 
 echo "Starting Meerkat setup..."
 
-# Enable corepack and install pnpm if not already available
+# Install pnpm if not already available. Node 26 dropped corepack, so use npm;
+# pnpm then switches itself to the version pinned in "packageManager".
 if ! command -v pnpm &> /dev/null; then
-  echo "Installing pnpm via corepack..."
-  corepack enable
-  corepack prepare --activate
+  echo "Installing pnpm via npm..."
+  npm install -g pnpm
 fi
 
 echo "Setting up environment files..."

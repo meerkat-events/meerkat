@@ -14,7 +14,8 @@ their Zupass.
 
 ## Repository layout
 
-pnpm workspace (Node.js 24, pnpm via corepack). Two packages:
+pnpm workspace (Node.js 26; pnpm installed via npm, since Node 26 dropped
+corepack). Two packages:
 
 - **`api/`** (package name `ui`) — the whole application: Hono HTTP API,
   React Router 8 SSR frontend, Drizzle schema + migrations. Deeper notes in
@@ -197,7 +198,7 @@ the theme. `conferences.features` rows are boolean feature flags surfaced as
 
 ### Runtime constraints
 
-- Node 24 runs `.ts` directly (type stripping): imports use explicit `.ts`
+- Node 26 runs `.ts` directly (type stripping): imports use explicit `.ts`
   extensions, `erasableSyntaxOnly` forbids enums/namespaces/parameter
   properties, ESM only, no `npm:`/`jsr:` specifiers.
 - `@pcd/pod` and friends pull in CJS-only deps: server code imports them via

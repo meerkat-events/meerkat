@@ -1,9 +1,12 @@
-FROM node:24-bookworm-slim
+FROM node:26-bookworm-slim
 
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
-RUN corepack enable && corepack prepare pnpm@12.4.1 --activate
+# Node 26 no longer ships corepack, so install the pinned pnpm with npm.
+# --allow-scripts lets pnpm unpack its native binary; npm 11 blocks it otherwise.
+# Keep this version in sync with "packageManager" in the root package.json.
+RUN npm install -g --allow-scripts=pnpm pnpm@12.4.1 && npm cache clean --force
 
 WORKDIR /workspace
 

@@ -37,7 +37,7 @@ if ! command -v pnpm >/dev/null 2>&1 && [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; 
   . "${NVM_DIR:-$HOME/.nvm}/nvm.sh" >/dev/null
 fi
 if ! command -v pnpm >/dev/null 2>&1; then
-  log "pnpm not found on PATH; install Node 24+ and run 'corepack enable'"
+  log "pnpm not found on PATH; install Node 26 and run 'npm install -g pnpm'"
   exit 1
 fi
 
