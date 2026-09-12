@@ -14,8 +14,8 @@ their Zupass.
 
 ## Repository layout
 
-pnpm workspace (Node.js 26; pnpm installed via npm, since Node 26 dropped
-corepack). Two packages:
+pnpm workspace (Node.js 26; pnpm installed via its own installer, since Node 26
+dropped corepack). Two packages:
 
 - **`api/`** (package name `ui`) — the whole application: Hono HTTP API,
   React Router 8 SSR frontend, Drizzle schema + migrations. Deeper notes in

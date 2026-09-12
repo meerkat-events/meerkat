@@ -3,10 +3,12 @@ FROM node:26-bookworm-slim
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
-# Node 26 no longer ships corepack, so install the pinned pnpm with npm.
-# --allow-scripts lets pnpm unpack its native binary; npm 11 blocks it otherwise.
-# Keep this version in sync with "packageManager" in the root package.json.
-RUN npm install -g --allow-scripts=pnpm pnpm@12.4.1 && npm cache clean --force
+# Node 26 no longer ships corepack. Take the pnpm binary from its official
+# image, which is what https://pnpm.io/docker recommends; the standalone install
+# script is the other supported route but needs curl or wget, and this base image
+# has neither. Keep the tag in sync with "packageManager" in the root package.json.
+COPY --from=ghcr.io/pnpm/pnpm:12.4.1 /opt/pnpm /opt/pnpm
+ENV PATH="/opt/pnpm:$PATH"
 
 WORKDIR /workspace
 
