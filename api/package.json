@@ -22,7 +22,6 @@
     "@meerkat-events/react": "workspace:*",
     "@parcnet-js/app-connector": "^1.1.10",
     "@parcnet-js/podspec": "^1.2.0",
-    "@parcnet-js/ticket-spec": "^1.1.9",
     "@pcd/pod": "^0.5.1",
     "@react-router/node": "^8.3.1",
     "@sentry/node": "^10.74.0",

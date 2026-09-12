@@ -189,9 +189,6 @@ importers:
       '@parcnet-js/podspec':
         specifier: ^1.2.0
         version: 1.2.0(@types/snarkjs@0.7.9)(commander@12.1.0)(typescript@6.0.3)
-      '@parcnet-js/ticket-spec':
-        specifier: ^1.1.9
-        version: 1.1.9(@types/snarkjs@0.7.9)(commander@12.1.0)(typescript@6.0.3)
       '@pcd/pod':
         specifier: ^0.5.1
         version: 0.5.1
@@ -1325,9 +1322,6 @@ packages:
 
   '@parcnet-js/podspec@1.2.0':
     resolution: {integrity: sha512-VOksMRk9POo+mECc3VS7+YGDIv+yQ9Tu+bf8C9jZRnn9sKL8p8FE4fKdINZFimEeTe7xdR3dm47LwRcghFcWLQ==}
-
-  '@parcnet-js/ticket-spec@1.1.9':
-    resolution: {integrity: sha512-6m/zvkjZ4bT2OR9mj0G+5tAbNvTnOMVM2xJb/jYYdKziC3uW2E29EXdGuvn34eBz9CEbJo9A7H+b9IZIByTnWg==}
 
   '@pcd/gpc@0.4.1':
     resolution: {integrity: sha512-ltdoAe3+umiKoqVoiLL2lAvXD9svbVXkCczv9qDg6qd9M9GUzzSKDImeBfDUZHhotekg8g5acOCDbREBrqZg6A==}
@@ -4723,18 +4717,6 @@ snapshots:
     dependencies:
       '@pcd/gpc': 0.4.1(@types/snarkjs@0.7.9)(commander@12.1.0)(typescript@6.0.3)
       '@pcd/pod': 0.5.1
-    transitivePeerDependencies:
-      - '@types/snarkjs'
-      - bufferutil
-      - commander
-      - react-native-b4a
-      - typescript
-      - utf-8-validate
-
-  '@parcnet-js/ticket-spec@1.1.9(@types/snarkjs@0.7.9)(commander@12.1.0)(typescript@6.0.3)':
-    dependencies:
-      '@parcnet-js/client-rpc': 1.2.0(@types/snarkjs@0.7.9)(commander@12.1.0)(typescript@6.0.3)
-      '@parcnet-js/podspec': 1.2.0(@types/snarkjs@0.7.9)(commander@12.1.0)(typescript@6.0.3)
     transitivePeerDependencies:
       - '@types/snarkjs'
       - bufferutil
