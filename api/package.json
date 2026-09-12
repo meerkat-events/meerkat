@@ -46,7 +46,6 @@
     "react-router": "^8.3.1",
     "swr": "^2.5.1",
     "uuidv7": "^1.2.1",
-    "vite-plugin-node-polyfills": "^0.28.0",
     "zod": "^4.6.2"
   },
   "devDependencies": {

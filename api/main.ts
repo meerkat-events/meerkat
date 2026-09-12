@@ -3,8 +3,10 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { createRequestHandler, type ServerBuild } from "react-router";
 import app from "./app.ts";
-import env from "./env.ts";
+import env, { redactedEnv } from "./env.ts";
 import logger from "./logger.ts";
+
+logger.info({ env: redactedEnv }, "Parsed environment variables");
 
 // @ts-expect-error - generated React Router build output has no TypeScript declarations
 const build = (await import("./build/server/index.js")) as unknown as ServerBuild;

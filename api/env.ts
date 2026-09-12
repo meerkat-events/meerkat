@@ -1,5 +1,3 @@
-import logger from "./logger.ts";
-
 const connectionString = process.env["DATABASE_POOLER_URL"] ??
   process.env["DATABASE_URL"];
 
@@ -29,9 +27,9 @@ const base = process.env["BASE_URL"] ?? `http://localhost:${port}`;
 const supabaseUrl = process.env["SUPABASE_URL"];
 const supabaseAnonKey = process.env["SUPABASE_ANON_KEY"];
 
-const devconJwtSecret = process.env["DEVCON_JWT_SECRET"];
-if (!devconJwtSecret) {
-  throw new Error("DEVCON_JWT_SECRET is required");
+const devconVerificationSecret = process.env["DEVCON_VERIFICATION_SECRET"];
+if (!devconVerificationSecret) {
+  throw new Error("DEVCON_VERIFICATION_SECRET is required");
 }
 
 const supabaseServiceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
@@ -65,18 +63,17 @@ const env = {
   sentryDSN,
   maxPoolSize,
   environment,
-  devconJwtSecret,
+  devconVerificationSecret,
   corsOrigins,
 };
 
-logger.info({
-  env: {
-    ...env,
-    connectionString: "REDACTED",
-    privateKey: "REDACTED",
-    devconJwtSecret: "REDACTED",
-    supabaseServiceRoleKey: "REDACTED",
-  },
-}, "Parsed environment variables");
+/** `env` with secrets masked, for startup logging (see `main.ts`). */
+export const redactedEnv = {
+  ...env,
+  connectionString: "REDACTED",
+  privateKey: "REDACTED",
+  devconVerificationSecret: "REDACTED",
+  supabaseServiceRoleKey: "REDACTED",
+};
 
 export default env;

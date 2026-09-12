@@ -1,15 +1,22 @@
 import { useMemo, useRef, useState } from "react";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronDown, FiX } from "react-icons/fi";
 import {
   Alert,
   Button,
   createListCollection,
   Flex,
+  IconButton,
   Menu,
   NativeSelect,
   Portal,
 } from "@chakra-ui/react";
-import { useParams, useSearchParams } from "react-router";
+import {
+  redirect,
+  redirectDocument,
+  useParams,
+  useSearchParams,
+} from "react-router";
+import type { Route } from "./+types/QnA.ts";
 import { Header } from "../components/Header/Header.tsx";
 import { Modal } from "../components/Modal/Modal.tsx";
 import { NavigationDrawer } from "../components/NavigationDrawer/index.tsx";
@@ -36,6 +43,48 @@ import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
+import {
+  HANDOVER_ERROR_MESSAGES,
+  HANDOVER_ERROR_PARAM,
+  HANDOVER_TOKEN_PARAM,
+  parseHandoverError,
+} from "~/lib/handover.ts";
+import { consumeHandoverToken, sessionFragment } from "~/lib/handover.server.ts";
+
+/**
+ * Devcon handover: the Devcon event app sends ticket holders to
+ * `/e/:uid/qa?token=<jwt>`. On that document request we verify the token,
+ * establish a Supabase session for its email and redirect to the clean URL
+ * with the session in the fragment, which the browser's Supabase client picks
+ * up on load. Spec:
+ * https://github.com/efdevcon/monorepo/blob/main/event-app/src/app/api/meerkat/README.md
+ */
+export async function loader({ request, params }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get(HANDOVER_TOKEN_PARAM);
+  const uid = params["uid"];
+  if (!token || !uid) {
+    return null;
+  }
+  url.searchParams.delete(HANDOVER_TOKEN_PARAM);
+
+  const result = await consumeHandoverToken(token);
+  if (!result.ok) {
+    url.searchParams.set(HANDOVER_ERROR_PARAM, result.error);
+    throw redirect(`${qa(uid)}${url.search}`);
+  }
+  throw redirect(`${qa(uid)}${url.search}#${sessionFragment(result.session)}`);
+}
+
+export function clientLoader({ request }: Route.ClientLoaderArgs) {
+  // Only a handover needs the server, and it must be a document load for the
+  // Supabase client to pick the session up from the redirect. Every other
+  // navigation (sort, date) stays client-side.
+  if (new URL(request.url).searchParams.has(HANDOVER_TOKEN_PARAM)) {
+    throw redirectDocument(request.url);
+  }
+  return null;
+}
 
 const parseSort = (sort: string): "newest" | "popular" =>
   sort === "popular" ? "popular" : "newest";
@@ -124,6 +173,15 @@ export default function QnA() {
   });
 
   const { user, isAuthenticated, isLoading } = useAuth();
+  const handoverError = parseHandoverError(
+    searchParams.get(HANDOVER_ERROR_PARAM),
+  );
+  const dismissHandoverError = () => {
+    setSearchParams((searchParams) => {
+      searchParams.delete(HANDOVER_ERROR_PARAM);
+      return searchParams;
+    }, { replace: true });
+  };
   const isBlocked = false;
 
   const isOrganizer =
@@ -160,6 +218,30 @@ export default function QnA() {
     <>
       <div className="layout">
         <header className="header flex">
+          {handoverError && (
+            <Alert.Root
+              status="error"
+              borderRadius="0"
+              display="flex"
+              flexDirection="row"
+              gap="1"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>{HANDOVER_ERROR_MESSAGES[handoverError]}</Alert.Title>
+              </Alert.Content>
+              <IconButton
+                size="sm"
+                variant="ghost"
+                aria-label="Dismiss"
+                onClick={dismissHandoverError}
+              >
+                <FiX />
+              </IconButton>
+            </Alert.Root>
+          )}
           {isntLive && (
             <Alert.Root
               status="warning"

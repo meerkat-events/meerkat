@@ -56,6 +56,15 @@ handles everything else.
 `@zk-kit/*`, `blakejs`, and `@semaphore-protocol/*` into the server build to
 work around CJS-only transitive deps that break native Node ESM resolution.
 
+Route `loader`s run inside that server bundle. Server-only code for them lives
+in `.server.ts` modules (excluded from the client build; the build fails if
+one is imported from client code). Anything such a module imports from
+outside `app/` (`env.ts`, `logger.ts`, `usernames.ts`, …) is bundled as a
+**copy**, separate from the instance Hono uses — so keep loaders away from
+`db.ts` (a bundled copy would open a second connection pool) and keep those
+modules free of import-time side effects (`env.ts` validates only; `main.ts`
+logs the parsed env once).
+
 ### Real-time updates
 
 Two parallel mechanisms, both fanned out across instances via Supabase
@@ -85,6 +94,8 @@ Realtime:
 | `instrumentation.ts` | Sentry init — imported first in `main.ts`                         |
 | `supabase.ts`        | Supabase client (Realtime broadcast + admin operations)           |
 | `zupass.ts`          | Builds and signs Zupass attendance PODs                           |
+| `devcon.ts`          | Verifies Devcon handover tokens (HS256, ms timestamps)            |
+| `app/lib/handover.server.ts` | Devcon handover: token → Supabase session (server-only)   |
 | `lib/pod.ts`         | CJS shim around `@pcd/pod` (its ESM build pulls in CJS-only deps) |
 | `utils/broadcast.ts` | Supabase Realtime channel manager for SSE fan-out                 |
 | `moderation.ts`      | Server-side moderation rules                                      |
@@ -111,13 +122,31 @@ server build is imported at runtime by `main.ts`).
 
 ## Auth
 
-- **User auth**: Supabase-issued JWTs validated via JWKS (`middlewares/jwt.ts`).
-  Uses Hono's `jwk()` middleware against
-  `${supabaseUrl}/auth/v1/.well-known/jwks.json`. Supports OTP email,
-  anonymous sign-in, and Devcon SSO (HS256 against `DEVCON_JWT_SECRET`,
-  exchanged for a Supabase session in `routes/auth.ts`).
-- **Admin auth**: argon2-hashed API keys in DB (`middlewares/api-key.ts`). Pass
-  via `x-api-key` header.
+Exactly three sign-in methods exist. Each produces a Supabase session whose
+JWT `middlewares/jwt.ts` validates via JWKS (Hono's `jwk()` against
+`${supabaseUrl}/auth/v1/.well-known/jwks.json`):
+
+1. **Anonymous** — `hooks/use-anonymous-user.ts` (`signInAnonymously()`).
+2. **Email OTP** — `hooks/use-otp.ts` (`signInWithOtp()` + `verifyOtp()`).
+3. **Devcon handover** — Devcon redirects to `/e/:uid/qa?token=<jwt>`. The
+   server `loader` in `app/routes/QnA.tsx` (the app's only server loader)
+   calls `consumeHandoverToken()` from `app/lib/handover.server.ts`, which
+   verifies the token with `devcon.ts` (`hono/jwt` `verify` against
+   `DEVCON_VERIFICATION_SECRET` with `exp`/`iat`/`nbf` checks disabled —
+   Devcon's claims are **milliseconds** — and a millisecond expiry check of
+   its own), then mints a Supabase session with
+   `admin.generateLink()` + `verifyOtp()` (using the reported
+   `verification_type`, which is `signup` for first-time users). The loader
+   redirects to the clean Q&A URL with the session encoded in the URL
+   fragment, exactly like Supabase's own magic-link redirect; the browser's
+   Supabase client (`detectSessionInUrl`) adopts it on load. Failures
+   redirect with `?handover=expired|invalid|failed`, rendered as an alert by
+   the page. The `clientLoader` forces a document load for token URLs so this
+   also holds for in-app navigations. There is no API endpoint for the
+   handover.
+
+The admin API is separate: argon2-hashed API keys in the DB
+(`middlewares/api-key.ts`), passed via the `x-api-key` header.
 
 ## Import conventions
 
