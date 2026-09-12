@@ -11,7 +11,11 @@ if ! command -v pnpm &> /dev/null; then
 fi
 
 echo "Setting up environment files..."
-cp api/.env.example api/.env
+if [ -f api/.env ]; then
+  echo "api/.env already exists, leaving it untouched."
+else
+  cp api/.env.example api/.env
+fi
 
 echo "Installing dependencies..."
 pnpm install

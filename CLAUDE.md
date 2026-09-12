@@ -3,195 +3,236 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
-## Project Overview
+## What Meerkat is
 
-Meerkat is a privacy-preserving audience engagement (Q&A) tool for conferences.
-It uses Zupass + PCD (Proof-Carrying Data) for privacy-preserving authentication
-via zero-knowledge proofs.
+Audience-engagement (Q&A) tool for conferences, used by the Ethereum
+Foundation for Devcon/Devconnect. Attendees open `/e/:uid/qa` on their phones
+to ask, upvote and react; organizers select/answer/delete questions and put an
+event "live"; a presenter view at `/e/:uid` is shown on the stage screen. An
+optional "collect" feature lets attendees store a signed attendance POD in
+their Zupass.
 
-## Repository Structure
+## Repository layout
 
-This is a monorepo managed with pnpm workspaces (installed via corepack):
+pnpm workspace (Node.js 24, pnpm via corepack). Two packages:
 
-- **`api/`** — Main application: Node.js + React Router 7 (full-stack, SSR). The
-  HTTP API (Hono), React frontend, and DB schema/migrations (Drizzle ORM) all
-  live here.
-- **`packages/react/`** — Published npm package `@meerkat-events/react` with
-  React hooks (`useQuestions`, `useEventSource`) for external consumers
-  embedding Meerkat Q&A.
-- **`scripts/setup.sh`** — Top-level dev bootstrap (env, deps, migrations, seed).
-- **`api/scripts/seed.sh`** — DB seed script (invoked by `setup.sh`).
+- **`api/`** (package name `ui`) — the whole application: Hono HTTP API,
+  React Router 7 SSR frontend, Drizzle schema + migrations. Deeper notes in
+  [api/CLAUDE.md](api/CLAUDE.md).
+- **`packages/react/`** — `@meerkat-events/react`, a published npm package of
+  hooks (`useQuestions`, `useEventSource`, `useSessionUrl`) for embedding
+  Meerkat questions in third-party sites (see
+  [designs/001-devcon-ui-integration.md](designs/001-devcon-ui-integration.md)).
+  `api/` depends on it via `workspace:*` and resolves it from its `dist/`, so
+  **it must be built before `api/` can build or typecheck.**
 
-## Initial Setup
+There is no test suite. Validation is typecheck + lint (+ Docker build).
+
+## Commands
 
 ```bash
-./scripts/setup.sh   # copies .env, installs deps, runs migrations, seeds DB
+./scripts/setup.sh        # first time: copy .env, pnpm install, pnpm -r build, migrate, seed
+pnpm install && pnpm -r build   # in every new git worktree (node_modules and dist are per-worktree)
 ```
 
-## Working in a new git worktree
-
-Each git worktree has its own `node_modules`. After creating a worktree, run
-`pnpm install` from the worktree root before doing anything else — the shared
-pre-commit hook (lint-on-commit) needs `api/node_modules/.bin/eslint` to be
-present and will skip linting with a warning otherwise.
-
-## Development
+### `api/`
 
 ```bash
-cd api && pnpm dev
+pnpm dev        # node --env-file=.env --watch main.ts on port 8000 (port is hardcoded in main.ts)
+pnpm build      # react-router build → build/client + build/server
+pnpm typecheck  # react-router typegen && build && tsc --noEmit
+pnpm lint       # eslint
+pnpm generate   # drizzle-kit generate (schema.ts → drizzle/*.sql)
+pnpm migrate    # drizzle-kit migrate
+pnpm start      # production: node main.ts (needs build/)
 ```
 
-## Key Commands
+**`pnpm dev` is not a Vite dev server.** `main.ts` imports the compiled
+`build/server/index.js` and serves `build/client/`. Frontend changes under
+`app/` are invisible until you run `pnpm build`; the `--watch` process then
+restarts on the new bundle. Backend `.ts` changes reload directly.
 
-### API (`api/`)
+`VITE_API_URL` is baked into the client bundle at build time (Vite reads
+`api/.env`; Docker takes it as a build arg). It must equal the origin that
+serves the app or the browser calls the wrong host.
+
+### `packages/react/`
 
 ```bash
-pnpm dev             # dev server with node --watch (reloads on changes)
-pnpm build           # production build — REQUIRED after any frontend (React) changes
-pnpm start           # run production build
-pnpm typecheck       # runs build then type-checks all files
-pnpm lint            # ESLint
-pnpm generate        # generate Drizzle migration from schema changes
-pnpm migrate         # apply pending migrations
+pnpm build   # tsup → dist/ (ESM + CJS + d.ts)
+pnpm dev     # tsup --watch
 ```
 
-### React Package (`packages/react/`)
+### Validation checklist
+
+Before considering any change complete, all of these must pass:
 
 ```bash
-pnpm build           # tsup build (ESM + CJS)
-pnpm dev             # tsup watch
-```
-
-## Architecture
-
-### API Structure
-
-The API (`api/`) uses React Router 7 for the frontend (with SSR) and Hono for
-the HTTP API layer:
-
-- `api/routes/` — Hono HTTP endpoints: `conferences.ts`, `users.ts`,
-  `events.ts`, `questions.ts`, `admin.ts`, `auth.ts`
-- `api/middlewares/` — `jwt.ts` (Supabase JWT validation) and `api-key.ts`
-  (admin)
-- `api/models/` — Data access layer (Drizzle queries)
-- `api/lib/pod.ts` — CommonJS shim around `@pcd/pod` (its ESM build pulls in
-  CJS-only deps); the actual POD construction lives in `api/zupass.ts`
-- `api/utils/broadcast.ts` — Supabase Realtime fan-out for SSE
-- `api/app/routes/` — React Router page components
-- `api/app/hooks/` — Custom data-fetching hooks (pattern: `use-[resource].ts`)
-- `api/app/components/` — Shared UI components (Chakra UI v3)
-- `api/schema.ts` — Single source of truth for the DB schema (Drizzle ORM)
-- `api/drizzle/` — Migration SQL files and snapshots
-
-Detailed API guidance lives in [api/CLAUDE.md](api/CLAUDE.md).
-
-### Real-time updates
-
-Two parallel mechanisms, both fanned out across instances via Supabase
-Realtime:
-
-- **SSE (`/api/v1/events/:uid/questions/stream`)** — the public-facing channel
-  consumed by `@meerkat-events/react`'s `useEventSource` / `useQuestions`. The
-  Hono handler subscribes to a per-event Supabase channel via
-  `utils/broadcast.ts`; mutations call `broadcastQuestionsUpdate(eventId)` so
-  every server instance pushes an SSE message to its connected clients.
-- **Supabase Realtime directly from the browser** — internal hooks
-  (`useAllQuestions`, `useLiveEventSubscription`, `use-reactions-subscription`)
-  subscribe to `postgres_changes` or broadcast channels via the supabase-js
-  client, then revalidate SWR caches.
-
-Frontend data fetching uses SWR throughout (`hooks/fetcher.ts`).
-
-### Authentication
-
-- **User auth:** `api/middlewares/jwt.ts` uses Hono's `jwk()` against Supabase's
-  JWKS endpoint (`${supabaseUrl}/auth/v1/.well-known/jwks.json`). Tokens are
-  Supabase-issued via OTP email or anonymous sign-in. A separate Devcon SSO
-  flow in `routes/auth.ts` validates HS256 JWTs against `DEVCON_JWT_SECRET`
-  and exchanges them for a Supabase session.
-- **Admin auth:** `api/middlewares/api-key.ts` — argon2-hashed keys stored in
-  the DB, passed via `x-api-key`.
-- The `PRIVATE_KEY` env var is only for signing Zupass attendance PODs, not
-  for JWT auth.
-
-### Data Flow
-
-1. Browser → Hono API routes → models (Drizzle) → PostgreSQL (Supabase)
-2. Auth: Supabase JWT (or Devcon SSO → Supabase session) → `middlewares/jwt.ts`
-3. Mutations broadcast via Supabase Realtime → SSE stream to embedded clients
-   and direct realtime subscriptions to the in-app frontend → SWR
-   auto-revalidates
-
-### Database Changes
-
-1. Edit `api/schema.ts`
-2. `cd api && pnpm generate` — creates migration file in `api/drizzle/`
-3. `cd api && pnpm migrate` — applies it
-
-## Validation Checklist
-
-Before considering any change complete, always run all four checks from the
-`api/` directory (or the repo root for Docker):
-
-```bash
-# 1. Type-check (also runs the build internally)
-cd api && pnpm typecheck
-
-# 2. Lint
-cd api && pnpm lint
-
-# 3. Build & run the Docker image
+cd api && pnpm typecheck      # 1. types (runs the build internally)
+cd api && pnpm lint           # 2. eslint
+# 3. Docker image builds and serves HTTP 200 (from the repo root)
 docker build -t meerkat:latest .
 docker run --rm --env-file api/.env -p 8000:8000 meerkat:latest &
 sleep 4 && curl -s http://localhost:8000 -o /dev/null -w "HTTP %{http_code}\n"
 docker stop $(docker ps -q --filter ancestor=meerkat:latest)
 ```
 
-All four must pass (typecheck clean, lint clean, Docker build succeeds,
-HTTP 200) before the task is done.
+## Architecture
 
-## Code Style
+### One process, three layers
 
-- **Browser globals**: use `globalThis` instead of `window` (e.g.,
-  `globalThis.open(url, '_blank')` for new tabs)
-- **Ternary formatting**: condition on same line, branches on new lines with
-  indentation:
-  ```typescript
+`api/main.ts` boots a single Hono server:
+
+1. **Hono routes** (`api/routes/*.ts`) — each file is mounted at `/` and
+   declares its own full paths, mostly `/api/v1/...`. Non-API paths also live
+   here: `/stage/:stage` and `/stage/:stage/qa` redirect to the live (or next
+   upcoming) event on a stage, for signage links. CORS (from `CORS_ORIGINS`) is
+   applied only to `/api/*`.
+2. **Static files** from `build/client/` (assets immutable-cached).
+3. **React Router SSR handler** for everything else.
+
+Request path: route → `models/*.ts` (Drizzle queries; the only place SQL
+lives) → PostgreSQL on Supabase. `api/env.ts` validates env once at import and
+throws on missing required vars.
+
+### Frontend (`api/app/`)
+
+React Router 7 in SSR mode with `prerender: false`, but **no server loaders or
+actions** — layouts use `clientLoader` and pages use SWR (`hooks/fetcher.ts`),
+so the server render is just the shell + `HydrateFallback`. Two layouts in
+`app/routes.ts`:
+
+- `layouts/page.tsx` — bare presenter view (`/e/:uid`), no auth.
+- `layouts/app.tsx` — everything else; wraps `MeerkatProvider` (from the
+  react package, `apiUrl=""`), Supabase client, `UserProvider`, Zupass
+  `ZAPIProvider`, and the Chakra UI v3 system.
+
+Theming is per conference: `conferences.theme` (JSONB) is turned into a
+Chakra system by `app/theme/index.ts`; the loader fetches the event to pick
+the theme. `conferences.features` rows are boolean feature flags surfaced as
+`event.conference.features` (e.g. `collect` toggles the Event Card link).
+
+### Auth and roles
+
+- **Users**: Supabase Auth JWTs. Sign-in paths: email OTP, anonymous sign-in
+  (username generated by `api/usernames.ts`), and Devcon SSO
+  (`GET /api/v1/auth/devcon` verifies an HS256 token with `DEVCON_JWT_SECRET`,
+  then mints a Supabase magic link with the service-role key). Protected
+  routes use `middlewares/jwt.ts` (Hono `jwk()` against Supabase JWKS);
+  `c.get("jwtPayload").sub` is the Supabase user id.
+- **Roles**: `conference_role` (attendee/speaker/organizer) per conference.
+  Organizer checks are done inline in each route via
+  `getConferenceRolesForConference`. Roles are granted by a DB trigger on
+  `auth.users` insert that claims matching `invitations` rows by email
+  (migration 0002); `grantRole` in `models/roles.ts` has no callers.
+- **Admin**: `middlewares/api-key.ts`, `x-api-key` header checked against
+  argon2 hashes in `api_keys`. There is no endpoint to create keys; insert a
+  hash directly. Admin routes batch-upsert events (keyed by `uid`) and create
+  conferences; they exist for importing schedules from external systems.
+- **Zupass is not auth.** It is only used by the collect flow: the server signs
+  an attendance POD with `PRIVATE_KEY` (`api/zupass.ts`), the client inserts
+  it into a Zupass collection via `@parcnet-js/app-connector` (`app/zapi/`).
+
+### Domain rules worth knowing
+
+- Question lifecycle is timestamp-driven: `selectedAt` (organizer picks it;
+  selecting also marks the previously selected question answered),
+  `answeredAt`, `deletedAt` (soft delete; queries filter it out). Banned users'
+  questions are hidden by the query, not deleted.
+- Exactly one event is live per stage: `setEventLive` flips the others off in
+  a transaction.
+- Rate limits live in `api/moderation.ts`; routes return 429, and the frontend
+  turns 429 into a cooldown modal (`UserContext.isOnCooldown`).
+- `auth.users` is Supabase-managed. `schema.ts` declares it (schema `auth`)
+  only so Drizzle can join and set `banned_until`; migration 0000 has its
+  `CREATE TABLE` commented out. **After `pnpm generate`, strip any
+  `auth.users` DDL from the new migration.**
+
+### Real-time (three mechanisms, all via Supabase Realtime)
+
+1. **SSE questions stream** — `GET /api/v1/events/:uid/questions/stream`.
+   Every mutation calls `broadcastQuestionsUpdate(eventId)`
+   (`utils/broadcast.ts`), which POSTs to Supabase's REST broadcast API on
+   topic `event-{id}`; each server instance holds one channel subscription
+   per event and fans out an SSE `update` to its clients (30 s `ping`
+   heartbeat). Consumed by `useQuestions`/`useEventSource` from the react
+   package, both by external embedders and by the app itself (`QnA.tsx`,
+   `Event.tsx`).
+2. **`postgres_changes` from the browser** — reactions (`reactions` inserts
+   filtered by event) and the moderation page (`questions` inserts). These
+   need the tables in the `supabase_realtime` publication, which is
+   configured in the Supabase dashboard, not in migrations.
+3. **Live-event broadcasts** — `POST /api/v1/events/:uid/live` sends on
+   `conference-{id}` and `stage-{stage}` channels with supabase-js;
+   `useKeepLive` listens and also polls `/api/v1/events/stage/:stage/live`
+   every 10 s so signage follows the schedule.
+
+### Runtime constraints
+
+- Node 24 runs `.ts` directly (type stripping): imports use explicit `.ts`
+  extensions, `erasableSyntaxOnly` forbids enums/namespaces/parameter
+  properties, ESM only, no `npm:`/`jsr:` specifiers.
+- `@pcd/pod` and friends pull in CJS-only deps: server code imports them via
+  the `createRequire` shim in `api/lib/pod.ts`, and `vite.config.ts` lists
+  them in `ssr.noExternal`. This is also why `prerender` is off.
+- `~/` aliases `api/app/`.
+
+## Database changes
+
+1. Edit `api/schema.ts` (single source of truth).
+2. `cd api && pnpm generate`, then review the SQL (remove `auth.*` DDL).
+3. `cd api && pnpm migrate`.
+4. If a new table needs browser `postgres_changes`, add it to the realtime
+   publication in Supabase.
+
+## Code style
+
+- Prefer `globalThis` over `window` (`globalThis.location`,
+  `globalThis.crypto`).
+- Ternary chains in JSX: condition on its own line, branches below, nested
+  conditions continue at the same indent:
+  ```tsx
   isLoading
     ? <Loading />
-    : data && data.length > 0
-    ? <DataView />
-    : <EmptyState />;
+    : !data || data.length === 0
+    ? <EmptyState />
+    : <DataView />
   ```
-- **Data hooks**: named `use-[resource-name].ts`, return
-  `{ data, isLoading, error }`, use SWR + `hooks/fetcher.ts`
-- **Routing helpers**: use `qa(uid)` and `card(uid)` from `routing.ts` — don't
-  construct URLs manually
+- Data hooks: `app/hooks/use-<resource>.ts`, SWR + `hooks/fetcher.ts`, return
+  `{ data, isLoading, error, mutate }`. Mutations use `swr/mutation` with
+  `poster`, passing `session?.access_token`.
+- Build internal URLs with `qa(uid)` / `card(uid)` from `app/routing.ts`.
+- ESLint: `no-explicit-any` is an error; prefix intentionally unused
+  identifiers with `_`.
 
-## Git Workflow
+## Git workflow
 
-- **Stashes**: multiple agents run in parallel against this repo, so
-  `git stash` / `git stash pop` is unsafe — the index is shared and another
-  agent may pop your stash (or you may pop theirs). Always use named stashes
-  via `git stash push -m "<descriptive-name>"` and pop them by reference with
-  `git stash pop stash^{/<descriptive-name>}` (or look up the exact stash
-  index with `git stash list` and pop that index explicitly).
+- Several worktrees run in parallel against this repo. Never use bare
+  `git stash` / `git stash pop`; prefer a WIP commit, or
+  `git stash push -m "<tag>"` and apply by SHA.
+- A local (untracked) pre-commit hook lints staged `api/**/*.ts(x)` with
+  `eslint --fix`; it silently skips when `api/node_modules` is missing, so
+  run `pnpm install` in a fresh worktree to get lint-on-commit.
 
-## Environment Variables
+## Deployment
 
-Required (in `api/.env`):
+Fly.io through `.github/workflows/continous-deployment.yml`: push to `master`
+deploys the `dev` environment, creating a GitHub release deploys `prod`.
+`fly.template.toml` is rendered with `envsubst` from GitHub secrets; the
+health check hits `/api/v1/conferences`. `.github/workflows/sync.yml` is a
+stale manual workflow from the Deno era (`deno task sync` no longer exists).
 
-| Variable                    | Purpose                                              |
-| --------------------------- | ---------------------------------------------------- |
-| `DATABASE_URL`              | PostgreSQL connection string                         |
-| `PRIVATE_KEY`               | Signs PODs (generate: `openssl rand -hex 32`)        |
-| `BASE_URL`                  | App base URL                                         |
-| `ZUPASS_URL`                | Zupass server URL                                    |
-| `ZUPASS_ZAPP_NAME`          | Zupass zapp name                                     |
-| `SUPABASE_URL`              | Supabase project URL                                 |
-| `SUPABASE_ANON_KEY`         | Supabase anon key                                    |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (admin API)                |
-| `DEVCON_JWT_SECRET`         | Shared HS256 secret for validating Devcon SSO tokens |
+## Environment variables (`api/.env`)
 
-Optional: `SENTRY_DSN`, `DATABASE_POOLER_URL`, `DATABASE_MAX_POOL_SIZE`,
-`ENVIRONMENT`
+| Variable                    | Notes                                                        |
+| --------------------------- | ------------------------------------------------------------ |
+| `DATABASE_URL`              | Required unless `DATABASE_POOLER_URL` is set (pooler wins)   |
+| `PRIVATE_KEY`               | Required; signs attendance PODs only (`openssl rand -hex 32`)|
+| `DEVCON_JWT_SECRET`         | Required; HS256 secret for Devcon SSO tokens                 |
+| `SUPABASE_SERVICE_ROLE_KEY` | Required; REST broadcast + magic-link generation             |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Optional in code, but without them there is no auth and no realtime |
+| `BASE_URL`                  | Public origin; used for redirects, QR codes, POD type prefix |
+| `VITE_API_URL`              | Build-time client API origin (see Commands)                  |
+| `CORS_ORIGINS`              | Comma-separated allowed origins for `/api/*`; default `*`    |
+| `ZUPASS_URL`, `ZUPASS_ZAPP_NAME` | Zupass connector config                                 |
+| `SENTRY_DSN`, `ENVIRONMENT`, `DATABASE_MAX_POOL_SIZE` | Optional                              |
