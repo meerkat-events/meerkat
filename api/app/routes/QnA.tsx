@@ -1,14 +1,16 @@
 import { useMemo, useRef, useState } from "react";
-import { FiChevronDown, FiX } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
+import { LuArrowDownUp } from "react-icons/lu";
 import {
   Alert,
   Button,
-  createListCollection,
   Flex,
+  Grid,
+  Icon,
   IconButton,
   Menu,
-  NativeSelect,
   Portal,
+  Text,
 } from "@chakra-ui/react";
 import {
   redirect,
@@ -17,7 +19,6 @@ import {
   useSearchParams,
 } from "react-router";
 import type { Route } from "./+types/QnA.ts";
-import { Header } from "../components/Header/Header.tsx";
 import { Modal } from "../components/Modal/Modal.tsx";
 import { NavigationDrawer } from "../components/NavigationDrawer/index.tsx";
 import { CooldownModal } from "../components/QnA/CooldownModal.tsx";
@@ -31,6 +32,7 @@ import { qa } from "../routing.ts";
 import { useReact } from "../hooks/use-react.ts";
 import { Reaction } from "../components/QnA/Reaction.tsx";
 import { HeartIcon } from "../components/QnA/HeartIcon.tsx";
+import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
 import { uuidv7 } from "uuidv7";
 import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
 import { useQuestions } from "@meerkat-events/react";
@@ -89,12 +91,10 @@ export function clientLoader({ request }: Route.ClientLoaderArgs) {
 const parseSort = (sort: string): "newest" | "popular" =>
   sort === "popular" ? "popular" : "newest";
 
-const sortOptions = createListCollection({
-  items: [
-    { label: "Popular", value: "popular" },
-    { label: "Newest", value: "newest" },
-  ],
-});
+const sortOptions = [
+  { label: "Popular", value: "popular" },
+  { label: "Newest", value: "newest" },
+];
 
 export default function QnA() {
   const { uid } = useParams();
@@ -113,6 +113,7 @@ export default function QnA() {
   useDocumentTitle(pageTitle(event));
 
   const sort = parseSort(searchParams.get("sort") ?? "newest");
+  const sortLabel = sortOptions.find((option) => option.value === sort)?.label;
 
   const {
     data: questions,
@@ -246,6 +247,11 @@ export default function QnA() {
             <Alert.Root
               status="warning"
               title="You're viewing a past or upcoming event"
+              // Theme colors instead of the warning orange: a brand tint with
+              // high-contrast brand text (brand.900 on light, brand.300 on dark).
+              bg="brand.solid/12"
+              color="brand.900"
+              _dark={{ bg: "brand.solid/20", color: "brand.300" }}
               borderRadius="0"
               display="flex"
               flexDirection="row"
@@ -253,7 +259,7 @@ export default function QnA() {
               alignItems="center"
               justifyContent="space-between"
             >
-              <Alert.Indicator />
+              <Alert.Indicator color="currentColor" />
               <Alert.Content>
                 <Alert.Title>
                   You're viewing a past or upcoming event.
@@ -264,69 +270,80 @@ export default function QnA() {
               )}
             </Alert.Root>
           )}
-          <Flex
-            flexDirection="row"
+          {/* Equal side columns keep the conference name centered in the row */}
+          <Grid
+            templateColumns="1fr minmax(0, auto) 1fr"
             gap="1"
-            justifyContent="space-between"
             alignItems="center"
             padding="0 1rem 0 1rem"
+            marginBottom="2"
+            // Bottom-only shadow, tinted with the brand color (like the send
+            // button), separates the navigation from the page
+            boxShadow="0 6px 10px -8px color-mix(in srgb, var(--chakra-colors-brand-solid) 60%, transparent)"
           >
             <nav>
               <NavigationDrawer navLinks={navLinks} />
-              {event?.conference.name}
             </nav>
+            <Text as="span" textStyle="sm" fontWeight="medium" truncate>
+              {event?.conference.name}
+            </Text>
+          </Grid>
+          <SessionSwitcher
+            title={event?.title}
+            stage={event?.stage}
+            past={past}
+            live={live}
+            upcoming={upcoming}
+          />
+          <Flex
+            padding="0 1rem 0.25rem"
+            minH="7"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Text textStyle="sm" color="fg.muted">
+              {questions &&
+                `${questions.length} ${
+                  questions.length === 1 ? "question" : "questions"
+                }`}
+            </Text>
             <Menu.Root positioning={{ placement: "bottom-end" }}>
               <Menu.Trigger asChild>
                 <Button
-                  size="sm"
                   variant="plain"
-                  paddingRight="0"
+                  size="xs"
+                  h="7"
+                  paddingInline="1"
+                  marginEnd="-1"
+                  gap="1"
+                  textStyle="sm"
+                  fontWeight="medium"
+                  color="fg"
+                  aria-label={`Sort by ${sortLabel}`}
                 >
-                  Sessions <FiChevronDown />
+                  <Icon as={LuArrowDownUp} color="fg.muted" />
+                  {sortLabel}
                 </Button>
               </Menu.Trigger>
               <Portal>
                 <Menu.Positioner>
-                  <Menu.Content>
-                    {past.length > 0 && (
-                      <>
-                        <EventMenuGroup label="Past" events={past} />
-                        <Menu.Separator />
-                      </>
-                    )}
-                    {live.length > 0 && (
-                      <>
-                        <EventMenuGroup label="Live" events={live} />
-                        <Menu.Separator />
-                      </>
-                    )}
-                    {upcoming.length > 0 && (
-                      <EventMenuGroup label="Next" events={upcoming} />
-                    )}
+                  <Menu.Content minW="10rem">
+                    <Menu.RadioItemGroup
+                      value={sort}
+                      onValueChange={(e) => changeSort(e.value)}
+                    >
+                      <Menu.ItemGroupLabel>Sort by</Menu.ItemGroupLabel>
+                      {sortOptions.map((option) => (
+                        <Menu.RadioItem key={option.value} value={option.value}>
+                          {option.label}
+                          <Menu.ItemIndicator />
+                        </Menu.RadioItem>
+                      ))}
+                    </Menu.RadioItemGroup>
                   </Menu.Content>
                 </Menu.Positioner>
               </Portal>
             </Menu.Root>
-          </Flex>
-          <Header title={`QA: ${event?.title}`} />
-          <Flex padding="0 1rem 0.5rem">
-            <NativeSelect.Root
-              size="xs"
-              variant="outline"
-              width={90}
-              colorPalette="gray"
-              color="gray.400"
-            >
-              <NativeSelect.Field
-                value={sort}
-                onChange={(e) => changeSort(e.target.value)}
-              >
-                {sortOptions.items.map((option) => (
-                  <option value={option.value}>{option.label}</option>
-                ))}
-              </NativeSelect.Field>
-              <NativeSelect.Indicator />
-            </NativeSelect.Root>
           </Flex>
         </header>
         <main className="content flex">
@@ -372,33 +389,6 @@ export default function QnA() {
       )}
       <CooldownModal />
     </>
-  );
-}
-
-type ComputedEvent = ReturnType<typeof computeFields>[number];
-
-function EventMenuGroup(
-  { label, events }: { label: string; events: ComputedEvent[] },
-) {
-  return (
-    <Menu.ItemGroup>
-      <Menu.ItemGroupLabel>{label}</Menu.ItemGroupLabel>
-      {events.map((event) => (
-        <Menu.Item
-          key={event.uid}
-          value={event.uid}
-          asChild
-        >
-          {event.selected
-            ? <span style={{ maxWidth: "85vw" }}>{event.title}</span>
-            : (
-              <a href={qa(event.uid)} style={{ maxWidth: "85vw" }}>
-                {event.title}
-              </a>
-            )}
-        </Menu.Item>
-      ))}
-    </Menu.ItemGroup>
   );
 }
 
