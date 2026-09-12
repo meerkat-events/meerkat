@@ -7,7 +7,6 @@
     // Node recommends "nodenext" module + "rewriteRelativeImportExtensions" for .ts files,
     // but Vite requires "bundler" resolution. Instead we use explicit .ts extensions in
     // imports (allowImportingTsExtensions) which Node 24 resolves natively without rewriting.
-    "ignoreDeprecations": "6.0",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

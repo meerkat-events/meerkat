@@ -3,7 +3,7 @@ FROM node:24-bookworm-slim
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+RUN corepack enable && corepack prepare pnpm@12.4.1 --activate
 
 WORKDIR /workspace
 

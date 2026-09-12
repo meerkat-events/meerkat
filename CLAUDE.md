@@ -17,7 +17,7 @@ their Zupass.
 pnpm workspace (Node.js 24, pnpm via corepack). Two packages:
 
 - **`api/`** (package name `ui`) — the whole application: Hono HTTP API,
-  React Router 7 SSR frontend, Drizzle schema + migrations. Deeper notes in
+  React Router 8 SSR frontend, Drizzle schema + migrations. Deeper notes in
   [api/CLAUDE.md](api/CLAUDE.md).
 - **`packages/react/`** — `@meerkat-events/react`, a published npm package of
   hooks (`useQuestions`, `useEventSource`, `useSessionUrl`) for embedding
@@ -77,6 +77,19 @@ sleep 4 && curl -s http://localhost:8000 -o /dev/null -w "HTTP %{http_code}\n"
 docker stop $(docker ps -q --filter ancestor=meerkat:latest)
 ```
 
+## Dependency updates and the pnpm cooldown
+
+pnpm 12 (pinned via `packageManager`) refuses to install any package version
+published less than 24 hours ago (`minimumReleaseAge`, default 1440 minutes).
+If `pnpm install` fails with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` after a
+dependency bump, keep the policy and re-resolve the lockfile instead:
+
+```bash
+pnpm clean --lockfile && pnpm install
+```
+
+pnpm then picks the newest versions that are old enough.
+
 ## Architecture
 
 ### One process, three layers
@@ -97,7 +110,7 @@ throws on missing required vars.
 
 ### Frontend (`api/app/`)
 
-React Router 7 in SSR mode with `prerender: false`, but **no server loaders or
+React Router 8 in SSR mode with `prerender: false`, but **no server loaders or
 actions** — layouts use `clientLoader` and pages use SWR (`hooks/fetcher.ts`),
 so the server render is just the shell + `HydrateFallback`. Two layouts in
 `app/routes.ts`:

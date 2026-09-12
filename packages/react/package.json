@@ -51,12 +51,12 @@
     "react-dom": ">=18"
   },
   "dependencies": {
-    "swr": "^2.4.1"
+    "swr": "^2.5.1"
   },
   "devDependencies": {
-    "@types/react": "^19.2.15",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
+    "@types/react": "^19.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3"
   }
