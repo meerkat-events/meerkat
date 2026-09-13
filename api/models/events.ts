@@ -176,12 +176,12 @@ export async function setEventLive(eventId: number) {
   });
 }
 
+// UTC day boundaries, matching toDay(); local-time boundaries dropped late
+// sessions on servers not running in UTC.
 function dateBoundaries(date: string) {
   const [y, m, d] = date.split("-").map(Number) as [number, number, number];
-  const start = new Date(y, m - 1, d);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(y, m - 1, d);
-  end.setHours(23, 59, 59, 999);
+  const start = new Date(Date.UTC(y, m - 1, d));
+  const end = new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999));
   return { start, end };
 }
 
