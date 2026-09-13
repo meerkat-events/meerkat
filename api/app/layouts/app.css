@@ -61,71 +61,94 @@ ul {
 }
 
 .question-list {
-  padding: 1rem 0 1rem 0;
+  /* Extra bottom space so the last question scrolls clear of the heart bubble */
+  padding: 1rem 0 4.5rem 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1.125rem;
 }
 
-.bubble {
-  background-color: var(--chakra-colors-brand-contrast);
-  border-radius: 5px;
+/* Question card: full-width text, then a meta row with the author and the
+   (organizer) options on the left and the vote pill on the right. */
+.question-card {
+  background-color: var(--chakra-colors-bg-panel);
+  border-radius: 15px;
   border: 1px solid transparent;
-  padding: 1.25rem 1rem 1rem 1rem;
+  padding: 0.75rem 0.75rem 0.75rem 1rem;
   position: relative;
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  grid-template-rows: 1fr max-content;
-  align-items: center;
-  gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   word-break: break-word;
 }
 
-.bubble.answered {
+/* Let the themed page background show through on light themes. */
+.light .question-card {
+  background-color: color-mix(
+    in srgb,
+    var(--chakra-colors-bg-panel) 80%,
+    transparent
+  );
+}
+
+/* On dark themes, a translucent brand tint reads as a slightly lighter shade
+   of the page, and a faint lighter edge keeps cards distinct without relying
+   on color. (Before .selected so its border still wins.) */
+.dark .question-card {
+  background-color: color-mix(
+    in srgb,
+    var(--chakra-colors-brand-400) 18%,
+    transparent
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--chakra-colors-brand-400) 30%,
+    transparent
+  );
+}
+
+.question-card.answered {
   opacity: 0.6;
 }
 
-.bubble.selected {
-  border-color: var(--chakra-colors-brand-500);
+.question-card.selected {
+  border-color: var(--chakra-colors-brand-solid);
+  padding-top: 1.25rem;
 }
 
-.bubble-status {
+.question-card-status {
   display: flex;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.25rem;
   position: absolute;
   top: -13px;
-  left: 1.25rem;
-  background-color: var(--chakra-colors-brand-500);
+  left: 1rem;
+  background-color: var(--chakra-colors-brand-solid);
   color: var(--chakra-colors-brand-contrast);
   padding: 0.25rem 0.5rem;
-  border-radius: 0.5rem;
-  font-size: 0.75rem;
+  border-radius: 1.5rem;
+  font-size: var(--chakra-font-sizes-xs);
+  font-weight: 600;
 }
 
-.upvote-section {
+.question-card-text {
+  padding-right: 0.25rem;
+}
+
+.question-card-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  right: 0.5rem;
-  top: 3.5rem;
+  gap: 0.75rem;
 }
 
-.upvote {
+/* Author name plus the organizer options, kept apart from the vote pill. */
+.question-card-byline {
   display: flex;
-  flex-flow: row nowrap;
-  justify-content: flex-end;
   align-items: center;
-}
-
-.upvote-count {
-  display: inline;
-  margin-right: 0.25rem;
-}
-
-.upvote-count.voted {
-  color: var(--chakra-colors-brand-700);
+  gap: 0.25rem;
+  min-width: 0;
 }
 
 /*  Collect  Card */
@@ -170,13 +193,101 @@ ul {
   );
 }
 
-.reaction {
+/* The heart button floats above the send button (the footer is its
+   positioning context), over the bottom of the question list. */
+.react-bubble {
   position: absolute;
-  top: 0;
-  animation: floatUp 3s ease-out forwards;
+  right: 1rem;
+  bottom: calc(100% + 0.25rem);
+  z-index: 5;
 }
 
-@keyframes floatUp {
+/* Heart bubble, with the bar of more reactions sliding out to its left. The
+   heart comes first in the DOM so Tab moves from it into the bar. */
+.reaction-picker {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reaction-bar {
+  display: flex;
+  flex-direction: row-reverse; /* first reaction sits nearest the heart */
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background-color: var(--chakra-colors-bg-panel);
+  box-shadow:
+    0 8px 16px
+      color-mix(in srgb, var(--chakra-colors-brand-solid) 35%, transparent),
+    0 0 1px
+      color-mix(in srgb, var(--chakra-colors-brand-solid) 60%, transparent);
+  transform-origin: right center;
+  animation: reaction-bar-in 180ms ease-out;
+}
+
+.reaction-bar-item {
+  animation: reaction-bar-item-in 180ms ease-out both;
+}
+
+@keyframes reaction-bar-in {
+  from {
+    transform: scaleX(0.6);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes reaction-bar-item-in {
+  from {
+    transform: translateX(8px) scale(0.8);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction-bar,
+  .reaction-bar-item {
+    animation: none;
+  }
+}
+
+/* Emoji reactions in the same 24px box as the heart icon. */
+.reaction-glyph {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  font-size: 22px;
+  line-height: 24px;
+  text-align: center;
+}
+
+/* Reaction hearts float up from the heart button, growing and fading out. */
+.reactions-overlay {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.reaction-heart {
+  position: absolute;
+  margin: -12px 0 0 -12px; /* center the 24px heart on its origin */
+  animation: heart-float-up 3s ease-out forwards;
+}
+
+@keyframes heart-float-up {
   0% {
     transform: translateY(0) scale(1);
     opacity: 1;
@@ -185,6 +296,57 @@ ul {
   100% {
     transform: translateY(-40dvh) scale(2);
     opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction-heart {
+    animation: heart-fade 1s ease-out forwards;
+  }
+}
+
+@keyframes heart-fade {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  30% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* The heart button keeps beating while it can be used. */
+.heart-pulsate {
+  animation: heart-pulsate 1s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* A gentle beat: never smaller than 1.1x, never bigger than 1.35x. */
+@keyframes heart-pulsate {
+  0% {
+    transform: scale(1.1);
+  }
+
+  50% {
+    transform: scale(1.35);
+  }
+
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heart-pulsate {
+    animation: none;
+    transform: scale(1.2);
   }
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "reactions" ADD COLUMN "emoji" text DEFAULT 'heart' NOT NULL;

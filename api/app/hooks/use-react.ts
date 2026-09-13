@@ -4,9 +4,10 @@ import { UserContext } from "../context/user.tsx";
 import { poster } from "./fetcher.ts";
 import type { HTTPError } from "./http-error.ts";
 import { useAuth } from "./use-auth.ts";
+import type { ReactionEmoji } from "../../reactions.ts";
 
 export type UseReactReturnType = {
-  trigger: (obj: { uid: string }) => void;
+  trigger: (obj: { uid: string; emoji: ReactionEmoji }) => void;
 };
 
 export function useReact(

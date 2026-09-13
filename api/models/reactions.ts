@@ -1,14 +1,21 @@
 import { and, eq, gt, sql } from "drizzle-orm";
 import db from "../db.ts";
 import { reactions } from "../schema.ts";
+import type { ReactionEmoji } from "../reactions.ts";
 
 export async function createReaction(
-  { eventId, userId, uid }: { eventId: number; userId: string; uid: string },
+  { eventId, userId, uid, emoji }: {
+    eventId: number;
+    userId: string;
+    uid: string;
+    emoji: ReactionEmoji;
+  },
 ): Promise<Reaction> {
   const [newReaction] = await db.insert(reactions).values({
     eventId: eventId,
     userId: userId,
     uid: uid,
+    emoji: emoji,
   }).returning().execute();
 
   if (!newReaction) throw new Error("Failed to create reaction");

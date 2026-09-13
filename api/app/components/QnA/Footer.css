@@ -27,24 +27,6 @@
   display: block;
   padding-top: 8px;
   text-align: center;
-}
-
-.pulsate {
-  animation: pulsate 1s ease-in-out infinite;
-  animation-iteration-count: 15;
-  transform-origin: center;
-}
-
-@keyframes pulsate {
-  0% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.8);
-  }
-
-  100% {
-    transform: scale(1);
-  }
+  font-size: var(--chakra-font-sizes-sm);
+  color: var(--chakra-colors-fg-muted);
 }
