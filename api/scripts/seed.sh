@@ -18,4 +18,8 @@ if [ -z "$DATABASE_URL" ]; then
   exit 1
 fi
 
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$SCRIPT_DIR/seed.sql"
+# Optional: SEED_ORGANIZER_EMAIL=you@example.com makes that account an
+# organizer of every seeded conference (claimed when it signs in).
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  ${SEED_ORGANIZER_EMAIL:+-v "organizer_email=$SEED_ORGANIZER_EMAIL"} \
+  -f "$SCRIPT_DIR/seed.sql"
