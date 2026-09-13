@@ -27,6 +27,8 @@
   display: block;
   padding-top: 8px;
   text-align: center;
+  font-size: var(--chakra-font-sizes-sm);
+  color: var(--chakra-colors-fg-muted);
 }
 
 .pulsate {

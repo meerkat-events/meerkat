@@ -45,6 +45,7 @@ export function NavigationDrawer({ navLinks }: NavigationDrawerProps) {
         <Button
           variant="plain"
           colorPalette="gray"
+          color="fg"
           size="sm"
           aria-label="Open navigation menu"
           paddingLeft="0"
