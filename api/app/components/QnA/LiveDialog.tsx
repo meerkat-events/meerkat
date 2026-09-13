@@ -13,6 +13,10 @@ export function LiveDialog({ event, onConfirm }: LiveDialogProps) {
         <Button
           variant="outline"
           size="sm"
+          // Takes the surrounding banner's text color for label and outline
+          color="inherit"
+          borderColor="currentColor"
+          _hover={{ bg: "brand.solid/10" }}
         >
           Go Live
         </Button>
