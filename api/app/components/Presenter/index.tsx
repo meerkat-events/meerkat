@@ -59,7 +59,14 @@ export default function Presenter({ event, url }: PresenterProps) {
         <TopQuestions questions={event?.questions ?? []} />
       </main>
       <aside>
-        {!hideQRCode && url && <QR url={url} />}
+        {!hideQRCode && url && (
+          <div className="qr-code-group">
+            <QR url={url} />
+            <Text fontSize="xl" fontWeight="bold" textAlign="center">
+              Scan to ask
+            </Text>
+          </div>
+        )}
         <Text fontSize="xl" fontWeight="bold" textAlign="center">
           Participants {event?.participants}
         </Text>
