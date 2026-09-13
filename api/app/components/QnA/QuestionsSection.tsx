@@ -45,12 +45,24 @@ export function QuestionsSection(
         )
         : isLoading
         ? (
-          <Flex alignItems="center" justifyContent="center" flex="1">
+          <Flex
+            alignItems="center"
+            justifyContent="center"
+            flex="1"
+            textStyle="sm"
+            color="fg.muted"
+          >
             Loading...
           </Flex>
         )
         : (
-          <Flex alignItems="center" justifyContent="center" flex="1">
+          <Flex
+            alignItems="center"
+            justifyContent="center"
+            flex="1"
+            textStyle="sm"
+            color="fg.muted"
+          >
             <span>No questions, yet. Be first to ask!</span>
           </Flex>
         )}
