@@ -1,0 +1,1669 @@
+/* Meerkat Management (organizer pages). Always the dark Meerkat theme. */
+:root {
+  /* A shade up from the app's near-black page colour: these pages are mostly
+     tables, which read better on a slightly lifted background. */
+  --m-bg: #170d2b;
+  --m-surface: #1f1438;
+  --m-surface-2: #291b47;
+  --m-surface-3: #332157;
+  --m-line: #3a2a58;
+  --m-line-strong: #4c3872;
+  --m-ink: #ffffff;
+  --m-ink-2: rgba(255, 255, 255, 0.7);
+  --m-ink-3: rgba(255, 255, 255, 0.5);
+  --m-accent: var(--chakra-colors-brand-solid);
+  --m-accent-soft: #33205e;
+  --m-accent-line: #7249b3;
+  --m-brand-300: hsl(271 81% 86%);
+  --m-live: #7dd3fc;
+  --m-radius: 14px;
+}
+
+/* Chakra's brand foreground is a dark purple meant for light surfaces: on the
+   dark management background outline buttons and close icons all but vanish,
+   so they are lightened here (portalled dialogs are listed too). */
+.manage,
+.m-person {
+  --chakra-colors-brand-fg: var(--m-brand-300);
+  --chakra-colors-brand-emphasized: var(--m-brand-300);
+  --chakra-colors-brand-muted: color-mix(in srgb, var(--m-brand-300) 40%, transparent);
+  --chakra-colors-brand-subtle: color-mix(in srgb, var(--m-brand-300) 16%, transparent);
+  /* The app sets colorPalette on <html>, so these resolve there and have to be
+     redefined, not just their brand sources. */
+  --chakra-colors-color-palette-fg: var(--m-brand-300);
+  --chakra-colors-color-palette-emphasized: var(--m-brand-300);
+  --chakra-colors-color-palette-muted: color-mix(in srgb, var(--m-brand-300) 40%, transparent);
+  --chakra-colors-color-palette-subtle: color-mix(in srgb, var(--m-brand-300) 16%, transparent);
+}
+
+.manage {
+  background: var(--m-bg);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: 100dvh;
+  padding-inline: 16px;
+  color: var(--m-ink);
+  font-size: 13px;
+}
+
+/* Row 1: brand, and the event this is for. */
+.manage-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-block: 14px 10px;
+  flex-wrap: wrap;
+}
+
+/* Shown only while the clock is shifted for testing (?now=…). */
+.manage-mock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  margin-right: 14px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px dashed var(--m-accent-line);
+  background: var(--m-accent-soft);
+  color: var(--m-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.manage-mock:hover {
+  border-style: solid;
+}
+
+.manage-event {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 0;
+  text-align: right;
+
+  & .m-back {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--m-ink-2);
+  }
+
+  & .m-back:hover {
+    color: var(--m-ink);
+  }
+
+  & .name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+
+  & .dates {
+    font-size: 12px;
+    color: var(--m-ink-3);
+  }
+}
+
+/* Row 2: page tabs and search, over the header's bottom line. */
+.manage-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--m-line);
+  flex-wrap: wrap;
+}
+
+.manage-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+
+  & img {
+    border-radius: 7px;
+  }
+}
+
+.manage-pages {
+  display: flex;
+  align-items: stretch;
+  gap: 22px;
+  align-self: stretch;
+
+  & a {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 12px 2px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m-ink-2);
+    white-space: nowrap;
+  }
+
+  & a:hover,
+  & a.active {
+    color: var(--m-ink);
+  }
+
+  & a.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--m-accent);
+  }
+}
+
+.manage-main {
+  min-height: 0;
+  padding-block: 14px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* ---------- shared bits ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.m-card {
+  border: 1px solid var(--m-line);
+  border-radius: var(--m-radius);
+  background: var(--m-surface);
+}
+
+.m-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--m-ink-3);
+}
+
+.m-stage {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--m-brand-300);
+}
+
+.m-hint {
+  color: var(--m-ink-3);
+  font-size: 12.5px;
+}
+
+.m-live-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--m-live);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-live) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .m-live-dot {
+    animation: m-pulse 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes m-pulse {
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--m-live) 0%, transparent);
+  }
+}
+
+/* A question card's session + time line (cross-session lists). */
+.m-q-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-size: 12.5px;
+}
+
+.m-q-context {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  color: inherit;
+  opacity: 0.75;
+
+  & span:last-child {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  & .m-stage {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+/* Upstream's question card is white on the Meerkat dark theme; give it the
+   redesign's dark purple look here until that lands (PR #27). */
+.manage .bubble {
+  background-color: color-mix(in srgb, var(--chakra-colors-brand-400) 18%, transparent);
+  border-color: color-mix(in srgb, var(--chakra-colors-brand-400) 30%, transparent);
+  border-radius: 15px;
+  color: var(--m-ink);
+}
+
+.manage .bubble.selected {
+  border-color: var(--chakra-colors-brand-solid);
+}
+
+/* Votes as the app shows them: arrow and count in one brand-outlined pill
+   (PR #27's UpVoteButton). Organizers don't vote here, so it only displays. */
+.manage .upvote {
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding-inline: 12px;
+  border: 1px solid var(--chakra-colors-brand-solid);
+  border-radius: 999px;
+  color: var(--m-brand-300);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.manage .upvote-count {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.manage .upvote button {
+  min-width: 0;
+  width: auto;
+  height: auto;
+  padding: 0;
+  background: none;
+  color: inherit;
+}
+
+.manage .upvote button:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.m-q-time {
+  white-space: nowrap;
+  opacity: 0.65;
+  margin-left: auto;
+}
+
+.m-empty {
+  color: var(--m-ink-3);
+  text-align: center;
+  padding: 32px 0;
+}
+
+/* ---------- search ---------- */
+.m-search {
+  position: relative;
+  flex: 1 1 220px;
+  max-width: 340px;
+  min-width: 180px;
+
+  & svg {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--m-ink-3);
+    pointer-events: none;
+  }
+
+  & input {
+    width: 100%;
+    border: 1px solid var(--m-line-strong);
+    background: var(--m-surface);
+    border-radius: 999px;
+    padding: 7px 14px 7px 33px;
+    font-size: 13px;
+    color: var(--m-ink);
+  }
+
+  & input::placeholder {
+    color: var(--m-ink-3);
+  }
+
+  & input:focus {
+    outline: 2px solid var(--m-accent);
+    outline-offset: 0;
+    border-color: transparent;
+    background: var(--m-surface-2);
+  }
+}
+
+.m-search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: max(100%, 380px);
+  max-width: calc(100vw - 32px);
+  max-height: 420px;
+  overflow: auto;
+  z-index: 50;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--m-surface-2);
+  border: 1px solid var(--m-line-strong);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.7);
+}
+
+.m-search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &[aria-selected="true"],
+  &:hover {
+    background: var(--m-surface-3);
+  }
+
+  & .title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  & .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    font-size: 12px;
+    color: var(--m-ink-2);
+  }
+
+  & mark {
+    background: color-mix(in srgb, var(--m-accent) 45%, transparent);
+    color: inherit;
+    border-radius: 3px;
+  }
+}
+
+/* ---------- feed ---------- */
+.m-feed {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+
+.m-rail {
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+}
+
+.m-rail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 6px;
+  margin-top: 4px;
+  border-top: 1px solid var(--m-line);
+}
+
+.m-rail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--m-ink-2);
+
+  & .label {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  & .title {
+    color: var(--m-ink);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  & .count {
+    font-size: 12px;
+    color: var(--m-ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  & .m-live-dot {
+    margin-top: 5px;
+  }
+
+  &:hover {
+    background: var(--m-surface-2);
+  }
+
+  &[aria-current="true"] {
+    background: var(--m-accent-soft);
+    box-shadow: inset 0 0 0 1px var(--m-accent-line);
+  }
+}
+
+.m-stream {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.m-stream-head,
+.m-table-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--m-line);
+
+  & h2 {
+    margin: 2px 0 0;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+}
+
+.m-stream-scroll {
+  container-type: inline-size;
+  overflow: auto;
+  flex: 1;
+  padding: 0 8px 18px;
+
+  & .question-list {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}
+
+/* Show: all / open / answered / hidden / spam, with how many of each. */
+.m-filter {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+
+  & button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border: 1px solid var(--m-line);
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--m-ink-2);
+  }
+
+  & button:hover {
+    background: var(--m-surface-2);
+    color: var(--m-ink);
+  }
+
+  & button[aria-pressed="true"] {
+    background: var(--m-accent);
+    border-color: var(--m-accent);
+    color: #fff;
+  }
+
+  & .count {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.7;
+  }
+}
+
+.m-qtable .tag.spam {
+  border-color: transparent;
+  background: color-mix(in srgb, #ff6b6b 20%, transparent);
+  color: #ffb4b4;
+}
+
+/* Dense question table: as many questions on screen as possible. */
+.m-qtable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.m-qtable th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--m-ink-3);
+  background: var(--m-surface);
+  border-bottom: 1px solid var(--m-line);
+  white-space: nowrap;
+}
+
+.m-qtable td {
+  padding: 5px 10px;
+  border-top: 1px solid var(--m-line);
+  vertical-align: middle;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.m-qtable tbody tr:hover {
+  background: var(--m-surface-2);
+}
+
+.m-qtable tr.answered td {
+  opacity: 0.55;
+}
+
+/* Column widths; the question itself takes the rest. */
+.m-qtable .when {
+  width: 102px;
+  color: var(--m-ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-qtable .session {
+  width: 150px;
+}
+
+/* Stage on top, session name beneath, so neither gets squeezed away. */
+.m-qtable td.session {
+  white-space: normal;
+}
+
+.m-qtable .session button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  min-width: 0;
+}
+
+.m-qtable .session .m-stage {
+  flex: 0 0 auto;
+}
+
+.m-qtable .session .title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+  color: var(--m-ink-2);
+}
+
+.m-qtable .session button:hover .title {
+  color: var(--m-ink);
+  text-decoration: underline;
+}
+
+/* Questions wrap in full — moderators need to read every word. Every other
+   column stays on one line, so rows stay as short as each question allows. */
+.m-qtable th.question {
+  display: table-cell;
+}
+
+.m-qtable td.question {
+  white-space: normal;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.m-qtable .status {
+  width: 92px;
+}
+
+/* A question can be both flagged and on stage, so the tags stack instead of
+   being clipped to an ellipsis. */
+/* A question can be both flagged and on stage, so the tags stack instead of
+   being clipped to an ellipsis. */
+.m-qtable td.status {
+  white-space: normal;
+  text-overflow: clip;
+}
+
+.m-qtable td.status .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.m-qtable .tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--m-line-strong);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--m-ink-2);
+}
+
+.m-qtable .tag.answering {
+  border-color: transparent;
+  background: var(--chakra-colors-brand-solid);
+  color: #fff;
+}
+
+.m-qtable .who {
+  /* Wide enough for the generated animal names (e.g. curious-otter-0003). */
+  width: 160px;
+  color: var(--m-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.m-qtable .n {
+  width: 58px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--m-brand-300);
+}
+
+.m-qtable .actions {
+  width: 40px;
+  text-align: right;
+  padding-block: 3px;
+}
+
+/* Narrow columns (the session panel): question first, its details beneath. */
+.m-qtable.compact {
+  table-layout: auto;
+}
+
+.m-qtable.compact thead {
+  display: none;
+}
+
+.m-qtable.compact tbody,
+.m-qtable.compact tr {
+  display: block;
+}
+
+.m-qtable.compact tr {
+  padding: 9px 2px;
+  border-top: 1px solid var(--m-line);
+}
+
+.m-qtable.compact tbody tr:first-child {
+  border-top: 0;
+}
+
+.m-qtable.compact td {
+  display: inline-block;
+  width: auto;
+  padding: 0;
+  border: 0;
+  margin-right: 10px;
+  font-size: 12px;
+  color: var(--m-ink-3);
+}
+
+.m-qtable.compact td.question {
+  display: block;
+  width: 100%;
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--m-ink);
+}
+
+/* No column headers here, so mark the vote count. */
+.m-qtable.compact td.n::before {
+  content: "\25B2 ";
+  color: var(--m-ink-3);
+}
+
+.m-qtable.compact td.n {
+  color: var(--m-brand-300);
+  font-weight: 600;
+}
+
+.m-qtable.compact td.actions {
+  float: right;
+  margin: 0;
+}
+
+/* Drop the supporting columns before the question itself gets squeezed. */
+@container (max-width: 860px) {
+  .m-qtable .who {
+    display: none;
+  }
+}
+
+@container (max-width: 680px) {
+  .m-qtable .session {
+    display: none;
+  }
+}
+
+@container (max-width: 520px) {
+  .m-qtable .status {
+    display: none;
+  }
+}
+
+/* A name you can click to see that person's history. */
+.m-person-link {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--m-line-strong);
+  text-underline-offset: 3px;
+}
+
+.m-person-link:hover {
+  color: var(--m-ink);
+  text-decoration-color: var(--m-accent);
+}
+
+/* ---------- a person's history ---------- */
+.m-person {
+  container-type: inline-size;
+  /* Wide enough for the same columns as the feed table. Every management
+     dialog is the same size, so one opened from another covers it exactly
+     instead of peeking out around the edges. */
+  width: 100%;
+  max-width: min(1080px, calc(100vw - 48px));
+  background: var(--m-surface);
+  color: var(--m-ink);
+  border: 1px solid var(--m-line-strong);
+
+  & [data-scope="dialog"][data-part="header"] {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--m-line);
+  }
+
+  & .name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  & .m-chip.blocked {
+    border-color: transparent;
+    background: color-mix(in srgb, #ff6b6b 18%, transparent);
+    color: #ffb4b4;
+  }
+
+  & h3 {
+    margin: 18px 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--m-ink-3);
+  }
+
+  & [data-scope="dialog"][data-part="footer"] {
+    gap: 10px;
+    border-top: 1px solid var(--m-line);
+  }
+
+  & [data-part="footer"] .m-hint {
+    margin-right: auto;
+  }
+}
+
+.m-confirm {
+  max-width: min(440px, calc(100vw - 48px));
+
+  & [data-scope="dialog"][data-part="title"] {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  & [data-scope="dialog"][data-part="body"] {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+}
+
+/* The four numbers double as tabs: each one opens its own table. */
+.m-person-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+
+  & button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--m-line);
+    border-radius: 10px;
+    text-align: left;
+  }
+
+  & button:hover {
+    border-color: var(--m-line-strong);
+    background: var(--m-surface-2);
+  }
+
+  & button[aria-selected="true"] {
+    border-color: var(--m-accent-line);
+    background: var(--m-accent-soft);
+  }
+
+  & button[aria-selected="true"] span {
+    color: var(--m-ink-2);
+  }
+
+  & b {
+    font-size: 20px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & span {
+    font-size: 11px;
+    color: var(--m-ink-3);
+  }
+}
+
+.m-person-questions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  & li {
+    padding: 9px 0;
+    border-top: 1px solid var(--m-line);
+  }
+
+  & li:first-child {
+    border-top: 0;
+  }
+
+  & li.hidden p {
+    color: var(--m-ink-3);
+    text-decoration: line-through;
+    text-decoration-color: var(--m-line-strong);
+  }
+
+  & p {
+    margin: 0 0 4px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  & .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    font-size: 12px;
+    color: var(--m-ink-3);
+  }
+
+  & .votes {
+    color: var(--m-brand-300);
+    font-weight: 600;
+  }
+
+  & .tag {
+    padding: 1px 7px;
+    border: 1px solid var(--m-line-strong);
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 620px) {
+  .m-person-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ---------- schedule ---------- */
+.m-schedule {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+}
+
+.m-schedule-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+
+}
+
+.m-schedule-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.m-days {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 3px;
+  border: 1px solid var(--m-line);
+  border-radius: 10px;
+  background: var(--m-surface);
+
+  & button {
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--m-ink-2);
+    white-space: nowrap;
+  }
+
+  & button[aria-current="true"] {
+    background: var(--m-accent);
+    color: #fff;
+  }
+
+  & small {
+    margin-left: 6px;
+    font-size: 10.5px;
+    opacity: 0.75;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+}
+
+.m-timeline {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Offered at the edge when the now line has scrolled out of sight. */
+.m-jump-now {
+  position: absolute;
+  top: 44px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--chakra-colors-brand-solid);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.7);
+}
+
+.m-jump-now:hover {
+  filter: brightness(1.08);
+}
+
+.m-timeline {
+  position: relative;
+}
+
+.m-tl-scroll {
+  overflow: auto;
+  flex: 1;
+  position: relative;
+}
+
+.m-tl-inner {
+  position: relative;
+}
+
+.m-tl-axis {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  height: 34px;
+  background: var(--m-surface);
+  border-bottom: 1px solid var(--m-line);
+}
+
+.m-tl-corner,
+.m-tl-label {
+  position: sticky;
+  left: 0;
+  flex: 0 0 auto;
+  background: var(--m-surface);
+  border-right: 1px solid var(--m-line);
+}
+
+.m-tl-corner {
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  padding-left: 14px;
+  font-size: 10.5px;
+  color: var(--m-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.m-tl-hours {
+  position: relative;
+  flex: 1;
+
+  & span {
+    position: absolute;
+    top: 10px;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--m-ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.m-now-chip {
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+  background: var(--m-accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 5px;
+  z-index: 2;
+}
+
+.m-tl-row {
+  display: flex;
+  height: 78px;
+  border-bottom: 1px solid var(--m-line);
+}
+
+.m-tl-label {
+  z-index: 5;
+  padding: 10px 10px 8px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  & b {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+  }
+
+  & small {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--m-ink-3);
+  }
+}
+
+.m-tl-lane {
+  position: relative;
+  flex: 1;
+}
+
+.m-tl-grid {
+  position: absolute;
+  top: 34px;
+  bottom: 0;
+  pointer-events: none;
+
+  & i {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 1px solid var(--m-line);
+  }
+
+  & i.half {
+    border-left-style: dashed;
+    opacity: 0.55;
+  }
+}
+
+.m-tl-past {
+  position: absolute;
+  top: 34px;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.m-tl-now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 2px solid var(--chakra-colors-brand-500);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.m-block {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  z-index: 3;
+  display: flex;
+  min-width: 14px;
+  padding: 6px 8px 6px 9px;
+  /* clip (not hidden) so the sticky body below follows the timeline's scroll. */
+  overflow: clip;
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid var(--m-line-strong);
+  background: var(--m-surface);
+  color: var(--m-ink);
+
+  &:hover {
+    z-index: 4;
+    box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  }
+
+  &.ended {
+    color: var(--m-ink-2);
+    border-color: var(--m-line);
+    background:
+      repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 4px, transparent 4px 8px),
+      var(--m-surface-2);
+  }
+
+  &.live {
+    background: var(--m-accent-soft);
+    border-color: var(--m-accent-line);
+  }
+
+  &.selected {
+    outline: 2px solid var(--chakra-colors-brand-500);
+    outline-offset: 1px;
+    z-index: 4;
+  }
+
+  /* Slides along a long session and stops just right of the stage labels. */
+  & .body {
+    position: sticky;
+    left: calc(var(--m-label) + 10px);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    max-width: min(100%, 320px);
+  }
+
+  & .title {
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Room on every side so the live dot's glow isn't clipped. */
+  & .meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: auto -5px -5px;
+    padding: 5px;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--m-ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ---------- session panel ---------- */
+/* Every full-size management dialog is the same box, so one opened from
+   another covers it exactly instead of peeking out around the edges. The
+   small block-user confirmation keeps its own size. */
+.m-person:not(.m-confirm) {
+  height: min(820px, calc(100dvh - 56px));
+}
+
+/* The session deep dive is a dialog, so it gets the full width of .m-person. */
+.m-session [data-scope="dialog"][data-part="body"] {
+  padding: 0;
+}
+
+.m-session .m-sec:first-child {
+  padding-top: 18px;
+}
+
+.m-sec {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--m-line);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  & h2 {
+    margin: 4px 0;
+    font-size: 19px;
+    line-height: 1.2;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+}
+
+.m-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: var(--m-ink-2);
+}
+
+.m-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--m-line-strong);
+  color: var(--m-ink-2);
+  white-space: nowrap;
+
+  &.live {
+    border-color: transparent;
+    color: var(--m-ink);
+    background: color-mix(in srgb, var(--m-live) 13%, var(--m-surface));
+  }
+}
+
+.m-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--m-line);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--m-surface);
+
+  & button {
+    padding: 10px 8px;
+    margin-bottom: -1px;
+    font-weight: 600;
+    color: var(--m-ink-3);
+    border-bottom: 2px solid transparent;
+  }
+
+  & button[aria-selected="true"] {
+    color: var(--m-ink);
+    border-color: var(--chakra-colors-brand-500);
+  }
+}
+
+.m-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  & div {
+    display: flex;
+    flex-direction: column;
+    padding-inline: 10px;
+  }
+
+  & div:first-child {
+    padding-left: 0;
+  }
+
+  & div + div {
+    border-left: 1px solid var(--m-line);
+  }
+
+  & b {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & span {
+    font-size: 11px;
+    color: var(--m-ink-3);
+  }
+}
+
+/* Whether the session is live sits top right, beside the close button. */
+.m-session-status {
+  margin-left: auto;
+  margin-right: 10px;
+}
+
+/* The QR code is its own dialog, so the card inside it drops the frame. */
+.m-qr-dialog [data-scope="dialog"][data-part="header"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.m-qr-dialog .m-qr {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  max-width: none;
+}
+
+.m-qr {
+  margin-top: 12px;
+  max-width: 380px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: var(--m-radius);
+  background: var(--m-surface-2);
+
+  & .qr-code {
+    width: 188px;
+    height: 188px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #fff;
+    color: #36364c;
+  }
+
+  & .qr-code svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  & .url {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--m-ink-3);
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+}
+
+.m-seg {
+  display: flex;
+  gap: 2px;
+  width: 100%;
+  padding: 3px;
+  border: 1px solid var(--m-line);
+  border-radius: 10px;
+  background: var(--m-surface);
+
+  & button {
+    flex: 1;
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--m-ink-2);
+  }
+
+  & button[aria-checked="true"] {
+    background: var(--m-accent);
+    color: #fff;
+  }
+}
+
+.m-details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0;
+
+  & dt {
+    color: var(--m-ink-3);
+  }
+
+  & dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* ---------- dashboard ---------- */
+.m-dash {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+
+  & > * {
+    flex-shrink: 0;
+  }
+
+  & h1 {
+    margin: 2px 0 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+}
+
+.m-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.m-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+
+  & .label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m-ink-2);
+  }
+
+  & .value {
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.m-table {
+  overflow: hidden;
+
+  & .scroll {
+    overflow-x: auto;
+  }
+
+  & table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+  }
+
+  & th {
+    padding: 10px 18px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--m-ink-3);
+    border-bottom: 1px solid var(--m-line);
+    white-space: nowrap;
+  }
+
+  & td {
+    padding: 11px 18px;
+    border-top: 1px solid var(--m-line);
+  }
+
+  & tbody tr:first-child td {
+    border-top: 0;
+  }
+
+  & tbody tr {
+    cursor: pointer;
+  }
+
+  & tbody tr:hover,
+  & tbody tr:focus-visible {
+    background: var(--m-surface-2);
+    outline: none;
+  }
+
+  & .n {
+    width: 1%;
+    text-align: right;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  & .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    margin-top: 3px;
+    font-size: 12px;
+    color: var(--m-ink-3);
+  }
+}
+
+@media (max-width: 1100px) {
+}
+
+@media (max-width: 900px) {
+  .manage {
+    height: auto;
+    display: block;
+  }
+
+  .m-feed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .m-rail {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .m-rail-group {
+    flex-direction: row;
+    border-top: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .m-rail-item {
+    width: auto;
+  }
+
+  .m-timeline,
+  .m-stream {
+    height: 70vh;
+  }
+
+  .m-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .m-search {
+    flex-basis: 100%;
+    max-width: none;
+    margin-bottom: 10px;
+  }
+
+  .manage-event {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
