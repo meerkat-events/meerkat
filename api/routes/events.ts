@@ -446,7 +446,14 @@ app.get(
       });
     }
 
-    const events = await getEvents({ conferenceId });
+    const limit = parseInt(c.req.query("limit") ?? "100");
+    if (isNaN(limit) || limit < 1 || limit > 1000) {
+      throw new HTTPException(400, {
+        message: `Invalid limit ${limit}, must be between 1 and 1000`,
+      });
+    }
+
+    const events = await getEvents({ conferenceId, limit });
     return c.json({ data: events });
   },
 );
