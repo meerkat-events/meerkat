@@ -43,6 +43,11 @@ export const conferences = pgTable("conferences", {
   name: text("name").notNull().unique(),
   logoUrl: text("logo_url"),
   externalId: text("external_id"),
+  // Slug of the Pretalx event (on PRETALX_URL) whose schedule is synced into
+  // this conference's events, e.g. "devcon8"; null = not synced (pretalx.ts).
+  pretalxEvent: text("pretalx_event").unique(),
+  // Start of the last sync; throttles POST /api/v1/pretalx/:event/sync.
+  pretalxSyncedAt: timestamp("pretalx_synced_at"),
   theme: jsonb("theme").$type<{
     brandColor: string;
     textColor: string;

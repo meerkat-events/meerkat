@@ -96,6 +96,7 @@ Realtime:
 | `supabase.ts`        | Supabase client (Realtime broadcast + admin operations)           |
 | `zupass.ts`          | Builds and signs Zupass attendance PODs                           |
 | `devcon.ts`          | Verifies Devcon handover tokens (HS256, ms timestamps)            |
+| `pretalx.ts`         | Syncs a Pretalx event's schedule into a conference's events       |
 | `app/lib/handover.server.ts` | Devcon handover: token → Supabase session (server-only)   |
 | `lib/pod.ts`         | CJS shim around `@pcd/pod` (its ESM build pulls in CJS-only deps) |
 | `utils/broadcast.ts` | Supabase Realtime channel manager for SSE fan-out                 |

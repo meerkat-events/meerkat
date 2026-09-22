@@ -1,35 +1,38 @@
-name: Data Sync Trigger
+name: Pretalx Sync
+
+# Manually re-syncs a conference's events from its Pretalx schedule — the
+# same public endpoint the Pretalx-side webhook calls (see api/pretalx.ts).
 
 on:
-  # schedule:
-  #   - cron: '0 * * * *'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment to sync
+        type: choice
+        options: [dev, prod]
+        default: dev
+      pretalx_event:
+        description: Pretalx event slug linked to the conference (e.g. devcon8)
+        type: string
+        required: true
+
+permissions: {}
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    environment: prod
+    environment: ${{ inputs.environment }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-          cache: true
-      - name: Install dependencies
-        working-directory: api
-        run: |
-          deno install
-      - name: Run script
-        working-directory: api
+      - name: Trigger sync
         env:
-          IMPORT_API_KEY: ${{ secrets.IMPORT_API_KEY }}
-          DEVCONNECT_BASE: ${{ secrets.DEVCONNECT_BASE }}
           MEERKAT_BASE: ${{ secrets.MEERKAT_BASE }}
+          PRETALX_EVENT: ${{ inputs.pretalx_event }}
         run: |
-          deno task sync
-      - name: Upload reports
-        uses: actions/upload-artifact@v5
-        with:
-          name: reports
-          path: api/reports
+          if [[ ! "$PRETALX_EVENT" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+            echo "::error::Invalid Pretalx event slug: $PRETALX_EVENT"
+            exit 1
+          fi
+          # 200 = synced; 202 = queued behind a sync from the last minute.
+          curl --silent --show-error --fail-with-body -X POST \
+            "$MEERKAT_BASE/api/v1/pretalx/$PRETALX_EVENT/sync" \
+            -w "\nHTTP %{http_code}\n"

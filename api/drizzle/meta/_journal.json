@@ -43,6 +43,13 @@
       "when": 1763320077011,
       "tag": "0005_rare_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790112166746,
+      "tag": "0006_greedy_polaris",
+      "breakpoints": true
     }
   ]
 }

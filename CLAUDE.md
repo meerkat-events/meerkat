@@ -177,7 +177,18 @@ the theme. `conferences.features` rows are boolean feature flags surfaced as
   `answeredAt`, `deletedAt` (soft delete; queries filter it out). Banned users'
   questions are hidden by the query, not deleted.
 - Exactly one event is live per stage: `setEventLive` flips the others off in
-  a transaction.
+  a transaction. Event upserts never overwrite `live`.
+- **Pretalx sync** (`api/pretalx.ts`): a conference with a `pretalx_event`
+  slug gets one event per talk from `<PRETALX_URL>/<slug>/schedule/export/schedule.json`
+  (public, released schedule only): `uid` = Pretalx submission code (the id
+  the Devcon event app links to), `stage` = slugified room. Talks gone from
+  Pretalx are deleted unless the event is live or has questions (logged as
+  `kept`). Triggered by `POST /api/v1/pretalx/:event/sync` — unauthenticated
+  (the caller supplies nothing; Meerkat re-pulls a public schedule) and
+  throttled to one sync per minute across instances via
+  `conferences.pretalx_synced_at`; a call inside the window answers 202 and
+  queues one sync for its end. Called by the Devcon team's webhook and by
+  `.github/workflows/sync.yml` (manual).
 - Rate limits live in `api/moderation.ts`; routes return 429, and the frontend
   turns 429 into a cooldown modal (`UserContext.isOnCooldown`).
 - `auth.users` is Supabase-managed. `schema.ts` declares it (schema `auth`)
@@ -279,7 +290,8 @@ deploys the `dev` environment, creating a GitHub release deploys `prod`.
 `release_command` applies pending Drizzle migrations (`api/migrate.ts`, which
 prefers `DATABASE_URL` over the pooler URL) before each rollout; the health
 check hits `/api/v1/conferences`. `.github/workflows/sync.yml` is a
-stale manual workflow from the Deno era (`deno task sync` no longer exists).
+manual (`workflow_dispatch`) Pretalx sync: pick the environment and the
+Pretalx event slug; it needs the `MEERKAT_BASE` secret in that environment.
 
 ## Environment variables (`api/.env`)
 
@@ -294,5 +306,6 @@ stale manual workflow from the Deno era (`deno task sync` no longer exists).
 | `BASE_URL`                  | Public origin; used for redirects, QR codes, POD type prefix. Default `http://localhost:$PORT` |
 | `VITE_API_URL`              | Build-time client API origin (see Commands). Default empty — same origin as the page |
 | `CORS_ORIGINS`              | Comma-separated allowed origins for `/api/*`; default `*`    |
+| `PRETALX_URL`               | Origin of the Pretalx instance for the schedule sync; unset disables `POST /api/v1/pretalx/:event/sync` (503). Deployments take it from the `PRETALX_URL` secret |
 | `ZUPASS_URL`, `ZUPASS_ZAPP_NAME` | Zupass connector config                                 |
 | `SENTRY_DSN`, `ENVIRONMENT`, `DATABASE_MAX_POOL_SIZE` | Optional                              |
