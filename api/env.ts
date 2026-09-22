@@ -50,6 +50,12 @@ const corsOrigins: "*" | string[] = !corsOriginsRaw || corsOriginsRaw === "*"
   ? "*"
   : corsOriginsRaw.split(",").map((origin) => origin.trim()).filter(Boolean);
 
+// Origin of the Pretalx instance whose event schedules are synced into
+// conferences with a `pretalx_event` slug (see pretalx.ts). Unset or empty
+// disables the sync endpoint.
+const pretalxUrl = process.env["PRETALX_URL"]?.trim().replace(/\/+$/, "") ||
+  undefined;
+
 const env = {
   connectionString,
   port,
@@ -65,6 +71,7 @@ const env = {
   environment,
   devconVerificationSecret,
   corsOrigins,
+  pretalxUrl,
 };
 
 /** `env` with secrets masked, for startup logging (see `main.ts`). */

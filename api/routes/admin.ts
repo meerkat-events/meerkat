@@ -4,6 +4,7 @@ import zod from "zod";
 import { apiKey } from "../middlewares/api-key.ts";
 import { upsertEvents } from "../models/events.ts";
 import { createConference } from "../models/conferences.ts";
+import { PRETALX_EVENT_PATTERN } from "../pretalx.ts";
 
 const app = new Hono();
 
@@ -45,6 +46,7 @@ const createConferenceSchema = zod.object({
   name: zod.string().min(1),
   logoUrl: zod.string().optional(),
   externalId: zod.string().optional(),
+  pretalxEvent: zod.string().regex(PRETALX_EVENT_PATTERN).optional(),
   theme: zod.any(),
 });
 
