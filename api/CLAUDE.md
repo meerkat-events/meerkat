@@ -91,6 +91,7 @@ Realtime:
 | `env.ts`             | All `process.env` vars — validated and exported as a typed object |
 | `schema.ts`          | Drizzle ORM schema — **single source of truth** for DB structure  |
 | `db.ts`              | Drizzle client (postgres.js driver, pool size from env)           |
+| `migrate.ts`         | Applies Drizzle migrations; Fly `release_command` on every deploy |
 | `instrumentation.ts` | Sentry init — imported first in `main.ts`                         |
 | `supabase.ts`        | Supabase client (Realtime broadcast + admin operations)           |
 | `zupass.ts`          | Builds and signs Zupass attendance PODs                           |
@@ -161,7 +162,8 @@ The admin API is separate: argon2-hashed API keys in the DB
 1. Edit `api/schema.ts`
 2. `cd api && pnpm generate` — creates a Drizzle migration file in
    `api/drizzle/`
-3. `cd api && pnpm migrate` — applies pending migrations
+3. `cd api && pnpm migrate` — applies pending migrations locally; deploys run
+   `migrate.ts` as Fly's `release_command` instead
 
 ## pnpm scripts
 

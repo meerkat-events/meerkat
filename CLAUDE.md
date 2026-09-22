@@ -218,7 +218,12 @@ the theme. `conferences.features` rows are boolean feature flags surfaced as
 
 1. Edit `api/schema.ts` (single source of truth).
 2. `cd api && pnpm generate`, then review the SQL (remove `auth.*` DDL).
-3. `cd api && pnpm migrate`.
+3. `cd api && pnpm migrate` for your local database. Deployed environments
+   migrate themselves: Fly's `release_command` runs `api/migrate.ts` once per
+   deploy, before the rollout, and a failed migration aborts the deploy.
+   Old machines keep serving until the rollout finishes, so a migration must
+   work with the previous code (add columns freely; renames and drops take
+   two deploys).
 4. If a new table needs browser `postgres_changes`, add it to the realtime
    publication in Supabase.
 
@@ -270,8 +275,10 @@ every other worktree. Coordinate before migrating locally.
 
 Fly.io through `.github/workflows/continous-deployment.yml`: push to `master`
 deploys the `dev` environment, creating a GitHub release deploys `prod`.
-`fly.template.toml` is rendered with `envsubst` from GitHub secrets; the
-health check hits `/api/v1/conferences`. `.github/workflows/sync.yml` is a
+`fly.template.toml` is rendered with `envsubst` from GitHub secrets; its
+`release_command` applies pending Drizzle migrations (`api/migrate.ts`, which
+prefers `DATABASE_URL` over the pooler URL) before each rollout; the health
+check hits `/api/v1/conferences`. `.github/workflows/sync.yml` is a
 stale manual workflow from the Deno era (`deno task sync` no longer exists).
 
 ## Environment variables (`api/.env`)
