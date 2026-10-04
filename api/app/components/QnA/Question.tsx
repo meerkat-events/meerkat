@@ -1,7 +1,7 @@
 import {
   FiCheckCircle as CheckCircleIcon,
   FiEyeOff as DeleteIcon,
-  FiMoreVertical,
+  FiMoreHorizontal,
   FiStopCircle as NotAllowedIcon,
 } from "react-icons/fi";
 import { Box, Icon, IconButton, Menu, Portal, Text } from "@chakra-ui/react";
@@ -31,7 +31,7 @@ export function Question(
     onSuccess: () => {
       refresh();
       toaster.create({
-        title: "Vote recorded 🗳️",
+        title: "Vote recorded",
         type: "success",
         duration: 1000,
       });
@@ -99,7 +99,7 @@ export function Question(
   const isSelected = !question.answeredAt && !!question.selectedAt;
 
   const classNames = [
-    "bubble",
+    "question-card",
     isAnswered ? "answered" : "",
     isSelected ? "selected" : "",
   ];
@@ -110,62 +110,60 @@ export function Question(
       className={classNames.join(" ")}
     >
       {isSelected && (
-        <div className="bubble-status">
+        <div className="question-card-status">
           <Icon as={FiRadio} />
           Answering
         </div>
       )}
-      <Text fontSize="md" mb={2} flex="1" fontWeight="600">
+      <Text className="question-card-text" textStyle="md" fontWeight="semibold">
         {question.question}
       </Text>
-      {canModerate
-        ? (
-          <Menu.Root>
-            <Menu.Trigger asChild>
-              <IconButton
-                size="md"
-                aria-label="Options"
-                variant="ghost"
-                colorPalette="gray"
-                color="gray.300"
-                justifySelf="flex-end"
-              >
-                <Icon as={FiMoreVertical} />
-              </IconButton>
-            </Menu.Trigger>
-            <Portal>
-              <Menu.Positioner>
-                <Menu.Content>
-                  <Menu.Item value="select" onClick={handleSelected}>
-                    <Icon as={RxCursorArrow} mr="2" />
-                    <Box as="span">Select for Answering</Box>
-                  </Menu.Item>
-                  <Menu.Item value="answer" onClick={handleAnswered}>
-                    <Icon as={CheckCircleIcon} mr="2" />
-                    <Box as="span">Mark as Answered</Box>
-                  </Menu.Item>
-                  <Menu.Item value="delete" onClick={handleDelete}>
-                    <Icon as={DeleteIcon} mr="2" />
-                    <Box as="span">Hide Question</Box>
-                  </Menu.Item>
-                  <Menu.Item value="block" onClick={handleBlock}>
-                    <Icon as={NotAllowedIcon} mr="2" />
-                    <Box as="span">Block User</Box>
-                  </Menu.Item>
-                </Menu.Content>
-              </Menu.Positioner>
-            </Portal>
-          </Menu.Root>
-        )
-        : <div />}
-      <Text as="span" className="author" fontWeight="400">
-        {question.user?.name ?? question.user?.id ?? "Unknown"}
-      </Text>
-      <div className="upvote">
-        <div className={`upvote-count ${voted && "voted"}`}>
-          {question.votes}
+      <div className="question-card-meta">
+        <div className="question-card-byline">
+          <Text as="span" textStyle="sm" color="fg.muted" minW="0" truncate>
+            {question.user?.name ?? question.user?.id ?? "Unknown"}
+          </Text>
+          {canModerate && (
+            <Menu.Root positioning={{ placement: "bottom-start" }}>
+              <Menu.Trigger asChild>
+                <IconButton
+                  size="sm"
+                  aria-label="Options"
+                  variant="ghost"
+                  colorPalette="gray"
+                  color="fg.muted"
+                >
+                  <Icon as={FiMoreHorizontal} />
+                </IconButton>
+              </Menu.Trigger>
+              <Portal>
+                <Menu.Positioner>
+                  <Menu.Content>
+                    <Menu.Item value="select" onClick={handleSelected}>
+                      <Icon as={RxCursorArrow} mr="2" />
+                      <Box as="span">Select for Answering</Box>
+                    </Menu.Item>
+                    <Menu.Item value="answer" onClick={handleAnswered}>
+                      <Icon as={CheckCircleIcon} mr="2" />
+                      <Box as="span">Mark as Answered</Box>
+                    </Menu.Item>
+                    <Menu.Item value="delete" onClick={handleDelete}>
+                      <Icon as={DeleteIcon} mr="2" />
+                      <Box as="span">Hide Question</Box>
+                    </Menu.Item>
+                    <Menu.Item value="block" onClick={handleBlock}>
+                      <Icon as={NotAllowedIcon} mr="2" />
+                      <Box as="span">Block User</Box>
+                    </Menu.Item>
+                  </Menu.Content>
+                </Menu.Positioner>
+              </Portal>
+            </Menu.Root>
+          )}
         </div>
         <UpVoteButton
+          votes={question.votes}
+          voted={voted}
           loading={isVoting}
           onClick={() => toggleVote({ uid: question.uid })}
           disabled={!canVote || isAnswered}
