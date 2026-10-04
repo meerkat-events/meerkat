@@ -276,6 +276,18 @@ every other worktree. Coordinate before migrating locally.
 - Several worktrees run in parallel against this repo. Never use bare
   `git stash` / `git stash pop`; prefer a WIP commit, or
   `git stash push -m "<tag>"` and apply by SHA.
+- Stack dependent changes with [`gh stack`](https://gh.io/stacks)
+  (`gh extension install github/gh-stack`): when a change builds on another
+  unmerged one, put it in a stack instead of branching from `master`, so each
+  PR shows only its own diff. Keep each layer small and reviewable on its own.
+  ```bash
+  gh stack init feat/a                # or adopt existing: gh stack init feat/a feat/b
+  gh stack add -Am "feat: b" feat/b   # new layer on top, commits staged changes
+  gh stack submit --auto --open       # push all, open/retarget PRs (--auto: no TUI)
+  gh stack sync                       # after review fixes or a merge: cascade-rebase + push
+  ```
+  Avoid the interactive commands (`modify`, `switch`, `submit` without
+  `--auto`) when running non-interactively.
 - A local (untracked) pre-commit hook lints staged `api/**/*.ts(x)` with
   `eslint --fix`; it silently skips when `api/node_modules` is missing, so
   run `pnpm install` in a fresh worktree to get lint-on-commit.
