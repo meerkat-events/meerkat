@@ -23,13 +23,19 @@ const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
  */
 export function getConferenceQuestions(
   conferenceId: number,
-  options: { live?: boolean; eventUid?: string; limit?: number } = {},
+  options: {
+    live?: boolean;
+    eventUid?: string;
+    limit?: number;
+    /** Organizers can also see what they have hidden, to review it. */
+    includeHidden?: boolean;
+  } = {},
 ) {
   const conditions = [
     eq(events.conferenceId, conferenceId),
-    isNull(questions.deletedAt),
     notBlocked(),
   ];
+  if (!options.includeHidden) conditions.push(isNull(questions.deletedAt));
   if (options.live) conditions.push(eq(events.live, true));
   if (options.eventUid) {
     conditions.push(eq(lower(events.uid), options.eventUid.toLowerCase()));
@@ -44,6 +50,7 @@ export function getConferenceQuestions(
       createdAt: questions.createdAt,
       selectedAt: questions.selectedAt,
       answeredAt: questions.answeredAt,
+      deletedAt: questions.deletedAt,
       userId: questions.userId,
       user: users,
       votes: votesSnippet,

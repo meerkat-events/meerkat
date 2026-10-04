@@ -81,11 +81,17 @@ const toApiQuestion = (
 const conferenceQuestionsQuery = zod.object({
   live: zod.enum(["true", "false"]).optional(),
   event: zod.string().min(1).optional(),
+  hidden: zod.enum(["true", "false"]).optional(),
   limit: zod.coerce.number().int().min(1).max(1000).optional(),
 });
 
 // Questions from every session of a conference (or only the live ones, or one
-// session), for the organizer question feed.
+// session), for the organizer question feed. `hidden=true` also returns what
+// organizers have hidden, so they can review it.
+//
+// When automatic spam flagging lands, each question is expected to carry the
+// flag (e.g. `flaggedAt` and a short `flagReason`); the organizer pages already
+// render and filter on that shape.
 app.get(
   "/api/v1/conferences/:id/questions",
   jwt(),
@@ -95,10 +101,11 @@ app.get(
       c.req.param("id"),
       c.get("jwtPayload").sub,
     );
-    const { live, event, limit } = c.req.valid("query");
+    const { live, event, hidden, limit } = c.req.valid("query");
 
     const questions = await getConferenceQuestions(conference.id, {
       live: live === "true",
+      includeHidden: hidden === "true",
       ...(event ? { eventUid: event } : {}),
       ...(limit ? { limit } : {}),
     });
