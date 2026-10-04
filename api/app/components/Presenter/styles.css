@@ -78,6 +78,15 @@
   font-family: "Inter", sans-serif;
 }
 
+/* Keeps the caption with the QR code at the top of the aside. */
+.qr-code-group {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
 .qr-code {
   background-color: white;
   color: var(--chakra-colors-brand-975);
@@ -121,12 +130,6 @@
   margin-top: 1rem;
 }
 
-.upvote-count {
-  display: inline;
-  font-weight: 600;
-  margin-right: 0.25rem;
-  line-height: 1rem;
-}
 
 .reaction {
   position: absolute;
