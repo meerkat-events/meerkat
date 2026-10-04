@@ -12,6 +12,7 @@ import {
   type ConferenceQuestions,
   getConferenceQuestions,
   getConferenceStats,
+  getConferenceUserActivity,
 } from "../models/conference-activity.ts";
 
 const app = new Hono();
@@ -115,6 +116,28 @@ app.get("/api/v1/conferences/:id/stats", jwt(), async (c) => {
   );
 
   return c.json({ data: await getConferenceStats(conference.id) });
+});
+
+// One person's history in this conference, so moderators can check who they
+// are before blocking them.
+app.get("/api/v1/conferences/:id/users/:userId/activity", jwt(), async (c) => {
+  const conference = await requireOrganizer(
+    c.req.param("id"),
+    c.get("jwtPayload").sub,
+  );
+
+  const activity = await getConferenceUserActivity(
+    conference.id,
+    c.req.param("userId"),
+  );
+
+  if (!activity) {
+    throw new HTTPException(404, {
+      message: `User ${c.req.param("userId")} not found`,
+    });
+  }
+
+  return c.json({ data: activity });
 });
 
 export default app;
