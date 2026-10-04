@@ -208,8 +208,8 @@ the theme. `conferences.features` rows are boolean feature flags surfaced as
    `Event.tsx`).
 2. **`postgres_changes` from the browser** — reactions (`reactions` inserts
    filtered by event) and the moderation page (`questions` inserts). These
-   need the tables in the `supabase_realtime` publication, which is
-   configured in the Supabase dashboard, not in migrations.
+   need a SELECT policy and the tables in the `supabase_realtime`
+   publication, which Drizzle migrations do not manage; see Database changes.
 3. **Live-event broadcasts** — `POST /api/v1/events/:uid/live` sends on
    `conference-{id}` and `stage-{stage}` channels with supabase-js;
    `useKeepLive` listens and also polls `/api/v1/events/stage/:stage/live`
@@ -235,8 +235,17 @@ the theme. `conferences.features` rows are boolean feature flags surfaced as
    Old machines keep serving until the rollout finishes, so a migration must
    work with the previous code (add columns freely; renames and drops take
    two deploys).
-4. If a new table needs browser `postgres_changes`, add it to the realtime
-   publication in Supabase.
+4. If a new table needs browser `postgres_changes`, add it to
+   `api/scripts/supabase-policies.sql` and re-run it.
+
+Drizzle migrations do not manage Supabase-specific setup (Row Level Security,
+the "Realtime" SELECT policies, membership in the `supabase_realtime`
+publication). Run `api/scripts/supabase-policies.sql` once per new Supabase
+project, after the first migration (idempotent, safe to re-run):
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql
+```
 
 All worktrees point at the same Supabase database (`api/.env` is a copy, not
 per-worktree), so `pnpm migrate` from one branch changes the schema under

@@ -30,8 +30,7 @@ export function createAttendancePOD(
     },
     "zupass_image_url": {
       type: "string",
-      value: event.cover ??
-        "https://icnyvghgspgzemdudsrd.supabase.co/storage/v1/object/public/global/logo.png",
+      value: event.cover ?? `${env.base}/logo.png`,
     },
     "zupass_title": {
       type: "string",

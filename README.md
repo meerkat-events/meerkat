@@ -53,10 +53,18 @@ Optionally, attendees can collect a signed attendance proof (a
    - **Auth → Providers**: enable **Email** and **Anonymous sign-ins**. Login
      uses a one-time code, so the magic-link email template must include
      `{{ .Token }}`.
-   - **Database → Publications**: add the `questions` and `reactions` tables
-     to the `supabase_realtime` publication. Reactions on the presenter view
-     and live updates on the moderation page subscribe to Postgres changes on
-     these tables.
+   - **Auth → URL Configuration**: set the Site URL and redirect URLs to the
+     app's `BASE_URL`; for production, also configure custom SMTP.
+   - **Row Level Security and realtime**: after the first migration, apply the
+     Supabase-specific setup that Drizzle migrations do not cover (RLS on every
+     table, realtime SELECT policies, and the `questions`, `reactions` and
+     `votes` tables in the `supabase_realtime` publication). Reactions on the
+     presenter view and live updates on the moderation page subscribe to
+     Postgres changes on these tables. The script is idempotent:
+
+     ```bash
+     psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql
+     ```
 
 ## Development
 
