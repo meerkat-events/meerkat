@@ -140,6 +140,7 @@ Optional:
 | `BASE_URL`               | Public origin of the app, used for redirects and QR codes. Default `http://localhost:$PORT`. |
 | `VITE_API_URL`           | API origin compiled into the frontend. Default empty: the frontend calls the origin it was served from. |
 | `CORS_ORIGINS`           | Comma-separated origins allowed to call `/api/*` from a browser. Default: `*`.   |
+| `PRETALX_URL`            | Origin of the Pretalx instance whose schedules are synced into conferences. Unset disables the sync endpoint. |
 | `DATABASE_POOLER_URL`    | Connection string of a connection pooler, preferred over `DATABASE_URL`.          |
 | `DATABASE_MAX_POOL_SIZE` | Max DB pool size (default: 10).                                                  |
 | `SENTRY_DSN`             | Sentry error tracking DSN.                                                       |
