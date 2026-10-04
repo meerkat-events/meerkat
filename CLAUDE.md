@@ -1,261 +1,262 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with
-code in this repository.
-
 ## What Meerkat is
 
 Audience-engagement (Q&A) tool for conferences, used by the Ethereum
 Foundation for Devcon/Devconnect. Attendees open `/e/:uid/qa` on their phones
 to ask, upvote and react; organizers select/answer/delete questions and put an
-event "live"; a presenter view at `/e/:uid` is shown on the stage screen. An
+event "live"; a presenter view at `/e/:uid` runs on the stage screen. An
 optional "collect" feature lets attendees store a signed attendance POD in
 their Zupass.
 
 ## Repository layout
 
-pnpm workspace (Node.js 26; pnpm installed via its own installer, since Node 26
-dropped corepack). Two packages:
+pnpm workspace on Node.js 26. Node 26 ships no corepack: pnpm comes from its
+own installer and switches itself to the version in `packageManager`.
 
 - **`api/`** (package name `ui`) — the whole application: Hono HTTP API,
-  React Router 8 SSR frontend, Drizzle schema + migrations. Deeper notes in
-  [api/CLAUDE.md](api/CLAUDE.md).
+  React Router 8 SSR frontend, Drizzle schema and migrations.
 - **`packages/react/`** — `@meerkat-events/react`, a published npm package of
-  hooks (`useQuestions`, `useEventSource`, `useSessionUrl`) for embedding
-  Meerkat questions in third-party sites (see
+  hooks for embedding Meerkat questions in other sites (background:
   [designs/001-devcon-ui-integration.md](designs/001-devcon-ui-integration.md)).
-  `api/` depends on it via `workspace:*` and resolves it from its `dist/`, so
-  **it must be built before `api/` can build or typecheck.**
+  `api/` consumes it from its `dist/`, so **build it before building or
+  typechecking `api/`**, and again after changing it.
 
-There is no test suite. Validation is typecheck + lint (+ Docker build).
+## Ground rules
+
+- **This repository is public.** Never commit secrets (keys, JWTs,
+  `PRIVATE_KEY` values, passwords, connection strings) or infrastructure
+  identifiers (Supabase project refs, org IDs, Fly app or org names); docs
+  use placeholders such as `<project-ref>`. Real values belong in `api/.env`
+  (gitignored) and GitHub/Fly secrets. Stage files by path, not with
+  `git add -A`, and check before committing:
+  `git diff --cached | grep -nE '\b[a-z]{20}\b|eyJ[A-Za-z0-9_-]{20,}|postgres(ql)?://'`
+- **Readability and maintainability over cleverness.** Write the obvious
+  version: plain control flow, descriptive names, small functions; no
+  one-liner tricks, clever generics or abstractions with a single caller.
+- **Platform first.** Use Node and Web built-ins before reaching for a
+  package: `node:test` + `node:assert`, `fetch`, `URL`, `globalThis.crypto`,
+  `structuredClone`, `Intl`.
+
+## Dependencies
+
+- Add a dependency only if it is the **de facto standard** for the job (what
+  most of the ecosystem uses, actively maintained) and neither the platform
+  nor an existing dependency does the job reasonably.
+- Add it at the **latest version**: `pnpm add <pkg>` without a version,
+  never a version from memory. The two exceptions follow.
+- **TypeScript stays on 6.x** until typescript-eslint supports 7: its peer
+  range ends at `<6.1.0`, and TypeScript 7.0 has no programmatic API (planned
+  for 7.1), which tsup's `dts` build and `react-router typegen` also need.
+- **pnpm's 24-hour cooldown.** pnpm 12 refuses versions published less than
+  24 hours ago (`minimumReleaseAge`). If an install fails with
+  `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`, keep the policy and re-resolve:
+  `pnpm clean --lockfile && pnpm install` picks the newest versions that are
+  old enough.
 
 ## Commands
 
 ```bash
-./scripts/setup.sh          # first time: copy .env, pnpm install, pnpm -r build, migrate, seed
-./scripts/worktree-setup.sh # new git worktree: copy api/.env, pnpm install, pnpm -r build.
-                             # Idempotent, and runs automatically (--if-needed) from the
-                             # SessionStart hook — see Git workflow below.
+./scripts/setup.sh           # first-time setup (see README): install, build, migrate, seed
+./scripts/worktree-setup.sh  # bring a checkout up to date: api/.env, install, build both packages
 ```
 
-### `api/`
+In `api/`:
 
 ```bash
-pnpm dev        # node --env-file=.env --watch main.ts on $PORT (default 8000)
+pnpm dev        # node --env-file=.env --watch main.ts, on $PORT (default 8000)
 pnpm build      # react-router build → build/client + build/server
-pnpm typecheck  # react-router typegen && build && tsc --noEmit
+pnpm typecheck  # react-router typegen + build + tsc --noEmit
 pnpm lint       # eslint
-pnpm generate   # drizzle-kit generate (schema.ts → drizzle/*.sql)
-pnpm migrate    # drizzle-kit migrate
-pnpm start      # production: node main.ts (needs build/)
+pnpm generate   # drizzle-kit generate: schema.ts → drizzle/*.sql
+pnpm migrate    # drizzle-kit migrate, against DATABASE_URL
 ```
 
-**`pnpm dev` is not a Vite dev server.** `main.ts` imports the compiled
-`build/server/index.js` and serves `build/client/`. Frontend changes under
-`app/` are invisible until you run `pnpm build`; the `--watch` process then
-restarts on the new bundle. Backend `.ts` changes reload directly.
+In `packages/react/`: `pnpm build` (tsup → `dist/`) or `pnpm dev` (watch).
 
-`VITE_API_URL` is baked into the client bundle at build time (Vite reads
-`api/.env`; Docker takes it as a build arg). Leave it empty — the default —
-and the frontend calls the origin it was served from instead
-(`app/lib/api-url.ts`), so one build works behind any port; set it only when
-the frontend and API are served from different origins.
+**`pnpm dev` is not a Vite dev server.** `main.ts` serves the compiled
+`build/`, so changes under `app/` show up only after `pnpm build` (the
+`--watch` process then restarts on the new bundle). Backend `.ts` changes
+reload directly.
 
-### `packages/react/`
+`VITE_API_URL` is compiled into the client at build time. Leave it empty (the
+default) and the frontend calls the origin that served it, so one build works
+on any port; set it only when frontend and API are on different origins. Read
+it only through `app/lib/api-url.ts` (`apiUrl()`, `appOrigin()`).
+
+## Validation
+
+There is no test suite yet. Before calling a code change done, all of this
+must pass, from the repo root:
 
 ```bash
-pnpm build   # tsup → dist/ (ESM + CJS + d.ts)
-pnpm dev     # tsup --watch
+pnpm --dir api typecheck && pnpm --dir api lint
+# Docker image builds and serves HTTP 200. Per-checkout name and a random
+# host port, so parallel worktrees don't collide.
+tag="meerkat-$(basename "$PWD")"
+docker build -t "$tag" .
+docker run -d --rm --name "$tag" --env-file api/.env -p 127.0.0.1::8000 "$tag"
+curl -s --retry 10 --retry-all-errors --retry-delay 1 -o /dev/null -w "HTTP %{http_code}\n" "http://$(docker port "$tag" 8000)"
+docker stop "$tag"
 ```
 
-### Validation checklist
-
-Before considering any change complete, all of these must pass:
-
-```bash
-cd api && pnpm typecheck      # 1. types (runs the build internally)
-cd api && pnpm lint           # 2. eslint
-# 3. Docker image builds and serves HTTP 200 (from the repo root)
-docker build -t meerkat:latest .
-docker run --rm --env-file api/.env -p 8000:8000 meerkat:latest &
-sleep 4 && curl -s http://localhost:8000 -o /dev/null -w "HTTP %{http_code}\n"
-docker stop $(docker ps -q --filter ancestor=meerkat:latest)
-```
-
-## TypeScript stays on 6.x
-
-Do not bump `typescript` to 7 yet. typescript-eslint's peer range caps at
-`<6.1.0`, and TypeScript 7.0 ships no programmatic API (expected in 7.1), so
-typescript-eslint, tsup's `dts` build and `react-router typegen` cannot load it.
-Running 7 for `tsc` alone means installing both versions side by side, which
-isn't worth the confusion here. Revisit once typescript-eslint supports 7.
-
-## Dependency updates and the pnpm cooldown
-
-pnpm 12 (pinned via `packageManager`) refuses to install any package version
-published less than 24 hours ago (`minimumReleaseAge`, default 1440 minutes).
-If `pnpm install` fails with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` after a
-dependency bump, keep the policy and re-resolve the lockfile instead:
-
-```bash
-pnpm clean --lockfile && pnpm install
-```
-
-pnpm then picks the newest versions that are old enough.
+New tests use Node's built-in runner, `node:test` with `node:assert`;
+`node --test` picks up `*.test.ts` files directly.
 
 ## Architecture
 
-### One process, three layers
+### Server: one Hono process
 
-`api/main.ts` boots a single Hono server:
+`api/main.ts` serves, in order:
 
-1. **Hono routes** (`api/routes/*.ts`) — each file is mounted at `/` and
-   declares its own full paths, mostly `/api/v1/...`. Non-API paths also live
-   here: `/stage/:stage` and `/stage/:stage/qa` redirect to the live (or next
-   upcoming) event on a stage, for signage links. CORS (from `CORS_ORIGINS`) is
-   applied only to `/api/*`.
-2. **Static files** from `build/client/` (assets immutable-cached).
-3. **React Router SSR handler** for everything else.
+1. **API routes** (`api/routes/*.ts`, mounted in `app.ts`). Each file declares
+   its own full paths, mostly `/api/v1/...`. The signage redirects
+   `/stage/:stage` and `/stage/:stage/qa` (to the live or next event on a
+   stage) live here too. CORS (`CORS_ORIGINS`, default `*`) applies to
+   `/api/*` only.
+2. **Static files** from `build/client/` (`/assets/*` cached immutable).
+3. **React Router SSR** for everything else.
 
-Request path: route → `models/*.ts` (Drizzle queries; the only place SQL
-lives) → PostgreSQL on Supabase. `api/env.ts` validates env once at import and
-throws on missing required vars.
+Routes call `models/*.ts`, the only place with SQL (Drizzle), against
+Postgres on Supabase. `api/env.ts` reads all of the app's environment
+variables and throws at import when a required one is missing; it and
+`api/.env.example` are the reference for every variable.
 
 ### Frontend (`api/app/`)
 
-React Router 8 in SSR mode with `prerender: false`. Layouts use `clientLoader`
-and pages use SWR (`hooks/fetcher.ts`), so the server render is just the
-shell + `HydrateFallback`; the only server `loader` is the Devcon handover in
-`routes/QnA.tsx` (see Auth and roles). Server-only code for loaders lives in
-`.server.ts` modules (see [api/CLAUDE.md](api/CLAUDE.md)). Two layouts in
-`app/routes.ts`:
+React Router 8 in SSR mode with `prerender: false`, Chakra UI v3, SWR. Layouts
+load data in `clientLoader` and pages fetch with SWR, so the server renders
+only the shell and `HydrateFallback`. The one server `loader` is the Devcon
+handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
 
 - `layouts/page.tsx` — bare presenter view (`/e/:uid`), no auth.
-- `layouts/app.tsx` — everything else; wraps `MeerkatProvider` (from the
-  react package, `apiUrl=""`), Supabase client, `UserProvider`, Zupass
-  `ZAPIProvider`, and the Chakra UI v3 system.
+- `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
+  package, `apiUrl=""`), Supabase client, `UserProvider`, Zupass
+  `ZAPIProvider`, Chakra system.
 
-Theming is per conference: `conferences.theme` (JSONB) is turned into a
-Chakra system by `app/theme/index.ts`; the loader fetches the event to pick
-the theme. `conferences.features` rows are boolean feature flags surfaced as
-`event.conference.features` (e.g. `collect` toggles the Event Card link).
+Server-only code for loaders lives in `.server.ts` modules (the build fails if
+client code imports one). Whatever such a module imports from outside `app/`
+(`env.ts`, `logger.ts`, …) is bundled as a separate **copy**, not the
+instance Hono uses: keep loaders away from `db.ts` (a copy would open a
+second connection pool) and keep those modules free of import-time side
+effects.
+
+Theming is per conference: `conferences.theme` (JSONB) becomes a Chakra
+system in `app/theme/index.ts`; the layouts' `clientLoader` fetches the event
+to pick it. Rows in the `features` table are per-conference flags, surfaced
+as `event.conference.features` (`collect` shows the Event Card link).
 
 ### Auth and roles
 
-- **Users**: Supabase Auth JWTs. Exactly three sign-in paths: anonymous
-  sign-in (username generated by `api/usernames.ts`), email OTP, and the
-  Devcon handover — the Devcon event app redirects ticket holders to
-  `/e/:uid/qa?token=<jwt>`; the Q&A route's server `loader`
-  (`api/app/routes/QnA.tsx`) verifies the HS256 token with
-  `DEVCON_VERIFICATION_SECRET` (`api/devcon.ts`: `hono/jwt` with its time
-  checks disabled because `iat`/`exp` are **milliseconds**; expiry is checked
-  separately), mints a Supabase session for the email
-  (`api/app/lib/handover.server.ts`, `admin.generateLink` + `verifyOtp`) and
-  redirects to the clean URL with the session in the fragment, which the
-  browser's Supabase client adopts on load. Failures redirect with
-  `?handover=expired|invalid|failed`. There is no API endpoint for it. Spec:
+- **Sign-in** yields a Supabase Auth session in exactly three ways: anonymous
+  (username from `api/usernames.ts`), email OTP, and the **Devcon handover**.
+  The Devcon event app sends ticket holders to `/e/:uid/qa?token=<jwt>`; the
+  server `loader` in `app/routes/QnA.tsx` verifies the HS256 token
+  (`api/devcon.ts`, secret `DEVCON_VERIFICATION_SECRET`, which is the Devcon
+  app's `VERIFICATION_SECRET`). Its `iat`/`exp` are **milliseconds**, so
+  `hono/jwt`'s time checks are off and expiry is checked separately. The
+  loader then mints a session (`app/lib/handover.server.ts`) and redirects
+  with it in the URL fragment, which the browser's Supabase client adopts;
+  failures redirect with `?handover=expired|invalid|failed`. The route's
+  `clientLoader` forces a document load for token URLs. No API endpoint is
+  involved. Spec:
   https://github.com/efdevcon/monorepo/blob/main/event-app/src/app/api/meerkat/README.md
-  Protected routes use `middlewares/jwt.ts` (Hono `jwk()` against Supabase
-  JWKS); `c.get("jwtPayload").sub` is the Supabase user id.
-- **Roles**: `conference_role` (attendee/speaker/organizer) per conference.
-  Organizer checks are done inline in each route via
-  `getConferenceRolesForConference`. Roles are granted by a DB trigger on
-  `auth.users` insert that claims matching `invitations` rows by email
-  (migration 0002); `grantRole` in `models/roles.ts` has no callers.
-- **Admin**: `middlewares/api-key.ts`, `x-api-key` header checked against
-  argon2 hashes in `api_keys`. There is no endpoint to create keys; insert a
-  hash directly. Admin routes batch-upsert events (keyed by `uid`) and create
-  conferences; they exist for importing schedules from external systems.
-- **Zupass is not auth.** It is only used by the collect flow: the server signs
-  an attendance POD with `PRIVATE_KEY` (`api/zupass.ts`), the client inserts
-  it into a Zupass collection via `@parcnet-js/app-connector` (`app/zapi/`).
+- **API auth**: protected routes use `middlewares/jwt.ts` (Hono `jwk()`
+  against Supabase's JWKS); `c.get("jwtPayload").sub` is the user id.
+- **Roles** (`conference_role`: attendee/speaker/organizer, per conference)
+  are granted only by a DB trigger on `auth.users` insert that claims
+  matching `invitations` rows by email (migration 0002). Routes check
+  organizer rights inline with `getConferenceRolesForConference`.
+- **Admin API**: `x-api-key` header checked against argon2 hashes in
+  `api_keys` (`middlewares/api-key.ts`); no endpoint creates keys. Admin
+  routes create conferences and batch-upsert events by `uid`, for importing
+  schedules.
+- **Zupass is not auth.** It only serves the collect flow: the server signs an
+  attendance POD with `PRIVATE_KEY` (`api/zupass.ts`) and the client adds it
+  to a Zupass collection (`app/zapi/`).
 
-### Domain rules worth knowing
+### Domain rules
 
-- Question lifecycle is timestamp-driven: `selectedAt` (organizer picks it;
-  selecting also marks the previously selected question answered),
-  `answeredAt`, `deletedAt` (soft delete; queries filter it out). Banned users'
-  questions are hidden by the query, not deleted.
-- Exactly one event is live per stage: `setEventLive` flips the others off in
-  a transaction. Event upserts never overwrite `live`.
+- Questions are timestamp-driven: `selectedAt` (selecting one marks the
+  previously selected one answered), `answeredAt`, `deletedAt` (soft delete;
+  queries filter it out). Banned users' questions are hidden by the query, not
+  deleted.
+- One live event per stage: `setEventLive` turns the others off in a
+  transaction. Event upserts never overwrite `live`.
+- Rate limits are constants in `api/moderation.ts`; routes answer 429 and the
+  frontend shows a cooldown modal (`UserContext.isOnCooldown`).
 - **Pretalx sync** (`api/pretalx.ts`): a conference with a `pretalx_event`
-  slug gets one event per talk from `<PRETALX_URL>/<slug>/schedule/export/schedule.json`
-  (public, released schedule only): `uid` = Pretalx submission code (the id
-  the Devcon event app links to), `stage` = slugified room. Talks gone from
-  Pretalx are deleted unless the event is live or has questions (logged as
-  `kept`). Triggered by `POST /api/v1/pretalx/:event/sync` — unauthenticated
-  (the caller supplies nothing; Meerkat re-pulls a public schedule) and
-  throttled to one sync per minute across instances via
-  `conferences.pretalx_synced_at`; a call inside the window answers 202 and
-  queues one sync for its end. Called by the Devcon team's webhook and by
+  slug gets one event per talk in that Pretalx event's public schedule
+  (`uid` = submission code, which the Devcon app links to; `stage` =
+  slugified room). Talks gone from Pretalx are deleted unless the event is
+  live or has questions. `POST /api/v1/pretalx/:event/sync` is deliberately
+  unauthenticated (it only re-pulls a public schedule) and throttled to one
+  sync per conference per minute across instances
+  (`conferences.pretalx_synced_at`). Callers: the Devcon team's webhook and
   `.github/workflows/sync.yml` (manual).
-- Rate limits live in `api/moderation.ts`; routes return 429, and the frontend
-  turns 429 into a cooldown modal (`UserContext.isOnCooldown`).
-- `auth.users` is Supabase-managed. `schema.ts` declares it (schema `auth`)
-  only so Drizzle can join and set `banned_until`; migration 0000 has its
-  `CREATE TABLE` commented out. **After `pnpm generate`, strip any
-  `auth.users` DDL from the new migration.**
+- `auth.users` belongs to Supabase; `schema.ts` declares it only so Drizzle
+  can join it and set `banned_until`.
 
-### Real-time (three mechanisms, all via Supabase Realtime)
+### Real-time (all through Supabase Realtime)
 
-1. **SSE questions stream** — `GET /api/v1/events/:uid/questions/stream`.
-   Every mutation calls `broadcastQuestionsUpdate(eventId)`
-   (`utils/broadcast.ts`), which POSTs to Supabase's REST broadcast API on
-   topic `event-{id}`; each server instance holds one channel subscription
-   per event and fans out an SSE `update` to its clients (30 s `ping`
-   heartbeat). Consumed by `useQuestions`/`useEventSource` from the react
-   package, both by external embedders and by the app itself (`QnA.tsx`,
-   `Event.tsx`).
-2. **`postgres_changes` from the browser** — reactions (`reactions` inserts
-   filtered by event) and the moderation page (`questions` inserts). These
-   need a SELECT policy and the tables in the `supabase_realtime`
-   publication, which Drizzle migrations do not manage; see Database changes.
-3. **Live-event broadcasts** — `POST /api/v1/events/:uid/live` sends on
-   `conference-{id}` and `stage-{stage}` channels with supabase-js;
-   `useKeepLive` listens and also polls `/api/v1/events/stage/:stage/live`
-   every 10 s so signage follows the schedule.
+1. **SSE question stream**: `GET /api/v1/events/:uid/questions/stream`.
+   Every question mutation calls `broadcastQuestionsUpdate(eventId)`
+   (`utils/broadcast.ts`), which posts to Supabase's REST broadcast API on
+   topic `event-{id}`; each server instance holds one subscription per event
+   and pushes an SSE `update` to its clients (`ping` every 30 s). Consumed
+   with `useQuestions`/`useEventSource` from the react package, both by
+   embedders and by `QnA.tsx` and `Event.tsx`.
+2. **`postgres_changes` in the browser**: reactions on the presenter view
+   (`use-reactions-subscription`) and new questions on the moderation page
+   (`useAllQuestions`). Their tables need a SELECT policy and membership in
+   the `supabase_realtime` publication (see Database changes).
+3. **Live-event broadcasts**: `POST /api/v1/events/:uid/live` sends on
+   `conference-{id}` and `stage-{stage}`; `useLiveEventSubscription` and
+   `useKeepLive` listen, and `useKeepLive` also polls
+   `/api/v1/events/stage/:stage/live` every 10 s so signage follows the
+   schedule.
 
 ### Runtime constraints
 
-- Node 26 runs `.ts` directly (type stripping): imports use explicit `.ts`
-  extensions, `erasableSyntaxOnly` forbids enums/namespaces/parameter
-  properties, ESM only, no `npm:`/`jsr:` specifiers.
-- `@pcd/pod` and friends pull in CJS-only deps: server code imports them via
-  the `createRequire` shim in `api/lib/pod.ts`, and `vite.config.ts` lists
-  them in `ssr.noExternal`. This is also why `prerender` is off.
+- Node 26 runs `.ts` directly (type stripping): ESM only, explicit `.ts`
+  extensions in local imports, and `erasableSyntaxOnly` (no enums,
+  namespaces or parameter properties). Packages are imported by plain npm
+  name, never with `npm:`/`jsr:` specifiers.
+- `tsconfig.json` extends `@tsconfig/strictest`, including
+  `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess` and
+  `noPropertyAccessFromIndexSignature` (hence `process.env["X"]`).
+- `@pcd/pod` and friends pull in CJS-only dependencies: server code imports
+  them through the `createRequire` shim in `api/lib/pod.ts`, and
+  `vite.config.ts` bundles them via `ssr.noExternal`. This is also why
+  `prerender` is off.
 - `~/` aliases `api/app/`.
 
 ## Database changes
 
-1. Edit `api/schema.ts` (single source of truth).
-2. `cd api && pnpm generate`, then review the SQL (remove `auth.*` DDL).
-3. `cd api && pnpm migrate` for your local database. Deployed environments
-   migrate themselves: Fly's `release_command` runs `api/migrate.ts` once per
-   deploy, before the rollout, and a failed migration aborts the deploy.
-   Old machines keep serving until the rollout finishes, so a migration must
-   work with the previous code (add columns freely; renames and drops take
-   two deploys).
-4. If a new table needs browser `postgres_changes`, add it to
-   `api/scripts/supabase-policies.sql` and re-run it.
+1. Edit `api/schema.ts`, the single source of truth.
+2. Run `pnpm generate` in `api/` and review the SQL. **Delete any
+   `auth.users` DDL** from the new migration.
+3. Run `pnpm migrate` for your local database. Deployments migrate
+   themselves (see Deployment) while the previous version is still serving,
+   so a migration must work with the old code: add columns freely; renames
+   and drops take two deploys.
+4. A new table also goes into `api/scripts/supabase-policies.sql`, which
+   holds the Supabase setup Drizzle doesn't manage. Every table needs Row
+   Level Security there, because the anon key is public and PostgREST
+   exposes the `public` schema. Tables the browser subscribes to also need
+   the "Realtime" SELECT policy and the `supabase_realtime` publication. The
+   script is idempotent; run it on every new Supabase project after the
+   first migration, and after changing it:
+   `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql`
 
-Drizzle migrations do not manage Supabase-specific setup (Row Level Security,
-the "Realtime" SELECT policies, membership in the `supabase_realtime`
-publication). Run `api/scripts/supabase-policies.sql` once per new Supabase
-project, after the first migration (idempotent, safe to re-run):
-
-```bash
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql
-```
-
-All worktrees point at the same Supabase database (`api/.env` is a copy, not
+All worktrees share one Supabase database (`api/.env` is copied, not
 per-worktree), so `pnpm migrate` from one branch changes the schema under
-every other worktree. Coordinate before migrating locally.
+every other worktree. Coordinate before migrating.
 
 ## Code style
 
-- Prefer `globalThis` over `window` (`globalThis.location`,
-  `globalThis.crypto`).
-- Ternary chains in JSX: condition on its own line, branches below, nested
+- `globalThis` over `window` (`globalThis.location`, `globalThis.crypto`).
+- JSX ternary chains: condition on its own line, branches below, nested
   conditions continue at the same indent:
   ```tsx
   isLoading
@@ -264,69 +265,55 @@ every other worktree. Coordinate before migrating locally.
     ? <EmptyState />
     : <DataView />
   ```
-- Data hooks: `app/hooks/use-<resource>.ts`, SWR + `hooks/fetcher.ts`, return
-  `{ data, isLoading, error, mutate }`. Mutations use `swr/mutation` with
-  `poster`, passing `session?.access_token`.
-- Build internal URLs with `qa(uid)` / `card(uid)` from `app/routing.ts`.
+- Data hooks: `app/hooks/use-<resource>.ts`, SWR with `hooks/fetcher.ts`,
+  returning `{ data, isLoading, error }` (plus `mutate` when callers need
+  it). Mutations use `swr/mutation` with `poster` or `deleter`, passing
+  `session?.access_token`.
+- Internal URLs come from `qa(uid)` / `card(uid)` in `app/routing.ts`.
 - ESLint: `no-explicit-any` is an error; prefix intentionally unused
   identifiers with `_`.
 
 ## Git workflow
 
-- Several worktrees run in parallel against this repo. Never use bare
+- Several worktrees work on this repo in parallel. Never use bare
   `git stash` / `git stash pop`; prefer a WIP commit, or
   `git stash push -m "<tag>"` and apply by SHA.
 - Stack dependent changes with [`gh stack`](https://gh.io/stacks)
   (`gh extension install github/gh-stack`): when a change builds on another
-  unmerged one, put it in a stack instead of branching from `master`, so each
+  unmerged one, add it as a layer instead of branching from `master`, so each
   PR shows only its own diff. Keep each layer small and reviewable on its own.
   ```bash
-  gh stack init feat/a                # or adopt existing: gh stack init feat/a feat/b
-  gh stack add -Am "feat: b" feat/b   # new layer on top, commits staged changes
-  gh stack submit --auto --open       # push all, open/retarget PRs (--auto: no TUI)
-  gh stack sync                       # after review fixes or a merge: cascade-rebase + push
+  gh stack init feat/a               # or adopt existing branches: gh stack init feat/a feat/b
+  git add <paths>                    # stage by path; -A would sweep in untracked files
+  gh stack add -m "feat: b" feat/b   # new layer on top, committing what is staged
+  gh stack submit --auto --open      # push all, create/update the PRs, ready for review
+  gh stack sync                      # after a merge or review fixes: rebase the stack, push
   ```
-  Avoid the interactive commands (`modify`, `switch`, `submit` without
-  `--auto`) when running non-interactively.
-- A local (untracked) pre-commit hook lints staged `api/**/*.ts(x)` with
-  `eslint --fix`; it silently skips when `api/node_modules` is missing, so
-  run `pnpm install` in a fresh worktree to get lint-on-commit.
-- Each worktree runs its own dev server: `api/main.ts` listens on `PORT`
-  (default 8000), and `.claude/launch.json` has `autoPort: true`, so the
-  desktop app hands a worktree a free port when 8000 is taken (passed via
-  `PORT`, which wins over `.env` under Node's `--env-file`). Never test
-  against a server you didn't start yourself — it may be serving another
-  worktree's branch; check its owner with `lsof -nP -iTCP:<port>
-  -sTCP:LISTEN` and `lsof -p <pid> | grep cwd`.
-- `.worktreeinclude` copies the gitignored `api/.env` into every worktree
-  Claude Code creates, and a `SessionStart` hook (`.claude/settings.json`)
-  runs `scripts/worktree-setup.sh --if-needed`, so a fresh worktree is
-  installed and built within a few seconds, before you look at it.
+  `modify` and `switch` are interactive; move with `gh stack up`, `down` or
+  `checkout <branch>` instead.
+- A local pre-commit hook (in `.git/hooks`, untracked) runs `eslint --fix` on
+  staged `api/` files and re-stages the fixes.
+- **Worktrees bootstrap themselves.** `.worktreeinclude` copies the
+  gitignored `api/.env` into worktrees Claude Code creates, and the
+  `SessionStart` hook in `.claude/settings.json` runs
+  `scripts/worktree-setup.sh --if-needed`, which installs and builds
+  whatever is missing. After switching branches or pulling dependency or
+  frontend changes, run `./scripts/worktree-setup.sh` without the flag.
+- **Each worktree runs its own dev server.** `main.ts` listens on `PORT`
+  (default 8000; a `PORT` in the environment wins over `.env`).
+  `.claude/launch.json` sets `autoPort`, so the desktop app's preview gets a
+  free port; elsewhere run `PORT=<free port> pnpm dev`. Never test against a
+  server you didn't start: it may serve another worktree's branch. Find the
+  owner with `lsof -nP -iTCP:<port> -sTCP:LISTEN`, then
+  `lsof -p <pid> | grep cwd`.
 
 ## Deployment
 
-Fly.io through `.github/workflows/continous-deployment.yml`: push to `master`
-deploys the `dev` environment, creating a GitHub release deploys `prod`.
-`fly.template.toml` is rendered with `envsubst` from GitHub secrets; its
-`release_command` applies pending Drizzle migrations (`api/migrate.ts`, which
-prefers `DATABASE_URL` over the pooler URL) before each rollout; the health
-check hits `/api/v1/conferences`. `.github/workflows/sync.yml` is a
-manual (`workflow_dispatch`) Pretalx sync: pick the environment and the
-Pretalx event slug; it needs the `MEERKAT_BASE` secret in that environment.
-
-## Environment variables (`api/.env`)
-
-| Variable                    | Notes                                                        |
-| --------------------------- | ------------------------------------------------------------ |
-| `DATABASE_URL`              | Required unless `DATABASE_POOLER_URL` is set (pooler wins)   |
-| `PRIVATE_KEY`               | Required; signs attendance PODs only (`openssl rand -hex 32`)|
-| `DEVCON_VERIFICATION_SECRET` | Required; HS256 secret for Devcon handover tokens (the Devcon app's `VERIFICATION_SECRET`) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Required; REST broadcast + magic-link generation             |
-| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Optional in code, but without them there is no auth and no realtime |
-| `PORT`                      | Listen port; default `8000`. The desktop app's `autoPort` sets this via the environment when 8000 is taken |
-| `BASE_URL`                  | Public origin; used for redirects, QR codes, POD type prefix. Default `http://localhost:$PORT` |
-| `VITE_API_URL`              | Build-time client API origin (see Commands). Default empty — same origin as the page |
-| `CORS_ORIGINS`              | Comma-separated allowed origins for `/api/*`; default `*`    |
-| `PRETALX_URL`               | Origin of the Pretalx instance for the schedule sync; unset disables `POST /api/v1/pretalx/:event/sync` (503). Deployments take it from the `PRETALX_URL` secret |
-| `ZUPASS_URL`, `ZUPASS_ZAPP_NAME` | Zupass connector config                                 |
-| `SENTRY_DSN`, `ENVIRONMENT`, `DATABASE_MAX_POOL_SIZE` | Optional                              |
+Fly.io via `.github/workflows/continous-deployment.yml`: a push to `master`
+deploys `dev`, a GitHub release deploys `prod`. `fly.template.toml` is
+rendered with `envsubst` from GitHub secrets. Its `release_command` runs
+`api/migrate.ts` once per deploy, before the rollout, and a failed migration
+aborts the deploy; unlike the app, `migrate.ts` prefers `DATABASE_URL` over
+`DATABASE_POOLER_URL`. The health check hits `/api/v1/conferences`.
+`.github/workflows/sync.yml` runs a Pretalx sync by hand and needs the
+`MEERKAT_BASE` secret in the chosen environment.
