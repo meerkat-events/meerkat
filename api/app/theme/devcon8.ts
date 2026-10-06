@@ -21,6 +21,7 @@ export const devcon8: Theme = {
   voteOutlineColor: outline,
   questionControlSize: "32px",
   minTapTarget: "44px",
+  questionGap: "1rem",
   // Fits the widest time ("06:46 AM", 54.5px in Poppins at textStyle xs).
   sessionTimeWidth: "3.5rem",
   headingFontFamily: "Poppins",

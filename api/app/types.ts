@@ -41,6 +41,8 @@ export type Theme = {
    * area so their look and layout stay the same.
    */
   minTapTarget?: string;
+  /** Space between question cards; defaults to 1.125rem. */
+  questionGap?: string;
   /**
    * Fixed width of the session list's time column, so titles line up with
    * fonts whose digits differ in width (no tabular figures, e.g. Poppins).

@@ -69,6 +69,7 @@ export const conferences = pgTable("conferences", {
     voteOutlineColor?: string;
     questionControlSize?: string;
     minTapTarget?: string;
+    questionGap?: string;
     sessionTimeWidth?: string;
   }>(),
 });

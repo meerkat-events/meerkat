@@ -233,6 +233,10 @@ const chakraAdapter = (theme: Theme) => {
             }`,
           },
         },
+        spacing: {
+          // Between question cards (.question-list in layouts/app.css).
+          questionGap: { value: theme.questionGap ?? "1.125rem" },
+        },
         sizes: {
           // Time column of the session list; by default as wide as each time.
           sessionTime: { value: theme.sessionTimeWidth ?? "auto" },
