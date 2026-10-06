@@ -2,6 +2,7 @@ import type { Theme } from "../types.ts";
 
 const purple = "#7235ED";
 const text = "#160B2B";
+const mutedText = "#594D73";
 const outline = "#2211441A";
 
 export const devcon8: Theme = {
@@ -10,13 +11,13 @@ export const devcon8: Theme = {
   contrastColor: "#FFFFFF",
   background: "linear-gradient(0deg, #E5EBFF 19.98%, #FBFAFC 100%)",
   textColor: text,
-  mutedTextColor: "#594D73",
+  mutedTextColor: mutedText,
   accentColor: purple,
   highlightColor: "#F5F1FE",
   shadowColor: "#160B2B33",
   inputOutlineColor: outline,
   successToastColor: "#D5F4DD",
-  voteTextColor: text,
+  voteTextColor: mutedText,
   voteOutlineColor: outline,
   questionControlSize: "32px",
   minTapTarget: "44px",
