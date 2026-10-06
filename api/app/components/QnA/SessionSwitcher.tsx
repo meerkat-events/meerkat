@@ -151,6 +151,7 @@ function SessionRow({ session }: { session: SessionItem }) {
         textStyle="xs"
         color="fg.muted"
         minW="10"
+        w="sessionTime"
         fontVariantNumeric="tabular-nums"
       >
         {formatTime(session.start)}

@@ -9,8 +9,10 @@ export const devcon8: Theme = {
   mutedTextColor: "#594D73",
   accentColor: "#7235ED",
   highlightColor: "#F5F1FE",
-  shadowColor: "#160B2B1A",
+  shadowColor: "#160B2B33",
   inputOutlineColor: "#2211441A",
+  // Fits the widest time ("06:46 AM", 54.5px in Poppins at textStyle xs).
+  sessionTimeWidth: "3.5rem",
   headingFontFamily: "Poppins",
   bodyFontFamily: "Poppins",
   systemTheme: "light",

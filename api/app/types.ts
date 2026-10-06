@@ -22,6 +22,11 @@ export type Theme = {
   shadowColor?: string;
   /** Outline around text inputs at rest. */
   inputOutlineColor?: string;
+  /**
+   * Fixed width of the session list's time column, so titles line up with
+   * fonts whose digits differ in width (no tabular figures, e.g. Poppins).
+   */
+  sessionTimeWidth?: string;
 };
 
 export type Conference = {

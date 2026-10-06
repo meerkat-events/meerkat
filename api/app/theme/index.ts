@@ -197,6 +197,10 @@ const chakraAdapter = (theme: Theme) => {
             }`,
           },
         },
+        sizes: {
+          // Time column of the session list; by default as wide as each time.
+          sessionTime: { value: theme.sessionTimeWidth ?? "auto" },
+        },
         fonts: {
           ...(theme.headingFontFamily && {
             heading: {
