@@ -64,6 +64,7 @@ export const conferences = pgTable("conferences", {
     highlightColor?: string;
     shadowColor?: string;
     inputOutlineColor?: string;
+    successToastColor?: string;
     sessionTimeWidth?: string;
   }>(),
 });

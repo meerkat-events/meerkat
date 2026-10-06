@@ -11,6 +11,7 @@ export const devcon8: Theme = {
   highlightColor: "#F5F1FE",
   shadowColor: "#160B2B33",
   inputOutlineColor: "#2211441A",
+  successToastColor: "#D5F4DD",
   // Fits the widest time ("06:46 AM", 54.5px in Poppins at textStyle xs).
   sessionTimeWidth: "3.5rem",
   headingFontFamily: "Poppins",

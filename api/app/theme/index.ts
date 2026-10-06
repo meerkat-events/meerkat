@@ -177,6 +177,20 @@ const chakraAdapter = (theme: Theme) => {
             // Hover of a vote you haven't cast.
             hover: { value: highlightColor ?? brandTint(10) },
           },
+          // Confirmation toasts. By default the brand color (brand.800 keeps
+          // white text readable on light brand colors); a theme's light
+          // successToastColor takes the regular text color instead.
+          successToast: {
+            bg: {
+              value: theme.successToastColor ??
+                { _light: "{colors.brand.800}", _dark: "{colors.brand.solid}" },
+            },
+            fg: {
+              value: theme.successToastColor
+                ? "{colors.fg}"
+                : "{colors.brand.contrast}",
+            },
+          },
           highlight: {
             // The current row of a list, such as the session list.
             selected: { value: highlightColor ?? brandTint(10) },

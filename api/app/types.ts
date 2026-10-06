@@ -23,6 +23,11 @@ export type Theme = {
   /** Outline around text inputs at rest. */
   inputOutlineColor?: string;
   /**
+   * Background of confirmation (success) toasts, whose text then takes
+   * textColor; defaults to the brand color with contrastColor text.
+   */
+  successToastColor?: string;
+  /**
    * Fixed width of the session list's time column, so titles line up with
    * fonts whose digits differ in width (no tabular figures, e.g. Poppins).
    */
