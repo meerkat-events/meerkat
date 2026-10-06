@@ -27,6 +27,20 @@ export type Theme = {
    * textColor; defaults to the brand color with contrastColor text.
    */
   successToastColor?: string;
+  /** Arrow and count of a vote you haven't cast; defaults to accentColor. */
+  voteTextColor?: string;
+  /** Border of a vote you haven't cast; defaults to brandColor. */
+  voteOutlineColor?: string;
+  /**
+   * Height of the vote pill and size of a question's options button;
+   * defaults to Chakra's small button (36px).
+   */
+  questionControlSize?: string;
+  /**
+   * Minimum tappable size of those controls, reached with an invisible hit
+   * area so their look and layout stay the same.
+   */
+  minTapTarget?: string;
   /**
    * Fixed width of the session list's time column, so titles line up with
    * fonts whose digits differ in width (no tabular figures, e.g. Poppins).

@@ -1,5 +1,6 @@
 import { Button, type ButtonProps } from "@chakra-ui/react";
 import { LuArrowBigUp } from "react-icons/lu";
+import { tapTargetStyles } from "../../theme/index.ts";
 
 type UpVoteButtonProps = Omit<ButtonProps, "children"> & {
   votes: number;
@@ -18,7 +19,7 @@ const votedStyles = {
 
 const notVotedStyles = {
   variant: "outline",
-  borderColor: "brand.solid",
+  borderColor: "vote.border",
   color: "vote.fg",
   _hover: { bg: "vote.hover" },
 } as const;
@@ -29,8 +30,10 @@ export function UpVoteButton({ votes, voted, ...props }: UpVoteButtonProps) {
     <Button
       {...props}
       {...(voted ? votedStyles : notVotedStyles)}
+      {...tapTargetStyles}
       type="button"
       size="sm"
+      h="questionControl"
       borderRadius="full"
       paddingInline="3"
       gap="1.5"

@@ -29,6 +29,24 @@ const generateColorScale = (baseColor: string) => {
   };
 };
 
+/**
+ * Style props that grow a button's tappable area to at least the theme's
+ * minimum tap target (sizes.tapTarget) without changing its look or layout:
+ * an invisible pseudo-element centred on the button, which Chakra already
+ * positions relatively.
+ */
+export const tapTargetStyles = {
+  _before: {
+    content: '""',
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    width: "max(100%, {sizes.tapTarget})",
+    height: "max(100%, {sizes.tapTarget})",
+    transform: "translate(-50%, -50%)",
+  },
+} as const;
+
 /** The brand color at `percent` opacity, like Chakra's `brand.solid/<percent>`. */
 const brandTint = (percent: number) =>
   `color-mix(in srgb, var(--chakra-colors-brand-solid) ${percent}%, transparent)`;
@@ -163,8 +181,12 @@ const chakraAdapter = (theme: Theme) => {
           vote: {
             // Arrow and count of a vote you haven't cast.
             fg: {
-              value: accentColor ??
+              value: theme.voteTextColor ?? accentColor ??
                 { _light: "{colors.brand.800}", _dark: "{colors.brand.300}" },
+            },
+            // Border of a vote you haven't cast.
+            border: {
+              value: theme.voteOutlineColor ?? "{colors.brand.solid}",
             },
             // Fill of a vote you have cast.
             solid: {
@@ -214,6 +236,12 @@ const chakraAdapter = (theme: Theme) => {
         sizes: {
           // Time column of the session list; by default as wide as each time.
           sessionTime: { value: theme.sessionTimeWidth ?? "auto" },
+          // A question's vote pill (height) and options button (both sides).
+          questionControl: {
+            value: theme.questionControlSize ?? "{sizes.9}",
+          },
+          // Minimum tappable size, see tapTargetStyles; 0 adds nothing.
+          tapTarget: { value: theme.minTapTarget ?? "0px" },
         },
         fonts: {
           ...(theme.headingFontFamily && {

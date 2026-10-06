@@ -15,6 +15,7 @@ import { RxCursorArrow } from "react-icons/rx";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import { toaster } from "../../components/ui/toaster.tsx";
 import { useVote } from "../../hooks/use-vote.ts";
+import { tapTargetStyles } from "../../theme/index.ts";
 
 interface QuestionProps {
   canVote: boolean;
@@ -127,7 +128,10 @@ export function Question(
             <Menu.Root positioning={{ placement: "bottom-start" }}>
               <Menu.Trigger asChild>
                 <IconButton
+                  {...tapTargetStyles}
                   size="sm"
+                  h="questionControl"
+                  minW="questionControl"
                   aria-label="Options"
                   variant="ghost"
                   colorPalette="gray"
