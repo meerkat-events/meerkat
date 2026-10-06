@@ -32,9 +32,11 @@ export const Toaster = () => {
             width={{ md: "sm" }}
             {...(toast.type === "success" ? successStyles : {})}
           >
+            {/* meta.hideIndicator drops the icon, e.g. when a centered
+                confirmation reads better without it. */}
             {toast.type === "loading"
               ? <Spinner size="sm" color="blue.solid" />
-              : <Toast.Indicator />}
+              : !toast.meta?.["hideIndicator"] && <Toast.Indicator />}
             <Stack
               gap="1"
               flex={toast.type === "success" ? "0 1 auto" : "1"}

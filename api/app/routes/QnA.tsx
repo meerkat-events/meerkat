@@ -47,6 +47,12 @@ import { toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
+import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
+import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
+import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
+import { SupervoteInfo } from "../components/QnA/SupervoteInfo.tsx";
+import { useSupervoteInfoSeen } from "../hooks/use-supervote-info-seen.ts";
+import { usePickedQuestion } from "../hooks/use-picked-question.ts";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
 import {
@@ -91,6 +97,11 @@ export function clientLoader({ request }: Route.ClientLoaderArgs) {
   }
   return null;
 }
+
+// Vote multiplier awarded when the user's question is picked. The backend
+// doesn't award or count supervotes yet, so the reward, its flight and the
+// header counter stay hidden until it does.
+const SUPERVOTE_MULTIPLIER: number | undefined = undefined;
 
 const parseSort = (sort: string): "newest" | "popular" =>
   sort === "popular" ? "popular" : "newest";
@@ -202,6 +213,44 @@ export default function QnA() {
     }, { replace: true });
   };
   const isBlocked = false;
+  const { picked, dismiss: dismissPicked } = usePickedQuestion(
+    questions,
+    user?.id,
+  );
+  const [supervotes, setSupervotes] = useState(0);
+  const [supervoted, setSupervoted] = useState<Set<string>>(new Set());
+  const [supervoteFlight, setSupervoteFlight] = useState<
+    { from: DOMRect; to: () => DOMRect | undefined; onLand: () => void }
+  >();
+  const supervoteCounterRef = useRef<HTMLButtonElement>(null);
+  const [isSupervoteInfoOpen, setIsSupervoteInfoOpen] = useState(false);
+  const { seen: hasSeenSupervoteInfo, markSeen: markSupervoteInfoSeen } =
+    useSupervoteInfoSeen();
+  const counterRect = () =>
+    supervoteCounterRef.current?.getBoundingClientRect();
+  // Earned: the bolt flies from the celebration into the header counter.
+  const onPickedDismiss = (supervoteFrom?: DOMRect) => {
+    dismissPicked();
+    if (SUPERVOTE_MULTIPLIER && supervoteFrom) {
+      setSupervoteFlight({
+        from: supervoteFrom,
+        to: counterRect,
+        onLand: () => setSupervotes((count) => count + 1),
+      });
+    }
+  };
+  // Spent: the bolt flies from the header counter onto the vote button.
+  const onSupervoteSpend = (questionUid: string, button?: DOMRect) => {
+    const from = counterRect();
+    const markSupervoted = () =>
+      setSupervoted((uids) => new Set(uids).add(questionUid));
+    setSupervotes((count) => count - 1);
+    if (from && button) {
+      setSupervoteFlight({ from, to: () => button, onLand: markSupervoted });
+    } else {
+      markSupervoted();
+    }
+  };
 
   const isOrganizer =
     roles?.some((role) =>
@@ -306,6 +355,19 @@ export default function QnA() {
             <Text as="span" textStyle="sm" fontWeight="medium" truncate>
               {event?.conference.name}
             </Text>
+            <Flex justifyContent="flex-end">
+              {SUPERVOTE_MULTIPLIER && (
+                <SupervoteCounter
+                  ref={supervoteCounterRef}
+                  count={supervotes}
+                  isNew={!hasSeenSupervoteInfo}
+                  onClick={() => {
+                    setIsSupervoteInfoOpen(true);
+                    markSupervoteInfoSeen();
+                  }}
+                />
+              )}
+            </Flex>
           </Grid>
           <SessionSwitcher
             title={event?.title}
@@ -373,6 +435,14 @@ export default function QnA() {
             refresh={refresh}
             isAuthenticated={isAuthenticated}
             isLoading={isQuestionsLoading}
+            supervotes={SUPERVOTE_MULTIPLIER
+              ? {
+                available: supervotes,
+                multiplier: SUPERVOTE_MULTIPLIER,
+                onSpend: onSupervoteSpend,
+              }
+              : undefined}
+            supervoted={supervoted}
           />
         </main>
         <footer className="footer">
@@ -414,6 +484,31 @@ export default function QnA() {
         </Modal>
       )}
       <CooldownModal />
+      {picked && (
+        <QuestionPicked
+          onDismiss={onPickedDismiss}
+          supervote={SUPERVOTE_MULTIPLIER}
+        />
+      )}
+      {SUPERVOTE_MULTIPLIER && (
+        <SupervoteInfo
+          open={isSupervoteInfoOpen}
+          onClose={() => setIsSupervoteInfoOpen(false)}
+          available={supervotes}
+          spent={supervoted.size}
+          multiplier={SUPERVOTE_MULTIPLIER}
+        />
+      )}
+      {supervoteFlight && (
+        <SupervoteFlight
+          from={supervoteFlight.from}
+          to={supervoteFlight.to}
+          onLand={() => {
+            supervoteFlight.onLand();
+            setSupervoteFlight(undefined);
+          }}
+        />
+      )}
     </>
   );
 }

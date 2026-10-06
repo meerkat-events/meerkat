@@ -15,6 +15,16 @@ import { RxCursorArrow } from "react-icons/rx";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import { toaster } from "../../components/ui/toaster.tsx";
 import { useVote } from "../../hooks/use-vote.ts";
+import { useRef, useState } from "react";
+import { SupervotePrompt } from "./SupervotePrompt.tsx";
+
+export type QuestionSupervotes = {
+  /** Supervotes the user can spend; the prompt only shows when above 0. */
+  available: number;
+  multiplier: number;
+  /** Called after a supervoted vote, with where the vote button is. */
+  onSpend: (questionUid: string, button: DOMRect | undefined) => void;
+};
 
 interface QuestionProps {
   canVote: boolean;
@@ -22,14 +32,40 @@ interface QuestionProps {
   question: QuestionType;
   voted: boolean;
   refresh: () => void;
+  supervotes?: QuestionSupervotes | undefined;
+  supervoted?: boolean;
 }
 
 export function Question(
-  { canVote, canModerate, question, voted, refresh }: QuestionProps,
+  {
+    canVote,
+    canModerate,
+    question,
+    voted,
+    refresh,
+    supervotes,
+    supervoted,
+  }: QuestionProps,
 ) {
+  const voteButtonRef = useRef<HTMLButtonElement>(null);
+  const [isPromptOpen, setIsPromptOpen] = useState(false);
+  // Set while a supervoted vote is in flight, so its toast can say so.
+  const isSupervotingRef = useRef(false);
   const { trigger: toggleVote, isMutating: isVoting } = useVote(question.uid, {
     onSuccess: () => {
       refresh();
+      if (isSupervotingRef.current && supervotes) {
+        isSupervotingRef.current = false;
+        toaster.create({
+          title: "Supervote used",
+          description:
+            `Your vote counts x${supervotes.multiplier} on this question.`,
+          type: "success",
+          duration: 3000,
+          meta: { hideIndicator: true },
+        });
+        return;
+      }
       toaster.create({
         title: "Vote recorded",
         type: "success",
@@ -165,9 +201,37 @@ export function Question(
           votes={question.votes}
           voted={voted}
           loading={isVoting}
-          onClick={() => toggleVote({ uid: question.uid })}
+          ref={voteButtonRef}
+          supervoted={supervoted}
+          onClick={() =>
+            !voted && supervotes && supervotes.available > 0
+              ? setIsPromptOpen(true)
+              : toggleVote({ uid: question.uid })}
           disabled={!canVote || isAnswered}
         />
+        {supervotes && (
+          <SupervotePrompt
+            open={isPromptOpen}
+            available={supervotes.available}
+            multiplier={supervotes.multiplier}
+            onSupervote={() => {
+              setIsPromptOpen(false);
+              isSupervotingRef.current = true;
+              // The backend doesn't weight votes yet, so this records a
+              // regular vote; the supervote itself is tracked client-side.
+              toggleVote({ uid: question.uid });
+              supervotes.onSpend(
+                question.uid,
+                voteButtonRef.current?.getBoundingClientRect(),
+              );
+            }}
+            onRegularVote={() => {
+              setIsPromptOpen(false);
+              toggleVote({ uid: question.uid });
+            }}
+            onCancel={() => setIsPromptOpen(false)}
+          />
+        )}
       </div>
     </li>
   );
