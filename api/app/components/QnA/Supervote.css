@@ -78,18 +78,6 @@
   outline-offset: 2px;
 }
 
-/* "Find out what this is" dot, until the explainer has been opened. */
-.supervote-counter-dot {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background-color: #F6B613;
-  animation: supervote-dot-pulse 1.6s ease-out infinite;
-}
-
 .supervote-info-medal {
   position: relative;
   width: 5.5rem;
@@ -217,15 +205,6 @@
   }
 }
 
-@keyframes supervote-dot-pulse {
-  from {
-    box-shadow: 0 0 0 0 color-mix(in srgb, #F6B613 70%, transparent);
-  }
-  to {
-    box-shadow: 0 0 0 6px color-mix(in srgb, #F6B613 0%, transparent);
-  }
-}
-
 @keyframes supervote-counter-bump {
   40% {
     transform: scale(1.35);
@@ -235,8 +214,7 @@
 @media (prefers-reduced-motion: reduce) {
   .supervote-counter,
   .supervote-counter-bump,
-  .supervote-voted,
-  .supervote-counter-dot {
+  .supervote-voted {
     animation: none;
   }
 }

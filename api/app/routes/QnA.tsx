@@ -51,7 +51,6 @@ import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
 import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
 import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
 import { SupervoteInfo } from "../components/QnA/SupervoteInfo.tsx";
-import { useSupervoteInfoSeen } from "../hooks/use-supervote-info-seen.ts";
 import { useSupervotes } from "../hooks/use-supervotes.ts";
 import { usePickedQuestion } from "../hooks/use-picked-question.ts";
 import { useGoLive } from "~/hooks/use-go-live.ts";
@@ -261,8 +260,6 @@ export default function QnA() {
   }, [picked, refreshSupervotes]);
   const supervoteCounterRef = useRef<HTMLButtonElement>(null);
   const [isSupervoteInfoOpen, setIsSupervoteInfoOpen] = useState(false);
-  const { seen: hasSeenSupervoteInfo, markSeen: markSupervoteInfoSeen } =
-    useSupervoteInfoSeen();
   const counterRect = () =>
     supervoteCounterRef.current?.getBoundingClientRect();
   // Earned: the bolt flies from the celebration into the header counter.
@@ -408,11 +405,7 @@ export default function QnA() {
                 <SupervoteCounter
                   ref={supervoteCounterRef}
                   count={availableSupervotes}
-                  isNew={!hasSeenSupervoteInfo}
-                  onClick={() => {
-                    setIsSupervoteInfoOpen(true);
-                    markSupervoteInfoSeen();
-                  }}
+                  onClick={() => setIsSupervoteInfoOpen(true)}
                 />
               )}
             </Flex>

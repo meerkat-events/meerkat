@@ -7,8 +7,6 @@ export type SupervoteCounterProps = {
   ref?: Ref<HTMLButtonElement>;
   /** Opens the supervote explainer. */
   onClick: () => void;
-  /** Shows a dot inviting the user to find out what supervotes are. */
-  isNew?: boolean;
 };
 
 /**
@@ -16,7 +14,7 @@ export type SupervoteCounterProps = {
  * Bumps whenever the count changes (the key restarts the animation).
  */
 export function SupervoteCounter(
-  { count, ref, onClick, isNew }: SupervoteCounterProps,
+  { count, ref, onClick }: SupervoteCounterProps,
 ) {
   return (
     <button
@@ -32,7 +30,6 @@ export function SupervoteCounter(
         <FiZap className="supervote-counter-icon" aria-hidden="true" />
         {count}
       </span>
-      {isNew && <span className="supervote-counter-dot" aria-hidden="true" />}
     </button>
   );
 }
