@@ -217,9 +217,7 @@ export function Question(
             onSupervote={() => {
               setIsPromptOpen(false);
               isSupervotingRef.current = true;
-              // The backend doesn't weight votes yet, so this records a
-              // regular vote; the supervote itself is tracked client-side.
-              toggleVote({ uid: question.uid });
+              toggleVote({ uid: question.uid, supervote: true });
               supervotes.onSpend(
                 question.uid,
                 voteButtonRef.current?.getBoundingClientRect(),

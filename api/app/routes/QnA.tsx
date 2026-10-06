@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { LuArrowDownUp } from "react-icons/lu";
 import {
@@ -52,6 +52,7 @@ import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
 import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
 import { SupervoteInfo } from "../components/QnA/SupervoteInfo.tsx";
 import { useSupervoteInfoSeen } from "../hooks/use-supervote-info-seen.ts";
+import { useSupervotes } from "../hooks/use-supervotes.ts";
 import { usePickedQuestion } from "../hooks/use-picked-question.ts";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
@@ -97,11 +98,6 @@ export function clientLoader({ request }: Route.ClientLoaderArgs) {
   }
   return null;
 }
-
-// Vote multiplier awarded when the user's question is picked. The backend
-// doesn't award or count supervotes yet, so the reward, its flight and the
-// header counter stay hidden until it does.
-const SUPERVOTE_MULTIPLIER: number | undefined = undefined;
 
 const parseSort = (sort: string): "newest" | "popular" =>
   sort === "popular" ? "popular" : "newest";
@@ -151,14 +147,21 @@ export default function QnA() {
     });
   };
   const { data: votes, mutate: refreshVotes } = useVotes();
+  const { data: supervoteData, mutate: refreshSupervotes } = useSupervotes(
+    event?.uid,
+  );
   const { data: roles } = useConferenceRoles();
   const refreshQuestionsRef = useRef(refreshQuestions);
   refreshQuestionsRef.current = refreshQuestions;
   const refreshVotesRef = useRef(refreshVotes);
   refreshVotesRef.current = refreshVotes;
+  const refreshSupervotesRef = useRef(refreshSupervotes);
+  refreshSupervotesRef.current = refreshSupervotes;
   const refresh = useRef(throttle(() => {
     refreshQuestionsRef.current();
     refreshVotesRef.current();
+    // Votes spend supervotes and un-votes refund them.
+    refreshSupervotesRef.current();
   }, 500)).current;
 
   const { trigger } = useReact(
@@ -217,11 +220,45 @@ export default function QnA() {
     questions,
     user?.id,
   );
-  const [supervotes, setSupervotes] = useState(0);
-  const [supervoted, setSupervoted] = useState<Set<string>>(new Set());
   const [supervoteFlight, setSupervoteFlight] = useState<
-    { from: DOMRect; to: () => DOMRect | undefined; onLand: () => void }
+    | { kind: "earn"; from: DOMRect; to: () => DOMRect | undefined }
+    | {
+      kind: "spend";
+      from: DOMRect;
+      to: () => DOMRect | undefined;
+      questionUid: string;
+    }
   >();
+  // Undefined while supervotes are off for this conference.
+  const supervoteMultiplier = supervoteData?.enabled
+    ? supervoteData.multiplier
+    : undefined;
+  // The server counts a supervote as earned the moment the question is
+  // selected; hold it back from the counter until its bolt lands there.
+  const isEarningSupervote = (!!picked && !!supervoteMultiplier) ||
+    supervoteFlight?.kind === "earn";
+  const availableSupervotes = supervoteData?.enabled
+    ? Math.max(0, supervoteData.available - (isEarningSupervote ? 1 : 0))
+    : 0;
+  // Likewise, a spent supervote shows on its question once the bolt lands.
+  const supervoted = useMemo(
+    () =>
+      new Set(
+        supervoteData?.enabled
+          ? supervoteData.questionUids.filter((uid) =>
+            !(supervoteFlight?.kind === "spend" &&
+              supervoteFlight.questionUid === uid)
+          )
+          : [],
+      ),
+    [supervoteData, supervoteFlight],
+  );
+  // The balance was fetched before the question was picked; refetch it.
+  useEffect(() => {
+    if (picked) {
+      void refreshSupervotes();
+    }
+  }, [picked, refreshSupervotes]);
   const supervoteCounterRef = useRef<HTMLButtonElement>(null);
   const [isSupervoteInfoOpen, setIsSupervoteInfoOpen] = useState(false);
   const { seen: hasSeenSupervoteInfo, markSeen: markSupervoteInfoSeen } =
@@ -231,24 +268,35 @@ export default function QnA() {
   // Earned: the bolt flies from the celebration into the header counter.
   const onPickedDismiss = (supervoteFrom?: DOMRect) => {
     dismissPicked();
-    if (SUPERVOTE_MULTIPLIER && supervoteFrom) {
-      setSupervoteFlight({
-        from: supervoteFrom,
-        to: counterRect,
-        onLand: () => setSupervotes((count) => count + 1),
-      });
+    if (supervoteMultiplier && supervoteFrom) {
+      setSupervoteFlight({ kind: "earn", from: supervoteFrom, to: counterRect });
     }
   };
-  // Spent: the bolt flies from the header counter onto the vote button.
+  // Spent: the counter drops straight away (optimistically, until the vote
+  // request returns) and the bolt flies onto the vote button.
   const onSupervoteSpend = (questionUid: string, button?: DOMRect) => {
     const from = counterRect();
-    const markSupervoted = () =>
-      setSupervoted((uids) => new Set(uids).add(questionUid));
-    setSupervotes((count) => count - 1);
+    void refreshSupervotes(
+      (current) =>
+        current?.data.enabled
+          ? {
+            data: {
+              ...current.data,
+              spent: current.data.spent + 1,
+              available: current.data.available - 1,
+              questionUids: [...current.data.questionUids, questionUid],
+            },
+          }
+          : current,
+      { revalidate: false },
+    );
     if (from && button) {
-      setSupervoteFlight({ from, to: () => button, onLand: markSupervoted });
-    } else {
-      markSupervoted();
+      setSupervoteFlight({
+        kind: "spend",
+        from,
+        to: () => button,
+        questionUid,
+      });
     }
   };
 
@@ -356,10 +404,10 @@ export default function QnA() {
               {event?.conference.name}
             </Text>
             <Flex justifyContent="flex-end">
-              {SUPERVOTE_MULTIPLIER && (
+              {supervoteMultiplier && (
                 <SupervoteCounter
                   ref={supervoteCounterRef}
-                  count={supervotes}
+                  count={availableSupervotes}
                   isNew={!hasSeenSupervoteInfo}
                   onClick={() => {
                     setIsSupervoteInfoOpen(true);
@@ -435,10 +483,10 @@ export default function QnA() {
             refresh={refresh}
             isAuthenticated={isAuthenticated}
             isLoading={isQuestionsLoading}
-            supervotes={SUPERVOTE_MULTIPLIER
+            supervotes={supervoteMultiplier
               ? {
-                available: supervotes,
-                multiplier: SUPERVOTE_MULTIPLIER,
+                available: availableSupervotes,
+                multiplier: supervoteMultiplier,
                 onSpend: onSupervoteSpend,
               }
               : undefined}
@@ -487,26 +535,23 @@ export default function QnA() {
       {picked && (
         <QuestionPicked
           onDismiss={onPickedDismiss}
-          supervote={SUPERVOTE_MULTIPLIER}
+          supervote={supervoteMultiplier}
         />
       )}
-      {SUPERVOTE_MULTIPLIER && (
+      {supervoteMultiplier && (
         <SupervoteInfo
           open={isSupervoteInfoOpen}
           onClose={() => setIsSupervoteInfoOpen(false)}
-          available={supervotes}
-          spent={supervoted.size}
-          multiplier={SUPERVOTE_MULTIPLIER}
+          available={availableSupervotes}
+          spent={supervoteData?.enabled ? supervoteData.spent : 0}
+          multiplier={supervoteMultiplier}
         />
       )}
       {supervoteFlight && (
         <SupervoteFlight
           from={supervoteFlight.from}
           to={supervoteFlight.to}
-          onLand={() => {
-            supervoteFlight.onLand();
-            setSupervoteFlight(undefined);
-          }}
+          onLand={() => setSupervoteFlight(undefined)}
         />
       )}
     </>
