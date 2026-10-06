@@ -310,62 +310,69 @@ export default function QnA() {
               {event?.conference.name}
             </Text>
           </Grid>
-          <SessionSwitcher
-            title={event?.title}
-            stage={event?.stage}
-            past={past}
-            live={live}
-            upcoming={upcoming}
-          />
           <Flex
             padding="0 1rem 0.25rem"
             minH="7"
+            gap="3"
             justifyContent="space-between"
             alignItems="center"
           >
-            <Text textStyle="sm" color="fg.muted">
-              {questions &&
-                `${questions.length} ${
-                  questions.length === 1 ? "question" : "questions"
-                }`}
-            </Text>
-            <Menu.Root positioning={{ placement: "bottom-end" }}>
-              <Menu.Trigger asChild>
-                <Button
-                  variant="plain"
-                  size="xs"
-                  h="7"
-                  paddingInline="1"
-                  marginEnd="-1"
-                  gap="1"
-                  textStyle="sm"
-                  fontWeight="medium"
-                  color="accent.text"
-                  aria-label={`Sort by ${sortLabel}`}
-                >
-                  <Icon as={LuArrowDownUp} color="accent.icon" />
-                  {sortLabel}
-                </Button>
-              </Menu.Trigger>
-              <Portal>
-                <Menu.Positioner>
-                  <Menu.Content minW="10rem">
-                    <Menu.RadioItemGroup
-                      value={sort}
-                      onValueChange={(e) => changeSort(e.value)}
-                    >
-                      <Menu.ItemGroupLabel>Sort by</Menu.ItemGroupLabel>
-                      {sortOptions.map((option) => (
-                        <Menu.RadioItem key={option.value} value={option.value}>
-                          {option.label}
-                          <Menu.ItemIndicator />
-                        </Menu.RadioItem>
-                      ))}
-                    </Menu.RadioItemGroup>
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Portal>
-            </Menu.Root>
+            <SessionSwitcher
+              title={event?.title}
+              stage={event?.stage}
+              past={past}
+              live={live}
+              upcoming={upcoming}
+            />
+            <Flex flexShrink="0" alignItems="center" gap="3">
+              <Menu.Root positioning={{ placement: "bottom-end" }}>
+                <Menu.Trigger asChild>
+                  <Button
+                    variant="plain"
+                    size="xs"
+                    h="7"
+                    paddingInline="1"
+                    gap="1"
+                    textStyle="sm"
+                    fontWeight="medium"
+                    color="accent.text"
+                    aria-label={`Sort by ${sortLabel}`}
+                  >
+                    <Icon as={LuArrowDownUp} color="accent.icon" />
+                    {sortLabel}
+                  </Button>
+                </Menu.Trigger>
+                <Portal>
+                  <Menu.Positioner>
+                    <Menu.Content minW="10rem">
+                      <Menu.RadioItemGroup
+                        value={sort}
+                        onValueChange={(e) => changeSort(e.value)}
+                      >
+                        <Menu.ItemGroupLabel>Sort by</Menu.ItemGroupLabel>
+                        {sortOptions.map((option) => (
+                          <Menu.RadioItem key={option.value} value={option.value}>
+                            {option.label}
+                            <Menu.ItemIndicator />
+                          </Menu.RadioItem>
+                        ))}
+                      </Menu.RadioItemGroup>
+                    </Menu.Content>
+                  </Menu.Positioner>
+                </Portal>
+              </Menu.Root>
+              {/* Just the number, at the far right, to leave room for the session name */}
+              <Text
+                textStyle="sm"
+                color="fg.muted"
+                aria-label={questions &&
+                  `${questions.length} ${
+                    questions.length === 1 ? "question" : "questions"
+                  }`}
+              >
+                {questions?.length}
+              </Text>
+            </Flex>
           </Flex>
         </header>
         <main className="content flex">
