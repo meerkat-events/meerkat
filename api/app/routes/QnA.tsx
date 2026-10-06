@@ -296,9 +296,9 @@ export default function QnA() {
             alignItems="center"
             padding="0 1rem 0 1rem"
             marginBottom="2"
-            // Bottom-only shadow, tinted with the brand color (like the send
-            // button), separates the navigation from the page
-            boxShadow="0 6px 10px -8px color-mix(in srgb, var(--chakra-colors-brand-solid) 60%, transparent)"
+            // Bottom-only shadow (brand-tinted unless the theme sets a shadow
+            // color) separates the navigation from the page
+            boxShadow="header"
           >
             <nav>
               <NavigationDrawer navLinks={navLinks} />
@@ -337,10 +337,10 @@ export default function QnA() {
                   gap="1"
                   textStyle="sm"
                   fontWeight="medium"
-                  color="fg"
+                  color="accent.text"
                   aria-label={`Sort by ${sortLabel}`}
                 >
-                  <Icon as={LuArrowDownUp} color="fg.muted" />
+                  <Icon as={LuArrowDownUp} color="accent.icon" />
                   {sortLabel}
                 </Button>
               </Menu.Trigger>

@@ -8,6 +8,20 @@ export type Theme = {
   systemTheme?: "dark" | "light";
   headingFontFamily?: string;
   bodyFontFamily?: string;
+  // Optional refinements (see theme/index.ts). Leaving one out keeps the
+  // default look for that part.
+  /** Hover background of the brand's solid buttons. */
+  brandHoverColor?: string;
+  /** Secondary text and icons; defaults to textColor at 70% opacity. */
+  mutedTextColor?: string;
+  /** Links, small text actions, action icons and the vote pill. */
+  accentColor?: string;
+  /** Selected rows, and the hover of icon buttons, menu items and votes. */
+  highlightColor?: string;
+  /** Color of every shadow. */
+  shadowColor?: string;
+  /** Outline around text inputs at rest. */
+  inputOutlineColor?: string;
 };
 
 export type Conference = {

@@ -57,6 +57,13 @@ export const conferences = pgTable("conferences", {
     systemTheme: "light" | "dark";
     headingFontFamily?: string;
     bodyFontFamily?: string;
+    // Optional refinements; documented on the frontend's Theme type.
+    brandHoverColor?: string;
+    mutedTextColor?: string;
+    accentColor?: string;
+    highlightColor?: string;
+    shadowColor?: string;
+    inputOutlineColor?: string;
   }>(),
 });
 

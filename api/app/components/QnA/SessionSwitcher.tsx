@@ -207,7 +207,7 @@ function SessionRow({ session }: { session: SessionItem }) {
 
   return session.selected
     ? (
-      <chakra.div {...rowStyles} bg="brand.solid/10" aria-current="page">
+      <chakra.div {...rowStyles} bg="highlight.selected" aria-current="page">
         {content}
       </chakra.div>
     )
@@ -216,7 +216,7 @@ function SessionRow({ session }: { session: SessionItem }) {
         {...rowStyles}
         href={qa(session.uid)}
         color="fg"
-        _hover={{ bg: "bg.muted" }}
+        _hover={{ bg: "highlight.hover" }}
         focusVisibleRing="inside"
       >
         {content}

@@ -6,22 +6,21 @@ type UpVoteButtonProps = Omit<ButtonProps, "children"> & {
   voted: boolean;
 };
 
-// Light themes use the darker brand.800 so the count stays readable on white
-// and on the filled pill; dark themes can use the brand color directly.
+// The vote.* colors come from the theme (theme/index.ts): by default the
+// darker brand.800 on light themes, so the count stays readable on white and
+// on the filled pill, and the brand color itself on dark themes.
 const votedStyles = {
   variant: "solid",
-  bg: "brand.800",
+  bg: "vote.solid",
   color: "brand.contrast",
-  _hover: { bg: "brand.900" },
-  _dark: { bg: "brand.solid" },
+  _hover: { bg: "vote.solidHover" },
 } as const;
 
 const notVotedStyles = {
   variant: "outline",
   borderColor: "brand.solid",
-  color: "brand.800",
-  _hover: { bg: "brand.solid/10" },
-  _dark: { color: "brand.300" },
+  color: "vote.fg",
+  _hover: { bg: "vote.hover" },
 } as const;
 
 /** Vote pill: arrow and count in one tap target, filled once you've voted. */

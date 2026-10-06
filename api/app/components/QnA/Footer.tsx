@@ -127,6 +127,7 @@ export function Footer({
               h="50px"
               w="50px"
               borderRadius="full"
+              _hover={{ bg: "brand.hover" }}
             >
               <FiSend />
             </IconButton>

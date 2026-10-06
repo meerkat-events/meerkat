@@ -131,7 +131,7 @@ export function Question(
                   aria-label="Options"
                   variant="ghost"
                   colorPalette="gray"
-                  color="fg.muted"
+                  color="accent.icon"
                 >
                   <Icon as={FiMoreHorizontal} />
                 </IconButton>
@@ -140,19 +140,19 @@ export function Question(
                 <Menu.Positioner>
                   <Menu.Content>
                     <Menu.Item value="select" onClick={handleSelected}>
-                      <Icon as={RxCursorArrow} mr="2" />
+                      <Icon as={RxCursorArrow} mr="2" color="accent.menuIcon" />
                       <Box as="span">Select for Answering</Box>
                     </Menu.Item>
                     <Menu.Item value="answer" onClick={handleAnswered}>
-                      <Icon as={CheckCircleIcon} mr="2" />
+                      <Icon as={CheckCircleIcon} mr="2" color="accent.menuIcon" />
                       <Box as="span">Mark as Answered</Box>
                     </Menu.Item>
                     <Menu.Item value="delete" onClick={handleDelete}>
-                      <Icon as={DeleteIcon} mr="2" />
+                      <Icon as={DeleteIcon} mr="2" color="accent.menuIcon" />
                       <Box as="span">Hide Question</Box>
                     </Menu.Item>
                     <Menu.Item value="block" onClick={handleBlock}>
-                      <Icon as={NotAllowedIcon} mr="2" />
+                      <Icon as={NotAllowedIcon} mr="2" color="accent.menuIcon" />
                       <Box as="span">Block User</Box>
                     </Menu.Item>
                   </Menu.Content>

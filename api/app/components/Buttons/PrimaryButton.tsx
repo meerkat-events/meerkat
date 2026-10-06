@@ -14,6 +14,7 @@ function PrimaryButtonComponent(
 
   return (
     <Button
+      _hover={{ bg: "brand.hover" }}
       {...rest}
       variant="solid"
       size="lg"
