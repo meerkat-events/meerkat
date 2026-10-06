@@ -295,7 +295,7 @@ export default function QnA() {
             gap="1"
             alignItems="center"
             padding="0 1rem 0 1rem"
-            marginBottom="2"
+            marginBottom="headerBar"
             // Bottom-only shadow (brand-tinted unless the theme sets a shadow
             // color) separates the navigation from the page
             boxShadow="header"

@@ -43,6 +43,8 @@ export type Theme = {
   minTapTarget?: string;
   /** Space between question cards; defaults to 1.125rem. */
   questionGap?: string;
+  /** Space below the header bar (conference name); defaults to 0.5rem. */
+  headerBarSpacing?: string;
   /**
    * Fixed width of the session list's time column, so titles line up with
    * fonts whose digits differ in width (no tabular figures, e.g. Poppins).

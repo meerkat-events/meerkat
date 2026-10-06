@@ -236,6 +236,8 @@ const chakraAdapter = (theme: Theme) => {
         spacing: {
           // Between question cards (.question-list in layouts/app.css).
           questionGap: { value: theme.questionGap ?? "1.125rem" },
+          // Below the header bar with the conference name.
+          headerBar: { value: theme.headerBarSpacing ?? "{spacing.2}" },
         },
         sizes: {
           // Time column of the session list; by default as wide as each time.

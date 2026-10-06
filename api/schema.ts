@@ -70,6 +70,7 @@ export const conferences = pgTable("conferences", {
     questionControlSize?: string;
     minTapTarget?: string;
     questionGap?: string;
+    headerBarSpacing?: string;
     sessionTimeWidth?: string;
   }>(),
 });
