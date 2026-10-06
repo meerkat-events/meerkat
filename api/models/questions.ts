@@ -17,9 +17,9 @@ import db from "../db.ts";
 export const Sorts = ["popular", "newest"] as const;
 export type Sort = (typeof Sorts)[number];
 
-const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
-  "votes",
-);
+// Weighted: a supervoted vote counts SUPERVOTE_MULTIPLIER times.
+const votesSnippet = sql`COALESCE(SUM(${votes.weight}), 0)`.mapWith(Number)
+  .as("votes");
 
 export type Questions = Awaited<ReturnType<typeof getQuestions>>;
 

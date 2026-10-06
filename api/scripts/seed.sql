@@ -183,3 +183,8 @@ VALUES (
 		'bce2e86a-36a3-49d7-929b-b6e659773117',
 		'organizer'
 	) ON CONFLICT DO NOTHING;
+-- Supervotes on for both seeded conferences, so local dev can try them.
+INSERT INTO features (conference_id, name, active)
+SELECT id, 'supervotes', true FROM conferences
+WHERE name IN ('Devconnect ARG', 'DuneCon 2025')
+ON CONFLICT DO NOTHING;

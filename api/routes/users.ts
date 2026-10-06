@@ -25,6 +25,7 @@ app.get(
       questionUid: vote.question.uid,
       userId: user.id,
       createdAt: vote.createdAt,
+      supervote: vote.weight > 1,
     }));
 
     return c.json({ data: apiVotes });

@@ -23,6 +23,10 @@ import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import logger from "../logger.ts";
 import { getAllQuestions } from "../models/questions.ts";
 import { broadcastQuestionsUpdate } from "../utils/broadcast.ts";
+import {
+  createSupervote,
+  isSupervotesEnabled,
+} from "../models/supervotes.ts";
 
 const app = new Hono();
 
@@ -52,6 +56,10 @@ app.post(
   jwt(),
   async (c) => {
     const uid = c.req.param("uid");
+    // `{ "supervote": true }` spends a supervote on a new vote. The body is
+    // optional: older clients send none.
+    const body = await c.req.json<{ supervote?: unknown }>().catch(() => ({}));
+    const wantsSupervote = "supervote" in body && body.supervote === true;
 
     const payload = c.get("jwtPayload");
 
@@ -100,18 +108,36 @@ app.post(
       userId: user.id,
     });
 
+    let supervoted = false;
     if (hasVoted) {
+      // Removing a supervoted vote refunds the supervote (it's derived).
       await deleteVote(question.id, user.id);
+    } else if (wantsSupervote) {
+      if (!await isSupervotesEnabled(event.conferenceId)) {
+        throw new HTTPException(403, {
+          message: "Supervotes aren't enabled for this conference",
+        });
+      }
+      supervoted = await createSupervote(
+        question.id,
+        user.id,
+        event.conferenceId,
+      );
+      if (!supervoted) {
+        throw new HTTPException(409, { message: "No supervotes left" });
+      }
     } else {
       await createVote(question.id, user.id);
     }
 
     await broadcastQuestionsUpdate(event.id);
 
+    logger.info(
+      { questionUid: question.uid, userId: user.id, eventId: event.id, supervoted },
+      "Upvoted question",
+    );
 
-    logger.info({ question, userId: user.id, event }, "Upvoted question");
-
-    return c.json({ data: toPublicQuestion(question) });
+    return c.json({ data: { ...toPublicQuestion(question), supervoted } });
   },
 );
 
