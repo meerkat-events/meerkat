@@ -69,6 +69,12 @@ export const conferences = pgTable("conferences", {
     buttonRadius?: string;
     buttonFontWeight?: string;
     questionInputRadius?: string;
+    dialogPlacement?: "top" | "center";
+    dialogGutter?: string;
+    dialogTitleFontWeight?: string;
+    dialogTitleSpacing?: string;
+    dialogCloseIconSize?: string;
+    dialogEmphasisFontWeight?: string;
     voteTextColor?: string;
     voteOutlineColor?: string;
     questionControlSize?: string;

@@ -3,7 +3,7 @@ import {
   defaultConfig,
   defineConfig,
 } from "@chakra-ui/react";
-import { menuAnatomy } from "@chakra-ui/react/anatomy";
+import { dialogAnatomy, menuAnatomy } from "@chakra-ui/react/anatomy";
 import { darken, lighten, transparentize } from "color2k";
 import type { Theme } from "../types.ts";
 
@@ -62,6 +62,51 @@ const shadowScale = (color: string) => ({
 });
 
 /**
+ * Dialog styles from the theme's optional dialog* fields, each applied only
+ * when set. They reach every dialog, including ones that set their own
+ * placement (the gutter, title, spacing and close icon).
+ */
+const dialogOverride = (theme: Theme) => {
+  const {
+    dialogPlacement,
+    dialogGutter,
+    dialogTitleFontWeight,
+    dialogTitleSpacing,
+    dialogCloseIconSize,
+  } = theme;
+  // Each placement centers the content with `mx: auto`; the positioner
+  // centers it horizontally anyway, so a margin there only adds the gutter.
+  const gutter = dialogGutter && { content: { mx: dialogGutter } };
+  return {
+    slots: dialogAnatomy.keys(),
+    ...(dialogPlacement && {
+      defaultVariants: { placement: dialogPlacement },
+    }),
+    base: {
+      header: {
+        // Also for titles placed straight in the header (Modal).
+        ...(dialogTitleFontWeight && { fontWeight: dialogTitleFontWeight }),
+        ...(dialogTitleSpacing && { pb: dialogTitleSpacing }),
+      },
+      ...(dialogTitleFontWeight && {
+        title: { fontWeight: dialogTitleFontWeight },
+      }),
+      ...(dialogCloseIconSize && {
+        closeTrigger: {
+          // Keeps Chakra's 0.625rem around the icon on each side.
+          boxSize: `calc(${dialogCloseIconSize} + 1.25rem)`,
+          minW: "auto",
+          _icon: { boxSize: dialogCloseIconSize },
+        },
+      }),
+    },
+    ...(gutter && {
+      variants: { placement: { top: gutter, center: gutter, bottom: gutter } },
+    }),
+  };
+};
+
+/**
  * Recipe overrides for the optional theme refinements. Each applies only when
  * the theme sets its color, so other themes keep Chakra's defaults.
  */
@@ -111,6 +156,7 @@ const recipeOverrides = (theme: Theme) => {
       ...(inputOutline && { input: inputOutline, textarea: inputOutline }),
     },
     slotRecipes: {
+      dialog: dialogOverride(theme),
       ...(highlightColor && {
         menu: {
           slots: menuAnatomy.keys(),
@@ -268,6 +314,12 @@ const chakraAdapter = (theme: Theme) => {
         radii: {
           // The question input, which grows with its text.
           questionInput: { value: theme.questionInputRadius ?? "{radii.md}" },
+        },
+        fontWeights: {
+          // Emphasized text in dialogs, such as the event in Go Live.
+          dialogEmphasis: {
+            value: theme.dialogEmphasisFontWeight ?? "{fontWeights.bold}",
+          },
         },
         sizes: {
           // Time column of the session list; by default as wide as each time.

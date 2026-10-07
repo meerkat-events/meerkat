@@ -44,6 +44,21 @@ export type Theme = {
    * half its one-line height clips multi-line questions; defaults to md.
    */
   questionInputRadius?: string;
+  /** Vertical position of dialogs that don't set their own; defaults to "top". */
+  dialogPlacement?: "top" | "center";
+  /** Space between a dialog and the sides of a narrow screen; defaults to none. */
+  dialogGutter?: string;
+  /** Weight of dialog titles; defaults to semibold. */
+  dialogTitleFontWeight?: string;
+  /** Space below a dialog's title, before the body's own 0.5rem; defaults to 1rem. */
+  dialogTitleSpacing?: string;
+  /** Size of a dialog's close (X) icon; defaults to 1rem. */
+  dialogCloseIconSize?: string;
+  /**
+   * Weight of emphasized text in dialogs, such as the event in the Go Live
+   * dialog; defaults to bold.
+   */
+  dialogEmphasisFontWeight?: string;
   /** Arrow and count of a vote you haven't cast; defaults to accentColor. */
   voteTextColor?: string;
   /** Border of a vote you haven't cast; defaults to brandColor. */

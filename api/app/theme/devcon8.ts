@@ -22,6 +22,12 @@ export const devcon8: Theme = {
   buttonFontWeight: "700",
   // Half the input's one-line height: a pill on one line, rounded beyond.
   questionInputRadius: "1.5625rem",
+  dialogPlacement: "center",
+  dialogGutter: "1rem",
+  dialogTitleFontWeight: "700",
+  dialogTitleSpacing: "0.25rem",
+  dialogCloseIconSize: "1.25rem",
+  dialogEmphasisFontWeight: "600",
   voteTextColor: mutedText,
   voteOutlineColor: outline,
   questionControlSize: "32px",
