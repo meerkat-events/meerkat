@@ -65,6 +65,7 @@ export const conferences = pgTable("conferences", {
     shadowColor?: string;
     inputOutlineColor?: string;
     successToastColor?: string;
+    notLiveBannerColor?: string;
     voteTextColor?: string;
     voteOutlineColor?: string;
     questionControlSize?: string;

@@ -17,6 +17,7 @@ export const devcon8: Theme = {
   shadowColor: "#160B2B33",
   inputOutlineColor: outline,
   successToastColor: "#D5F4DD",
+  notLiveBannerColor: "#FFE0CC",
   voteTextColor: mutedText,
   voteOutlineColor: outline,
   questionControlSize: "32px",

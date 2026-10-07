@@ -27,6 +27,11 @@ export type Theme = {
    * textColor; defaults to the brand color with contrastColor text.
    */
   successToastColor?: string;
+  /**
+   * Background of the banner on events that aren't live, whose text then
+   * takes textColor; defaults to a brand tint with brand text.
+   */
+  notLiveBannerColor?: string;
   /** Arrow and count of a vote you haven't cast; defaults to accentColor. */
   voteTextColor?: string;
   /** Border of a vote you haven't cast; defaults to brandColor. */

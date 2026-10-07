@@ -213,6 +213,20 @@ const chakraAdapter = (theme: Theme) => {
                 : "{colors.brand.contrast}",
             },
           },
+          // Banner on events that aren't live. By default a brand tint with
+          // high-contrast brand text; a theme's notLiveBannerColor takes the
+          // regular text color instead.
+          notLiveBanner: {
+            bg: {
+              value: theme.notLiveBannerColor ??
+                { _light: brandTint(12), _dark: brandTint(20) },
+            },
+            fg: {
+              value: theme.notLiveBannerColor
+                ? "{colors.fg}"
+                : { _light: "{colors.brand.900}", _dark: "{colors.brand.300}" },
+            },
+          },
           highlight: {
             // The current row of a list, such as the session list.
             selected: { value: highlightColor ?? brandTint(10) },

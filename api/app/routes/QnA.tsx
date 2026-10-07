@@ -266,11 +266,10 @@ export default function QnA() {
             <Alert.Root
               status="warning"
               title="You're viewing a past or upcoming event"
-              // Theme colors instead of the warning orange: a brand tint with
-              // high-contrast brand text (brand.900 on light, brand.300 on dark).
-              bg="brand.solid/12"
-              color="brand.900"
-              _dark={{ bg: "brand.solid/20", color: "brand.300" }}
+              // Theme colors instead of the warning orange (notLiveBanner.*,
+              // by default a brand tint; see theme/index.ts).
+              bg="notLiveBanner.bg"
+              color="notLiveBanner.fg"
               borderRadius="0"
               display="flex"
               flexDirection="row"
