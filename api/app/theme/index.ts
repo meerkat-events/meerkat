@@ -66,25 +66,37 @@ const shadowScale = (color: string) => ({
  * the theme sets its color, so other themes keep Chakra's defaults.
  */
 const recipeOverrides = (theme: Theme) => {
-  const { accentColor, highlightColor, inputOutlineColor } = theme;
+  const {
+    accentColor,
+    highlightColor,
+    inputOutlineColor,
+    buttonRadius,
+    buttonFontWeight,
+  } = theme;
   const inputOutline = inputOutlineColor && {
     base: { outline: "1px solid", outlineColor: inputOutlineColor },
   };
+  // Light hover for icon buttons (Close, a question's options) and outline
+  // buttons (Cancel), whose own hover is a dark brand.subtle.
+  const highlightHover = highlightColor && {
+    _hover: { bg: highlightColor },
+    _expanded: { bg: highlightColor },
+  };
   return {
     recipes: {
-      ...(highlightColor && {
-        // Icon buttons such as Close and a question's options.
-        button: {
-          variants: {
-            variant: {
-              ghost: {
-                _hover: { bg: highlightColor },
-                _expanded: { bg: highlightColor },
-              },
-            },
-          },
+      // Every button, including icon and close buttons; components that set
+      // their own radius or weight (the vote pill, round icon buttons) keep it.
+      button: {
+        base: {
+          ...(buttonRadius && { borderRadius: buttonRadius }),
+          ...(buttonFontWeight && { fontWeight: buttonFontWeight }),
         },
-      }),
+        ...(highlightHover && {
+          variants: {
+            variant: { ghost: highlightHover, outline: highlightHover },
+          },
+        }),
+      },
       ...(accentColor && {
         link: {
           variants: {
@@ -252,6 +264,10 @@ const chakraAdapter = (theme: Theme) => {
           questionGap: { value: theme.questionGap ?? "1.125rem" },
           // Below the header bar with the conference name.
           headerBar: { value: theme.headerBarSpacing ?? "{spacing.2}" },
+        },
+        radii: {
+          // The question input, which grows with its text.
+          questionInput: { value: theme.questionInputRadius ?? "{radii.md}" },
         },
         sizes: {
           // Time column of the session list; by default as wide as each time.

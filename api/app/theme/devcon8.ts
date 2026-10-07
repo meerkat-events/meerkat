@@ -18,6 +18,10 @@ export const devcon8: Theme = {
   inputOutlineColor: outline,
   successToastColor: "#D5F4DD",
   notLiveBannerColor: "#FFE0CC",
+  buttonRadius: "9999px",
+  buttonFontWeight: "700",
+  // Half the input's one-line height: a pill on one line, rounded beyond.
+  questionInputRadius: "1.5625rem",
   voteTextColor: mutedText,
   voteOutlineColor: outline,
   questionControlSize: "32px",

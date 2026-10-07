@@ -109,7 +109,7 @@ export function Footer({
               disabled={!isAuthenticated}
               placeholder="Type a question..."
               name="question"
-              borderRadius="md"
+              borderRadius="questionInput"
               borderColor="transparent"
               background="bg.subtle"
               _placeholder={{ color: "fg.muted" }}

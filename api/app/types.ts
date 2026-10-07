@@ -16,7 +16,10 @@ export type Theme = {
   mutedTextColor?: string;
   /** Links, small text actions, action icons and the vote pill. */
   accentColor?: string;
-  /** Selected rows, and the hover of icon buttons, menu items and votes. */
+  /**
+   * Selected rows, and the hover of icon and outline buttons, menu items and
+   * votes.
+   */
   highlightColor?: string;
   /** Color of every shadow. */
   shadowColor?: string;
@@ -32,6 +35,15 @@ export type Theme = {
    * takes textColor; defaults to a brand tint with brand text.
    */
   notLiveBannerColor?: string;
+  /** Corners of every button, including icon and close buttons; defaults to l2. */
+  buttonRadius?: string;
+  /** Label weight of every button except the vote pill; defaults to medium. */
+  buttonFontWeight?: string;
+  /**
+   * Corners of the question input. It grows with its text, so a value above
+   * half its one-line height clips multi-line questions; defaults to md.
+   */
+  questionInputRadius?: string;
   /** Arrow and count of a vote you haven't cast; defaults to accentColor. */
   voteTextColor?: string;
   /** Border of a vote you haven't cast; defaults to brandColor. */

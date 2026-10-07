@@ -35,6 +35,8 @@ export function UpVoteButton({ votes, voted, ...props }: UpVoteButtonProps) {
       size="sm"
       h="questionControl"
       borderRadius="full"
+      // A count, not a label: not a theme's buttonFontWeight
+      fontWeight="medium"
       paddingInline="3"
       gap="1.5"
       fontVariantNumeric="tabular-nums"
