@@ -1,0 +1,220 @@
+.supervote-counter {
+  position: relative;
+  display: inline-flex;
+  color: inherit;
+  cursor: pointer;
+  align-items: center;
+  height: 1.75rem;
+  padding: 0 0.625rem 0 0.5rem;
+  font-size: var(--chakra-font-sizes-sm);
+  font-weight: var(--chakra-font-weights-semibold);
+  font-variant-numeric: tabular-nums;
+  border-radius: 999px;
+  background-color: color-mix(
+    in srgb,
+    var(--chakra-colors-brand-solid) 20%,
+    transparent
+  );
+  animation: supervote-counter-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.supervote-counter-bump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  animation: supervote-counter-bump 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.supervote-counter-icon {
+  color: #F6B613;
+  fill: #F6B613;
+}
+
+.supervote-flight {
+  position: fixed;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  color: #2A1748;
+  pointer-events: none;
+  border-radius: 50%;
+  background-color: #F6B613;
+  box-shadow: 0 0 18px 4px color-mix(in srgb, #F6B613 55%, transparent);
+}
+
+.supervote-prompt-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto;
+  font-size: 1.5rem;
+  color: #2A1748;
+  border-radius: 50%;
+  background-color: #F6B613;
+}
+
+/* The vote pill once a supervote has landed on it: gold ring, a bump and
+   a burst ring that fades out. */
+.supervote-voted {
+  box-shadow: 0 0 0 2px #F6B613;
+  animation:
+    supervote-counter-bump 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+    supervote-burst 0.9s ease-out;
+}
+
+
+
+/* Nothing to spend yet (or any more): dimmed, but still tappable. */
+.supervote-counter.empty .supervote-counter-bump {
+  opacity: 0.55;
+}
+
+.supervote-counter:focus-visible {
+  outline: 2px solid var(--chakra-colors-brand-solid);
+  outline-offset: 2px;
+}
+
+.supervote-info-medal {
+  position: relative;
+  width: 5.5rem;
+  height: 5.5rem;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background-color: var(--chakra-colors-brand-solid);
+  border: 3px solid var(--chakra-colors-brand-400);
+}
+
+.supervote-info-meerkat {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  width: 3rem;
+  margin-left: -1.5rem;
+}
+
+
+.supervote-info-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  text-align: left;
+  font-size: var(--chakra-font-sizes-sm);
+}
+
+.supervote-info-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.supervote-info-step-number {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: var(--chakra-font-sizes-xs);
+  font-weight: var(--chakra-font-weights-bold);
+  color: #2A1748;
+  border-radius: 50%;
+  background-color: #F6B613;
+}
+
+.supervote-info-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.supervote-info-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.625rem 0.5rem;
+  border-radius: var(--chakra-radii-lg);
+  background-color: color-mix(
+    in srgb,
+    var(--chakra-colors-brand-solid) 14%,
+    transparent
+  );
+}
+
+.supervote-info-stat dt {
+  font-size: var(--chakra-font-sizes-xs);
+  color: var(--chakra-colors-fg-muted);
+}
+
+.supervote-info-stat dd {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--chakra-font-sizes-2xl);
+  font-weight: var(--chakra-font-weights-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.supervote-info-stat.available {
+  box-shadow: inset 0 0 0 1.5px #F6B613;
+}
+
+.supervote-info-stat.available svg {
+  font-size: 1.125rem;
+  color: #F6B613;
+  fill: #F6B613;
+}
+
+.supervote-info-hint {
+  margin-top: 0.5rem;
+  font-size: var(--chakra-font-sizes-xs);
+  color: var(--chakra-colors-fg-muted);
+}
+
+.supervote-info-steps {
+  margin-top: 1rem;
+}
+
+.supervote-counter.empty .supervote-counter-icon {
+  fill: none;
+}
+
+@keyframes supervote-counter-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+@keyframes supervote-burst {
+  from {
+    box-shadow:
+      0 0 0 2px #F6B613,
+      0 0 0 0 color-mix(in srgb, #F6B613 70%, transparent);
+  }
+  to {
+    box-shadow:
+      0 0 0 2px #F6B613,
+      0 0 0 14px color-mix(in srgb, #F6B613 0%, transparent);
+  }
+}
+
+@keyframes supervote-counter-bump {
+  40% {
+    transform: scale(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .supervote-counter,
+  .supervote-counter-bump,
+  .supervote-voted {
+    animation: none;
+  }
+}

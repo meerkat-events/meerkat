@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router";
-import { card, qa } from "../../routing.ts";
+import { card, leaderboard, qa } from "../../routing.ts";
 import type { Event } from "../../types.ts";
 
 export type UseLinksProps = {
@@ -24,6 +24,11 @@ export function useLinks({ event }: UseLinksProps) {
           active: location.pathname.endsWith("/card"),
         }]
         : []),
+      {
+        label: "Leaderboard",
+        href: leaderboard(event?.uid ?? ""),
+        active: location.pathname.endsWith("/leaderboard"),
+      },
     ],
     [event?.uid, event?.conference.features, location.pathname],
   );

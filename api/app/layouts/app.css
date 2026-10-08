@@ -384,3 +384,18 @@ ul {
 .parcnet-dialog {
   margin: auto;
 }
+
+.leaderboard-list {
+  padding: 1rem 0 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* The user's own leaderboard place, pinned below the list */
+.leaderboard-me {
+  padding-top: 0.75rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  box-shadow: 0 -6px 10px -8px
+    color-mix(in srgb, var(--chakra-colors-brand-solid) 60%, transparent);
+}

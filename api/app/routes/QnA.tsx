@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { LuArrowDownUp } from "react-icons/lu";
 import {
@@ -28,7 +28,14 @@ import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useEvent } from "../hooks/use-event.ts";
 import { useAuth } from "../hooks/use-auth.ts";
 import { useVotes } from "../hooks/use-votes.ts";
-import { qa } from "../routing.ts";
+import { usePodiumBadges } from "../hooks/use-podium-badges.ts";
+import { PodiumStatus } from "../components/Leaderboard/PodiumStatus.tsx";
+import { PodiumCelebration } from "../components/Leaderboard/PodiumCelebration.tsx";
+import { PodiumFlight } from "../components/Leaderboard/PodiumFlight.tsx";
+import { EntryDetails } from "../components/Leaderboard/EntryDetails.tsx";
+import type { PodiumBadge } from "../components/Leaderboard/podium.ts";
+import { usePodiumChange } from "../hooks/use-podium-change.ts";
+import { leaderboard, qa } from "../routing.ts";
 import { useReact } from "../hooks/use-react.ts";
 import { Reaction, type ReactionItem } from "../components/QnA/Reaction.tsx";
 import {
@@ -47,6 +54,12 @@ import { toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
+import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
+import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
+import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
+import { SupervoteInfo } from "../components/QnA/SupervoteInfo.tsx";
+import { useSupervotes } from "../hooks/use-supervotes.ts";
+import { usePickedQuestion } from "../hooks/use-picked-question.ts";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
 import {
@@ -105,6 +118,14 @@ export default function QnA() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data, mutate: refreshEvent } = useEvent(uid);
   const event = data?.data;
+  const {
+    data: podiumPlaces,
+    ranked: podiumRanked,
+    scoring: podiumScoring,
+    isLoaded: isPodiumLoaded,
+  } = usePodiumBadges(
+    event?.conferenceId,
+  );
   const { data: eventsData, mutate: refreshEvents } = useStageEvents({
     ...(event?.stage ? { stage: event.stage } : {}),
     ...(searchParams.get("date") ? { date: searchParams.get("date")! } : {}),
@@ -140,14 +161,21 @@ export default function QnA() {
     });
   };
   const { data: votes, mutate: refreshVotes } = useVotes();
+  const { data: supervoteData, mutate: refreshSupervotes } = useSupervotes(
+    event?.uid,
+  );
   const { data: roles } = useConferenceRoles();
   const refreshQuestionsRef = useRef(refreshQuestions);
   refreshQuestionsRef.current = refreshQuestions;
   const refreshVotesRef = useRef(refreshVotes);
   refreshVotesRef.current = refreshVotes;
+  const refreshSupervotesRef = useRef(refreshSupervotes);
+  refreshSupervotesRef.current = refreshSupervotes;
   const refresh = useRef(throttle(() => {
     refreshQuestionsRef.current();
     refreshVotesRef.current();
+    // Votes spend supervotes and un-votes refund them.
+    refreshSupervotesRef.current();
   }, 500)).current;
 
   const { trigger } = useReact(
@@ -202,6 +230,125 @@ export default function QnA() {
     }, { replace: true });
   };
   const isBlocked = false;
+  const { picked, dismiss: dismissPicked } = usePickedQuestion(
+    questions,
+    user?.id,
+  );
+  const [supervoteFlight, setSupervoteFlight] = useState<
+    | { kind: "earn"; from: DOMRect; to: () => DOMRect | undefined }
+    | {
+      kind: "spend";
+      from: DOMRect;
+      to: () => DOMRect | undefined;
+      questionUid: string;
+    }
+  >();
+  // Undefined while supervotes are off for this conference.
+  const supervoteMultiplier = supervoteData?.enabled
+    ? supervoteData.multiplier
+    : undefined;
+  // The server counts a supervote as earned the moment the question is
+  // selected; hold it back from the counter until its bolt lands there.
+  const isEarningSupervote = (!!picked && !!supervoteMultiplier) ||
+    supervoteFlight?.kind === "earn";
+  const availableSupervotes = supervoteData?.enabled
+    ? Math.max(0, supervoteData.available - (isEarningSupervote ? 1 : 0))
+    : 0;
+  // The signed-in user's own leaderboard place, and badge in the top three
+  const myRanked = user
+    ? podiumRanked.find(({ entry }) => entry.user.id === user.id)
+    : undefined;
+  const myBadge = myRanked?.badge;
+  // Leaderboard details, opened from the header place or a question's badge
+  const [podiumDetails, setPodiumDetails] = useState<
+    (typeof podiumRanked)[number]
+  >();
+  const openPodiumDetails = (userId: string) =>
+    setPodiumDetails(
+      podiumRanked.find(({ entry }) => entry.user.id === userId),
+    );
+  const { change: podiumChange, dismiss: dismissPodiumChange } =
+    usePodiumChange({
+      conferenceId: event?.conferenceId,
+      userId: user?.id,
+      badge: myBadge,
+      isLoaded: isPodiumLoaded,
+    });
+  // Likewise, a spent supervote shows on its question once the bolt lands.
+  const supervoted = useMemo(
+    () =>
+      new Set(
+        supervoteData?.enabled
+          ? supervoteData.questionUids.filter((uid) =>
+            !(supervoteFlight?.kind === "spend" &&
+              supervoteFlight.questionUid === uid)
+          )
+          : [],
+      ),
+    [supervoteData, supervoteFlight],
+  );
+  // Reaching or climbing the podium is celebrated full-screen, after any
+  // question-picked celebration has been dismissed; then the meerkat flies
+  // into the header badge, which pops when it lands.
+  const isPodiumUp = podiumChange?.kind === "up" && !!podiumChange.to;
+  const [podiumFlight, setPodiumFlight] = useState<
+    { badge: PodiumBadge; from: DOMRect }
+  >();
+  const [podiumLandedKey, setPodiumLandedKey] = useState(0);
+  const podiumStatusRef = useRef<HTMLDivElement>(null);
+  const onPodiumDismiss = (from?: DOMRect) => {
+    if (podiumChange?.to && from) {
+      setPodiumFlight({ badge: podiumChange.to, from });
+    } else {
+      setPodiumLandedKey((key) => key + 1);
+    }
+    dismissPodiumChange();
+  };
+
+  // The balance was fetched before the question was picked; refetch it.
+  useEffect(() => {
+    if (picked) {
+      void refreshSupervotes();
+    }
+  }, [picked, refreshSupervotes]);
+  const supervoteCounterRef = useRef<HTMLButtonElement>(null);
+  const [isSupervoteInfoOpen, setIsSupervoteInfoOpen] = useState(false);
+  const counterRect = () =>
+    supervoteCounterRef.current?.getBoundingClientRect();
+  // Earned: the bolt flies from the celebration into the header counter.
+  const onPickedDismiss = (supervoteFrom?: DOMRect) => {
+    dismissPicked();
+    if (supervoteMultiplier && supervoteFrom) {
+      setSupervoteFlight({ kind: "earn", from: supervoteFrom, to: counterRect });
+    }
+  };
+  // Spent: the counter drops straight away (optimistically, until the vote
+  // request returns) and the bolt flies onto the vote button.
+  const onSupervoteSpend = (questionUid: string, button?: DOMRect) => {
+    const from = counterRect();
+    void refreshSupervotes(
+      (current) =>
+        current?.data.enabled
+          ? {
+            data: {
+              ...current.data,
+              spent: current.data.spent + 1,
+              available: current.data.available - 1,
+              questionUids: [...current.data.questionUids, questionUid],
+            },
+          }
+          : current,
+      { revalidate: false },
+    );
+    if (from && button) {
+      setSupervoteFlight({
+        kind: "spend",
+        from,
+        to: () => button,
+        questionUid,
+      });
+    }
+  };
 
   const isOrganizer =
     roles?.some((role) =>
@@ -306,6 +453,26 @@ export default function QnA() {
             <Text as="span" textStyle="sm" fontWeight="medium" truncate>
               {event?.conference.name}
             </Text>
+            <Flex justifyContent="flex-end" alignItems="center" gap="2">
+              {event && (
+                <PodiumStatus
+                  ref={podiumStatusRef}
+                  rank={myRanked?.rank}
+                  badge={myBadge}
+                  change={podiumChange}
+                  pending={isPodiumUp || !!podiumFlight}
+                  landedKey={podiumLandedKey}
+                  onOpen={() => setPodiumDetails(myRanked)}
+                />
+              )}
+              {supervoteMultiplier && (
+                <SupervoteCounter
+                  ref={supervoteCounterRef}
+                  count={availableSupervotes}
+                  onClick={() => setIsSupervoteInfoOpen(true)}
+                />
+              )}
+            </Flex>
           </Grid>
           <SessionSwitcher
             title={event?.title}
@@ -373,6 +540,16 @@ export default function QnA() {
             refresh={refresh}
             isAuthenticated={isAuthenticated}
             isLoading={isQuestionsLoading}
+            supervotes={supervoteMultiplier
+              ? {
+                available: availableSupervotes,
+                multiplier: supervoteMultiplier,
+                onSpend: onSupervoteSpend,
+              }
+              : undefined}
+            supervoted={supervoted}
+            places={podiumPlaces}
+            onBadgeSelect={openPodiumDetails}
           />
         </main>
         <footer className="footer">
@@ -414,6 +591,55 @@ export default function QnA() {
         </Modal>
       )}
       <CooldownModal />
+      {picked && (
+        <QuestionPicked
+          onDismiss={onPickedDismiss}
+          supervote={supervoteMultiplier}
+        />
+      )}
+      {!picked && isPodiumUp && podiumChange?.to && (
+        <PodiumCelebration
+          badge={podiumChange.to}
+          previous={podiumChange.from}
+          onDismiss={onPodiumDismiss}
+        />
+      )}
+      <EntryDetails
+        selected={podiumDetails && {
+          ...podiumDetails,
+          isMe: podiumDetails.entry.user.id === myRanked?.entry.user.id,
+        }}
+        scoring={podiumScoring}
+        leaderboardHref={event ? leaderboard(event.uid) : undefined}
+        onClose={() => setPodiumDetails(undefined)}
+      />
+      {podiumFlight && (
+        <PodiumFlight
+          badge={podiumFlight.badge}
+          from={podiumFlight.from}
+          to={() => podiumStatusRef.current?.getBoundingClientRect()}
+          onLand={() => {
+            setPodiumFlight(undefined);
+            setPodiumLandedKey((key) => key + 1);
+          }}
+        />
+      )}
+      {supervoteMultiplier && (
+        <SupervoteInfo
+          open={isSupervoteInfoOpen}
+          onClose={() => setIsSupervoteInfoOpen(false)}
+          available={availableSupervotes}
+          spent={supervoteData?.enabled ? supervoteData.spent : 0}
+          multiplier={supervoteMultiplier}
+        />
+      )}
+      {supervoteFlight && (
+        <SupervoteFlight
+          from={supervoteFlight.from}
+          to={supervoteFlight.to}
+          onLand={() => setSupervoteFlight(undefined)}
+        />
+      )}
     </>
   );
 }
