@@ -19,6 +19,7 @@ import {
   getConferenceUserActivity,
 } from "../models/conference-activity.ts";
 import { summarizeModeration } from "../moderation-summary.ts";
+import { getLeaderboard, SCORING } from "../models/leaderboard.ts";
 
 const app = new Hono();
 
@@ -153,6 +154,28 @@ app.get("/api/v1/conferences/:id/users/:userId/activity", jwt(), async (c) => {
   }
 
   return c.json({ data: activity });
+});
+
+app.get("/api/v1/conferences/:id/leaderboard", async (c) => {
+  const conferenceId = parseInt(c.req.param("id"));
+  if (Number.isInteger(conferenceId) === false) {
+    throw new HTTPException(400, {
+      message: `Invalid conference id ${conferenceId}`,
+    });
+  }
+
+  const entries = await getLeaderboard(conferenceId);
+
+  return c.json({
+    data: entries.map(({ userId: _userId, user, ...rest }) => ({
+      ...rest,
+      user: {
+        id: user.id,
+        name: user.userMetadata?.["name"] ?? user.id,
+      },
+    })),
+    scoring: SCORING,
+  });
 });
 
 export default app;
