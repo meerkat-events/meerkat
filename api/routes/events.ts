@@ -23,6 +23,7 @@ import {
 import {
   createQuestion,
   getQuestions,
+  getSelectedQuestion,
   type Sort,
   Sorts,
 } from "../models/questions.ts";
@@ -193,6 +194,19 @@ app.get("/api/v1/events/:uid/questions", eventMiddleware, async (c) => {
     data: questions.map(toApiQuestion),
   });
 });
+
+app.get(
+  "/api/v1/events/:uid/questions/selected",
+  eventMiddleware,
+  async (c) => {
+    const event = c.get("event");
+    const question = await getSelectedQuestion(event.id);
+
+    return c.json({
+      data: question ? toApiQuestion(question) : null,
+    });
+  },
+);
 
 const createQuestionSchema = zod.object({
   question: zod.string().max(MAX_CHARS_PER_QUESTION).min(1),
