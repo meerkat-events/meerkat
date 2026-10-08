@@ -3,6 +3,7 @@ import type { Question as QuestionType } from "../../types.ts";
 import type { Vote } from "../../hooks/use-votes.ts";
 import { Question, type QuestionSupervotes } from "./Question.tsx";
 import { Flex } from "@chakra-ui/react";
+import type { LeaderboardPlace } from "../Leaderboard/podium.ts";
 
 export type QuestionsSectionProps = {
   questions: QuestionType[] | undefined;
@@ -14,6 +15,10 @@ export type QuestionsSectionProps = {
   supervotes?: QuestionSupervotes | undefined;
   /** Uids of questions the user spent a supervote on. */
   supervoted?: Set<string>;
+  /** Everyone's leaderboard place, keyed by user id. */
+  places?: Map<string, LeaderboardPlace>;
+  /** Opens an author's leaderboard details from their badge. */
+  onBadgeSelect?: ((userId: string) => void) | undefined;
 };
 
 export function QuestionsSection(
@@ -26,6 +31,8 @@ export function QuestionsSection(
     isLoading,
     supervotes,
     supervoted,
+    places,
+    onBadgeSelect,
   }: QuestionsSectionProps,
 ) {
   const questionLookup = useMemo(() => {
@@ -52,6 +59,10 @@ export function QuestionsSection(
                 voted={questionLookup?.has(question.uid) ?? false}
                 supervotes={supervotes}
                 supervoted={supervoted?.has(question.uid) ?? false}
+                place={question.user ? places?.get(question.user.id) : undefined}
+                onBadgeSelect={question.user && onBadgeSelect
+                  ? () => onBadgeSelect(question.user!.id)
+                  : undefined}
               />
             ))}
           </ol>

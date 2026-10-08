@@ -17,6 +17,8 @@ import { toaster } from "../../components/ui/toaster.tsx";
 import { useVote } from "../../hooks/use-vote.ts";
 import { useRef, useState } from "react";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
+import { PodiumTag } from "../Leaderboard/PodiumTag.tsx";
+import type { LeaderboardPlace } from "../Leaderboard/podium.ts";
 
 export type QuestionSupervotes = {
   /** Supervotes the user can spend; the prompt only shows when above 0. */
@@ -34,6 +36,10 @@ interface QuestionProps {
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
   supervoted?: boolean;
+  /** The author's leaderboard place, when they're on the board. */
+  place?: LeaderboardPlace | undefined;
+  /** Opens the author's leaderboard details from their badge. */
+  onBadgeSelect?: (() => void) | undefined;
 }
 
 export function Question(
@@ -45,6 +51,8 @@ export function Question(
     refresh,
     supervotes,
     supervoted,
+    place,
+    onBadgeSelect,
   }: QuestionProps,
 ) {
   const voteButtonRef = useRef<HTMLButtonElement>(null);
@@ -159,6 +167,9 @@ export function Question(
           <Text as="span" textStyle="sm" color="fg.muted" minW="0" truncate>
             {question.user?.name ?? question.user?.id ?? "Unknown"}
           </Text>
+          {place && onBadgeSelect && (
+            <PodiumTag {...place} onSelect={onBadgeSelect} />
+          )}
           {canModerate && (
             <Menu.Root positioning={{ placement: "bottom-start" }}>
               <Menu.Trigger asChild>

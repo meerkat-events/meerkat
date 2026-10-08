@@ -28,7 +28,14 @@ import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useEvent } from "../hooks/use-event.ts";
 import { useAuth } from "../hooks/use-auth.ts";
 import { useVotes } from "../hooks/use-votes.ts";
-import { qa } from "../routing.ts";
+import { usePodiumBadges } from "../hooks/use-podium-badges.ts";
+import { PodiumStatus } from "../components/Leaderboard/PodiumStatus.tsx";
+import { PodiumCelebration } from "../components/Leaderboard/PodiumCelebration.tsx";
+import { PodiumFlight } from "../components/Leaderboard/PodiumFlight.tsx";
+import { EntryDetails } from "../components/Leaderboard/EntryDetails.tsx";
+import type { PodiumBadge } from "../components/Leaderboard/podium.ts";
+import { usePodiumChange } from "../hooks/use-podium-change.ts";
+import { leaderboard, qa } from "../routing.ts";
 import { useReact } from "../hooks/use-react.ts";
 import { Reaction, type ReactionItem } from "../components/QnA/Reaction.tsx";
 import {
@@ -111,6 +118,14 @@ export default function QnA() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data, mutate: refreshEvent } = useEvent(uid);
   const event = data?.data;
+  const {
+    data: podiumPlaces,
+    ranked: podiumRanked,
+    scoring: podiumScoring,
+    isLoaded: isPodiumLoaded,
+  } = usePodiumBadges(
+    event?.conferenceId,
+  );
   const { data: eventsData, mutate: refreshEvents } = useStageEvents({
     ...(event?.stage ? { stage: event.stage } : {}),
     ...(searchParams.get("date") ? { date: searchParams.get("date")! } : {}),
@@ -239,6 +254,26 @@ export default function QnA() {
   const availableSupervotes = supervoteData?.enabled
     ? Math.max(0, supervoteData.available - (isEarningSupervote ? 1 : 0))
     : 0;
+  // The signed-in user's own leaderboard place, and badge in the top three
+  const myRanked = user
+    ? podiumRanked.find(({ entry }) => entry.user.id === user.id)
+    : undefined;
+  const myBadge = myRanked?.badge;
+  // Leaderboard details, opened from the header place or a question's badge
+  const [podiumDetails, setPodiumDetails] = useState<
+    (typeof podiumRanked)[number]
+  >();
+  const openPodiumDetails = (userId: string) =>
+    setPodiumDetails(
+      podiumRanked.find(({ entry }) => entry.user.id === userId),
+    );
+  const { change: podiumChange, dismiss: dismissPodiumChange } =
+    usePodiumChange({
+      conferenceId: event?.conferenceId,
+      userId: user?.id,
+      badge: myBadge,
+      isLoaded: isPodiumLoaded,
+    });
   // Likewise, a spent supervote shows on its question once the bolt lands.
   const supervoted = useMemo(
     () =>
@@ -252,6 +287,24 @@ export default function QnA() {
       ),
     [supervoteData, supervoteFlight],
   );
+  // Reaching or climbing the podium is celebrated full-screen, after any
+  // question-picked celebration has been dismissed; then the meerkat flies
+  // into the header badge, which pops when it lands.
+  const isPodiumUp = podiumChange?.kind === "up" && !!podiumChange.to;
+  const [podiumFlight, setPodiumFlight] = useState<
+    { badge: PodiumBadge; from: DOMRect }
+  >();
+  const [podiumLandedKey, setPodiumLandedKey] = useState(0);
+  const podiumStatusRef = useRef<HTMLDivElement>(null);
+  const onPodiumDismiss = (from?: DOMRect) => {
+    if (podiumChange?.to && from) {
+      setPodiumFlight({ badge: podiumChange.to, from });
+    } else {
+      setPodiumLandedKey((key) => key + 1);
+    }
+    dismissPodiumChange();
+  };
+
   // The balance was fetched before the question was picked; refetch it.
   useEffect(() => {
     if (picked) {
@@ -400,7 +453,18 @@ export default function QnA() {
             <Text as="span" textStyle="sm" fontWeight="medium" truncate>
               {event?.conference.name}
             </Text>
-            <Flex justifyContent="flex-end">
+            <Flex justifyContent="flex-end" alignItems="center" gap="2">
+              {event && (
+                <PodiumStatus
+                  ref={podiumStatusRef}
+                  rank={myRanked?.rank}
+                  badge={myBadge}
+                  change={podiumChange}
+                  pending={isPodiumUp || !!podiumFlight}
+                  landedKey={podiumLandedKey}
+                  onOpen={() => setPodiumDetails(myRanked)}
+                />
+              )}
               {supervoteMultiplier && (
                 <SupervoteCounter
                   ref={supervoteCounterRef}
@@ -484,6 +548,8 @@ export default function QnA() {
               }
               : undefined}
             supervoted={supervoted}
+            places={podiumPlaces}
+            onBadgeSelect={openPodiumDetails}
           />
         </main>
         <footer className="footer">
@@ -529,6 +595,33 @@ export default function QnA() {
         <QuestionPicked
           onDismiss={onPickedDismiss}
           supervote={supervoteMultiplier}
+        />
+      )}
+      {!picked && isPodiumUp && podiumChange?.to && (
+        <PodiumCelebration
+          badge={podiumChange.to}
+          previous={podiumChange.from}
+          onDismiss={onPodiumDismiss}
+        />
+      )}
+      <EntryDetails
+        selected={podiumDetails && {
+          ...podiumDetails,
+          isMe: podiumDetails.entry.user.id === myRanked?.entry.user.id,
+        }}
+        scoring={podiumScoring}
+        leaderboardHref={event ? leaderboard(event.uid) : undefined}
+        onClose={() => setPodiumDetails(undefined)}
+      />
+      {podiumFlight && (
+        <PodiumFlight
+          badge={podiumFlight.badge}
+          from={podiumFlight.from}
+          to={() => podiumStatusRef.current?.getBoundingClientRect()}
+          onLand={() => {
+            setPodiumFlight(undefined);
+            setPodiumLandedKey((key) => key + 1);
+          }}
         />
       )}
       {supervoteMultiplier && (
