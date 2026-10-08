@@ -61,7 +61,6 @@ export function getQuestions(
       answeredAt: questions.answeredAt,
       deletedAt: questions.deletedAt,
       userId: questions.userId,
-      userMetadata: users.userMetadata,
       user: users,
       votes: votesSnippet,
     })
@@ -120,6 +119,22 @@ export async function selectQuestion(id: number) {
   return result;
 }
 
+export async function getSelectedQuestion(eventId: number) {
+  const unansweredQuestions = await getQuestions(eventId, "popular", false);
+
+  // Selecting answers the previous selection, but two concurrent selects can
+  // leave two questions selected; the latest one is on stage.
+  let selected: Questions[number] | null = null;
+  for (const question of unansweredQuestions) {
+    if (!question.selectedAt) continue;
+    if (!selected?.selectedAt || question.selectedAt > selected.selectedAt) {
+      selected = question;
+    }
+  }
+
+  return selected;
+}
+
 export async function markAsAnswered(
   id: number,
 ) {
@@ -152,7 +167,6 @@ export function getAllQuestions() {
       answeredAt: questions.answeredAt,
       deletedAt: questions.deletedAt,
       userId: questions.userId,
-      userMetadata: users.userMetadata,
       user: users,
       votes: votesSnippet,
       event: {
