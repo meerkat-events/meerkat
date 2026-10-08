@@ -109,7 +109,7 @@ export function Footer({
               disabled={!isAuthenticated}
               placeholder="Type a question..."
               name="question"
-              borderRadius="md"
+              borderRadius="questionInput"
               borderColor="transparent"
               background="bg.subtle"
               _placeholder={{ color: "fg.muted" }}
@@ -127,6 +127,7 @@ export function Footer({
               h="50px"
               w="50px"
               borderRadius="full"
+              _hover={{ bg: "brand.hover" }}
             >
               <FiSend />
             </IconButton>

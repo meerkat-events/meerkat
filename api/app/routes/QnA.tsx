@@ -266,11 +266,10 @@ export default function QnA() {
             <Alert.Root
               status="warning"
               title="You're viewing a past or upcoming event"
-              // Theme colors instead of the warning orange: a brand tint with
-              // high-contrast brand text (brand.900 on light, brand.300 on dark).
-              bg="brand.solid/12"
-              color="brand.900"
-              _dark={{ bg: "brand.solid/20", color: "brand.300" }}
+              // Theme colors instead of the warning orange (notLiveBanner.*,
+              // by default a brand tint; see theme/index.ts).
+              bg="notLiveBanner.bg"
+              color="notLiveBanner.fg"
               borderRadius="0"
               display="flex"
               flexDirection="row"
@@ -295,10 +294,10 @@ export default function QnA() {
             gap="1"
             alignItems="center"
             padding="0 1rem 0 1rem"
-            marginBottom="2"
-            // Bottom-only shadow, tinted with the brand color (like the send
-            // button), separates the navigation from the page
-            boxShadow="0 6px 10px -8px color-mix(in srgb, var(--chakra-colors-brand-solid) 60%, transparent)"
+            marginBottom="headerBar"
+            // Bottom-only shadow (brand-tinted unless the theme sets a shadow
+            // color) separates the navigation from the page
+            boxShadow="header"
           >
             <nav>
               <NavigationDrawer navLinks={navLinks} />
@@ -337,10 +336,10 @@ export default function QnA() {
                   gap="1"
                   textStyle="sm"
                   fontWeight="medium"
-                  color="fg"
+                  color="accent.text"
                   aria-label={`Sort by ${sortLabel}`}
                 >
-                  <Icon as={LuArrowDownUp} color="fg.muted" />
+                  <Icon as={LuArrowDownUp} color="accent.icon" />
                   {sortLabel}
                 </Button>
               </Menu.Trigger>

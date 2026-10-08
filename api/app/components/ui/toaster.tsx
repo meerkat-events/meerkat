@@ -14,13 +14,12 @@ export const toaster = createToaster({
   pauseOnPageIdle: true,
 });
 
-// Confirmations use the theme's brand color (brand.800 keeps white text
-// readable on light brand colors) with centered content, instead of green.
+// Confirmations use the theme's colors (successToast.*, by default the brand
+// color; see theme/index.ts) with centered content, instead of green.
 const successStyles = {
-  bg: "brand.800",
-  color: "brand.contrast",
+  bg: "successToast.bg",
+  color: "successToast.fg",
   justifyContent: "center",
-  _dark: { bg: "brand.solid" },
 } as const;
 
 export const Toaster = () => {

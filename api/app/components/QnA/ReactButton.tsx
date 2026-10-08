@@ -93,7 +93,7 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
         h="50px"
         borderRadius="full"
         bg="bg.panel"
-        boxShadow="0 8px 16px color-mix(in srgb, var(--chakra-colors-brand-solid) 35%, transparent), 0 0 1px color-mix(in srgb, var(--chakra-colors-brand-solid) 60%, transparent)"
+        boxShadow="floating"
         aria-label="React with Heart"
         type="button"
       >

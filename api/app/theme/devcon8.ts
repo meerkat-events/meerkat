@@ -1,0 +1,42 @@
+import type { Theme } from "../types.ts";
+
+const purple = "#7235ED";
+const text = "#160B2B";
+const mutedText = "#594D73";
+const outline = "#2211441A";
+
+export const devcon8: Theme = {
+  brandColor: purple,
+  brandHoverColor: "#9668F1",
+  contrastColor: "#FFFFFF",
+  background: "linear-gradient(0deg, #E5EBFF 19.98%, #FBFAFC 100%)",
+  textColor: text,
+  mutedTextColor: mutedText,
+  accentColor: purple,
+  highlightColor: "#F5F1FE",
+  shadowColor: "#160B2B33",
+  inputOutlineColor: outline,
+  successToastColor: "#D5F4DD",
+  notLiveBannerColor: "#FFE0CC",
+  buttonRadius: "9999px",
+  buttonFontWeight: "700",
+  // Half the input's one-line height: a pill on one line, rounded beyond.
+  questionInputRadius: "1.5625rem",
+  dialogPlacement: "center",
+  dialogGutter: "1rem",
+  dialogTitleFontWeight: "700",
+  dialogTitleSpacing: "0.25rem",
+  dialogCloseIconSize: "1.25rem",
+  dialogEmphasisFontWeight: "600",
+  voteTextColor: mutedText,
+  voteOutlineColor: outline,
+  questionControlSize: "32px",
+  minTapTarget: "44px",
+  questionGap: "1rem",
+  headerBarSpacing: "1rem",
+  // Fits the widest time ("06:46 AM", 54.5px in Poppins at textStyle xs).
+  sessionTimeWidth: "3.5rem",
+  headingFontFamily: "Poppins",
+  bodyFontFamily: "Poppins",
+  systemTheme: "light",
+};

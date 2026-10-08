@@ -32,7 +32,7 @@ export function LiveDialog({ event, onConfirm }: LiveDialogProps) {
               <p>
                 Are you sure to go live with the following event?
               </p>
-              <Text fontWeight="bold" fontSize="lg" mt="2">{event?.title}</Text>
+              <Text fontWeight="dialogEmphasis" fontSize="lg" mt="2">{event?.title}</Text>
             </Dialog.Body>
             <Dialog.Footer>
               <Dialog.ActionTrigger asChild>

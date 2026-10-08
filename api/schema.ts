@@ -57,6 +57,31 @@ export const conferences = pgTable("conferences", {
     systemTheme: "light" | "dark";
     headingFontFamily?: string;
     bodyFontFamily?: string;
+    // Optional refinements; documented on the frontend's Theme type.
+    brandHoverColor?: string;
+    mutedTextColor?: string;
+    accentColor?: string;
+    highlightColor?: string;
+    shadowColor?: string;
+    inputOutlineColor?: string;
+    successToastColor?: string;
+    notLiveBannerColor?: string;
+    buttonRadius?: string;
+    buttonFontWeight?: string;
+    questionInputRadius?: string;
+    dialogPlacement?: "top" | "center";
+    dialogGutter?: string;
+    dialogTitleFontWeight?: string;
+    dialogTitleSpacing?: string;
+    dialogCloseIconSize?: string;
+    dialogEmphasisFontWeight?: string;
+    voteTextColor?: string;
+    voteOutlineColor?: string;
+    questionControlSize?: string;
+    minTapTarget?: string;
+    questionGap?: string;
+    headerBarSpacing?: string;
+    sessionTimeWidth?: string;
   }>(),
 });
 
