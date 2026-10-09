@@ -1,4 +1,4 @@
-import { and, eq, gt, min, sql } from "drizzle-orm";
+import { and, asc, eq, gt, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import db from "../db.ts";
 import { questions, votes } from "../schema.ts";
@@ -77,17 +77,16 @@ export async function getVotesByQuestionIdAndUserId(
 }
 
 /**
- * How many votes the user has cast on the event's questions since `date`, and
- * when the oldest of them was made: a rate limit over that window frees up once
- * the oldest leaves it.
+ * When the user cast each vote on the event's questions since `date`, oldest
+ * first. A rate limit over that window frees up as they leave it.
  */
-export async function getUserVoteCountAfterDate(
+export async function getUserVoteTimesAfterDate(
   userId: string,
   eventId: number,
   date: Date,
-): Promise<{ count: number; oldest: Date | null }> {
+): Promise<Date[]> {
   const result = await db
-    .select({ count: sql<number>`count(*)`, oldest: min(votes.createdAt) })
+    .select({ createdAt: votes.createdAt })
     .from(votes)
     .innerJoin(questions, eq(votes.questionId, questions.id))
     .where(
@@ -97,12 +96,10 @@ export async function getUserVoteCountAfterDate(
         gt(votes.createdAt, date),
       ),
     )
+    .orderBy(asc(votes.createdAt))
     .execute();
 
-  return {
-    count: Number(result.at(0)?.count ?? 0),
-    oldest: result.at(0)?.oldest ?? null,
-  };
+  return result.map((row) => row.createdAt);
 }
 
 export type Vote = typeof votes.$inferSelect;
