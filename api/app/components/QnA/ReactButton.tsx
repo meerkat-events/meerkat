@@ -38,6 +38,12 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
   const [open, setOpen] = useState(false);
   // Closing keeps the bar mounted while it slides back in (see app.css).
   const [isClosing, setIsClosing] = useState(false);
+  // A disabled button shows no bar: drop it at once, so it can't come back
+  // to play its exit once the button is enabled again.
+  if (disabled && (open || isClosing)) {
+    setOpen(false);
+    setIsClosing(false);
+  }
   // Timers close the bar from earlier renders, so they read this, not `open`.
   const isOpen = useRef(open);
   isOpen.current = open;
