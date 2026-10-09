@@ -10,7 +10,7 @@ import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
-import { toaster } from "../ui/toaster.tsx";
+import { CONFIRMATION_DURATION, toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
 import type { User } from "../../hooks/use-auth.ts";
 
@@ -55,7 +55,7 @@ export function Footer({
       toaster.create({
         title: "Question added 🎉",
         type: "success",
-        duration: 2000,
+        duration: CONFIRMATION_DURATION,
       });
       refresh();
       setQuestion("");

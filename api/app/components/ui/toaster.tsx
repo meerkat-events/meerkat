@@ -9,9 +9,20 @@ import {
   Toaster as ChakraToaster,
 } from "@chakra-ui/react";
 
+/** How long confirmations stay up: long enough to read one. */
+export const CONFIRMATION_DURATION = 3500;
+
 export const toaster = createToaster({
   placement: "bottom-end",
   pauseOnPageIdle: true,
+  // A page can lift toasts clear of what sits at its bottom by setting
+  // --toast-offset-bottom (the Q&A page does; see app.css).
+  offsets: {
+    top: "1rem",
+    right: "1rem",
+    bottom: "var(--toast-offset-bottom, 1rem)",
+    left: "1rem",
+  },
 });
 
 // Confirmations use the theme's colors (successToast.*, by default the brand

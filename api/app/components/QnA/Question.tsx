@@ -21,7 +21,10 @@ import { useDeleteQuestion } from "../../hooks/use-delete-question.ts";
 import { FiRadio } from "react-icons/fi";
 import { RxCursorArrow } from "react-icons/rx";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
-import { toaster } from "../../components/ui/toaster.tsx";
+import {
+  CONFIRMATION_DURATION,
+  toaster,
+} from "../../components/ui/toaster.tsx";
 import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useRef, useState } from "react";
@@ -79,7 +82,7 @@ export function Question(
       toaster.create({
         title: "Vote recorded",
         type: "success",
-        duration: 1000,
+        duration: CONFIRMATION_DURATION,
       });
     },
     onError: (error) => {
@@ -122,7 +125,7 @@ export function Question(
     toaster.create({
       title: "User blocked 🚫",
       type: "success",
-      duration: 1000,
+      duration: CONFIRMATION_DURATION,
     });
   };
 
@@ -132,7 +135,7 @@ export function Question(
     toaster.create({
       title: "Question marked as answered ✅",
       type: "success",
-      duration: 1000,
+      duration: CONFIRMATION_DURATION,
     });
   };
 
@@ -142,7 +145,7 @@ export function Question(
     toaster.create({
       title: "Question deleted 🗑️",
       type: "success",
-      duration: 1000,
+      duration: CONFIRMATION_DURATION,
     });
   };
 
@@ -152,6 +155,7 @@ export function Question(
     toaster.create({
       title: "Question selected ✅",
       type: "success",
+      duration: CONFIRMATION_DURATION,
     });
   };
 
