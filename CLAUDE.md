@@ -203,11 +203,14 @@ as `event.conference.features` (`collect` shows the Event Card link).
   classifies each new question before inserting it (`moderate-question.ts`,
   `classifier.ts`: OpenRouter Decisions API, pinned model, 1.5 s timeout).
   A question is hidden (`hidden_at`) when the probability that it is not
-  `none` reaches `HIDE_THRESHOLD`, or when one of two yes/no questions in the
+  `none` reaches `HIDE_THRESHOLD`, or when one of three yes/no questions in the
   same request (`POLITICS_QUESTION`: politics unrelated to crypto outside
-  political talks; `WAR_QUESTION`: current wars, conflicts, genocide) reaches
-  `TOPIC_THRESHOLD` (`shouldHide`). It fails open on any error or without
-  `OPENROUTER_API_KEY`. Hidden questions are shadow-hidden: only their author
+  political talks; `WAR_QUESTION`: current wars, conflicts, genocide;
+  `SAFETY_QUESTION`: threats, doxxing, explicit content) reaches
+  `TOPIC_THRESHOLD` (`shouldHide`). A provider refusal hides the question;
+  any other error, or no `OPENROUTER_API_KEY`, fails open. A `fit` score
+  (0-4, `buildFitQuestion`) is stored in `questions.moderation` but not used
+  or exposed yet. Hidden questions are shadow-hidden: only their author
   sees them (`getQuestions` with `viewerId`, `useEventQuestions` on the Q&A
   page); every other query, the Realtime policy and all responses
   (`toPublicQuestion`, `toApiConference`) leave them and the moderation
@@ -216,7 +219,8 @@ as `event.conference.features` (`collect` shows the Event Card link).
 - **The moderation eval is the gate.** Any change to `MODERATION_MODEL`,
   the thresholds, the default criteria, the topic questions or a
   conference's moderation config must pass
-  `node --env-file=.env scripts/moderation-eval.ts` in `api/` (exit 0). Its committed cases (`scripts/moderation-cases.json`) are invented;
+  `node --env-file=.env scripts/moderation-eval.ts` in `api/` (exit 0).
+  Its committed cases (`scripts/moderation-cases.json`) are invented;
   labeled real questions run from a gitignored case file in `.backups/`.
 - **Pretalx sync** (`api/pretalx.ts`): a conference with a `pretalx_event`
   slug gets one event per talk in that Pretalx event's public schedule

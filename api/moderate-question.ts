@@ -42,9 +42,9 @@ function reportFailure(error: string, conferenceId: number) {
 }
 
 export async function moderateQuestion(
-  { question, talkTitle, conference }: {
+  { question, talk, conference }: {
     question: string;
-    talkTitle: string;
+    talk: { title: string; speaker: string | null; description: string | null };
     conference: Conference | null;
   },
 ): Promise<ModerationDecision> {
@@ -62,7 +62,7 @@ export async function moderateQuestion(
   }
 
   const result = await classifyQuestion(
-    { question, talkTitle, moderation: config.data },
+    { question, talk, moderation: config.data },
     {
       apiKey: env.openRouterApiKey,
       model: MODERATION_MODEL,
@@ -75,11 +75,26 @@ export async function moderateQuestion(
     return SHOWN_UNCLASSIFIED;
   }
 
+  // The model declines to classify only the most harmful questions, so a
+  // refusal hides the question instead of failing open.
+  if ("refused" in result) {
+    logger.info(
+      { conferenceId: conference.id, refusal: result.refused },
+      "Question moderation refused by the model, hidden",
+    );
+    return {
+      hiddenAt: new Date(),
+      moderation: { refused: true, model: MODERATION_MODEL },
+    };
+  }
+
   const moderation: QuestionModeration = {
     category: result.category,
     flagged: result.flagged,
     politics: result.politics,
     war: result.war,
+    safety: result.safety,
+    ...(result.fit !== undefined ? { fit: result.fit } : {}),
     model: result.model,
     ...(result.id ? { id: result.id } : {}),
   };

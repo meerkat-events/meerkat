@@ -272,7 +272,11 @@ app.post(
 
     const { hiddenAt, moderation } = await moderateQuestion({
       question: questionData.question,
-      talkTitle: event.title,
+      talk: {
+        title: event.title,
+        speaker: event.speaker,
+        description: event.description,
+      },
       conference,
     });
 

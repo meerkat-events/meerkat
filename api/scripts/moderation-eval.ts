@@ -25,7 +25,9 @@
  *     "gates"?: { "minHideRecall": 0.8, "maxFalseHideRate": 0.01 },
  *     "cases": [{ "expect": "hide" | "allow" | "either",
  *                 "category"?: a harmful category or "politics", "note"?,
- *                 "conference"?, "talk": "...", "question": "..." }]
+ *                 "conference"?, "talk": "...", "speaker"?, "description"?,
+ *                 "picked"?: true if an MC selected or answered it,
+ *                 "question": "..." }]
  *   }
  * `moderation` has the format of conferences.moderation; a case's own
  * `conference` replaces only its context.
@@ -70,6 +72,9 @@ const caseSchema = zod.object({
   note: zod.string().optional(),
   conference: zod.string().min(1).optional(),
   talk: zod.string().min(1),
+  speaker: zod.string().min(1).optional(),
+  description: zod.string().min(1).optional(),
+  picked: zod.boolean().optional(),
   question: zod.string().min(1),
 });
 type Case = zod.infer<typeof caseSchema>;
@@ -89,6 +94,8 @@ type Result = Case & {
   file: string;
   durationMs: number;
   classification?: Classification;
+  /** The model declined to classify; production hides the question. */
+  refused?: string;
   error?: string;
 };
 
@@ -98,13 +105,25 @@ async function evaluate(file: string, caseFile: CaseFile, item: Case) {
     : caseFile.moderation;
   const started = performance.now();
   const result = await classifyQuestion(
-    { question: item.question, talkTitle: item.talk, moderation },
+    {
+      question: item.question,
+      talk: {
+        title: item.talk,
+        speaker: item.speaker ?? null,
+        description: item.description ?? null,
+      },
+      moderation,
+    },
     { apiKey: apiKey!, model: MODERATION_MODEL, timeoutMs: EVAL_TIMEOUT_MS },
   );
   const durationMs = performance.now() - started;
-  return "error" in result
-    ? { ...item, file, durationMs, error: result.error }
-    : { ...item, file, durationMs, classification: result };
+  if ("error" in result) {
+    return { ...item, file, durationMs, error: result.error };
+  }
+  if ("refused" in result) {
+    return { ...item, file, durationMs, refused: result.refused };
+  }
+  return { ...item, file, durationMs, classification: result };
 }
 
 /** Runs `work` over `items` with at most `limit` in flight, keeping order. */
@@ -140,17 +159,66 @@ function percentile(sorted: number[], fraction: number) {
 }
 
 function describe(result: Result) {
+  if (result.refused) {
+    const question = result.question.replace(/\s+/g, " ").slice(0, 80);
+    return `  refused by the model             ${question}`;
+  }
   const scores = result.classification
     ? [
       result.classification.flagged,
       result.classification.politics,
       result.classification.war,
+      result.classification.safety,
     ].map((score) => score.toFixed(2)).join(" ")
-    : "   -    -    -";
+    : "   -    -    -    -";
   const predicted = result.classification?.category ?? "-";
   const expected = result.category ?? result.note ?? "";
   const question = result.question.replace(/\s+/g, " ").slice(0, 80);
   return `  ${scores}  ${predicted.padEnd(14)} ${expected.padEnd(22)} ${question}`;
+}
+
+function mean(values: number[]) {
+  return values.length === 0
+    ? "n/a"
+    : (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2);
+}
+
+/**
+ * The fit score (0 to 4) is not used for moderation yet; this shows whether
+ * it tells good questions apart: by expectation, and, where cases record it,
+ * by whether an MC picked the question.
+ */
+function reportFit(classified: Result[]) {
+  const fitOf = (result: Result) => result.classification!.fit;
+  const withFit = classified.filter((result) => fitOf(result) !== undefined);
+  if (withFit.length === 0) return;
+
+  const fits = (list: Result[]) => list.map((result) => fitOf(result)!);
+  const byExpect = (expect: Case["expect"]) =>
+    withFit.filter((result) => result.expect === expect);
+  console.log(
+    `\nFit (0-4), mean: must hide ${mean(fits(byExpect("hide")))}, ` +
+      `must allow ${mean(fits(byExpect("allow")))}, either ${mean(fits(byExpect("either")))}`,
+  );
+
+  const allowed = byExpect("allow");
+  const picked = allowed.filter((result) => result.picked === true);
+  if (picked.length === 0) return;
+  const notPicked = allowed.filter((result) => result.picked !== true);
+  console.log(
+    `Picked by an MC: mean fit ${mean(fits(picked))} (${picked.length} questions), ` +
+      `not picked ${mean(fits(notPicked))} (${notPicked.length})`,
+  );
+  console.log("Fit band  questions  picked by an MC");
+  for (let band = 0; band < 4; band++) {
+    const inBand = allowed.filter((result) =>
+      fitOf(result)! >= band && (band === 3 ? fitOf(result)! <= 4 : fitOf(result)! < band + 1)
+    );
+    const pickedInBand = inBand.filter((result) => result.picked === true).length;
+    console.log(
+      `  ${band}-${band + 1}     ${String(inBand.length).padStart(9)}  ${percent(pickedInBand, inBand.length)}`,
+    );
+  }
 }
 
 /** Prints the report for one case file and returns whether its gates pass. */
@@ -161,11 +229,14 @@ function report(
   thresholds: { hide: number; topic: number },
   baseline: Map<string, number> | null,
 ) {
-  const scored = results.filter((result) => result.classification);
+  const classified = results.filter((result) => result.classification);
+  const refused = results.filter((result) => result.refused !== undefined);
+  const scored = [...classified, ...refused];
   const failed = results.filter((result) => result.error !== undefined);
   const isHidden = (result: Result, hide = thresholds.hide) =>
-    result.classification !== undefined &&
-    shouldHide(result.classification, { hide, topic: thresholds.topic });
+    result.refused !== undefined ||
+    (result.classification !== undefined &&
+      shouldHide(result.classification, { hide, topic: thresholds.topic }));
 
   const mustHide = scored.filter((result) => result.expect === "hide");
   const mustAllow = scored.filter((result) => result.expect === "allow");
@@ -178,7 +249,7 @@ function report(
     : falseHides.length / mustAllow.length;
 
   const models = [
-    ...new Set(scored.map((result) => result.classification!.model)),
+    ...new Set(classified.map((result) => result.classification!.model)),
   ];
   console.log(`\n=== ${file}`);
   console.log(`${results.length} cases, model ${models.join(", ") || MODERATION_MODEL}, hide threshold ${thresholds.hide}, topic threshold ${thresholds.topic}\n`);
@@ -192,9 +263,10 @@ function report(
   }
   console.log(`  ${"all".padEnd(15)} ${hidden.length} of ${mustHide.length} (${percent(hidden.length, mustHide.length)})`);
   console.log(`Must allow: ${falseHides.length} of ${mustAllow.length} hidden (${percent(falseHides.length, mustAllow.length)})`);
-  console.log(`Either: ${either.filter((result) => isHidden(result)).length} of ${either.length} hidden\n`);
+  console.log(`Either: ${either.filter((result) => isHidden(result)).length} of ${either.length} hidden`);
+  console.log(`Refused by the model (hidden): ${refused.length}\n`);
 
-  console.log("Scores below: category, politics, war. Threshold table varies the");
+  console.log("Scores below: category, politics, war, safety. Threshold table varies the");
   console.log(`category threshold; the topic threshold stays ${thresholds.topic}.\n`);
   console.log("Threshold  must hide hidden  must allow hidden  either hidden");
   for (const at of REPORT_THRESHOLDS) {
@@ -219,13 +291,15 @@ function report(
     for (const result of list.sort(byScore)) console.log(describe(result));
   }
 
+  reportFit(classified);
+
   if (baseline) {
-    const changed = scored.filter((result) => {
+    const changed = classified.filter((result) => {
       const before = baseline.get(caseKey(result));
       return before !== undefined &&
         Math.abs(before - result.classification!.flagged) > BASELINE_TOLERANCE;
     });
-    const unmatched = scored.filter((result) => !baseline.has(caseKey(result)));
+    const unmatched = classified.filter((result) => !baseline.has(caseKey(result)));
     console.log(`\nBaseline: ${changed.length} scores changed by more than ${BASELINE_TOLERANCE}, ${unmatched.length} cases not in the baseline`);
     for (const result of changed.slice(0, 20)) {
       const before = baseline.get(caseKey(result))!;
@@ -233,15 +307,15 @@ function report(
     }
   }
 
-  const durations = scored.map((result) => result.durationMs).sort((a, b) => a - b);
+  const durations = classified.map((result) => result.durationMs).sort((a, b) => a - b);
   const slow = durations.filter((ms) => ms > MODERATION_TIMEOUT_MS).length;
-  const cost = scored.reduce((sum, result) => sum + result.classification!.usage.cost, 0);
-  const tokens = scored.reduce((sum, result) => sum + result.classification!.usage.inputTokens, 0);
+  const cost = classified.reduce((sum, result) => sum + result.classification!.usage.cost, 0);
+  const tokens = classified.reduce((sum, result) => sum + result.classification!.usage.inputTokens, 0);
   console.log(
     `\nLatency p50 ${Math.round(percentile(durations, 0.5))} ms, p95 ${Math.round(percentile(durations, 0.95))} ms, ` +
       `max ${Math.round(percentile(durations, 1))} ms; ${slow} over the ${MODERATION_TIMEOUT_MS} ms production timeout`,
   );
-  console.log(`Cost $${cost.toFixed(4)}, ${Math.round(tokens / Math.max(scored.length, 1))} input tokens per question`);
+  console.log(`Cost $${cost.toFixed(4)}, ${Math.round(tokens / Math.max(classified.length, 1))} input tokens per question`);
   for (const result of failed) {
     console.log(`ERROR ${result.question.replace(/\s+/g, " ").slice(0, 60)}: ${result.error}`);
   }

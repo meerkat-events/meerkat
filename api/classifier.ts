@@ -6,6 +6,7 @@
  */
 import zod from "zod";
 import {
+  buildFitQuestion,
   type ConferenceModeration,
   DEFAULT_CRITERIA,
   DEFAULT_INSTRUCTIONS,
@@ -14,6 +15,7 @@ import {
   type ModerationCategory,
   type ModerationScores,
   POLITICS_QUESTION,
+  SAFETY_QUESTION,
   WAR_QUESTION,
 } from "./moderation.ts";
 
@@ -21,7 +23,7 @@ const DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions";
 
 export type ClassifierInput = {
   question: string;
-  talkTitle: string;
+  talk: { title: string; speaker: string | null; description: string | null };
   moderation: ConferenceModeration;
 };
 
@@ -38,11 +40,19 @@ export type Classification = ModerationScores & {
   model: string;
   /** OpenRouter generation id, when the response carried one. */
   id?: string;
+  /** Fit for the conference, topic and speaker, 0 to 4, when answered. */
+  fit?: number;
   usage: { inputTokens: number; cost: number };
 };
 
-/** Either a classification or why there is none; callers fail open. */
-export type ClassificationResult = Classification | { error: string };
+/**
+ * A classification; a refusal, when the model declined to classify the
+ * question (callers hide it); or an error (callers fail open).
+ */
+export type ClassificationResult =
+  | Classification
+  | { refused: string }
+  | { error: string };
 
 const noulAnswerSchema = zod.object({
   type: zod.literal("noul"),
@@ -59,6 +69,11 @@ const decisionsResponseSchema = zod.object({
     }),
     politics: noulAnswerSchema,
     war: noulAnswerSchema,
+    safety: noulAnswerSchema,
+    fit: zod.object({
+      type: zod.literal("score"),
+      score: zod.number().min(0).max(4),
+    }).optional(),
   }),
   usage: zod.object({
     input_tokens: zod.number(),
@@ -69,9 +84,9 @@ const decisionsResponseSchema = zod.object({
 /**
  * The Decisions request for one question. Only the conference's written
  * context, the talk title and the question are sent: speaker names and talk
- * descriptions made the results worse in the eval. The three questions are
- * answered independently, so the topic questions leave the category
- * probabilities unchanged.
+ * descriptions made the results worse in the eval. The questions are answered
+ * independently, so the yes/no questions leave the category probabilities
+ * unchanged.
  */
 export function buildDecisionsRequest(input: ClassifierInput, model: string) {
   const criteria: Record<ModerationCategory, string> = { ...DEFAULT_CRITERIA };
@@ -86,7 +101,7 @@ export function buildDecisionsRequest(input: ClassifierInput, model: string) {
     model,
     state: {
       conference: input.moderation.context,
-      talk: { title: input.talkTitle },
+      talk: { title: input.talk.title },
       question: input.question,
     },
     questions: {
@@ -97,6 +112,8 @@ export function buildDecisionsRequest(input: ClassifierInput, model: string) {
       },
       politics: POLITICS_QUESTION,
       war: WAR_QUESTION,
+      safety: SAFETY_QUESTION,
+      fit: buildFitQuestion(input.talk),
     },
   };
 }
@@ -121,7 +138,8 @@ export async function classifyQuestion(
   }
 
   if (!response.ok) {
-    return { error: `HTTP ${response.status}` };
+    const refusal = await readRefusal(response);
+    return refusal ? { refused: refusal } : { error: `HTTP ${response.status}` };
   }
 
   let body: unknown;
@@ -149,6 +167,8 @@ export async function classifyQuestion(
     flagged: 1 - probabilities["none"]!,
     politics: parsed.data.answers.politics.noul,
     war: parsed.data.answers.war.noul,
+    safety: parsed.data.answers.safety.noul,
+    ...(parsed.data.answers.fit ? { fit: parsed.data.answers.fit.score } : {}),
     model: parsed.data.model,
     ...(parsed.data.id ? { id: parsed.data.id } : {}),
     usage: {
@@ -173,6 +193,23 @@ function mostLikelyHarmfulCategory(
     }
   }
   return best;
+}
+
+/**
+ * The provider's message when it refused to answer, as OpenRouter reports it
+ * (HTTP 502, "OpenAI refused to answer question ..."); null for other errors.
+ * It refuses the most harmful questions, which therefore must not fail open.
+ */
+async function readRefusal(response: Response): Promise<string | null> {
+  try {
+    const body = await response.json() as { error?: { message?: unknown } };
+    const message = body.error?.message;
+    return typeof message === "string" && /refused to answer/i.test(message)
+      ? message
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function describeError(error: unknown) {

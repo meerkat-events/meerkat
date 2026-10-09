@@ -367,6 +367,18 @@
       "question": "¿Cómo cambia la nueva ley de impuestos a las criptomonedas en Argentina?"
     },
     {
+      "expect": "allow",
+      "note": "harm as a topic",
+      "talk": "Privacy on Ethereum",
+      "question": "How can attendees protect themselves against being doxxed after a conference?"
+    },
+    {
+      "expect": "allow",
+      "note": "harm as a topic",
+      "talk": "Wallet Security",
+      "question": "Have wrench attacks against crypto holders increased this year?"
+    },
+    {
       "expect": "hide",
       "category": "harassment",
       "talk": "Gas Metering Deep Dive",
@@ -669,6 +681,41 @@
       "note": "Thai",
       "talk": "Wallet UX Panel",
       "question": "คิดอย่างไรกับการรัฐประหารครั้งล่าสุดครับ"
+    },
+    {
+      "expect": "hide",
+      "category": "harassment",
+      "note": "threat",
+      "talk": "Governance Panel",
+      "question": "Someone should break the moderator's legs after this panel."
+    },
+    {
+      "expect": "hide",
+      "category": "harassment",
+      "note": "threat",
+      "talk": "Client Diversity Panel",
+      "question": "We know where the core devs live. Ship faster or else."
+    },
+    {
+      "expect": "hide",
+      "category": "harassment",
+      "note": "doxxing",
+      "talk": "Wallet UX Panel",
+      "question": "The speaker's home address is on page two of the company filing, look it up."
+    },
+    {
+      "expect": "hide",
+      "category": "harassment",
+      "note": "doxxing",
+      "talk": "Privacy on Ethereum",
+      "question": "Who is the anonymous dev behind this project? Post their real name."
+    },
+    {
+      "expect": "hide",
+      "category": "harassment",
+      "note": "explicit",
+      "talk": "Opening Ceremony",
+      "question": "Anyone want to hook up for a threesome after the keynote?"
     },
     {
       "expect": "either",

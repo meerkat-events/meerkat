@@ -96,6 +96,59 @@ export const WAR_QUESTION = {
   },
 } as const;
 
+/**
+ * Threats, doxxing and explicit content. Asked separately for the same reason
+ * as politics: adding them to the harassment text lowered other categories.
+ */
+export const SAFETY_QUESTION = {
+  type: "noul",
+  instructions:
+    "Does this audience question threaten someone, expose a third person's private information, or contain explicit sexual content?",
+  criteria: {
+    true:
+      "Threats or calls for violence against anyone, including implied threats such as saying you know where someone lives; sharing or demanding a third person's private information such as a phone number, home address or the real identity behind someone else's anonymous account (doxxing); explicit sexual content or propositions.",
+    false:
+      "Anything else, including violence, privacy, anonymity or doxxing as a topic or technical challenge; asking speakers to reveal their own accounts or asking to be de-anonymized yourself; jokes without a target; flirting or compliments without explicit content.",
+  },
+} as const;
+
+const MAX_TALK_DESCRIPTION_LENGTH = 500;
+
+/**
+ * How well a question suits the conference, the talk's topic and its speaker,
+ * on a scale from 0 (unrelated) to 4 (excellent). Stored only: it neither
+ * hides questions nor reaches any client yet. Speaker and description go into
+ * this question's instructions, not the shared state, because in the shared
+ * state they made the category answers worse.
+ */
+export function buildFitQuestion(
+  talk: { speaker: string | null; description: string | null },
+) {
+  const instructions = [
+    "How well suited is this audience question for the conference, the talk's topic and its speaker?",
+  ];
+  if (talk.speaker) {
+    instructions.push(`Speaker: ${talk.speaker}.`);
+  }
+  if (talk.description) {
+    instructions.push(
+      `About the talk: ${talk.description.slice(0, MAX_TALK_DESCRIPTION_LENGTH)}`,
+    );
+  }
+
+  return {
+    type: "score",
+    instructions: instructions.join("\n"),
+    criteria: [
+      "Unrelated: nothing to do with the conference, the talk or the speaker, such as tests, chatter or personal requests.",
+      "Loosely related: about the conference's broader subject, but not this talk or speaker.",
+      "Related: about the talk's general topic.",
+      "Well suited: specific to this talk or the speaker's work.",
+      "Excellent: a specific, thoughtful question this speaker is well placed to answer and the audience will learn from.",
+    ],
+  } as const;
+}
+
 /** The scores a hiding decision is based on. */
 export type ModerationScores = {
   /** Probability that the question is not "none". */
@@ -104,6 +157,8 @@ export type ModerationScores = {
   politics: number;
   /** Probability of "yes" to WAR_QUESTION. */
   war: number;
+  /** Probability of "yes" to SAFETY_QUESTION. */
+  safety: number;
 };
 
 export function shouldHide(
@@ -112,7 +167,8 @@ export function shouldHide(
 ) {
   return scores.flagged >= thresholds.hide ||
     scores.politics >= thresholds.topic ||
-    scores.war >= thresholds.topic;
+    scores.war >= thresholds.topic ||
+    scores.safety >= thresholds.topic;
 }
 
 const nonEmptyText = zod.string().trim().min(1);
@@ -138,12 +194,19 @@ export const conferenceModerationSchema = zod.strictObject({
 
 export type ConferenceModeration = zod.infer<typeof conferenceModerationSchema>;
 
-/** `questions.moderation`: the verdict stored with a classified question. */
-export type QuestionModeration = ModerationScores & {
-  /** Most likely harmful option, even when the question was not hidden. */
-  category: HarmfulCategory;
-  /** Dated model snapshot that answered. */
-  model: string;
-  /** OpenRouter generation id, when the response carried one. */
-  id?: string;
-};
+/**
+ * `questions.moderation`: the verdict stored with a classified question, or
+ * the record that the model refused to classify it (the question is hidden).
+ */
+export type QuestionModeration =
+  | ModerationScores & {
+    /** Most likely harmful option, even when the question was not hidden. */
+    category: HarmfulCategory;
+    /** Fit for the conference, topic and speaker, 0 to 4; not exposed yet. */
+    fit?: number;
+    /** Dated model snapshot that answered. */
+    model: string;
+    /** OpenRouter generation id, when the response carried one. */
+    id?: string;
+  }
+  | { refused: true; model: string };

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, type TestContext } from "node:test";
 import {
   buildDecisionsRequest,
+  type Classification,
   type ClassificationResult,
   classifyQuestion,
 } from "./classifier.ts";
@@ -10,6 +11,7 @@ import {
   DEFAULT_CRITERIA,
   MODERATION_CATEGORIES,
   POLITICS_QUESTION,
+  SAFETY_QUESTION,
   shouldHide,
   WAR_QUESTION,
 } from "./moderation.ts";
@@ -17,7 +19,11 @@ import {
 const config = { apiKey: "test-key", model: "test/model", timeoutMs: 1000 };
 const input = {
   question: "Buy $ZORPX now",
-  talkTitle: "Scaling Ethereum",
+  talk: {
+    title: "Scaling Ethereum",
+    speaker: "Ada Example",
+    description: "Where rollups and blobs go next.",
+  },
   moderation: { context: "Devcon, an Ethereum developer conference." },
 };
 
@@ -29,7 +35,8 @@ function probabilities(overrides: Record<string, number>) {
 
 function decisionsResponse(
   answerProbabilities: Record<string, number>,
-  topics: { politics?: number; war?: number } = {},
+  topics: { politics?: number; war?: number; safety?: number; fit?: number } =
+    {},
 ) {
   const answers: Record<string, unknown> = {
     category: {
@@ -44,6 +51,12 @@ function decisionsResponse(
   }
   if (topics.war !== undefined) {
     answers["war"] = { type: "noul", noul: topics.war };
+  }
+  if (topics.safety !== undefined) {
+    answers["safety"] = { type: "noul", noul: topics.safety };
+  }
+  if (topics.fit !== undefined) {
+    answers["fit"] = { type: "score", score: topics.fit, confidence: 0.9 };
   }
   return Response.json({
     id: "gen-dec-1",
@@ -66,17 +79,26 @@ function assertError(result: ClassificationResult) {
   assert.ok("error" in result, `expected an error, got ${JSON.stringify(result)}`);
 }
 
+function assertClassification(
+  result: ClassificationResult,
+): asserts result is Classification {
+  assert.ok(
+    !("error" in result) && !("refused" in result),
+    `expected a classification, got ${JSON.stringify(result)}`,
+  );
+}
+
 describe("classifyQuestion", () => {
   it("sums harmful options even when the API's choice is none", async (t) => {
     stubFetch(t, () =>
       decisionsResponse(
         probabilities({ none: 0.35, harassment: 0.3, shilling: 0.35 }),
-        { politics: 0.1, war: 0.02 },
+        { politics: 0.1, war: 0.02, safety: 0.03, fit: 3.4 },
       ));
 
     const result = await classifyQuestion(input, config);
 
-    assert.ok(!("error" in result));
+    assertClassification(result);
     assert.equal(result.category, "shilling");
     assert.equal(result.flagged.toFixed(2), "0.65");
     assert.equal(result.model, "test/model-20261006");
@@ -84,6 +106,51 @@ describe("classifyQuestion", () => {
     assert.deepEqual(result.usage, { inputTokens: 460, cost: 0.000046 });
     assert.equal(result.politics, 0.1);
     assert.equal(result.war, 0.02);
+    assert.equal(result.safety, 0.03);
+    assert.equal(result.fit, 3.4);
+  });
+
+  it("classifies without a fit score when that answer is missing", async (t) => {
+    stubFetch(t, () =>
+      decisionsResponse(probabilities({ none: 1 }), {
+        politics: 0,
+        war: 0,
+        safety: 0,
+      }));
+
+    const result = await classifyQuestion(input, config);
+
+    assertClassification(result);
+    assert.equal(result.fit, undefined);
+  });
+
+  it("reports a refusal separately from errors", async (t) => {
+    stubFetch(t, () =>
+      Response.json(
+        {
+          error: {
+            message: 'OpenAI refused to answer question "category"',
+            code: 502,
+          },
+        },
+        { status: 502 },
+      ));
+
+    const result = await classifyQuestion(input, config);
+
+    assert.deepEqual(result, {
+      refused: 'OpenAI refused to answer question "category"',
+    });
+  });
+
+  it("treats other provider errors as errors", async (t) => {
+    stubFetch(t, () =>
+      Response.json(
+        { error: { message: "Provider returned error", code: 502 } },
+        { status: 502 },
+      ));
+
+    assertError(await classifyQuestion(input, config));
   });
 
   it("fails when a topic answer is missing", async (t) => {
@@ -95,7 +162,7 @@ describe("classifyQuestion", () => {
 
   it("fails when an option has no probability, instead of treating it as 0", async (t) => {
     const { none: _none, ...withoutNone } = probabilities({ shilling: 0.2 });
-    stubFetch(t, () => decisionsResponse(withoutNone, { politics: 0, war: 0 }));
+    stubFetch(t, () => decisionsResponse(withoutNone, { politics: 0, war: 0, safety: 0 }));
 
     assertError(await classifyQuestion(input, config));
   });
@@ -131,7 +198,11 @@ describe("classifyQuestion", () => {
 
   it("sends the conference context, the talk title and the question", async (t) => {
     const requests = stubFetch(t, () =>
-      decisionsResponse(probabilities({ none: 1 }), { politics: 0, war: 0 }));
+      decisionsResponse(probabilities({ none: 1 }), {
+        politics: 0,
+        war: 0,
+        safety: 0,
+      }));
 
     await classifyQuestion(input, config);
 
@@ -166,23 +237,41 @@ describe("buildDecisionsRequest", () => {
 });
 
 describe("questions", () => {
-  it("asks the category question and both topic questions", () => {
+  it("asks the category question and the yes/no questions", () => {
     const { questions } = buildDecisionsRequest(input, "test/model");
-    assert.deepEqual(Object.keys(questions), ["category", "politics", "war"]);
+    assert.deepEqual(Object.keys(questions), [
+      "category",
+      "politics",
+      "war",
+      "safety",
+      "fit",
+    ]);
     assert.equal(questions.politics, POLITICS_QUESTION);
     assert.equal(questions.war, WAR_QUESTION);
+    assert.equal(questions.safety, SAFETY_QUESTION);
+  });
+
+  it("gives speaker and description only to the fit question", () => {
+    const request = buildDecisionsRequest(input, "test/model");
+    assert.match(request.questions.fit.instructions, /Ada Example/);
+    assert.match(request.questions.fit.instructions, /rollups and blobs/);
+    assert.ok(!JSON.stringify(request.state).includes("Ada Example"));
+    assert.equal(request.questions.fit.criteria.length, 5);
   });
 });
 
 describe("shouldHide", () => {
   it("hides on any of the three scores", () => {
-    assert.ok(shouldHide({ flagged: 0.6, politics: 0, war: 0 }));
-    assert.ok(shouldHide({ flagged: 0, politics: 0.7, war: 0 }));
-    assert.ok(shouldHide({ flagged: 0, politics: 0, war: 0.7 }));
+    assert.ok(shouldHide({ flagged: 0.6, politics: 0, war: 0, safety: 0 }));
+    assert.ok(shouldHide({ flagged: 0, politics: 0.7, war: 0, safety: 0 }));
+    assert.ok(shouldHide({ flagged: 0, politics: 0, war: 0.7, safety: 0 }));
+    assert.ok(shouldHide({ flagged: 0, politics: 0, war: 0, safety: 0.7 }));
   });
 
   it("shows a question below every threshold", () => {
-    assert.ok(!shouldHide({ flagged: 0.59, politics: 0.69, war: 0.69 }));
+    assert.ok(
+      !shouldHide({ flagged: 0.59, politics: 0.69, war: 0.69, safety: 0.69 }),
+    );
   });
 });
 
