@@ -55,6 +55,11 @@ Optionally, attendees can collect a signed attendance proof (a
      `{{ .Token }}`.
    - **Auth → URL Configuration**: set the Site URL and redirect URLs to the
      app's `BASE_URL`; for production, also configure custom SMTP.
+   - **Auth → Rate Limits**, for conference traffic: enable **IP Address
+     Forwarding** (used with `SUPABASE_SECRET_KEY`) and raise the per-IP
+     limits, since a venue's attendees share one Wi-Fi IP. Meerkat runs with
+     6000 token verifications per 5 minutes, 3000 token refreshes per 5
+     minutes and 3000 anonymous sign-ins per hour.
    - **Row Level Security and realtime**: after the first migration, apply the
      Supabase-specific setup that Drizzle migrations do not cover (RLS on every
      table, realtime SELECT policies, and the `questions`, `reactions` and
@@ -141,6 +146,7 @@ Optional:
 | `VITE_API_URL`           | API origin compiled into the frontend. Default empty: the frontend calls the origin it was served from. |
 | `CORS_ORIGINS`           | Comma-separated origins allowed to call `/api/*` from a browser. Default: `*`.   |
 | `PRETALX_URL`            | Origin of the Pretalx instance whose schedules are synced into conferences. Unset disables the sync endpoint. |
+| `SUPABASE_SECRET_KEY`    | Supabase secret API key (`sb_secret_…`). When set, Devcon handover sign-ins forward the attendee's IP so Supabase rate-limits per attendee rather than per server; also enable IP Address Forwarding in the project. |
 | `DATABASE_POOLER_URL`    | Connection string of a connection pooler, preferred over `DATABASE_URL`.          |
 | `DATABASE_MAX_POOL_SIZE` | Max DB pool size (default: 10).                                                  |
 | `SENTRY_DSN`             | Sentry error tracking DSN.                                                       |
