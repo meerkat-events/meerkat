@@ -129,7 +129,7 @@ export function Question(
     refresh();
 
     toaster.create({
-      title: "User blocked 🚫",
+      title: "User blocked",
       type: "success",
       duration: CONFIRMATION_DURATION,
     });
@@ -139,7 +139,7 @@ export function Question(
     await markAsAnswered();
     refresh();
     toaster.create({
-      title: "Question marked as answered ✅",
+      title: "Question marked as answered",
       type: "success",
       duration: CONFIRMATION_DURATION,
     });
@@ -149,7 +149,7 @@ export function Question(
     await deleteQuestion();
     refresh();
     toaster.create({
-      title: "Question deleted 🗑️",
+      title: "Question deleted",
       type: "success",
       duration: CONFIRMATION_DURATION,
     });
