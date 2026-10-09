@@ -4,9 +4,10 @@ node_modules
 .vscode
 .zed
 .DS_Store
+# Every .env variant (.env.production, local backups, ...) except the example.
 .env
-.env.development
-.env.production
+.env.*
+!.env.example
 .cache
 .vite
 .secrets
@@ -32,4 +33,7 @@ caddy_data/
 !.claude/launch.json
 !.claude/settings.json
 
-supabase
+# Supabase CLI project: config.toml and templates/ are tracked, the local link
+# state is kept out by supabase/.gitignore. The raw dashboard export of the dev
+# project's email templates is superseded by supabase/templates/.
+supabase/meerkat-dev-email-templates.json
