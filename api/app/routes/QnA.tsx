@@ -41,7 +41,7 @@ import { useQuestions } from "@meerkat-events/react";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
-import { toaster } from "~/components/ui/toaster.tsx";
+import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
@@ -233,7 +233,7 @@ export default function QnA() {
     toaster.create({
       title: "Event is now live",
       type: "success",
-      duration: 1000,
+      duration: CONFIRMATION_DURATION,
     });
     await refreshEvents();
   };

@@ -36,6 +36,14 @@ body {
   position: relative;
 }
 
+/* Narrow screens show toasts across the page width: lift them clear of the
+   question input and the heart bubble above it (see ui/toaster.tsx). */
+@media (max-width: 47.99rem) {
+  :root:has(.footer) {
+    --toast-offset-bottom: 11rem;
+  }
+}
+
 .title-section {
   padding: 0 1rem 0 1rem;
 }
