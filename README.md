@@ -48,7 +48,10 @@ Optionally, attendees can collect a signed attendance proof (a
    database migrations and seeds two demo conferences with events. It is safe
    to re-run and leaves an existing `api/.env` untouched.
 
-3. Configure the Supabase project:
+3. Configure the Supabase project. `supabase/config.toml` reproduces the
+   provider, OTP and rate-limit settings below with `supabase config push`;
+   [supabase/README.md](supabase/README.md) has the runbook and lists what
+   stays manual.
 
    - **Auth → Providers**: enable **Email** and **Anonymous sign-ins**. Login
      uses a one-time code, so the magic-link email template must include

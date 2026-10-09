@@ -256,6 +256,14 @@ All worktrees share one Supabase database (`api/.env` is copied, not
 per-worktree), so `pnpm migrate` from one branch changes the schema under
 every other worktree. Coordinate before migrating.
 
+Project settings (auth, pooler, rate limits, the two auth email templates)
+live in `supabase/config.toml`; [supabase/README.md](supabase/README.md) is
+the runbook for a new project. `supabase config push` writes every key the
+file declares and leaves undeclared (commented) keys alone, so per-project
+values such as `site_url` and the redirect URLs stay commented. Always run
+`supabase config diff` first: `update`/`local_only` rows will be written,
+`remote_only` rows won't.
+
 ## Code style
 
 - `globalThis` over `window` (`globalThis.location`, `globalThis.crypto`).
