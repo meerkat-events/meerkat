@@ -1,6 +1,6 @@
 import { FiSend } from "react-icons/fi";
 import {
-  Flex,
+  Box,
   IconButton,
   Link as ChakraLink,
   Textarea,
@@ -90,7 +90,9 @@ export function Footer({
     <>
       <div className="overlay-container">
         <div className="target question-input">
-          <Flex gap={2} flexFlow="row" alignItems="flex-start">
+          {/* The send button sits inside the field, in its bottom corner as a
+              long question grows. */}
+          <Box position="relative">
             <Textarea
               ref={textareaRef}
               resize="none"
@@ -117,21 +119,28 @@ export function Footer({
                 borderColor: "transparent",
               }}
               maxLength={MAX_QUESTION_LENGTH}
+              paddingEnd="14"
+              // Block, so the wrapper ends where the field does
+              display="block"
             />
             <IconButton
               loading={isMutating}
               disabled={!isAuthenticated}
-              size="lg"
+              size="md"
               onClick={submitQuestion}
               aria-label="Submit question"
-              h="50px"
-              w="50px"
+              position="absolute"
+              insetEnd="5px"
+              bottom="5px"
+              h="40px"
+              w="40px"
+              minW="40px"
               borderRadius="full"
               _hover={{ bg: "brand.hover" }}
             >
               <FiSend />
             </IconButton>
-          </Flex>
+          </Box>
           <span className="signin-name">
             Signed as{" "}
             <ChakraLink onClick={onOpen}>
