@@ -276,15 +276,16 @@ app.post(
       getConferenceById(event.conferenceId),
     ]);
 
+    // The session cap first: it doesn't lift, so a countdown would mislead.
+    if (talkActivity >= MAX_QUESTIONS_PER_EVENT) {
+      throw tooManyRequests("User has too many posts");
+    }
+
     if (lastMinuteActivity.count >= MAX_QUESTIONS_PER_INTERVAL) {
       throw tooManyRequests("User has too many posts", {
         oldest: lastMinuteActivity.oldest,
         windowStart: minuteAgo,
       });
-    }
-
-    if (talkActivity >= MAX_QUESTIONS_PER_EVENT) {
-      throw tooManyRequests("User has too many posts");
     }
 
     const { hiddenAt, moderation, call } = await moderateQuestion({
