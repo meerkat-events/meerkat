@@ -1,4 +1,4 @@
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, min, sql } from "drizzle-orm";
 import db from "../db.ts";
 import { profiles, questions, users } from "../schema.ts";
 
@@ -29,12 +29,17 @@ export async function updateProfile(
   return result.length > 0 ? result[0] : null;
 }
 
+/**
+ * How many questions the user has posted since `date`, and when the oldest of
+ * them was made: a rate limit over that window frees up once the oldest leaves
+ * it.
+ */
 export async function getUserPostCountAfterDate(
   userId: string,
   date: Date,
-): Promise<number> {
+): Promise<{ count: number; oldest: Date | null }> {
   const result = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: sql<number>`count(*)`, oldest: min(questions.createdAt) })
     .from(questions)
     .where(
       and(
@@ -44,7 +49,10 @@ export async function getUserPostCountAfterDate(
     )
     .execute();
 
-  return Number(result.at(0)?.count ?? 0);
+  return {
+    count: Number(result.at(0)?.count ?? 0),
+    oldest: result.at(0)?.oldest ?? null,
+  };
 }
 
 export async function getUserPostCountPerTalk(

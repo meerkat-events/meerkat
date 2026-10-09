@@ -23,6 +23,8 @@ app.use(
   cors({
     origin: env.corsOrigins,
     maxAge: 86400,
+    // Lets a frontend on another origin read how long a 429 lasts.
+    exposeHeaders: ["Retry-After"],
   }),
 );
 app.route("/", conferences);
