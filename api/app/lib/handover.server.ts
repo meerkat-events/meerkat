@@ -24,20 +24,49 @@ const supabaseAdmin = () =>
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-const supabaseAnon = () =>
-  createClient(env.supabaseUrl!, env.supabaseAnonKey!, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false,
-    },
+/**
+ * Client for consuming the one-time token. Supabase Auth rate-limits
+ * `/verify` per IP address, and this call comes from our servers, so without
+ * forwarding every handover counts against the few IPs of our Fly machines.
+ * With a secret API key Supabase takes the attendee's IP from
+ * `sb-forwarded-for` instead (once IP Address Forwarding is enabled in the
+ * project's rate-limit settings); legacy anon and service_role keys can't
+ * forward, so without the secret key we keep the anon key and the server's IP.
+ */
+const supabaseForVerify = (clientIp: string | undefined) => {
+  const auth = {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false,
+  };
+  if (!env.supabaseSecretKey) {
+    return createClient(env.supabaseUrl!, env.supabaseAnonKey!, { auth });
+  }
+  const headers: Record<string, string> = clientIp
+    ? { "sb-forwarded-for": clientIp }
+    : {};
+  return createClient(env.supabaseUrl!, env.supabaseSecretKey, {
+    auth,
+    global: { headers },
   });
+};
+
+/**
+ * The attendee's IP address as Fly's proxy saw it. Fly sets `Fly-Client-IP`
+ * itself, unlike the leftmost `X-Forwarded-For` entry, which the client
+ * controls. Absent outside Fly (local development).
+ */
+export const clientIpOf = (request: Request): string | undefined =>
+  request.headers.get("fly-client-ip") ?? undefined;
 
 /**
  * Creates a Supabase session for `email`, creating the user on first sign-in
  * with a generated display name (like the OTP flow does).
  */
-const createSession = async (email: string): Promise<Session> => {
+const createSession = async (
+  email: string,
+  clientIp: string | undefined,
+): Promise<Session> => {
   const { data, error } = await supabaseAdmin().auth.admin.generateLink({
     type: "magiclink",
     email,
@@ -51,7 +80,7 @@ const createSession = async (email: string): Promise<Session> => {
   // `signup` verification type instead of `magiclink`; the OTP type used to
   // consume the token must match, so always take the reported one.
   const { hashed_token, verification_type } = data.properties;
-  const verified = await supabaseAnon().auth.verifyOtp({
+  const verified = await supabaseForVerify(clientIp).auth.verifyOtp({
     token_hash: hashed_token,
     type: verification_type,
   });
@@ -67,10 +96,12 @@ const createSession = async (email: string): Promise<Session> => {
 /**
  * Verifies a Devcon handover token and, if valid, establishes a Supabase
  * session for the email it carries. Never throws for bad tokens; the caller
- * decides how to surface `error`.
+ * decides how to surface `error`. `clientIp` (see {@link clientIpOf}) is
+ * forwarded to Supabase for rate limiting.
  */
 export async function consumeHandoverToken(
   token: string,
+  clientIp: string | undefined,
 ): Promise<HandoverResult> {
   if (!env.supabaseUrl || !env.supabaseAnonKey) {
     logger.error("Devcon handover: Supabase is not configured");
@@ -95,7 +126,7 @@ export async function consumeHandoverToken(
   }
 
   try {
-    const session = await createSession(email);
+    const session = await createSession(email, clientIp);
     logger.info({ email }, "Devcon handover: session established");
     return { ok: true, session };
   } catch (error) {

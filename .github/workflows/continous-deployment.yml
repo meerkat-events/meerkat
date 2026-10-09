@@ -51,6 +51,7 @@ jobs:
           CPU_KIND: ${{ vars.CPU_KIND }}
           MEMORY: ${{ vars.MEMORY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           DEVCON_VERIFICATION_SECRET: ${{ secrets.DEVCON_VERIFICATION_SECRET }}
           PRETALX_URL: ${{ secrets.PRETALX_URL }}
       - run: flyctl deploy --remote-only

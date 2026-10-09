@@ -36,6 +36,10 @@ const supabaseServiceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
 if (!supabaseServiceRoleKey) {
   throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
 }
+// Secret API key (`sb_secret_…`). Optional: when set, the Devcon handover
+// forwards the attendee's IP to Supabase Auth so its per-IP rate limits apply
+// to the attendee rather than to our servers (app/lib/handover.server.ts).
+const supabaseSecretKey = process.env["SUPABASE_SECRET_KEY"] || undefined;
 const sentryDSN = process.env["SENTRY_DSN"];
 const maxPoolSize = process.env["DATABASE_MAX_POOL_SIZE"];
 const environment = process.env["ENVIRONMENT"] ?? "development";
@@ -66,6 +70,7 @@ const env = {
   supabaseUrl,
   supabaseAnonKey,
   supabaseServiceRoleKey,
+  supabaseSecretKey,
   sentryDSN,
   maxPoolSize,
   environment,
@@ -81,6 +86,8 @@ export const redactedEnv = {
   privateKey: "REDACTED",
   devconVerificationSecret: "REDACTED",
   supabaseServiceRoleKey: "REDACTED",
+  // Unset stays visible: it tells whether the handover forwards client IPs.
+  supabaseSecretKey: env.supabaseSecretKey ? "REDACTED" : undefined,
 };
 
 export default env;
