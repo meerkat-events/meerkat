@@ -31,6 +31,11 @@ export type Theme = {
    */
   successToastColor?: string;
   /**
+   * Background of error toasts, whose text then takes textColor; defaults to
+   * Chakra's red with white text.
+   */
+  errorToastColor?: string;
+  /**
    * Background of the banner on events that aren't live, whose text then
    * takes textColor; defaults to a brand tint with brand text.
    */
