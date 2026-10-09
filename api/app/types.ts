@@ -23,6 +23,11 @@ export type Theme = {
   highlightColor?: string;
   /** Color of every shadow. */
   shadowColor?: string;
+  /**
+   * Full box-shadow of the floating heart button and its reaction bar;
+   * defaults to one drawn in shadowColor.
+   */
+  floatingShadow?: string;
   /** Outline around text inputs at rest. */
   inputOutlineColor?: string;
   /**
