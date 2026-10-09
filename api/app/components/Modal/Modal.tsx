@@ -20,10 +20,11 @@ export function Modal(
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content mx="1rem">
-          <Dialog.Header fontSize="1.5rem" color="white">
+          {/* Short notices: title and message centered */}
+          <Dialog.Header fontSize="1.5rem" justifyContent="center">
             {title}
           </Dialog.Header>
-          <Dialog.Body>
+          <Dialog.Body textAlign="center">
             {children}
           </Dialog.Body>
           {footer && <Dialog.Footer mx="auto">{footer}</Dialog.Footer>}
