@@ -64,6 +64,9 @@ export function Question(
   const authorName = question.user?.name ?? question.user?.id ?? "Unknown";
   // Set while a supervoted vote is in flight, so its toast can say so.
   const isSupervotingRef = useRef(false);
+  // The vote endpoint toggles, so remember whether this tap adds the vote:
+  // only an added vote gets a confirmation.
+  const isAddingVote = useRef(false);
   const { trigger: toggleVote, isMutating: isVoting } = useVote(question.uid, {
     onSuccess: () => {
       refresh();
@@ -79,11 +82,13 @@ export function Question(
         });
         return;
       }
-      toaster.create({
-        title: "Vote recorded",
-        type: "success",
-        duration: CONFIRMATION_DURATION,
-      });
+      if (isAddingVote.current) {
+        toaster.create({
+          title: "Vote recorded",
+          type: "success",
+          duration: CONFIRMATION_DURATION,
+        });
+      }
     },
     onError: (error) => {
       isSupervotingRef.current = false;
@@ -104,6 +109,7 @@ export function Question(
       setIsPromptOpen(true);
       return;
     }
+    isAddingVote.current = !voted;
     toggleVote({ uid: question.uid });
   };
 
@@ -273,6 +279,7 @@ export function Question(
             }}
             onRegularVote={() => {
               setIsPromptOpen(false);
+              isAddingVote.current = true;
               toggleVote({ uid: question.uid });
             }}
             onCancel={() => setIsPromptOpen(false)}
