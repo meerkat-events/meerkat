@@ -10,6 +10,7 @@ import {
 } from "@chakra-ui/react";
 import { FiMenu } from "react-icons/fi";
 import { Link as ReactRouterLink } from "react-router";
+import { Logo } from "../Logo.tsx";
 
 interface NavLinkProps {
   label: string;
@@ -61,7 +62,7 @@ export function NavigationDrawer({ navLinks }: NavigationDrawerProps) {
           <Drawer.Content>
             <Drawer.Header>
               <Flex justifyContent="center" alignItems="center" width="100%">
-                <img src="/logo.png" alt="Logo" width={50} height={50} />
+                <Logo height="50px" width="auto" />
               </Flex>
             </Drawer.Header>
             <Drawer.Body>
