@@ -48,6 +48,12 @@ import { getStageLiveEvent } from "../models/events.ts";
 import type { Questions } from "../models/questions.ts";
 import { streamSSE } from "hono/streaming";
 import {
+  getSupervoteBalance,
+  getSupervotedQuestionUids,
+  isSupervotesEnabled,
+  SUPERVOTE_MULTIPLIER,
+} from "../models/supervotes.ts";
+import {
   broadcastQuestionsUpdate,
   subscribeToEventQuestions,
 } from "../utils/broadcast.ts";
@@ -172,6 +178,36 @@ app.post(
 
     return c.json({
       data: pod.toJSON(),
+    });
+  },
+);
+
+// The signed-in user's supervotes in this event's conference. When the
+// conference hasn't enabled them, only `enabled: false` is returned.
+app.get(
+  "/api/v1/events/:uid/supervotes",
+  jwt(),
+  eventMiddleware,
+  async (c) => {
+    const event = c.get("event");
+    const payload = c.get("jwtPayload");
+
+    if (!await isSupervotesEnabled(event.conferenceId)) {
+      return c.json({ data: { enabled: false } });
+    }
+
+    const [balance, questionUids] = await Promise.all([
+      getSupervoteBalance(payload.sub, event.conferenceId),
+      getSupervotedQuestionUids(payload.sub, event.conferenceId),
+    ]);
+
+    return c.json({
+      data: {
+        enabled: true,
+        multiplier: SUPERVOTE_MULTIPLIER,
+        ...balance,
+        questionUids,
+      },
     });
   },
 );
