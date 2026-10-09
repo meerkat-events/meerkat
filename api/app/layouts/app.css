@@ -221,11 +221,11 @@ ul {
   background-color: var(--chakra-colors-bg-panel);
   box-shadow: var(--chakra-shadows-floating);
   transform-origin: right center;
-  animation: reaction-bar-in 180ms ease-out;
+  animation: reaction-bar-in 200ms ease-out;
 }
 
 .reaction-bar-item {
-  animation: reaction-bar-item-in 180ms ease-out both;
+  animation: reaction-bar-item-in 200ms ease-out both;
 }
 
 @keyframes reaction-bar-in {
@@ -252,14 +252,14 @@ ul {
   }
 }
 
-/* Closing plays the opening backwards: ease-in is ease-out reversed, and
-   ReactButton reverses the stagger. */
+/* Closing runs the opening's steps backwards (ReactButton reverses the
+   stagger). */
 .reaction-bar[data-closing] {
-  animation: reaction-bar-out 180ms ease-in both;
+  animation: reaction-bar-out 200ms ease-out both;
 }
 
 .reaction-bar[data-closing] .reaction-bar-item {
-  animation: reaction-bar-item-out 180ms ease-in both;
+  animation: reaction-bar-item-out 200ms ease-out both;
 }
 
 @keyframes reaction-bar-out {
