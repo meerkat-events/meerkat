@@ -3,6 +3,7 @@ import { IconButton } from "@chakra-ui/react";
 import { REACTION_LABELS, type ReactionEmoji } from "../../../reactions.ts";
 import { HeartIcon } from "./HeartIcon.tsx";
 import { ReactionGlyph } from "./ReactionGlyph.tsx";
+import { toaster } from "../ui/toaster.tsx";
 
 /** Reactions revealed next to the heart, nearest the heart first. */
 const MORE_REACTIONS: ReactionEmoji[] = [
@@ -113,6 +114,8 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
     };
 
   const show = () => {
+    // The bar slides out where toasts sit (see app.css), so it clears them.
+    if (!isOpen.current) toaster.dismiss();
     setOpen(true);
     setIsClosing(false);
     scheduleHide();
