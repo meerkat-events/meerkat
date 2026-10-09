@@ -41,7 +41,7 @@ export function SessionSwitcher(
   const contentRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="title-section">
+    <Box minW="0">
       <Dialog.Root
         placement="center"
         motionPreset="scale"
@@ -55,12 +55,11 @@ export function SessionSwitcher(
       >
         <Heading
           as="h1"
-          size="lg"
-          mb={2}
-          textAlign="center"
-          // The theme's body font (Roboto on Devconnect) rather than its
-          // condensed heading font, matching the conference name above.
+          // Same type as the sort control it shares a row with
           fontFamily="body"
+          textStyle="sm"
+          fontWeight="medium"
+          color="fg"
         >
           <Dialog.Trigger asChild>
             <chakra.button
@@ -119,7 +118,7 @@ export function SessionSwitcher(
           </Dialog.Positioner>
         </Portal>
       </Dialog.Root>
-    </div>
+    </Box>
   );
 }
 
