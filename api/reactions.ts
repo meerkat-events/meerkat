@@ -5,6 +5,7 @@
  */
 export const REACTION_EMOJIS = [
   "heart",
+  "laugh",
   "fire",
   "star-struck",
   "clap",
@@ -15,6 +16,7 @@ export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 /** Emoji characters for the non-heart reactions (the heart is a custom SVG). */
 export const REACTION_GLYPHS: Record<Exclude<ReactionEmoji, "heart">, string> =
   {
+    laugh: "😂",
     fire: "🔥",
     "star-struck": "🤩",
     clap: "👏",
@@ -22,6 +24,7 @@ export const REACTION_GLYPHS: Record<Exclude<ReactionEmoji, "heart">, string> =
 
 export const REACTION_LABELS: Record<ReactionEmoji, string> = {
   heart: "Heart",
+  laugh: "Laugh",
   fire: "Fire",
   "star-struck": "Star-struck",
   clap: "Clap",

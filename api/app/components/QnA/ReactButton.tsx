@@ -5,7 +5,12 @@ import { HeartIcon } from "./HeartIcon.tsx";
 import { ReactionGlyph } from "./ReactionGlyph.tsx";
 
 /** Reactions revealed next to the heart, nearest the heart first. */
-const MORE_REACTIONS: ReactionEmoji[] = ["fire", "star-struck", "clap"];
+const MORE_REACTIONS: ReactionEmoji[] = [
+  "laugh",
+  "fire",
+  "star-struck",
+  "clap",
+];
 /** How long the bar stays out after the last reaction. */
 const HIDE_AFTER_MS = 4000;
 /** How long the bar stays out after the mouse leaves it. */
