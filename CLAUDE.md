@@ -186,8 +186,10 @@ as `event.conference.features` (`collect` shows the Event Card link).
   deleted.
 - One live event per stage: `setEventLive` turns the others off in a
   transaction. Event upserts never overwrite `live`.
-- Rate limits are constants in `api/moderation.ts`; routes answer 429 and the
-  frontend shows a cooldown modal (`UserContext.isOnCooldown`).
+- Rate limits are constants in `api/moderation.ts`; routes answer 429, with a
+  `Retry-After` for limits over a time window (`utils/too-many-requests.ts`),
+  and the frontend shows a cooldown modal with the reason and the time left
+  (`UserContext.cooldown`).
 - **Pretalx sync** (`api/pretalx.ts`): a conference with a `pretalx_event`
   slug gets one event per talk in that Pretalx event's public schedule
   (`uid` = submission code, which the Devcon app links to; `stage` =

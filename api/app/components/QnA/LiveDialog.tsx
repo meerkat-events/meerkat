@@ -30,7 +30,7 @@ export function LiveDialog({ event, onConfirm }: LiveDialogProps) {
             </Dialog.Header>
             <Dialog.Body>
               <p>
-                Are you sure to go live with the following event?
+                Are you sure you want to go live with this event?
               </p>
               <Text fontWeight="dialogEmphasis" fontSize="lg" mt="2">{event?.title}</Text>
             </Dialog.Body>

@@ -2,7 +2,7 @@ import useSWRMutation from "swr/mutation";
 import { poster } from "./fetcher.ts";
 import type { Event, Question } from "../types.ts";
 import { useContext } from "react";
-import { UserContext } from "../context/user.tsx";
+import { cooldownFor, UserContext } from "../context/user.tsx";
 import { HTTPError } from "./http-error.ts";
 import { useAuth } from "./use-auth.ts";
 
@@ -10,7 +10,7 @@ export const useAskQuestion = (event: Event | undefined, {
   onSuccess,
   onError,
 }: { onSuccess: () => void; onError: (error: HTTPError) => void }) => {
-  const { setIsOnCooldown } = useContext(UserContext);
+  const { setCooldown } = useContext(UserContext);
   const { session } = useAuth();
   return useSWRMutation<
     { data: Question[] },
@@ -26,7 +26,7 @@ export const useAskQuestion = (event: Event | undefined, {
       },
       onError: (error) => {
         if (error.status === 429) {
-          setIsOnCooldown(true);
+          setCooldown(cooldownFor("question", error));
         } else {
           onError(error);
         }

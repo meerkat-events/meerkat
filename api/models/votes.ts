@@ -1,4 +1,4 @@
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, sql } from "drizzle-orm";
 import db from "../db.ts";
 import { questions, votes } from "../schema.ts";
 import type { Question } from "./questions.ts";
@@ -70,13 +70,17 @@ export async function getVotesByUserId(
   }));
 }
 
-export async function getUserVoteCountAfterDate(
+/**
+ * When the user cast each vote on the event's questions since `date`, oldest
+ * first. A rate limit over that window frees up as they leave it.
+ */
+export async function getUserVoteTimesAfterDate(
   userId: string,
   eventId: number,
   date: Date,
-): Promise<number> {
+): Promise<Date[]> {
   const result = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ createdAt: votes.createdAt })
     .from(votes)
     .innerJoin(questions, eq(votes.questionId, questions.id))
     .where(
@@ -86,9 +90,10 @@ export async function getUserVoteCountAfterDate(
         gt(votes.createdAt, date),
       ),
     )
+    .orderBy(asc(votes.createdAt))
     .execute();
 
-  return Number(result.at(0)?.count ?? 0);
+  return result.map((row) => row.createdAt);
 }
 
 export type Vote = typeof votes.$inferSelect;

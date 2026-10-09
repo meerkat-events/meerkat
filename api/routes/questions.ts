@@ -14,10 +14,11 @@ import { getUserById } from "../models/user.ts";
 import {
   createVote,
   deleteVote,
-  getUserVoteCountAfterDate,
+  getUserVoteTimesAfterDate,
   getVotesByQuestionIdAndUserId,
 } from "../models/votes.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
+import { tooManyRequests } from "../utils/too-many-requests.ts";
 import logger from "../logger.ts";
 import { getAllQuestions } from "../models/questions.ts";
 import { broadcastQuestionsUpdate } from "../utils/broadcast.ts";
@@ -83,14 +84,18 @@ app.post(
     }
 
     const minuteAgo = dateDeductedMinutes(1);
-    const voteCount = await getUserVoteCountAfterDate(
+    const recentVotes = await getUserVoteTimesAfterDate(
       user.id,
       event.id,
       minuteAgo,
     );
 
-    if (voteCount >= MAX_VOTES_PER_EVENT) {
-      throw new HTTPException(429, { message: "User has too many votes" });
+    if (recentVotes.length >= MAX_VOTES_PER_EVENT) {
+      throw tooManyRequests("User has too many votes", {
+        recent: recentVotes,
+        allowed: MAX_VOTES_PER_EVENT - 1,
+        windowStart: minuteAgo,
+      });
     }
 
     const hasVoted = await getVotesByQuestionIdAndUserId({

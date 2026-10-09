@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   FiCheckCircle as CheckCircleIcon,
   FiEyeOff as DeleteIcon,
@@ -13,7 +14,10 @@ import { useDeleteQuestion } from "../../hooks/use-delete-question.ts";
 import { FiRadio } from "react-icons/fi";
 import { RxCursorArrow } from "react-icons/rx";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
-import { toaster } from "../../components/ui/toaster.tsx";
+import {
+  CONFIRMATION_DURATION,
+  toaster,
+} from "../../components/ui/toaster.tsx";
 import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 
@@ -28,14 +32,19 @@ interface QuestionProps {
 export function Question(
   { canVote, canModerate, question, voted, refresh }: QuestionProps,
 ) {
+  // The vote endpoint toggles, so remember whether this tap adds the vote:
+  // only an added vote gets a confirmation.
+  const isAddingVote = useRef(false);
   const { trigger: toggleVote, isMutating: isVoting } = useVote(question.uid, {
     onSuccess: () => {
       refresh();
-      toaster.create({
-        title: "Vote recorded",
-        type: "success",
-        duration: 1000,
-      });
+      if (isAddingVote.current) {
+        toaster.create({
+          title: "Vote recorded",
+          type: "success",
+          duration: CONFIRMATION_DURATION,
+        });
+      }
     },
     onError: (error) => {
       toaster.create({
@@ -61,9 +70,9 @@ export function Question(
     refresh();
 
     toaster.create({
-      title: "User blocked 🚫",
+      title: "User blocked",
       type: "success",
-      duration: 1000,
+      duration: CONFIRMATION_DURATION,
     });
   };
 
@@ -71,9 +80,9 @@ export function Question(
     await markAsAnswered();
     refresh();
     toaster.create({
-      title: "Question marked as answered ✅",
+      title: "Question marked as answered",
       type: "success",
-      duration: 1000,
+      duration: CONFIRMATION_DURATION,
     });
   };
 
@@ -81,9 +90,9 @@ export function Question(
     await deleteQuestion();
     refresh();
     toaster.create({
-      title: "Question deleted 🗑️",
+      title: "Question deleted",
       type: "success",
-      duration: 1000,
+      duration: CONFIRMATION_DURATION,
     });
   };
 
@@ -91,8 +100,9 @@ export function Question(
     await selectQuestion();
     refresh();
     toaster.create({
-      title: "Question selected ✅",
+      title: "Question selected",
       type: "success",
+      duration: CONFIRMATION_DURATION,
     });
   };
 
@@ -169,7 +179,10 @@ export function Question(
           votes={question.votes}
           voted={voted}
           loading={isVoting}
-          onClick={() => toggleVote({ uid: question.uid })}
+          onClick={() => {
+            isAddingVote.current = !voted;
+            toggleVote({ uid: question.uid });
+          }}
           disabled={!canVote || isAnswered}
         />
       </div>

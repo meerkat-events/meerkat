@@ -17,12 +17,17 @@ export type Theme = {
   /** Links, small text actions, action icons and the vote pill. */
   accentColor?: string;
   /**
-   * Selected rows, and the hover of icon and outline buttons, menu items and
-   * votes.
+   * Selected rows and text, and the hover of icon and outline buttons, menu
+   * items and votes.
    */
   highlightColor?: string;
   /** Color of every shadow. */
   shadowColor?: string;
+  /**
+   * Full box-shadow of the floating heart button and its reaction bar;
+   * defaults to one drawn in shadowColor.
+   */
+  floatingShadow?: string;
   /** Outline around text inputs at rest. */
   inputOutlineColor?: string;
   /**
@@ -30,6 +35,11 @@ export type Theme = {
    * textColor; defaults to the brand color with contrastColor text.
    */
   successToastColor?: string;
+  /**
+   * Background of error toasts, whose text then takes textColor; defaults to
+   * Chakra's red with white text.
+   */
+  errorToastColor?: string;
   /**
    * Background of the banner on events that aren't live, whose text then
    * takes textColor; defaults to a brand tint with brand text.

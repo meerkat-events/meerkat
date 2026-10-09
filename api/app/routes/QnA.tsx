@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { LuArrowDownUp } from "react-icons/lu";
 import {
@@ -8,8 +8,6 @@ import {
   Grid,
   Icon,
   IconButton,
-  Menu,
-  Portal,
   Text,
 } from "@chakra-ui/react";
 import {
@@ -43,7 +41,7 @@ import { useQuestions } from "@meerkat-events/react";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
-import { toaster } from "~/components/ui/toaster.tsx";
+import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
@@ -122,6 +120,8 @@ export default function QnA() {
 
   const sort = parseSort(searchParams.get("sort") ?? "newest");
   const sortLabel = sortOptions.find((option) => option.value === sort)?.label;
+  // With two modes, the sort control switches straight to the other one.
+  const otherSort = sortOptions.find((option) => option.value !== sort);
 
   const {
     data: questions,
@@ -168,6 +168,23 @@ export default function QnA() {
   );
 
   const reactButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Toasts sit in line with the heart bubble above the footer (see app.css),
+  // so they need the footer's height, which grows with the question input.
+  const footerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const footer = footerRef.current;
+    if (!footer) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty("--footer-height", `${footer.offsetHeight}px`);
+    });
+    observer.observe(footer);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--footer-height");
+    };
+  }, []);
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
   const addReaction = (
     reaction: { uid: string; emoji?: ReactionEmoji | undefined },
@@ -233,7 +250,7 @@ export default function QnA() {
     toaster.create({
       title: "Event is now live",
       type: "success",
-      duration: 1000,
+      duration: CONFIRMATION_DURATION,
     });
     await refreshEvents();
   };
@@ -329,43 +346,22 @@ export default function QnA() {
                   questions.length === 1 ? "question" : "questions"
                 }`}
             </Text>
-            <Menu.Root positioning={{ placement: "bottom-end" }}>
-              <Menu.Trigger asChild>
-                <Button
-                  variant="plain"
-                  size="xs"
-                  h="7"
-                  paddingInline="1"
-                  marginEnd="-1"
-                  gap="1"
-                  textStyle="sm"
-                  fontWeight="medium"
-                  color="accent.text"
-                  aria-label={`Sort by ${sortLabel}`}
-                >
-                  <Icon as={LuArrowDownUp} color="accent.icon" />
-                  {sortLabel}
-                </Button>
-              </Menu.Trigger>
-              <Portal>
-                <Menu.Positioner>
-                  <Menu.Content minW="10rem">
-                    <Menu.RadioItemGroup
-                      value={sort}
-                      onValueChange={(e) => changeSort(e.value)}
-                    >
-                      <Menu.ItemGroupLabel>Sort by</Menu.ItemGroupLabel>
-                      {sortOptions.map((option) => (
-                        <Menu.RadioItem key={option.value} value={option.value}>
-                          {option.label}
-                          <Menu.ItemIndicator />
-                        </Menu.RadioItem>
-                      ))}
-                    </Menu.RadioItemGroup>
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Portal>
-            </Menu.Root>
+            <Button
+              variant="plain"
+              size="xs"
+              h="7"
+              paddingInline="1"
+              marginEnd="-1"
+              gap="1"
+              textStyle="sm"
+              fontWeight="medium"
+              color="accent.text"
+              aria-label={`Sorted by ${sortLabel}, switch to ${otherSort?.label}`}
+              onClick={() => otherSort && changeSort(otherSort.value)}
+            >
+              <Icon as={LuArrowDownUp} color="accent.icon" />
+              {sortLabel}
+            </Button>
           </Flex>
         </header>
         <main className="content flex">
@@ -378,7 +374,7 @@ export default function QnA() {
             isLoading={isQuestionsLoading}
           />
         </main>
-        <footer className="footer">
+        <footer className="footer" ref={footerRef}>
           <div className="react-bubble">
             <ReactButton
               ref={reactButtonRef}

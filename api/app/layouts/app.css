@@ -36,18 +36,19 @@ body {
   position: relative;
 }
 
-.title-section {
-  padding: 0 1rem 0 1rem;
+/* Toasts on the Q&A page sit in line with the heart bubble (.react-bubble),
+   across the column to its left, and follow the footer up as the question
+   input grows (routes/QnA.tsx sets --footer-height; see ui/toaster.tsx). */
+:root:has(.footer) {
+  --toast-column-inset: calc(max(0px, (100vw - 512px) / 2) + 1rem);
+  --toast-offset-bottom: calc(var(--footer-height, 7rem) + 0.25rem);
+  --toast-offset-left: var(--toast-column-inset);
+  --toast-offset-right: calc(var(--toast-column-inset) + 50px + 0.5rem);
+  --toast-width: 100%;
 }
 
-ol,
-ul {
-  list-style-type: none;
-
-  & > li {
-    margin: 0;
-    padding: 0;
-  }
+.title-section {
+  padding: 0 1rem 0 1rem;
 }
 
 ol,
@@ -220,11 +221,11 @@ ul {
   background-color: var(--chakra-colors-bg-panel);
   box-shadow: var(--chakra-shadows-floating);
   transform-origin: right center;
-  animation: reaction-bar-in 180ms ease-out;
+  animation: reaction-bar-in 200ms ease-out;
 }
 
 .reaction-bar-item {
-  animation: reaction-bar-item-in 180ms ease-out both;
+  animation: reaction-bar-item-in 200ms ease-out both;
 }
 
 @keyframes reaction-bar-in {
@@ -248,6 +249,40 @@ ul {
   to {
     transform: none;
     opacity: 1;
+  }
+}
+
+/* Closing runs the opening's steps backwards (ReactButton reverses the
+   stagger). */
+.reaction-bar[data-closing] {
+  animation: reaction-bar-out 200ms ease-out both;
+}
+
+.reaction-bar[data-closing] .reaction-bar-item {
+  animation: reaction-bar-item-out 200ms ease-out both;
+}
+
+@keyframes reaction-bar-out {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+
+  to {
+    transform: scaleX(0.6);
+    opacity: 0;
+  }
+}
+
+@keyframes reaction-bar-item-out {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(8px) scale(0.8);
+    opacity: 0;
   }
 }
 
