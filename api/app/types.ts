@@ -17,8 +17,8 @@ export type Theme = {
   /** Links, small text actions, action icons and the vote pill. */
   accentColor?: string;
   /**
-   * Selected rows, and the hover of icon and outline buttons, menu items and
-   * votes.
+   * Selected rows and text, and the hover of icon and outline buttons, menu
+   * items and votes.
    */
   highlightColor?: string;
   /** Color of every shadow. */

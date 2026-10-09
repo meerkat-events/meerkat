@@ -181,6 +181,8 @@ const chakraAdapter = (theme: Theme) => {
         colorPalette: "brand",
         color: theme.textColor,
       },
+      // Selected text, instead of Chakra's brand.emphasized at 80%.
+      ...(highlightColor && { "*::selection": { bg: highlightColor } }),
     },
     theme: {
       ...recipeOverrides(theme),
