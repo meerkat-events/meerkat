@@ -159,7 +159,7 @@ export function Question(
     await selectQuestion();
     refresh();
     toaster.create({
-      title: "Question selected ✅",
+      title: "Question selected",
       type: "success",
       duration: CONFIRMATION_DURATION,
     });
