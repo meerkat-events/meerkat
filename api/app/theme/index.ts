@@ -271,6 +271,16 @@ const chakraAdapter = (theme: Theme) => {
                 : "{colors.brand.contrast}",
             },
           },
+          // Error toasts, styled like confirmations: by default Chakra's red;
+          // a theme's light errorToastColor takes the regular text color.
+          errorToast: {
+            bg: { value: theme.errorToastColor ?? "{colors.red.solid}" },
+            fg: {
+              value: theme.errorToastColor
+                ? "{colors.fg}"
+                : "{colors.red.contrast}",
+            },
+          },
           // Banner on events that aren't live. By default a brand tint with
           // high-contrast brand text; a theme's notLiveBannerColor takes the
           // regular text color instead.

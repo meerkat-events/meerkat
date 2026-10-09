@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { LuArrowDownUp } from "react-icons/lu";
 import {
@@ -168,6 +168,23 @@ export default function QnA() {
   );
 
   const reactButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Toasts sit in line with the heart bubble above the footer (see app.css),
+  // so they need the footer's height, which grows with the question input.
+  const footerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const footer = footerRef.current;
+    if (!footer) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty("--footer-height", `${footer.offsetHeight}px`);
+    });
+    observer.observe(footer);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--footer-height");
+    };
+  }, []);
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
   const addReaction = (
     reaction: { uid: string; emoji?: ReactionEmoji | undefined },
@@ -357,7 +374,7 @@ export default function QnA() {
             isLoading={isQuestionsLoading}
           />
         </main>
-        <footer className="footer">
+        <footer className="footer" ref={footerRef}>
           <div className="react-bubble">
             <ReactButton
               ref={reactButtonRef}

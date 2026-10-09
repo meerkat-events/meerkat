@@ -17,6 +17,7 @@ export const devcon8: Theme = {
   shadowColor: "#160B2B33",
   inputOutlineColor: outline,
   successToastColor: "#D5F4DD",
+  errorToastColor: "#FCDCDC",
   notLiveBannerColor: "#FFE0CC",
   buttonRadius: "9999px",
   buttonFontWeight: "700",

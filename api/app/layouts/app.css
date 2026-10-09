@@ -36,12 +36,15 @@ body {
   position: relative;
 }
 
-/* Narrow screens show toasts across the page width: lift them clear of the
-   question input and the heart bubble above it (see ui/toaster.tsx). */
-@media (max-width: 47.99rem) {
-  :root:has(.footer) {
-    --toast-offset-bottom: 11rem;
-  }
+/* Toasts on the Q&A page sit in line with the heart bubble (.react-bubble),
+   across the column to its left, and follow the footer up as the question
+   input grows (routes/QnA.tsx sets --footer-height; see ui/toaster.tsx). */
+:root:has(.footer) {
+  --toast-column-inset: calc(max(0px, (100vw - 512px) / 2) + 1rem);
+  --toast-offset-bottom: calc(var(--footer-height, 7rem) + 0.25rem);
+  --toast-offset-left: var(--toast-column-inset);
+  --toast-offset-right: calc(var(--toast-column-inset) + 50px + 0.5rem);
+  --toast-width: 100%;
 }
 
 .title-section {
