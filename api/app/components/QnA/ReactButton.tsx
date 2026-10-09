@@ -1,11 +1,17 @@
 import { type Ref, useEffect, useRef, useState } from "react";
 import { IconButton } from "@chakra-ui/react";
+import { LuChevronLeft } from "react-icons/lu";
 import { REACTION_LABELS, type ReactionEmoji } from "../../../reactions.ts";
 import { HeartIcon } from "./HeartIcon.tsx";
 import { ReactionGlyph } from "./ReactionGlyph.tsx";
 
 /** Reactions revealed next to the heart, nearest the heart first. */
-const MORE_REACTIONS: ReactionEmoji[] = ["fire", "star-struck", "clap"];
+const MORE_REACTIONS: ReactionEmoji[] = [
+  "laugh",
+  "fire",
+  "star-struck",
+  "clap",
+];
 /** How long the bar stays out after the last reaction. */
 const HIDE_AFTER_MS = 4000;
 
@@ -18,8 +24,9 @@ export type ReactButtonProps = {
 };
 
 /**
- * Floating heart bubble. A tap sends a heart and slides out a bar with the
- * other reactions; the bar tucks away again a few seconds after the last one.
+ * Floating heart bubble. A tap sends a heart; the small arrow beside it slides
+ * out a bar with the other reactions, which tucks away again a few seconds
+ * after the last interaction.
  */
 export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
   const [open, setOpen] = useState(false);
@@ -76,9 +83,17 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
       });
-      setOpen(true);
-      scheduleHide();
+      if (open) scheduleHide();
     };
+
+  const toggle = () => {
+    if (open) {
+      close();
+      return;
+    }
+    setOpen(true);
+    scheduleHide();
+  };
 
   return (
     <div className="reaction-picker" ref={containerRef}>
@@ -92,8 +107,6 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
         w="50px"
         h="50px"
         borderRadius="full"
-        bg="bg.panel"
-        boxShadow="floating"
         aria-label="React with Heart"
         type="button"
       >
@@ -101,13 +114,36 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
           <HeartIcon />
         </div>
       </IconButton>
-      {open && !disabled && (
-        <div className="reaction-bar" role="group" aria-label="More reactions">
+      {/* The arrow rides the bubble's left edge as it opens, then flips to
+          point back in towards the heart. */}
+      <div className="reaction-bar" data-open={open || undefined}>
+        <IconButton
+          className="reaction-toggle"
+          disabled={disabled}
+          onClick={toggle}
+          variant="plain"
+          w="28px"
+          h="28px"
+          minW="28px"
+          borderRadius="full"
+          color="fg.muted"
+          aria-label={open ? "Hide more reactions" : "Show more reactions"}
+          aria-expanded={open}
+          type="button"
+        >
+          <LuChevronLeft />
+        </IconButton>
+        <div
+          className="reaction-bar-items"
+          role="group"
+          aria-label="More reactions"
+          inert={!open || disabled}
+        >
           {MORE_REACTIONS.map((emoji, index) => (
             <IconButton
               key={emoji}
               className="reaction-bar-item"
-              style={{ animationDelay: `${index * 30}ms` }}
+              style={{ transitionDelay: open ? `${index * 30}ms` : undefined }}
               onClick={react(emoji)}
               variant="plain"
               w="40px"
@@ -121,7 +157,7 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
             </IconButton>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

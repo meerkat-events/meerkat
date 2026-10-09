@@ -202,59 +202,64 @@ ul {
   z-index: 5;
 }
 
-/* Heart bubble, with the bar of more reactions sliding out to its left. The
-   heart comes first in the DOM so Tab moves from it into the bar. */
+/* One floating bubble holding the heart and, to its left, the arrow and the
+   extra reactions. Closed, only the arrow sits beside the heart; open, the
+   reactions grow out between them, so the arrow rides the bubble's left edge.
+   The heart comes first in the DOM so Tab moves from it into the bar. */
 .reaction-picker {
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  gap: 0.5rem;
+  border-radius: 999px;
+  background-color: var(--chakra-colors-bg-panel);
+  box-shadow: var(--chakra-shadows-floating);
 }
 
 .reaction-bar {
   display: flex;
+  align-items: center;
+  padding-left: 6px;
+}
+
+.reaction-toggle svg {
+  transition: transform 200ms ease-out;
+}
+
+.reaction-bar[data-open] .reaction-toggle svg {
+  transform: rotate(180deg);
+}
+
+.reaction-bar-items {
+  display: flex;
   flex-direction: row-reverse; /* first reaction sits nearest the heart */
   gap: 2px;
-  padding: 4px;
-  border-radius: 999px;
-  background-color: var(--chakra-colors-bg-panel);
-  box-shadow: var(--chakra-shadows-floating);
-  transform-origin: right center;
-  animation: reaction-bar-in 180ms ease-out;
+  max-width: 0;
+  overflow: hidden;
+  transition: max-width 200ms ease-out;
+}
+
+.reaction-bar[data-open] .reaction-bar-items {
+  max-width: 168px; /* four 40px reactions plus gaps */
 }
 
 .reaction-bar-item {
-  animation: reaction-bar-item-in 180ms ease-out both;
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms ease-out;
 }
 
-@keyframes reaction-bar-in {
-  from {
-    transform: scaleX(0.6);
-    opacity: 0;
-  }
-
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
-
-@keyframes reaction-bar-item-in {
-  from {
-    transform: translateX(8px) scale(0.8);
-    opacity: 0;
-  }
-
-  to {
-    transform: none;
-    opacity: 1;
-  }
+.reaction-bar[data-open] .reaction-bar-item {
+  opacity: 1;
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reaction-bar,
-  .reaction-bar-item {
-    animation: none;
+  .reaction-bar-items,
+  .reaction-bar-item,
+  .reaction-toggle svg {
+    transition: none;
   }
 }
 
