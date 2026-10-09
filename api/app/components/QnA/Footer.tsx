@@ -52,7 +52,7 @@ export function Footer({
   const { trigger, isMutating } = useAskQuestion(event, {
     onSuccess: () => {
       toaster.create({
-        title: "Question added 🎉",
+        title: "Question added",
         type: "success",
         duration: CONFIRMATION_DURATION,
       });
