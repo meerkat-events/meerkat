@@ -10,10 +10,10 @@ import logger from "./logger.ts";
 import type { Conference } from "./models/conferences.ts";
 import {
   conferenceModerationSchema,
-  HIDE_THRESHOLD,
   MODERATION_MODEL,
   MODERATION_TIMEOUT_MS,
   type QuestionModeration,
+  shouldHide,
 } from "./moderation.ts";
 
 export type ModerationDecision = {
@@ -78,12 +78,14 @@ export async function moderateQuestion(
   const moderation: QuestionModeration = {
     category: result.category,
     flagged: result.flagged,
+    politics: result.politics,
+    war: result.war,
     model: result.model,
     ...(result.id ? { id: result.id } : {}),
   };
 
   return {
-    hiddenAt: result.flagged >= HIDE_THRESHOLD ? new Date() : null,
+    hiddenAt: shouldHide(result) ? new Date() : null,
     moderation,
   };
 }

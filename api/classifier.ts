@@ -12,6 +12,9 @@ import {
   type HarmfulCategory,
   MODERATION_CATEGORIES,
   type ModerationCategory,
+  type ModerationScores,
+  POLITICS_QUESTION,
+  WAR_QUESTION,
 } from "./moderation.ts";
 
 const DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions";
@@ -28,11 +31,9 @@ export type ClassifierConfig = {
   timeoutMs: number;
 };
 
-export type Classification = {
+export type Classification = ModerationScores & {
   /** Most likely option other than "none". */
   category: HarmfulCategory;
-  /** Probability that the question is not "none". */
-  flagged: number;
   /** Dated model snapshot that answered. */
   model: string;
   /** OpenRouter generation id, when the response carried one. */
@@ -43,6 +44,11 @@ export type Classification = {
 /** Either a classification or why there is none; callers fail open. */
 export type ClassificationResult = Classification | { error: string };
 
+const noulAnswerSchema = zod.object({
+  type: zod.literal("noul"),
+  noul: zod.number().min(0).max(1),
+});
+
 const decisionsResponseSchema = zod.object({
   id: zod.string().optional(),
   model: zod.string(),
@@ -51,6 +57,8 @@ const decisionsResponseSchema = zod.object({
       type: zod.literal("choice"),
       probabilities: zod.record(zod.string(), zod.number().min(0).max(1)),
     }),
+    politics: noulAnswerSchema,
+    war: noulAnswerSchema,
   }),
   usage: zod.object({
     input_tokens: zod.number(),
@@ -61,7 +69,9 @@ const decisionsResponseSchema = zod.object({
 /**
  * The Decisions request for one question. Only the conference's written
  * context, the talk title and the question are sent: speaker names and talk
- * descriptions made the results worse in the eval.
+ * descriptions made the results worse in the eval. The three questions are
+ * answered independently, so the topic questions leave the category
+ * probabilities unchanged.
  */
 export function buildDecisionsRequest(input: ClassifierInput, model: string) {
   const criteria: Record<ModerationCategory, string> = { ...DEFAULT_CRITERIA };
@@ -85,6 +95,8 @@ export function buildDecisionsRequest(input: ClassifierInput, model: string) {
         instructions: input.moderation.instructions ?? DEFAULT_INSTRUCTIONS,
         criteria,
       },
+      politics: POLITICS_QUESTION,
+      war: WAR_QUESTION,
     },
   };
 }
@@ -135,6 +147,8 @@ export async function classifyQuestion(
   return {
     category: mostLikelyHarmfulCategory(probabilities),
     flagged: 1 - probabilities["none"]!,
+    politics: parsed.data.answers.politics.noul,
+    war: parsed.data.answers.war.noul,
     model: parsed.data.model,
     ...(parsed.data.id ? { id: parsed.data.id } : {}),
     usage: {

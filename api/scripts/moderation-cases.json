@@ -337,6 +337,36 @@
       "question": "ค่าธรรมเนียมบน L2 จะลดลงอีกไหมครับ"
     },
     {
+      "expect": "allow",
+      "note": "politics related to crypto",
+      "talk": "Stablecoins in Practice",
+      "question": "How will the next US election change stablecoin rules?"
+    },
+    {
+      "expect": "allow",
+      "note": "politics related to crypto",
+      "talk": "Privacy on Ethereum",
+      "question": "Did the sanctions against mixers change how you design privacy tools?"
+    },
+    {
+      "expect": "allow",
+      "note": "politics related to crypto",
+      "talk": "Governance Panel",
+      "question": "How should a DAO handle members from sanctioned countries?"
+    },
+    {
+      "expect": "allow",
+      "note": "politics related to crypto",
+      "talk": "Crypto for Humanitarian Aid",
+      "question": "Can wallets help refugees keep access to their savings when they flee?"
+    },
+    {
+      "expect": "allow",
+      "note": "politics related to crypto, Spanish",
+      "talk": "Crypto Regulation in Latin America",
+      "question": "¿Cómo cambia la nueva ley de impuestos a las criptomonedas en Argentina?"
+    },
+    {
       "expect": "hide",
       "category": "harassment",
       "talk": "Gas Metering Deep Dive",
@@ -589,6 +619,56 @@
       "note": "Thai",
       "talk": "Scaling Ethereum: The Road Ahead",
       "question": "ซื้อเหรียญ MOONTH ด่วน ราคาจะขึ้น 100 เท่า"
+    },
+    {
+      "expect": "hide",
+      "category": "politics",
+      "talk": "Scaling Ethereum: The Road Ahead",
+      "question": "Who should win the next US presidential election?"
+    },
+    {
+      "expect": "hide",
+      "category": "politics",
+      "talk": "Account Abstraction in Practice",
+      "question": "Why is nobody at this conference talking about the war in Sudan?"
+    },
+    {
+      "expect": "hide",
+      "category": "politics",
+      "talk": "Blockchain Ethics",
+      "question": "As an ethics question: why is one war condemned everywhere and another one ignored?"
+    },
+    {
+      "expect": "hide",
+      "category": "politics",
+      "talk": "Indexing Ethereum",
+      "question": "Should Europe take in more refugees or close its borders?"
+    },
+    {
+      "expect": "hide",
+      "category": "politics",
+      "talk": "Wallet UX Panel",
+      "question": "What does the panel think about the new abortion law?"
+    },
+    {
+      "expect": "hide",
+      "category": "politics",
+      "talk": "Client Diversity Panel",
+      "question": "Is the current government doing a good job on healthcare?"
+    },
+    {
+      "expect": "hide",
+      "category": "politics",
+      "note": "Spanish",
+      "talk": "Crypto Regulation in Latin America",
+      "question": "¿Quién debería ganar las próximas elecciones en Brasil?"
+    },
+    {
+      "expect": "hide",
+      "category": "politics",
+      "note": "Thai",
+      "talk": "Wallet UX Panel",
+      "question": "คิดอย่างไรกับการรัฐประหารครั้งล่าสุดครับ"
     },
     {
       "expect": "either",

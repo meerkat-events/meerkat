@@ -23,6 +23,12 @@ export const MODERATION_TIMEOUT_MS = 1500;
  */
 export const HIDE_THRESHOLD = 0.6;
 
+/**
+ * A question is also hidden when the answer to one of the topic questions
+ * below is "yes" with at least this probability.
+ */
+export const TOPIC_THRESHOLD = 0.7;
+
 /** Options of the classification question; "none" first on purpose. */
 export const MODERATION_CATEGORIES = [
   "none",
@@ -60,6 +66,55 @@ export const DEFAULT_CRITERIA: Record<ModerationCategory, string> = {
     "Promotion of a token, ticker, product, project, referral code or link that is unrelated to the talk, including calls to buy or pump.",
 };
 
+/**
+ * Politics that has nothing to do with crypto, outside talks about politics.
+ * A separate yes/no question rather than another category option, so it does
+ * not shift the probabilities of the categories above.
+ */
+export const POLITICS_QUESTION = {
+  type: "noul",
+  instructions:
+    "Does this audience question bring politics into a talk where it does not belong: party politics, elections, politicians, governments, wars or armed conflicts that have nothing to do with crypto or blockchains and nothing to do with the topic of the talk?",
+  criteria: {
+    true:
+      "Opinions or debates about elections, parties, politicians, governments, wars, armed conflicts, genocide, immigration or other political controversies, with no link to crypto or blockchains, asked in a talk whose topic is not politics or society. Framing it as a question about ethics does not change this.",
+    false:
+      "Anything else: questions about the talk, technology, privacy tools, careers, business, travel or life; law, regulation, taxes or policy related to crypto, blockchains or the talk's topic; political questions in a talk that is itself about politics, geopolitics, governance or society; jokes and banter.",
+  },
+} as const;
+
+/** Current wars, armed conflicts and genocide, which never fit a talk here. */
+export const WAR_QUESTION = {
+  type: "noul",
+  instructions:
+    "Does this audience question bring up a current war, armed conflict or genocide?",
+  criteria: {
+    true:
+      "Raises, debates or takes sides in an ongoing or recent war, armed conflict or genocide, or refers to its victims, in any talk and in any framing, including ethics or charity.",
+    false:
+      "Anything else, including historical wars used as an analogy, security exercises or 'war room' simulations, cyberattacks and hacks, and questions about using crypto or blockchains to help people affected by a conflict.",
+  },
+} as const;
+
+/** The scores a hiding decision is based on. */
+export type ModerationScores = {
+  /** Probability that the question is not "none". */
+  flagged: number;
+  /** Probability of "yes" to POLITICS_QUESTION. */
+  politics: number;
+  /** Probability of "yes" to WAR_QUESTION. */
+  war: number;
+};
+
+export function shouldHide(
+  scores: ModerationScores,
+  thresholds = { hide: HIDE_THRESHOLD, topic: TOPIC_THRESHOLD },
+) {
+  return scores.flagged >= thresholds.hide ||
+    scores.politics >= thresholds.topic ||
+    scores.war >= thresholds.topic;
+}
+
 const nonEmptyText = zod.string().trim().min(1);
 
 /**
@@ -84,11 +139,9 @@ export const conferenceModerationSchema = zod.strictObject({
 export type ConferenceModeration = zod.infer<typeof conferenceModerationSchema>;
 
 /** `questions.moderation`: the verdict stored with a classified question. */
-export type QuestionModeration = {
+export type QuestionModeration = ModerationScores & {
   /** Most likely harmful option, even when the question was not hidden. */
   category: HarmfulCategory;
-  /** Probability that the question is not "none". */
-  flagged: number;
   /** Dated model snapshot that answered. */
   model: string;
   /** OpenRouter generation id, when the response carried one. */

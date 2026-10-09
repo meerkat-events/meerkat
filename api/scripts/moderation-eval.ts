@@ -11,7 +11,8 @@
  *
  * Usage, in api/:
  *   node --env-file=.env scripts/moderation-eval.ts [case files...]
- *     [--threshold 0.6] [--out results.json] [--baseline results.json]
+ *     [--threshold 0.6] [--topic-threshold 0.7]
+ *     [--out results.json] [--baseline results.json]
  *
  * Without files it runs scripts/moderation-cases.json. Private case files,
  * such as labeled production questions, use the same format and stay outside
@@ -22,7 +23,8 @@
  *   {
  *     "moderation": { "context": "...", "instructions"?: "...", "criteria"?: {...} },
  *     "gates"?: { "minHideRecall": 0.8, "maxFalseHideRate": 0.01 },
- *     "cases": [{ "expect": "hide" | "allow" | "either", "category"?, "note"?,
+ *     "cases": [{ "expect": "hide" | "allow" | "either",
+ *                 "category"?: a harmful category or "politics", "note"?,
  *                 "conference"?, "talk": "...", "question": "..." }]
  *   }
  * `moderation` has the format of conferences.moderation; a case's own
@@ -38,6 +40,8 @@ import {
   MODERATION_CATEGORIES,
   MODERATION_MODEL,
   MODERATION_TIMEOUT_MS,
+  shouldHide,
+  TOPIC_THRESHOLD,
 } from "../moderation.ts";
 
 const apiKey = process.env["OPENROUTER_API_KEY"];
@@ -51,11 +55,18 @@ if (!apiKey) {
 const EVAL_TIMEOUT_MS = 10_000;
 const CONCURRENCY = 8;
 const REPORT_THRESHOLDS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+
+/** Labels a must-hide case can carry: the harmful categories, plus "politics"
+ * for questions the politics or war question should catch. */
+const CASE_CATEGORIES = [
+  ...MODERATION_CATEGORIES.filter((category) => category !== "none"),
+  "politics",
+] as const;
 const BASELINE_TOLERANCE = 0.01;
 
 const caseSchema = zod.object({
   expect: zod.enum(["hide", "allow", "either"]),
-  category: zod.enum(MODERATION_CATEGORIES).exclude(["none"]).optional(),
+  category: zod.enum(CASE_CATEGORIES).optional(),
   note: zod.string().optional(),
   conference: zod.string().min(1).optional(),
   talk: zod.string().min(1),
@@ -129,11 +140,17 @@ function percentile(sorted: number[], fraction: number) {
 }
 
 function describe(result: Result) {
-  const score = result.classification?.flagged.toFixed(2) ?? "  - ";
+  const scores = result.classification
+    ? [
+      result.classification.flagged,
+      result.classification.politics,
+      result.classification.war,
+    ].map((score) => score.toFixed(2)).join(" ")
+    : "   -    -    -";
   const predicted = result.classification?.category ?? "-";
   const expected = result.category ?? result.note ?? "";
-  const question = result.question.replace(/\s+/g, " ").slice(0, 90);
-  return `  ${score}  ${predicted.padEnd(14)} ${expected.padEnd(22)} ${question}`;
+  const question = result.question.replace(/\s+/g, " ").slice(0, 80);
+  return `  ${scores}  ${predicted.padEnd(14)} ${expected.padEnd(22)} ${question}`;
 }
 
 /** Prints the report for one case file and returns whether its gates pass. */
@@ -141,13 +158,14 @@ function report(
   file: string,
   caseFile: CaseFile,
   results: Result[],
-  threshold: number,
+  thresholds: { hide: number; topic: number },
   baseline: Map<string, number> | null,
 ) {
   const scored = results.filter((result) => result.classification);
   const failed = results.filter((result) => result.error !== undefined);
-  const isHidden = (result: Result, at = threshold) =>
-    (result.classification?.flagged ?? 0) >= at;
+  const isHidden = (result: Result, hide = thresholds.hide) =>
+    result.classification !== undefined &&
+    shouldHide(result.classification, { hide, topic: thresholds.topic });
 
   const mustHide = scored.filter((result) => result.expect === "hide");
   const mustAllow = scored.filter((result) => result.expect === "allow");
@@ -163,11 +181,10 @@ function report(
     ...new Set(scored.map((result) => result.classification!.model)),
   ];
   console.log(`\n=== ${file}`);
-  console.log(`${results.length} cases, model ${models.join(", ") || MODERATION_MODEL}, hide threshold ${threshold}\n`);
+  console.log(`${results.length} cases, model ${models.join(", ") || MODERATION_MODEL}, hide threshold ${thresholds.hide}, topic threshold ${thresholds.topic}\n`);
 
   console.log("Must hide, by category:");
-  for (const category of MODERATION_CATEGORIES) {
-    if (category === "none") continue;
+  for (const category of CASE_CATEGORIES) {
     const inCategory = mustHide.filter((result) => result.category === category);
     if (inCategory.length === 0) continue;
     const caught = inCategory.filter((result) => isHidden(result)).length;
@@ -177,6 +194,8 @@ function report(
   console.log(`Must allow: ${falseHides.length} of ${mustAllow.length} hidden (${percent(falseHides.length, mustAllow.length)})`);
   console.log(`Either: ${either.filter((result) => isHidden(result)).length} of ${either.length} hidden\n`);
 
+  console.log("Scores below: category, politics, war. Threshold table varies the");
+  console.log(`category threshold; the topic threshold stays ${thresholds.topic}.\n`);
   console.log("Threshold  must hide hidden  must allow hidden  either hidden");
   for (const at of REPORT_THRESHOLDS) {
     console.log([
@@ -243,18 +262,25 @@ function report(
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
-    threshold: { type: "string" },
-    out: { type: "string" },
-    baseline: { type: "string" },
+    "threshold": { type: "string" },
+    "topic-threshold": { type: "string" },
+    "out": { type: "string" },
+    "baseline": { type: "string" },
   },
 });
 
-const threshold = values.threshold === undefined
-  ? HIDE_THRESHOLD
-  : Number(values.threshold);
-if (!(threshold > 0 && threshold < 1)) {
-  throw new Error(`--threshold must be between 0 and 1, got ${values.threshold}`);
+function readThreshold(option: string, value: string | undefined, fallback: number) {
+  const threshold = value === undefined ? fallback : Number(value);
+  if (!(threshold > 0 && threshold < 1)) {
+    throw new Error(`--${option} must be between 0 and 1, got ${value}`);
+  }
+  return threshold;
 }
+
+const thresholds = {
+  hide: readThreshold("threshold", values["threshold"], HIDE_THRESHOLD),
+  topic: readThreshold("topic-threshold", values["topic-threshold"], TOPIC_THRESHOLD),
+};
 
 /** Scores by case from an earlier --out file, in this or the earlier format. */
 function readBaseline(path: string) {
@@ -272,7 +298,7 @@ function readBaseline(path: string) {
   return scores;
 }
 
-const baseline = values.baseline ? readBaseline(values.baseline) : null;
+const baseline = values["baseline"] ? readBaseline(values["baseline"]) : null;
 
 const files = positionals.length > 0
   ? positionals
@@ -293,11 +319,11 @@ for (const { file, caseFile } of caseFiles) {
     (item) => evaluate(file, caseFile, item),
   );
   allResults.push(...results);
-  allPassed = report(file, caseFile, results, threshold, baseline) && allPassed;
+  allPassed = report(file, caseFile, results, thresholds, baseline) && allPassed;
 }
 
-if (values.out) {
-  writeFileSync(values.out, JSON.stringify(allResults, null, 2) + "\n");
+if (values["out"]) {
+  writeFileSync(values["out"], JSON.stringify(allResults, null, 2) + "\n");
 }
 
 if (!allPassed) {

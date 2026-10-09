@@ -9,6 +9,9 @@ import {
   conferenceModerationSchema,
   DEFAULT_CRITERIA,
   MODERATION_CATEGORIES,
+  POLITICS_QUESTION,
+  shouldHide,
+  WAR_QUESTION,
 } from "./moderation.ts";
 
 const config = { apiKey: "test-key", model: "test/model", timeoutMs: 1000 };
@@ -24,18 +27,28 @@ function probabilities(overrides: Record<string, number>) {
   return { ...result, ...overrides };
 }
 
-function decisionsResponse(answerProbabilities: Record<string, number>) {
+function decisionsResponse(
+  answerProbabilities: Record<string, number>,
+  topics: { politics?: number; war?: number } = {},
+) {
+  const answers: Record<string, unknown> = {
+    category: {
+      type: "choice",
+      choice: "none",
+      confidence: 0.1,
+      probabilities: answerProbabilities,
+    },
+  };
+  if (topics.politics !== undefined) {
+    answers["politics"] = { type: "noul", noul: topics.politics };
+  }
+  if (topics.war !== undefined) {
+    answers["war"] = { type: "noul", noul: topics.war };
+  }
   return Response.json({
     id: "gen-dec-1",
     model: "test/model-20261006",
-    answers: {
-      category: {
-        type: "choice",
-        choice: "none",
-        confidence: 0.1,
-        probabilities: answerProbabilities,
-      },
-    },
+    answers,
     usage: { input_tokens: 460, output_tokens: 0, cost: 0.000046 },
   });
 }
@@ -58,6 +71,7 @@ describe("classifyQuestion", () => {
     stubFetch(t, () =>
       decisionsResponse(
         probabilities({ none: 0.35, harassment: 0.3, shilling: 0.35 }),
+        { politics: 0.1, war: 0.02 },
       ));
 
     const result = await classifyQuestion(input, config);
@@ -68,11 +82,20 @@ describe("classifyQuestion", () => {
     assert.equal(result.model, "test/model-20261006");
     assert.equal(result.id, "gen-dec-1");
     assert.deepEqual(result.usage, { inputTokens: 460, cost: 0.000046 });
+    assert.equal(result.politics, 0.1);
+    assert.equal(result.war, 0.02);
+  });
+
+  it("fails when a topic answer is missing", async (t) => {
+    stubFetch(t, () =>
+      decisionsResponse(probabilities({ none: 1 }), { politics: 0.1 }));
+
+    assertError(await classifyQuestion(input, config));
   });
 
   it("fails when an option has no probability, instead of treating it as 0", async (t) => {
     const { none: _none, ...withoutNone } = probabilities({ shilling: 0.2 });
-    stubFetch(t, () => decisionsResponse(withoutNone));
+    stubFetch(t, () => decisionsResponse(withoutNone, { politics: 0, war: 0 }));
 
     assertError(await classifyQuestion(input, config));
   });
@@ -107,7 +130,8 @@ describe("classifyQuestion", () => {
   });
 
   it("sends the conference context, the talk title and the question", async (t) => {
-    const requests = stubFetch(t, () => decisionsResponse(probabilities({ none: 1 })));
+    const requests = stubFetch(t, () =>
+      decisionsResponse(probabilities({ none: 1 }), { politics: 0, war: 0 }));
 
     await classifyQuestion(input, config);
 
@@ -138,6 +162,27 @@ describe("buildDecisionsRequest", () => {
     assert.equal(criteria.shilling, "Only promotion of scams counts.");
     assert.equal(criteria.none, DEFAULT_CRITERIA.none);
     assert.deepEqual(Object.keys(criteria), [...MODERATION_CATEGORIES]);
+  });
+});
+
+describe("questions", () => {
+  it("asks the category question and both topic questions", () => {
+    const { questions } = buildDecisionsRequest(input, "test/model");
+    assert.deepEqual(Object.keys(questions), ["category", "politics", "war"]);
+    assert.equal(questions.politics, POLITICS_QUESTION);
+    assert.equal(questions.war, WAR_QUESTION);
+  });
+});
+
+describe("shouldHide", () => {
+  it("hides on any of the three scores", () => {
+    assert.ok(shouldHide({ flagged: 0.6, politics: 0, war: 0 }));
+    assert.ok(shouldHide({ flagged: 0, politics: 0.7, war: 0 }));
+    assert.ok(shouldHide({ flagged: 0, politics: 0, war: 0.7 }));
+  });
+
+  it("shows a question below every threshold", () => {
+    assert.ok(!shouldHide({ flagged: 0.59, politics: 0.69, war: 0.69 }));
   });
 });
 

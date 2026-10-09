@@ -203,7 +203,10 @@ as `event.conference.features` (`collect` shows the Event Card link).
   classifies each new question before inserting it (`moderate-question.ts`,
   `classifier.ts`: OpenRouter Decisions API, pinned model, 1.5 s timeout).
   A question is hidden (`hidden_at`) when the probability that it is not
-  `none` reaches `HIDE_THRESHOLD`; it fails open on any error or without
+  `none` reaches `HIDE_THRESHOLD`, or when one of two yes/no questions in the
+  same request (`POLITICS_QUESTION`: politics unrelated to crypto outside
+  political talks; `WAR_QUESTION`: current wars, conflicts, genocide) reaches
+  `TOPIC_THRESHOLD` (`shouldHide`). It fails open on any error or without
   `OPENROUTER_API_KEY`. Hidden questions are shadow-hidden: only their author
   sees them (`getQuestions` with `viewerId`, `useEventQuestions` on the Q&A
   page); every other query, the Realtime policy and all responses
@@ -211,9 +214,9 @@ as `event.conference.features` (`collect` shows the Event Card link).
   fields out. The react package never sees hidden questions, because
   embedders don't ask questions.
 - **The moderation eval is the gate.** Any change to `MODERATION_MODEL`,
-  `HIDE_THRESHOLD`, the default criteria or a conference's moderation config
-  must pass `node --env-file=.env scripts/moderation-eval.ts` in `api/` (exit
-  0). Its committed cases (`scripts/moderation-cases.json`) are invented;
+  the thresholds, the default criteria, the topic questions or a
+  conference's moderation config must pass
+  `node --env-file=.env scripts/moderation-eval.ts` in `api/` (exit 0). Its committed cases (`scripts/moderation-cases.json`) are invented;
   labeled real questions run from a gitignored case file in `.backups/`.
 - **Pretalx sync** (`api/pretalx.ts`): a conference with a `pretalx_event`
   slug gets one event per talk in that Pretalx event's public schedule
