@@ -1,7 +1,6 @@
 import {
   Button,
   Flex,
-  Image,
   Menu,
   Portal,
   Text,
@@ -15,6 +14,7 @@ import { useOrganizerEvents } from "../../hooks/use-organizer-events.ts";
 import type { User } from "../../hooks/use-auth.ts";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog.tsx";
 import { qa } from "../../routing.ts";
+import { Logo } from "../Logo.tsx";
 
 interface AccountProps {
   user: User;
@@ -51,12 +51,7 @@ export function Account({ user }: AccountProps) {
             height="100%"
           >
             <VStack gap="1.5rem" alignItems="center" width="100%">
-              <Image
-                src="/logo.png"
-                alt="Meerkat"
-                width="7.5rem"
-                height="auto"
-              />
+              <Logo width="7.5rem" height="auto" />
 
               <Text fontSize="2xl" fontWeight="bold" textAlign="center">
                 You are logged in
