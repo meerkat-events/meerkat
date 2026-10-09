@@ -57,6 +57,8 @@ export const Toaster = () => {
               // A quick slide up from the bottom, and back down
               transitionDuration="150ms"
               transitionTimingFunction="ease-out"
+              // The heart bubble's shadow, as they sit side by side
+              boxShadow="floating"
               {...(typeStyle && { ...typeStyle, justifyContent: "center" })}
             >
               {toast.type === "loading"
