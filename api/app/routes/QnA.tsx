@@ -55,7 +55,11 @@ import {
   HANDOVER_TOKEN_PARAM,
   parseHandoverError,
 } from "~/lib/handover.ts";
-import { consumeHandoverToken, sessionFragment } from "~/lib/handover.server.ts";
+import {
+  clientIpOf,
+  consumeHandoverToken,
+  sessionFragment,
+} from "~/lib/handover.server.ts";
 
 /**
  * Devcon handover: the Devcon event app sends ticket holders to
@@ -74,7 +78,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
   url.searchParams.delete(HANDOVER_TOKEN_PARAM);
 
-  const result = await consumeHandoverToken(token);
+  const result = await consumeHandoverToken(token, clientIpOf(request));
   if (!result.ok) {
     url.searchParams.set(HANDOVER_ERROR_PARAM, result.error);
     throw redirect(`${qa(uid)}${url.search}`);

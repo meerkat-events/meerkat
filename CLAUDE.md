@@ -159,7 +159,10 @@ as `event.conference.features` (`collect` shows the Event Card link).
   with it in the URL fragment, which the browser's Supabase client adopts;
   failures redirect with `?handover=expired|invalid|failed`. The route's
   `clientLoader` forces a document load for token URLs. No API endpoint is
-  involved. Spec:
+  involved. Minting calls Supabase's per-IP rate-limited `/verify` from our
+  servers; with `SUPABASE_SECRET_KEY` set it forwards the attendee's
+  `Fly-Client-IP` in `sb-forwarded-for`, so the limit applies per attendee
+  (needs IP Address Forwarding enabled in the project). Spec:
   https://github.com/efdevcon/monorepo/blob/main/event-app/src/app/api/meerkat/README.md
 - **API auth**: protected routes use `middlewares/jwt.ts` (Hono `jwk()`
   against Supabase's JWKS); `c.get("jwtPayload").sub` is the user id.
