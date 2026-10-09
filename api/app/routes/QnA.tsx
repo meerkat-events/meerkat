@@ -8,8 +8,6 @@ import {
   Grid,
   Icon,
   IconButton,
-  Menu,
-  Portal,
   Text,
 } from "@chakra-ui/react";
 import {
@@ -122,6 +120,8 @@ export default function QnA() {
 
   const sort = parseSort(searchParams.get("sort") ?? "newest");
   const sortLabel = sortOptions.find((option) => option.value === sort)?.label;
+  // With two modes, the sort control switches straight to the other one.
+  const otherSort = sortOptions.find((option) => option.value !== sort);
 
   const {
     data: questions,
@@ -329,43 +329,22 @@ export default function QnA() {
                   questions.length === 1 ? "question" : "questions"
                 }`}
             </Text>
-            <Menu.Root positioning={{ placement: "bottom-end" }}>
-              <Menu.Trigger asChild>
-                <Button
-                  variant="plain"
-                  size="xs"
-                  h="7"
-                  paddingInline="1"
-                  marginEnd="-1"
-                  gap="1"
-                  textStyle="sm"
-                  fontWeight="medium"
-                  color="accent.text"
-                  aria-label={`Sort by ${sortLabel}`}
-                >
-                  <Icon as={LuArrowDownUp} color="accent.icon" />
-                  {sortLabel}
-                </Button>
-              </Menu.Trigger>
-              <Portal>
-                <Menu.Positioner>
-                  <Menu.Content minW="10rem">
-                    <Menu.RadioItemGroup
-                      value={sort}
-                      onValueChange={(e) => changeSort(e.value)}
-                    >
-                      <Menu.ItemGroupLabel>Sort by</Menu.ItemGroupLabel>
-                      {sortOptions.map((option) => (
-                        <Menu.RadioItem key={option.value} value={option.value}>
-                          {option.label}
-                          <Menu.ItemIndicator />
-                        </Menu.RadioItem>
-                      ))}
-                    </Menu.RadioItemGroup>
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Portal>
-            </Menu.Root>
+            <Button
+              variant="plain"
+              size="xs"
+              h="7"
+              paddingInline="1"
+              marginEnd="-1"
+              gap="1"
+              textStyle="sm"
+              fontWeight="medium"
+              color="accent.text"
+              aria-label={`Sorted by ${sortLabel}, switch to ${otherSort?.label}`}
+              onClick={() => otherSort && changeSort(otherSort.value)}
+            >
+              <Icon as={LuArrowDownUp} color="accent.icon" />
+              {sortLabel}
+            </Button>
           </Flex>
         </header>
         <main className="content flex">
