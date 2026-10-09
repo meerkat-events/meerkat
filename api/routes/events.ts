@@ -29,11 +29,11 @@ import {
 } from "../models/questions.ts";
 import {
   createReaction,
-  getUserReactionCountAfterDate,
+  getUserReactionTimesAfterDate,
 } from "../models/reactions.ts";
 import {
   getUserById,
-  getUserPostCountAfterDate,
+  getUserPostTimesAfterDate,
   getUserPostCountPerTalk,
 } from "../models/user.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
@@ -234,7 +234,7 @@ app.post(
     }
 
     const minuteAgo = dateDeductedMinutes(1);
-    const lastMinuteActivityPromise = getUserPostCountAfterDate(
+    const lastMinuteActivityPromise = getUserPostTimesAfterDate(
       user.id,
       minuteAgo,
     );
@@ -249,9 +249,10 @@ app.post(
       throw tooManyRequests("User has too many posts");
     }
 
-    if (lastMinuteActivity.count >= MAX_QUESTIONS_PER_INTERVAL) {
+    if (lastMinuteActivity.length >= MAX_QUESTIONS_PER_INTERVAL) {
       throw tooManyRequests("User has too many posts", {
-        oldest: lastMinuteActivity.oldest,
+        recent: lastMinuteActivity,
+        allowed: MAX_QUESTIONS_PER_INTERVAL - 1,
         windowStart: minuteAgo,
       });
     }
@@ -296,14 +297,15 @@ app.post(
     }
 
     const thirtySecondsAgo = dateDeductedMinutes(0.5);
-    const thirtySecondsActivity = await getUserReactionCountAfterDate(
+    const thirtySecondsActivity = await getUserReactionTimesAfterDate(
       user.id,
       thirtySecondsAgo,
     );
 
-    if (thirtySecondsActivity.count > MAX_REACTIONS_PER_INTERVAL) {
+    if (thirtySecondsActivity.length > MAX_REACTIONS_PER_INTERVAL) {
       throw tooManyRequests("User has too many reactions", {
-        oldest: thirtySecondsActivity.oldest,
+        recent: thirtySecondsActivity,
+        allowed: MAX_REACTIONS_PER_INTERVAL,
         windowStart: thirtySecondsAgo,
       });
     }

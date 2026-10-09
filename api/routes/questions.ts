@@ -14,7 +14,7 @@ import { getUserById } from "../models/user.ts";
 import {
   createVote,
   deleteVote,
-  getUserVoteCountAfterDate,
+  getUserVoteTimesAfterDate,
   getVotesByQuestionIdAndUserId,
 } from "../models/votes.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
@@ -84,15 +84,16 @@ app.post(
     }
 
     const minuteAgo = dateDeductedMinutes(1);
-    const voteCount = await getUserVoteCountAfterDate(
+    const recentVotes = await getUserVoteTimesAfterDate(
       user.id,
       event.id,
       minuteAgo,
     );
 
-    if (voteCount.count >= MAX_VOTES_PER_EVENT) {
+    if (recentVotes.length >= MAX_VOTES_PER_EVENT) {
       throw tooManyRequests("User has too many votes", {
-        oldest: voteCount.oldest,
+        recent: recentVotes,
+        allowed: MAX_VOTES_PER_EVENT - 1,
         windowStart: minuteAgo,
       });
     }
