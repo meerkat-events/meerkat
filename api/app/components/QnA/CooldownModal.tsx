@@ -67,10 +67,13 @@ function Countdown({ until, verb }: { until: Date; verb: string }) {
   const secondsLeft = Math.max(0, Math.ceil((until.getTime() - now) / 1000));
 
   useEffect(() => {
-    if (secondsLeft === 0) return;
-    const timer = setInterval(() => setNow(Date.now()), 250);
+    const timer = setInterval(() => {
+      const time = Date.now();
+      setNow(time);
+      if (time >= until.getTime()) clearInterval(timer);
+    }, 250);
     return () => clearInterval(timer);
-  }, [secondsLeft]);
+  }, [until]);
 
   return (
     <Text mt="2" fontWeight="dialogEmphasis" fontVariantNumeric="tabular-nums">
