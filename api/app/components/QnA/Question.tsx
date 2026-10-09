@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   FiCheckCircle as CheckCircleIcon,
   FiEyeOff as DeleteIcon,
@@ -31,14 +32,19 @@ interface QuestionProps {
 export function Question(
   { canVote, canModerate, question, voted, refresh }: QuestionProps,
 ) {
+  // The vote endpoint toggles, so remember whether this tap adds the vote:
+  // only an added vote gets a confirmation.
+  const isAddingVote = useRef(false);
   const { trigger: toggleVote, isMutating: isVoting } = useVote(question.uid, {
     onSuccess: () => {
       refresh();
-      toaster.create({
-        title: "Vote recorded",
-        type: "success",
-        duration: CONFIRMATION_DURATION,
-      });
+      if (isAddingVote.current) {
+        toaster.create({
+          title: "Vote recorded",
+          type: "success",
+          duration: CONFIRMATION_DURATION,
+        });
+      }
     },
     onError: (error) => {
       toaster.create({
@@ -173,7 +179,10 @@ export function Question(
           votes={question.votes}
           voted={voted}
           loading={isVoting}
-          onClick={() => toggleVote({ uid: question.uid })}
+          onClick={() => {
+            isAddingVote.current = !voted;
+            toggleVote({ uid: question.uid });
+          }}
           disabled={!canVote || isAnswered}
         />
       </div>
