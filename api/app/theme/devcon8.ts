@@ -15,6 +15,7 @@ export const devcon8: Theme = {
   accentColor: purple,
   highlightColor: "#F5F1FE",
   shadowColor: "#160B2B33",
+  floatingShadow: `0px 2px 4px ${text}15, 0px 4px 8px ${text}10`,
   inputOutlineColor: outline,
   successToastColor: "#D5F4DD",
   errorToastColor: "#FCDCDC",

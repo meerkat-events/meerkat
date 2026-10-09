@@ -310,9 +310,10 @@ const chakraAdapter = (theme: Theme) => {
           },
           // Floating controls: the heart button and its reaction bar.
           floating: {
-            value: `0 8px 16px ${shadowColor ?? brandTint(35)}, 0 0 1px ${
-              shadowColor ?? brandTint(60)
-            }`,
+            value: theme.floatingShadow ??
+              `0 8px 16px ${shadowColor ?? brandTint(35)}, 0 0 1px ${
+                shadowColor ?? brandTint(60)
+              }`,
           },
         },
         spacing: {
