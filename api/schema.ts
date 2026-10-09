@@ -159,6 +159,9 @@ export const votes = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    // How much this vote counts: 1, or SUPERVOTE_MULTIPLIER when the voter
+    // spent a supervote on it (supervotes.ts).
+    weight: integer("weight").notNull().default(1),
   },
   (
     table,
