@@ -15,6 +15,9 @@ const MORE_REACTIONS: ReactionEmoji[] = [
 const HIDE_AFTER_MS = 4000;
 /** How long the bar stays out after the mouse leaves it. */
 const HIDE_AFTER_LEAVE_MS = 300;
+/** Delay between reactions sliding in, nearest the heart first. */
+const STAGGER_MS = 30;
+const lastIndex = MORE_REACTIONS.length - 1;
 
 export type ReactionOrigin = { x: number; y: number };
 
@@ -33,13 +36,23 @@ export type ReactButtonProps = {
  */
 export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
   const [open, setOpen] = useState(false);
+  // Closing keeps the bar mounted while it slides back in (see app.css).
+  const [isClosing, setIsClosing] = useState(false);
+  // Timers close the bar from earlier renders, so they read this, not `open`.
+  const isOpen = useRef(open);
+  isOpen.current = open;
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const isHovered = useRef(false);
 
   const close = () => {
     clearTimeout(hideTimer.current);
+    if (!isOpen.current) return;
     setOpen(false);
+    // Without motion there is no animation to wait for.
+    const reducedMotion =
+      globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setIsClosing(!reducedMotion);
   };
 
   const scheduleHide = () => {
@@ -95,6 +108,7 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
 
   const show = () => {
     setOpen(true);
+    setIsClosing(false);
     scheduleHide();
   };
 
@@ -140,13 +154,33 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
           <HeartIcon />
         </div>
       </IconButton>
-      {open && !disabled && (
-        <div className="reaction-bar" role="group" aria-label="More reactions">
+      {(open || isClosing) && !disabled && (
+        <div
+          className="reaction-bar"
+          role="group"
+          aria-label="More reactions"
+          // Closing plays the opening backwards: the farthest reaction goes
+          // first and the bar shrinks once the last one has left.
+          data-closing={isClosing || undefined}
+          inert={isClosing}
+          style={isClosing
+            ? { animationDelay: `${lastIndex * STAGGER_MS}ms` }
+            : undefined}
+          onAnimationEnd={(event) => {
+            if (isClosing && event.target === event.currentTarget) {
+              setIsClosing(false);
+            }
+          }}
+        >
           {MORE_REACTIONS.map((emoji, index) => (
             <IconButton
               key={emoji}
               className="reaction-bar-item"
-              style={{ animationDelay: `${index * 30}ms` }}
+              style={{
+                animationDelay: `${
+                  (isClosing ? lastIndex - index : index) * STAGGER_MS
+                }ms`,
+              }}
               onClick={react(emoji)}
               variant="plain"
               w="40px"

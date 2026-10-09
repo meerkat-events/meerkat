@@ -252,6 +252,40 @@ ul {
   }
 }
 
+/* Closing plays the opening backwards: ease-in is ease-out reversed, and
+   ReactButton reverses the stagger. */
+.reaction-bar[data-closing] {
+  animation: reaction-bar-out 180ms ease-in both;
+}
+
+.reaction-bar[data-closing] .reaction-bar-item {
+  animation: reaction-bar-item-out 180ms ease-in both;
+}
+
+@keyframes reaction-bar-out {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+
+  to {
+    transform: scaleX(0.6);
+    opacity: 0;
+  }
+}
+
+@keyframes reaction-bar-item-out {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(8px) scale(0.8);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reaction-bar,
   .reaction-bar-item {
