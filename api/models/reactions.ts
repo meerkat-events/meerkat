@@ -1,4 +1,4 @@
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, min, sql } from "drizzle-orm";
 import db from "../db.ts";
 import { reactions } from "../schema.ts";
 import type { ReactionEmoji } from "../reactions.ts";
@@ -22,12 +22,17 @@ export async function createReaction(
   return newReaction;
 }
 
+/**
+ * How many reactions the user has sent since `date`, and when the oldest of
+ * them was made: a rate limit over that window frees up once the oldest leaves
+ * it.
+ */
 export async function getUserReactionCountAfterDate(
   userId: string,
   date: Date,
-): Promise<number> {
+): Promise<{ count: number; oldest: Date | null }> {
   const result = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: sql<number>`count(*)`, oldest: min(reactions.createdAt) })
     .from(reactions)
     .where(
       and(
@@ -37,7 +42,10 @@ export async function getUserReactionCountAfterDate(
     )
     .execute();
 
-  return Number(result.at(0)?.count ?? 0);
+  return {
+    count: Number(result.at(0)?.count ?? 0),
+    oldest: result.at(0)?.oldest ?? null,
+  };
 }
 
 export type Reaction = typeof reactions.$inferSelect;

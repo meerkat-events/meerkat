@@ -37,6 +37,7 @@ import {
   getUserPostCountPerTalk,
 } from "../models/user.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
+import { tooManyRequests } from "../utils/too-many-requests.ts";
 import { REACTION_EMOJIS } from "../reactions.ts";
 import { type Feature, getFeatures } from "../models/features.ts";
 import { createAttendancePOD } from "../zupass.ts";
@@ -243,11 +244,15 @@ app.post(
       talkActivityPromise,
     ]);
 
-    if (
-      lastMinuteActivity >= MAX_QUESTIONS_PER_INTERVAL ||
-      talkActivity >= MAX_QUESTIONS_PER_EVENT
-    ) {
-      throw new HTTPException(429, { message: "User has too many posts" });
+    if (lastMinuteActivity.count >= MAX_QUESTIONS_PER_INTERVAL) {
+      throw tooManyRequests("User has too many posts", {
+        oldest: lastMinuteActivity.oldest,
+        windowStart: minuteAgo,
+      });
+    }
+
+    if (talkActivity >= MAX_QUESTIONS_PER_EVENT) {
+      throw tooManyRequests("User has too many posts");
     }
 
     const question = await createQuestion({
@@ -295,8 +300,11 @@ app.post(
       thirtySecondsAgo,
     );
 
-    if (thirtySecondsActivity > MAX_REACTIONS_PER_INTERVAL) {
-      throw new HTTPException(429, { message: `User has too many reactions` });
+    if (thirtySecondsActivity.count > MAX_REACTIONS_PER_INTERVAL) {
+      throw tooManyRequests("User has too many reactions", {
+        oldest: thirtySecondsActivity.oldest,
+        windowStart: thirtySecondsAgo,
+      });
     }
 
     const reaction = await createReaction({

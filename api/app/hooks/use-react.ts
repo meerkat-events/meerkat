@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import useSWRMutation from "swr/mutation";
-import { UserContext } from "../context/user.tsx";
+import { cooldownFor, UserContext } from "../context/user.tsx";
 import { poster } from "./fetcher.ts";
 import type { HTTPError } from "./http-error.ts";
 import { useAuth } from "./use-auth.ts";
@@ -14,7 +14,7 @@ export function useReact(
   uid: string,
   { onError }: { onError?: (error: HTTPError) => void },
 ): UseReactReturnType {
-  const { setIsOnCooldown } = useContext(UserContext);
+  const { setCooldown } = useContext(UserContext);
   const { session } = useAuth();
   const { trigger } = useSWRMutation(
     `/api/v1/events/${uid}/react`,
@@ -23,7 +23,7 @@ export function useReact(
     {
       onError: (error) => {
         if (error.status === 429) {
-          setIsOnCooldown(true);
+          setCooldown(cooldownFor("reaction", error));
         } else {
           onError?.(error);
         }
