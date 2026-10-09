@@ -34,6 +34,11 @@ own installer and switches itself to the version in `packageManager`.
 - **Readability and maintainability over cleverness.** Write the obvious
   version: plain control flow, descriptive names, small functions; no
   one-liner tricks, clever generics or abstractions with a single caller.
+- **No real attendee data in the repository.** Questions from production
+  dumps contain personal data (self-identifying handles, named third
+  parties). Never commit them, quoted or paraphrased, not even as test
+  cases; describe them instead. Dumps and derived files live in the
+  gitignored `.backups/`.
 - **Platform first.** Use Node and Web built-ins before reaching for a
   package: `node:test` + `node:assert`, `fetch`, `URL`, `globalThis.crypto`,
   `structuredClone`, `Intl`.
@@ -164,8 +169,12 @@ as `event.conference.features` (`collect` shows the Event Card link).
   `Fly-Client-IP` in `sb-forwarded-for`, so the limit applies per attendee
   (needs IP Address Forwarding enabled in the project). Spec:
   https://github.com/efdevcon/monorepo/blob/main/event-app/src/app/api/meerkat/README.md
-- **API auth**: protected routes use `middlewares/jwt.ts` (Hono `jwk()`
-  against Supabase's JWKS); `c.get("jwtPayload").sub` is the user id.
+- **API auth**: protected routes use `jwt()` from `middlewares/jwt.ts` (Hono
+  `jwk()` against Supabase's JWKS, cached for 10 minutes);
+  `c.get("jwtPayload").sub` is the user id. `optionalJwt()` sets the payload
+  when a valid token is present and otherwise lets the request through
+  anonymously (the question list uses it to include the viewer's own hidden
+  questions).
 - **Roles** (`conference_role`: attendee/speaker/organizer, per conference)
   are granted only by a DB trigger on `auth.users` insert that claims
   matching `invitations` rows by email (migration 0002). Routes check
@@ -188,6 +197,24 @@ as `event.conference.features` (`collect` shows the Event Card link).
   transaction. Event upserts never overwrite `live`.
 - Rate limits are constants in `api/moderation.ts`; routes answer 429 and the
   frontend shows a cooldown modal (`UserContext.isOnCooldown`).
+- **Automatic moderation** (design: `designs/002-question-moderation.md`):
+  for a conference with a `conferences.moderation` config (written context,
+  optional `instructions`/`criteria` overrides; null = off), the create route
+  classifies each new question before inserting it (`moderate-question.ts`,
+  `classifier.ts`: OpenRouter Decisions API, pinned model, 1.5 s timeout).
+  A question is hidden (`hidden_at`) when the probability that it is not
+  `none` reaches `HIDE_THRESHOLD`; it fails open on any error or without
+  `OPENROUTER_API_KEY`. Hidden questions are shadow-hidden: only their author
+  sees them (`getQuestions` with `viewerId`, `useEventQuestions` on the Q&A
+  page); every other query, the Realtime policy and all responses
+  (`toPublicQuestion`, `toApiConference`) leave them and the moderation
+  fields out. The react package never sees hidden questions, because
+  embedders don't ask questions.
+- **The moderation eval is the gate.** Any change to `MODERATION_MODEL`,
+  `HIDE_THRESHOLD`, the default criteria or a conference's moderation config
+  must pass `node --env-file=.env scripts/moderation-eval.ts` in `api/` (exit
+  0). Its committed cases (`scripts/moderation-cases.json`) are invented;
+  labeled real questions run from a gitignored case file in `.backups/`.
 - **Pretalx sync** (`api/pretalx.ts`): a conference with a `pretalx_event`
   slug gets one event per talk in that Pretalx event's public schedule
   (`uid` = submission code, which the Devcon app links to; `stage` =
@@ -207,12 +234,14 @@ as `event.conference.features` (`collect` shows the Event Card link).
    (`utils/broadcast.ts`), which posts to Supabase's REST broadcast API on
    topic `event-{id}`; each server instance holds one subscription per event
    and pushes an SSE `update` to its clients (`ping` every 30 s). Consumed
-   with `useQuestions`/`useEventSource` from the react package, both by
-   embedders and by `QnA.tsx` and `Event.tsx`.
+   with `useQuestions`/`useEventSource` from the react package by embedders
+   and `Event.tsx`; `QnA.tsx` uses `useEventQuestions`, which sends the
+   session token, plus the package's `useEventSource`.
 2. **`postgres_changes` in the browser**: reactions on the presenter view
    (`use-reactions-subscription`) and new questions on the moderation page
    (`useAllQuestions`). Their tables need a SELECT policy and membership in
-   the `supabase_realtime` publication (see Database changes).
+   the `supabase_realtime` publication (see Database changes); the questions
+   policy excludes rows hidden by moderation.
 3. **Live-event broadcasts**: `POST /api/v1/events/:uid/live` sends on
    `conference-{id}` and `stage-{stage}`; `useLiveEventSubscription` and
    `useKeepLive` listen, and `useKeepLive` also polls
