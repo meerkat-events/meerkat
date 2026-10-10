@@ -81,7 +81,10 @@ app.post(
 
     await markUserAsBlocked(blockedUser.id);
 
-    logger.info({ user, blockedUser }, "Blocked user");
+    logger.info(
+      { userId: user.id, blockedUserId: blockedUser.id },
+      "Blocked user",
+    );
 
     return c.json({ data: {} });
   },

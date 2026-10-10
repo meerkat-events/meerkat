@@ -108,7 +108,7 @@ app.post(
     await broadcastQuestionsUpdate(event.id);
 
 
-    logger.info({ question, user, event }, "Upvoted question");
+    logger.info({ question, userId: user.id, event }, "Upvoted question");
 
     return c.json({ data: toPublicQuestion(question) });
   },
@@ -165,7 +165,7 @@ app.post(
     await broadcastQuestionsUpdate(event.id);
 
 
-    logger.info({ question, user, event }, "Selected question");
+    logger.info({ question, userId: user.id, event }, "Selected question");
 
     return c.json({ data: toPublicQuestion(result) });
   },
@@ -222,7 +222,7 @@ app.post(
     await broadcastQuestionsUpdate(event.id);
 
 
-    logger.info({ question, user, event }, "Marked question as answered");
+    logger.info({ question, userId: user.id, event }, "Marked question as answered");
 
     return c.json({ data: toPublicQuestion(result) });
   },
@@ -281,7 +281,7 @@ app.delete(
     await broadcastQuestionsUpdate(event.id);
 
 
-    logger.info({ question, user, event }, "Deleted question");
+    logger.info({ question, userId: user.id, event }, "Deleted question");
 
     return c.json({ data: toPublicQuestion(result) });
   },

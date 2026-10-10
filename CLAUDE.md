@@ -38,7 +38,8 @@ own installer and switches itself to the version in `packageManager`.
   dumps contain personal data (self-identifying handles, named third
   parties). Never commit them, quoted or paraphrased, not even as test
   cases; describe them instead. Dumps and derived files live in the
-  gitignored `.backups/`.
+  gitignored `.backups/`. Logs carry ids (`userId`, question `uid`), never
+  user rows or email addresses.
 - **Platform first.** Use Node and Web built-ins before reaching for a
   package: `node:test` + `node:assert`, `fetch`, `URL`, `globalThis.crypto`,
   `structuredClone`, `Intl`.
@@ -211,7 +212,9 @@ as `event.conference.features` (`collect` shows the Event Card link).
   is stored as "review". A provider refusal hides the question; any other
   error, or no `OPENROUTER_API_KEY`, fails open. A `relevance` score (0-4,
   `buildRelevanceQuestion`) and the decision are stored in
-  `questions.moderation` but not used or exposed yet. Hidden questions are
+  `questions.moderation` but not used or exposed yet. Every classifier call
+  writes one structured log line after the insert (`logModerationCall`:
+  outcome, decision, scores, duration, tokens, cost; no question text). Hidden questions are
   shadow-hidden: only their author sees them (`getQuestions` with `viewerId`, `useEventQuestions` on the Q&A
   page); every other query, the Realtime policy and all responses
   (`toPublicQuestion`, `toApiConference`) leave them and the moderation

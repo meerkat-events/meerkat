@@ -11,7 +11,12 @@
  *
  * Usage, in api/:
  *   node --env-file=.env scripts/moderation-eval.ts [case files...]
- *     [--threshold 0.6] [--out results.json] [--baseline results.json]
+ *     [--threshold 0.5] [--concurrency 8]
+ *     [--out results.json] [--baseline results.json]
+ *
+ * `--concurrency` is how many requests the eval keeps in flight. Production
+ * sends one request per posted question; 8 only makes a full private run
+ * finish in minutes. Measure latency with 1 when it matters.
  *
  * Without files it runs scripts/moderation-cases.json. Private case files,
  * such as labeled production questions, use the same format and stay outside
@@ -54,7 +59,7 @@ if (!apiKey) {
 // counted as failures; the report shows how many exceeded the production
 // timeout.
 const EVAL_TIMEOUT_MS = 10_000;
-const CONCURRENCY = 8;
+const DEFAULT_CONCURRENCY = 8;
 const REPORT_THRESHOLDS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
 
 /** Labels a must-hide case can carry: the harmful categories, plus "politics"
@@ -348,6 +353,7 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     "threshold": { type: "string" },
+    "concurrency": { type: "string" },
     "out": { type: "string" },
     "baseline": { type: "string" },
   },
@@ -359,6 +365,13 @@ function readThreshold(option: string, value: string | undefined, fallback: numb
     throw new Error(`--${option} must be between 0 and 1, got ${value}`);
   }
   return threshold;
+}
+
+const concurrency = values["concurrency"] === undefined
+  ? DEFAULT_CONCURRENCY
+  : Number(values["concurrency"]);
+if (!Number.isInteger(concurrency) || concurrency < 1) {
+  throw new Error(`--concurrency must be a positive integer, got ${values["concurrency"]}`);
 }
 
 const threshold = readThreshold(
@@ -400,7 +413,7 @@ let allPassed = true;
 for (const { file, caseFile } of caseFiles) {
   const results = await mapWithConcurrency(
     caseFile.cases,
-    CONCURRENCY,
+    concurrency,
     (item) => evaluate(file, caseFile, item),
   );
   allResults.push(...results);

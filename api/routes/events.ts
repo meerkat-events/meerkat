@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { jwt, optionalJwt } from "../middlewares/jwt.ts";
-import { moderateQuestion } from "../moderate-question.ts";
+import { logModerationCall, moderateQuestion } from "../moderate-question.ts";
 import { zValidator } from "@hono/zod-validator";
 import zod from "zod";
 import {
@@ -172,7 +172,7 @@ app.post(
     const pod = createAttendancePOD(conference!, event, zupassId);
 
     logger.info(
-      { pod, conference, event, zupassId, user },
+      { pod, conference, event, zupassId, userId: user.id },
       "Created attendance pod",
     );
 
@@ -270,7 +270,7 @@ app.post(
       throw new HTTPException(429, { message: "User has too many posts" });
     }
 
-    const { hiddenAt, moderation } = await moderateQuestion({
+    const { hiddenAt, moderation, call } = await moderateQuestion({
       question: questionData.question,
       talk: {
         title: event.title,
@@ -288,16 +288,26 @@ app.post(
       moderation,
     });
 
+    if (call) {
+      logModerationCall({
+        questionUid: question.uid,
+        eventId: event.id,
+        conferenceId: event.conferenceId,
+        moderation,
+        call,
+      });
+    }
+
     // A hidden question changes no one else's list, so there is nothing to
     // broadcast; its author's page refreshes after posting.
     if (question.hiddenAt) {
       logger.info(
-        { question, event, user },
+        { question, event, userId: user.id },
         "Created question, hidden by moderation",
       );
     } else {
       await broadcastQuestionsUpdate(event.id);
-      logger.info({ question, event, user }, "Created question");
+      logger.info({ question, event, userId: user.id }, "Created question");
     }
 
     return c.json({
@@ -347,7 +357,7 @@ app.post(
       emoji,
     });
 
-    logger.info({ reaction, event, user }, "Created reaction");
+    logger.info({ reaction, event, userId: user.id }, "Created reaction");
 
     return c.json({
       data: {
@@ -411,7 +421,7 @@ app.post(
       });
     }
 
-    logger.info({ result, event, user }, "Set event live");
+    logger.info({ result, event, userId: user.id }, "Set event live");
 
     return c.json({ data: result });
   },
