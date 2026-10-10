@@ -11,7 +11,6 @@
 --    browser receives from /api/v1/config. RLS with no policy means no access
 --    for anon/authenticated. The API connects as the table owner (postgres) and
 --    is not affected.
-ALTER TABLE public.profile            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conferences        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conference_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events             ENABLE ROW LEVEL SECURITY;

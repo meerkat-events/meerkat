@@ -1,6 +1,6 @@
 import { and, eq, gt, sql } from "drizzle-orm";
 import db from "../db.ts";
-import { profiles, questions, users } from "../schema.ts";
+import { questions, users } from "../schema.ts";
 
 export async function getUserById(id: string) {
   const user = await db.select().from(users).where(eq(users.id, id)).limit(1)
@@ -17,16 +17,6 @@ export async function markUserAsBlocked(id: string) {
   }).where(
     eq(users.id, id),
   ).execute();
-}
-
-export async function updateProfile(
-  userId: string,
-  profile: typeof profiles.$inferInsert,
-) {
-  const result = await db.update(profiles).set(profile).where(
-    eq(profiles.userId, userId),
-  ).returning().execute();
-  return result.length > 0 ? result[0] : null;
 }
 
 export async function getUserPostCountAfterDate(

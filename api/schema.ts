@@ -31,14 +31,6 @@ export const users = authSchema.table("users", {
   bannedUntil: timestamp("banned_until"),
 });
 
-export const profiles = pgTable("profile", {
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").unique(),
-  zupassId: text("zupass_id"),
-});
-
 export const conferences = pgTable("conferences", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
