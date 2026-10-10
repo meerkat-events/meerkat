@@ -10,10 +10,10 @@ import logger from "./logger.ts";
 import type { Conference } from "./models/conferences.ts";
 import {
   conferenceModerationSchema,
+  decide,
   MODERATION_MODEL,
   MODERATION_TIMEOUT_MS,
   type QuestionModeration,
-  shouldHide,
 } from "./moderation.ts";
 
 export type ModerationDecision = {
@@ -84,23 +84,26 @@ export async function moderateQuestion(
     );
     return {
       hiddenAt: new Date(),
-      moderation: { refused: true, model: MODERATION_MODEL },
+      moderation: { refused: true, decision: "hide", model: MODERATION_MODEL },
     };
   }
 
+  const decision = decide(result);
   const moderation: QuestionModeration = {
     category: result.category,
+    decision,
     flagged: result.flagged,
     politics: result.politics,
     war: result.war,
     safety: result.safety,
-    ...(result.fit !== undefined ? { fit: result.fit } : {}),
+    selfHarm: result.selfHarm,
+    ...(result.relevance !== undefined ? { relevance: result.relevance } : {}),
     model: result.model,
     ...(result.id ? { id: result.id } : {}),
   };
 
   return {
-    hiddenAt: shouldHide(result) ? new Date() : null,
+    hiddenAt: decision === "hide" ? new Date() : null,
     moderation,
   };
 }

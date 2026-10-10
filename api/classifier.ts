@@ -6,7 +6,7 @@
  */
 import zod from "zod";
 import {
-  buildFitQuestion,
+  buildRelevanceQuestion,
   type ConferenceModeration,
   DEFAULT_CRITERIA,
   DEFAULT_INSTRUCTIONS,
@@ -16,6 +16,7 @@ import {
   type ModerationScores,
   POLITICS_QUESTION,
   SAFETY_QUESTION,
+  SELF_HARM_QUESTION,
   WAR_QUESTION,
 } from "./moderation.ts";
 
@@ -40,8 +41,8 @@ export type Classification = ModerationScores & {
   model: string;
   /** OpenRouter generation id, when the response carried one. */
   id?: string;
-  /** Fit for the conference, topic and speaker, 0 to 4, when answered. */
-  fit?: number;
+  /** Relevance to conference, topic and speaker, 0 to 4, when answered. */
+  relevance?: number;
   usage: { inputTokens: number; cost: number };
 };
 
@@ -70,7 +71,8 @@ const decisionsResponseSchema = zod.object({
     politics: noulAnswerSchema,
     war: noulAnswerSchema,
     safety: noulAnswerSchema,
-    fit: zod.object({
+    self_harm: noulAnswerSchema,
+    relevance: zod.object({
       type: zod.literal("score"),
       score: zod.number().min(0).max(4),
     }).optional(),
@@ -113,7 +115,8 @@ export function buildDecisionsRequest(input: ClassifierInput, model: string) {
       politics: POLITICS_QUESTION,
       war: WAR_QUESTION,
       safety: SAFETY_QUESTION,
-      fit: buildFitQuestion(input.talk),
+      self_harm: SELF_HARM_QUESTION,
+      relevance: buildRelevanceQuestion(input.talk),
     },
   };
 }
@@ -168,7 +171,10 @@ export async function classifyQuestion(
     politics: parsed.data.answers.politics.noul,
     war: parsed.data.answers.war.noul,
     safety: parsed.data.answers.safety.noul,
-    ...(parsed.data.answers.fit ? { fit: parsed.data.answers.fit.score } : {}),
+    selfHarm: parsed.data.answers.self_harm.noul,
+    ...(parsed.data.answers.relevance
+      ? { relevance: parsed.data.answers.relevance.score }
+      : {}),
     model: parsed.data.model,
     ...(parsed.data.id ? { id: parsed.data.id } : {}),
     usage: {

@@ -11,8 +11,9 @@ import {
   DEFAULT_CRITERIA,
   MODERATION_CATEGORIES,
   POLITICS_QUESTION,
+  decide,
   SAFETY_QUESTION,
-  shouldHide,
+  SELF_HARM_QUESTION,
   WAR_QUESTION,
 } from "./moderation.ts";
 
@@ -35,8 +36,13 @@ function probabilities(overrides: Record<string, number>) {
 
 function decisionsResponse(
   answerProbabilities: Record<string, number>,
-  topics: { politics?: number; war?: number; safety?: number; fit?: number } =
-    {},
+  topics: {
+    politics?: number;
+    war?: number;
+    safety?: number;
+    selfHarm?: number;
+    relevance?: number;
+  } = {},
 ) {
   const answers: Record<string, unknown> = {
     category: {
@@ -55,8 +61,15 @@ function decisionsResponse(
   if (topics.safety !== undefined) {
     answers["safety"] = { type: "noul", noul: topics.safety };
   }
-  if (topics.fit !== undefined) {
-    answers["fit"] = { type: "score", score: topics.fit, confidence: 0.9 };
+  if (topics.selfHarm !== undefined) {
+    answers["self_harm"] = { type: "noul", noul: topics.selfHarm };
+  }
+  if (topics.relevance !== undefined) {
+    answers["relevance"] = {
+      type: "score",
+      score: topics.relevance,
+      confidence: 0.9,
+    };
   }
   return Response.json({
     id: "gen-dec-1",
@@ -93,7 +106,13 @@ describe("classifyQuestion", () => {
     stubFetch(t, () =>
       decisionsResponse(
         probabilities({ none: 0.35, harassment: 0.3, shilling: 0.35 }),
-        { politics: 0.1, war: 0.02, safety: 0.03, fit: 3.4 },
+        {
+          politics: 0.1,
+          war: 0.02,
+          safety: 0.03,
+          selfHarm: 0.04,
+          relevance: 3.4,
+        },
       ));
 
     const result = await classifyQuestion(input, config);
@@ -107,21 +126,23 @@ describe("classifyQuestion", () => {
     assert.equal(result.politics, 0.1);
     assert.equal(result.war, 0.02);
     assert.equal(result.safety, 0.03);
-    assert.equal(result.fit, 3.4);
+    assert.equal(result.selfHarm, 0.04);
+    assert.equal(result.relevance, 3.4);
   });
 
-  it("classifies without a fit score when that answer is missing", async (t) => {
+  it("classifies without a relevance score when that answer is missing", async (t) => {
     stubFetch(t, () =>
       decisionsResponse(probabilities({ none: 1 }), {
         politics: 0,
         war: 0,
         safety: 0,
+        selfHarm: 0,
       }));
 
     const result = await classifyQuestion(input, config);
 
     assertClassification(result);
-    assert.equal(result.fit, undefined);
+    assert.equal(result.relevance, undefined);
   });
 
   it("reports a refusal separately from errors", async (t) => {
@@ -162,7 +183,13 @@ describe("classifyQuestion", () => {
 
   it("fails when an option has no probability, instead of treating it as 0", async (t) => {
     const { none: _none, ...withoutNone } = probabilities({ shilling: 0.2 });
-    stubFetch(t, () => decisionsResponse(withoutNone, { politics: 0, war: 0, safety: 0 }));
+    stubFetch(t, () =>
+      decisionsResponse(withoutNone, {
+        politics: 0,
+        war: 0,
+        safety: 0,
+        selfHarm: 0,
+      }));
 
     assertError(await classifyQuestion(input, config));
   });
@@ -202,6 +229,7 @@ describe("classifyQuestion", () => {
         politics: 0,
         war: 0,
         safety: 0,
+        selfHarm: 0,
       }));
 
     await classifyQuestion(input, config);
@@ -244,33 +272,50 @@ describe("questions", () => {
       "politics",
       "war",
       "safety",
-      "fit",
+      "self_harm",
+      "relevance",
     ]);
     assert.equal(questions.politics, POLITICS_QUESTION);
     assert.equal(questions.war, WAR_QUESTION);
     assert.equal(questions.safety, SAFETY_QUESTION);
+    assert.equal(questions.self_harm, SELF_HARM_QUESTION);
   });
 
-  it("gives speaker and description only to the fit question", () => {
+  it("gives speaker and description only to the relevance question", () => {
     const request = buildDecisionsRequest(input, "test/model");
-    assert.match(request.questions.fit.instructions, /Ada Example/);
-    assert.match(request.questions.fit.instructions, /rollups and blobs/);
+    assert.match(request.questions.relevance.instructions, /Ada Example/);
+    assert.match(request.questions.relevance.instructions, /rollups and blobs/);
     assert.ok(!JSON.stringify(request.state).includes("Ada Example"));
-    assert.equal(request.questions.fit.criteria.length, 5);
+    assert.equal(request.questions.relevance.criteria.length, 5);
   });
 });
 
-describe("shouldHide", () => {
-  it("hides on any of the three scores", () => {
-    assert.ok(shouldHide({ flagged: 0.6, politics: 0, war: 0, safety: 0 }));
-    assert.ok(shouldHide({ flagged: 0, politics: 0.7, war: 0, safety: 0 }));
-    assert.ok(shouldHide({ flagged: 0, politics: 0, war: 0.7, safety: 0 }));
-    assert.ok(shouldHide({ flagged: 0, politics: 0, war: 0, safety: 0.7 }));
+describe("decide", () => {
+  const nothing = { flagged: 0, politics: 0, war: 0, safety: 0, selfHarm: 0 };
+
+  it("hides on the category or any yes/no answer", () => {
+    assert.equal(decide({ ...nothing, flagged: 0.5 }), "hide");
+    assert.equal(decide({ ...nothing, politics: 0.7 }), "hide");
+    assert.equal(decide({ ...nothing, war: 0.7 }), "hide");
+    assert.equal(decide({ ...nothing, safety: 0.7 }), "hide");
+    assert.equal(decide({ ...nothing, selfHarm: 0.7 }), "hide");
   });
 
-  it("shows a question below every threshold", () => {
-    assert.ok(
-      !shouldHide({ flagged: 0.59, politics: 0.69, war: 0.69, safety: 0.69 }),
+  it("marks the band below the hide thresholds for review", () => {
+    assert.equal(decide({ ...nothing, flagged: 0.3 }), "review");
+    assert.equal(decide({ ...nothing, safety: 0.5 }), "review");
+  });
+
+  it("shows everything below the review thresholds", () => {
+    assert.equal(
+      decide({
+        flagged: 0.29,
+        politics: 0.49,
+        war: 0.49,
+        safety: 0.49,
+        selfHarm: 0.49,
+      }),
+      "show",
     );
   });
 });

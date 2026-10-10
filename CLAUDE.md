@@ -202,16 +202,17 @@ as `event.conference.features` (`collect` shows the Event Card link).
   optional `instructions`/`criteria` overrides; null = off), the create route
   classifies each new question before inserting it (`moderate-question.ts`,
   `classifier.ts`: OpenRouter Decisions API, pinned model, 1.5 s timeout).
-  A question is hidden (`hidden_at`) when the probability that it is not
-  `none` reaches `HIDE_THRESHOLD`, or when one of three yes/no questions in the
-  same request (`POLITICS_QUESTION`: politics unrelated to crypto outside
-  political talks; `WAR_QUESTION`: current wars, conflicts, genocide;
-  `SAFETY_QUESTION`: threats, doxxing, explicit content) reaches
-  `TOPIC_THRESHOLD` (`shouldHide`). A provider refusal hides the question;
-  any other error, or no `OPENROUTER_API_KEY`, fails open. A `fit` score
-  (0-4, `buildFitQuestion`) is stored in `questions.moderation` but not used
-  or exposed yet. Hidden questions are shadow-hidden: only their author
-  sees them (`getQuestions` with `viewerId`, `useEventQuestions` on the Q&A
+  A question is hidden (`hidden_at`) when `decide` returns "hide": the
+  probability that it is not `none`, or the "yes" of one of four yes/no
+  questions in the same request (`POLITICS_QUESTION`: politics unrelated to
+  crypto outside political talks; `WAR_QUESTION`: current wars, conflicts,
+  genocide; `SAFETY_QUESTION`: threats, doxxing, explicit content;
+  `SELF_HARM_QUESTION`), reaches `MODERATION_THRESHOLDS.hide`; a lower band
+  is stored as "review". A provider refusal hides the question; any other
+  error, or no `OPENROUTER_API_KEY`, fails open. A `relevance` score (0-4,
+  `buildRelevanceQuestion`) and the decision are stored in
+  `questions.moderation` but not used or exposed yet. Hidden questions are
+  shadow-hidden: only their author sees them (`getQuestions` with `viewerId`, `useEventQuestions` on the Q&A
   page); every other query, the Realtime policy and all responses
   (`toPublicQuestion`, `toApiConference`) leave them and the moderation
   fields out. The react package never sees hidden questions, because

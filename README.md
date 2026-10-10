@@ -191,10 +191,10 @@ created. For an existing user, insert directly into `conference_role`.
 
 With `OPENROUTER_API_KEY` set, every new question of a conference with a
 `moderation` config is classified before it is stored. Questions that look
-like harassment, threats, doxxing, explicit content, hate, discrimination,
-phishing, scams or shilling, politics unrelated to crypto (outside talks
-about politics) or current wars and genocide are hidden from everyone but
-their author; if the classifier fails, questions are shown
+like harassment, threats, doxxing, explicit content, self-harm, hate,
+discrimination, phishing, scams or shilling, politics unrelated to crypto
+(outside talks about politics) or current wars and genocide are hidden from
+everyone but their author (compliments are fine); if the classifier fails, questions are shown
 as before. Write a short context about the conference, check it with the eval,
 then set it:
 

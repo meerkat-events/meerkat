@@ -379,10 +379,34 @@
       "question": "Have wrench attacks against crypto holders increased this year?"
     },
     {
-      "expect": "hide",
-      "category": "harassment",
-      "talk": "Gas Metering Deep Dive",
-      "question": "You're way too hot to be a cryptographer 🔥"
+      "expect": "allow",
+      "note": "compliment",
+      "talk": "Wallet UX Panel",
+      "question": "Love the outfit, where is it from?"
+    },
+    {
+      "expect": "allow",
+      "note": "compliment",
+      "talk": "Client Diversity Panel",
+      "question": "You crushed that talk, absolute legend!"
+    },
+    {
+      "expect": "allow",
+      "note": "compliment on looks",
+      "talk": "Zero-Knowledge Proofs for Everyone",
+      "question": "Great talk, and great hair too!"
+    },
+    {
+      "expect": "allow",
+      "note": "mental health as a topic",
+      "talk": "Sustaining Open Source",
+      "question": "How do you deal with burnout as a core dev?"
+    },
+    {
+      "expect": "allow",
+      "note": "figure of speech",
+      "talk": "Fuzzing Smart Contracts",
+      "question": "This bug killed me, how long did it take you to find it?"
     },
     {
       "expect": "hide",
@@ -716,6 +740,24 @@
       "note": "explicit",
       "talk": "Opening Ceremony",
       "question": "Anyone want to hook up for a threesome after the keynote?"
+    },
+    {
+      "expect": "hide",
+      "category": "self_harm",
+      "talk": "Opening Ceremony",
+      "question": "I can't do this anymore, I'm going to end my life after the conference."
+    },
+    {
+      "expect": "hide",
+      "category": "self_harm",
+      "talk": "The State of L2s",
+      "question": "The speaker should just kill himself and spare us."
+    },
+    {
+      "expect": "either",
+      "talk": "Gas Metering Deep Dive",
+      "question": "You're way too hot to be a cryptographer 🔥",
+      "note": "backhanded compliment"
     },
     {
       "expect": "either",

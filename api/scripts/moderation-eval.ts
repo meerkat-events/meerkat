@@ -11,8 +11,7 @@
  *
  * Usage, in api/:
  *   node --env-file=.env scripts/moderation-eval.ts [case files...]
- *     [--threshold 0.6] [--topic-threshold 0.7]
- *     [--out results.json] [--baseline results.json]
+ *     [--threshold 0.6] [--out results.json] [--baseline results.json]
  *
  * Without files it runs scripts/moderation-cases.json. Private case files,
  * such as labeled production questions, use the same format and stay outside
@@ -24,7 +23,8 @@
  *     "moderation": { "context": "...", "instructions"?: "...", "criteria"?: {...} },
  *     "gates"?: { "minHideRecall": 0.8, "maxFalseHideRate": 0.01 },
  *     "cases": [{ "expect": "hide" | "allow" | "either",
- *                 "category"?: a harmful category or "politics", "note"?,
+ *                 "category"?: a harmful category, "politics" or
+ *                   "self_harm", "note"?,
  *                 "conference"?, "talk": "...", "speaker"?, "description"?,
  *                 "picked"?: true if an MC selected or answered it,
  *                 "question": "..." }]
@@ -38,12 +38,11 @@ import zod from "zod";
 import { type Classification, classifyQuestion } from "../classifier.ts";
 import {
   conferenceModerationSchema,
-  HIDE_THRESHOLD,
   MODERATION_CATEGORIES,
   MODERATION_MODEL,
   MODERATION_TIMEOUT_MS,
-  shouldHide,
-  TOPIC_THRESHOLD,
+  decide,
+  MODERATION_THRESHOLDS,
 } from "../moderation.ts";
 
 const apiKey = process.env["OPENROUTER_API_KEY"];
@@ -63,6 +62,7 @@ const REPORT_THRESHOLDS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
 const CASE_CATEGORIES = [
   ...MODERATION_CATEGORIES.filter((category) => category !== "none"),
   "politics",
+  "self_harm",
 ] as const;
 const BASELINE_TOLERANCE = 0.01;
 
@@ -169,8 +169,9 @@ function describe(result: Result) {
       result.classification.politics,
       result.classification.war,
       result.classification.safety,
+      result.classification.selfHarm,
     ].map((score) => score.toFixed(2)).join(" ")
-    : "   -    -    -    -";
+    : "   -    -    -    -    -";
   const predicted = result.classification?.category ?? "-";
   const expected = result.category ?? result.note ?? "";
   const question = result.question.replace(/\s+/g, " ").slice(0, 80);
@@ -184,21 +185,21 @@ function mean(values: number[]) {
 }
 
 /**
- * The fit score (0 to 4) is not used for moderation yet; this shows whether
- * it tells good questions apart: by expectation, and, where cases record it,
- * by whether an MC picked the question.
+ * The relevance score (0 to 4) is not used for moderation yet; this shows
+ * whether it tells good questions apart: by expectation, and, where cases
+ * record it, by whether an MC picked the question.
  */
-function reportFit(classified: Result[]) {
-  const fitOf = (result: Result) => result.classification!.fit;
-  const withFit = classified.filter((result) => fitOf(result) !== undefined);
-  if (withFit.length === 0) return;
+function reportRelevance(classified: Result[]) {
+  const relevanceOf = (result: Result) => result.classification!.relevance;
+  const scored = classified.filter((result) => relevanceOf(result) !== undefined);
+  if (scored.length === 0) return;
 
-  const fits = (list: Result[]) => list.map((result) => fitOf(result)!);
+  const scores = (list: Result[]) => list.map((result) => relevanceOf(result)!);
   const byExpect = (expect: Case["expect"]) =>
-    withFit.filter((result) => result.expect === expect);
+    scored.filter((result) => result.expect === expect);
   console.log(
-    `\nFit (0-4), mean: must hide ${mean(fits(byExpect("hide")))}, ` +
-      `must allow ${mean(fits(byExpect("allow")))}, either ${mean(fits(byExpect("either")))}`,
+    `\nRelevance (0-4), mean: must hide ${mean(scores(byExpect("hide")))}, ` +
+      `must allow ${mean(scores(byExpect("allow")))}, either ${mean(scores(byExpect("either")))}`,
   );
 
   const allowed = byExpect("allow");
@@ -206,17 +207,18 @@ function reportFit(classified: Result[]) {
   if (picked.length === 0) return;
   const notPicked = allowed.filter((result) => result.picked !== true);
   console.log(
-    `Picked by an MC: mean fit ${mean(fits(picked))} (${picked.length} questions), ` +
-      `not picked ${mean(fits(notPicked))} (${notPicked.length})`,
+    `Picked by an MC: mean relevance ${mean(scores(picked))} (${picked.length} questions), ` +
+      `not picked ${mean(scores(notPicked))} (${notPicked.length})`,
   );
-  console.log("Fit band  questions  picked by an MC");
+  console.log("Relevance band  questions  picked by an MC");
   for (let band = 0; band < 4; band++) {
-    const inBand = allowed.filter((result) =>
-      fitOf(result)! >= band && (band === 3 ? fitOf(result)! <= 4 : fitOf(result)! < band + 1)
-    );
+    const inBand = allowed.filter((result) => {
+      const relevance = relevanceOf(result)!;
+      return relevance >= band && (band === 3 ? relevance <= 4 : relevance < band + 1);
+    });
     const pickedInBand = inBand.filter((result) => result.picked === true).length;
     console.log(
-      `  ${band}-${band + 1}     ${String(inBand.length).padStart(9)}  ${percent(pickedInBand, inBand.length)}`,
+      `  ${band}-${band + 1}           ${String(inBand.length).padStart(9)}  ${percent(pickedInBand, inBand.length)}`,
     );
   }
 }
@@ -226,17 +228,25 @@ function report(
   file: string,
   caseFile: CaseFile,
   results: Result[],
-  thresholds: { hide: number; topic: number },
+  threshold: number,
   baseline: Map<string, number> | null,
 ) {
   const classified = results.filter((result) => result.classification);
   const refused = results.filter((result) => result.refused !== undefined);
   const scored = [...classified, ...refused];
   const failed = results.filter((result) => result.error !== undefined);
-  const isHidden = (result: Result, hide = thresholds.hide) =>
-    result.refused !== undefined ||
-    (result.classification !== undefined &&
-      shouldHide(result.classification, { hide, topic: thresholds.topic }));
+  const decisionOf = (result: Result, categoryThreshold = threshold) => {
+    if (result.refused !== undefined) return "hide";
+    if (result.classification === undefined) return "show";
+    return decide(result.classification, {
+      ...MODERATION_THRESHOLDS,
+      hide: { ...MODERATION_THRESHOLDS.hide, category: categoryThreshold },
+    });
+  };
+  const isHidden = (result: Result, at = threshold) =>
+    decisionOf(result, at) === "hide";
+  const inReview = (list: Result[]) =>
+    list.filter((result) => decisionOf(result) === "review").length;
 
   const mustHide = scored.filter((result) => result.expect === "hide");
   const mustAllow = scored.filter((result) => result.expect === "allow");
@@ -252,7 +262,7 @@ function report(
     ...new Set(classified.map((result) => result.classification!.model)),
   ];
   console.log(`\n=== ${file}`);
-  console.log(`${results.length} cases, model ${models.join(", ") || MODERATION_MODEL}, hide threshold ${thresholds.hide}, topic threshold ${thresholds.topic}\n`);
+  console.log(`${results.length} cases, model ${models.join(", ") || MODERATION_MODEL}, hide threshold ${threshold}\n`);
 
   console.log("Must hide, by category:");
   for (const category of CASE_CATEGORIES) {
@@ -264,10 +274,11 @@ function report(
   console.log(`  ${"all".padEnd(15)} ${hidden.length} of ${mustHide.length} (${percent(hidden.length, mustHide.length)})`);
   console.log(`Must allow: ${falseHides.length} of ${mustAllow.length} hidden (${percent(falseHides.length, mustAllow.length)})`);
   console.log(`Either: ${either.filter((result) => isHidden(result)).length} of ${either.length} hidden`);
-  console.log(`Refused by the model (hidden): ${refused.length}\n`);
+  console.log(`Refused by the model (hidden): ${refused.length}`);
+  console.log(`Review band (not hidden, for organizers): must hide ${inReview(mustHide)}, must allow ${inReview(mustAllow)}, either ${inReview(either)}\n`);
 
-  console.log("Scores below: category, politics, war, safety. Threshold table varies the");
-  console.log(`category threshold; the topic threshold stays ${thresholds.topic}.\n`);
+  console.log("Scores below: category, politics, war, safety, self-harm. Threshold table");
+  console.log(`varies the category threshold; yes/no answers hide from ${MODERATION_THRESHOLDS.hide.yesNo}.\n`);
   console.log("Threshold  must hide hidden  must allow hidden  either hidden");
   for (const at of REPORT_THRESHOLDS) {
     console.log([
@@ -291,7 +302,7 @@ function report(
     for (const result of list.sort(byScore)) console.log(describe(result));
   }
 
-  reportFit(classified);
+  reportRelevance(classified);
 
   if (baseline) {
     const changed = classified.filter((result) => {
@@ -337,7 +348,6 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     "threshold": { type: "string" },
-    "topic-threshold": { type: "string" },
     "out": { type: "string" },
     "baseline": { type: "string" },
   },
@@ -351,10 +361,11 @@ function readThreshold(option: string, value: string | undefined, fallback: numb
   return threshold;
 }
 
-const thresholds = {
-  hide: readThreshold("threshold", values["threshold"], HIDE_THRESHOLD),
-  topic: readThreshold("topic-threshold", values["topic-threshold"], TOPIC_THRESHOLD),
-};
+const threshold = readThreshold(
+  "threshold",
+  values["threshold"],
+  MODERATION_THRESHOLDS.hide.category,
+);
 
 /** Scores by case from an earlier --out file, in this or the earlier format. */
 function readBaseline(path: string) {
@@ -393,7 +404,7 @@ for (const { file, caseFile } of caseFiles) {
     (item) => evaluate(file, caseFile, item),
   );
   allResults.push(...results);
-  allPassed = report(file, caseFile, results, thresholds, baseline) && allPassed;
+  allPassed = report(file, caseFile, results, threshold, baseline) && allPassed;
 }
 
 if (values["out"]) {

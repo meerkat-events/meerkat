@@ -18,16 +18,16 @@ export const MODERATION_MODEL = "openai/gpt-6-luna-decisions-20261006";
 export const MODERATION_TIMEOUT_MS = 1500;
 
 /**
- * A question is hidden when the probability that it is not "none" reaches
- * this value. 0.6 hid no kept question in 5,640 real ones.
+ * Probabilities at which a question is hidden, or marked for an organizer to
+ * review (stored only until the admin view exists). `category` applies to the
+ * probability that the question is not "none", `yesNo` to each yes/no
+ * question below. Calibrated on the labeled eval sets: at 0.5 the category
+ * hides 12 of 15 real violations and no kept question.
  */
-export const HIDE_THRESHOLD = 0.6;
-
-/**
- * A question is also hidden when the answer to one of the topic questions
- * below is "yes" with at least this probability.
- */
-export const TOPIC_THRESHOLD = 0.7;
+export const MODERATION_THRESHOLDS = {
+  hide: { category: 0.5, yesNo: 0.7 },
+  review: { category: 0.3, yesNo: 0.5 },
+};
 
 /** Options of the classification question; "none" first on purpose. */
 export const MODERATION_CATEGORIES = [
@@ -53,7 +53,7 @@ export const DEFAULT_CRITERIA: Record<ModerationCategory, string> = {
   none:
     "Any ordinary question or comment: blunt or critical questions about the talk, the speaker's work or the ecosystem; jokes and memes; feedback, thanks and compliments; questions about tokens, prices or launches related to the talk; political or controversial topics without hate; tests, duplicates and off-topic remarks.",
   harassment:
-    "Insults, sexual remarks or advances, or personal attacks aimed at a speaker, attendee or named person, including about looks, body or relationships.",
+    "Insults, sexual remarks or advances, or personal attacks aimed at a speaker, attendee or named person, including insults about their looks, body or relationships. Compliments are not harassment.",
   hate:
     "Slurs or hostile, dehumanizing statements about people because of ethnicity, nationality, religion, gender, sexuality, disability or similar.",
   discrimination:
@@ -115,17 +115,17 @@ export const SAFETY_QUESTION = {
 const MAX_TALK_DESCRIPTION_LENGTH = 500;
 
 /**
- * How well a question suits the conference, the talk's topic and its speaker,
- * on a scale from 0 (unrelated) to 4 (excellent). Stored only: it neither
+ * How relevant a question is to the conference, the talk's topic and its
+ * speaker, on a scale from 0 (unrelated) to 4 (excellent). Stored only: it neither
  * hides questions nor reaches any client yet. Speaker and description go into
  * this question's instructions, not the shared state, because in the shared
  * state they made the category answers worse.
  */
-export function buildFitQuestion(
+export function buildRelevanceQuestion(
   talk: { speaker: string | null; description: string | null },
 ) {
   const instructions = [
-    "How well suited is this audience question for the conference, the talk's topic and its speaker?",
+    "How relevant is this audience question to the conference, the talk's topic and its speaker?",
   ];
   if (talk.speaker) {
     instructions.push(`Speaker: ${talk.speaker}.`);
@@ -143,11 +143,24 @@ export function buildFitQuestion(
       "Unrelated: nothing to do with the conference, the talk or the speaker, such as tests, chatter or personal requests.",
       "Loosely related: about the conference's broader subject, but not this talk or speaker.",
       "Related: about the talk's general topic.",
-      "Well suited: specific to this talk or the speaker's work.",
+      "Highly relevant: specific to this talk or the speaker's work.",
       "Excellent: a specific, thoughtful question this speaker is well placed to answer and the audience will learn from.",
     ],
   } as const;
 }
+
+/** Self-harm, a category every moderation taxonomy covers. */
+export const SELF_HARM_QUESTION = {
+  type: "noul",
+  instructions:
+    "Does this audience question express an intent to harm oneself or encourage someone else to?",
+  criteria: {
+    true:
+      "Says the writer intends to hurt or kill themselves, or urges or instructs anyone to self-harm or commit suicide.",
+    false:
+      "Anything else, including burnout, stress or mental health discussed as a topic, figures of speech, and dark jokes that are not directed at anyone.",
+  },
+} as const;
 
 /** The scores a hiding decision is based on. */
 export type ModerationScores = {
@@ -159,16 +172,26 @@ export type ModerationScores = {
   war: number;
   /** Probability of "yes" to SAFETY_QUESTION. */
   safety: number;
+  /** Probability of "yes" to SELF_HARM_QUESTION. */
+  selfHarm: number;
 };
 
-export function shouldHide(
+export type ModerationDecision = "hide" | "review" | "show";
+
+export function decide(
   scores: ModerationScores,
-  thresholds = { hide: HIDE_THRESHOLD, topic: TOPIC_THRESHOLD },
-) {
-  return scores.flagged >= thresholds.hide ||
-    scores.politics >= thresholds.topic ||
-    scores.war >= thresholds.topic ||
-    scores.safety >= thresholds.topic;
+  thresholds = MODERATION_THRESHOLDS,
+): ModerationDecision {
+  const reaches = (level: { category: number; yesNo: number }) =>
+    scores.flagged >= level.category ||
+    scores.politics >= level.yesNo ||
+    scores.war >= level.yesNo ||
+    scores.safety >= level.yesNo ||
+    scores.selfHarm >= level.yesNo;
+
+  if (reaches(thresholds.hide)) return "hide";
+  if (reaches(thresholds.review)) return "review";
+  return "show";
 }
 
 const nonEmptyText = zod.string().trim().min(1);
@@ -202,11 +225,12 @@ export type QuestionModeration =
   | ModerationScores & {
     /** Most likely harmful option, even when the question was not hidden. */
     category: HarmfulCategory;
-    /** Fit for the conference, topic and speaker, 0 to 4; not exposed yet. */
-    fit?: number;
+    decision: ModerationDecision;
+    /** Relevance to conference, topic and speaker, 0 to 4; not exposed yet. */
+    relevance?: number;
     /** Dated model snapshot that answered. */
     model: string;
     /** OpenRouter generation id, when the response carried one. */
     id?: string;
   }
-  | { refused: true; model: string };
+  | { refused: true; decision: "hide"; model: string };
