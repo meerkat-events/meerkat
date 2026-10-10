@@ -239,89 +239,6 @@
   }
 }
 
-/* A question card's session + time line (cross-session lists). */
-.m-q-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 4px;
-  font-size: 12.5px;
-}
-
-.m-q-context {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  min-width: 0;
-  color: inherit;
-  opacity: 0.75;
-
-  & span:last-child {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  & .m-stage {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-}
-
-/* Upstream's question card is white on the Meerkat dark theme; give it the
-   redesign's dark purple look here until that lands (PR #27). */
-.manage .bubble {
-  background-color: color-mix(in srgb, var(--chakra-colors-brand-400) 18%, transparent);
-  border-color: color-mix(in srgb, var(--chakra-colors-brand-400) 30%, transparent);
-  border-radius: 15px;
-  color: var(--m-ink);
-}
-
-.manage .bubble.selected {
-  border-color: var(--chakra-colors-brand-solid);
-}
-
-/* Votes as the app shows them: arrow and count in one brand-outlined pill
-   (PR #27's UpVoteButton). Organizers don't vote here, so it only displays. */
-.manage .upvote {
-  flex-direction: row-reverse;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding-inline: 12px;
-  border: 1px solid var(--chakra-colors-brand-solid);
-  border-radius: 999px;
-  color: var(--m-brand-300);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.manage .upvote-count {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.manage .upvote button {
-  min-width: 0;
-  width: auto;
-  height: auto;
-  padding: 0;
-  background: none;
-  color: inherit;
-}
-
-.manage .upvote button:disabled {
-  opacity: 1;
-  cursor: default;
-}
-
-.m-q-time {
-  white-space: nowrap;
-  opacity: 0.65;
-  margin-left: auto;
-}
-
 .m-empty {
   color: var(--m-ink-3);
   text-align: center;
@@ -530,10 +447,6 @@
   flex: 1;
   padding: 0 8px 18px;
 
-  & .question-list {
-    max-width: 720px;
-    margin: 0 auto;
-  }
 }
 
 /* Show: all / open / answered / hidden / spam, with how many of each. */
@@ -686,8 +599,6 @@
   width: 92px;
 }
 
-/* A question can be both flagged and on stage, so the tags stack instead of
-   being clipped to an ellipsis. */
 /* A question can be both flagged and on stage, so the tags stack instead of
    being clipped to an ellipsis. */
 .m-qtable td.status {
@@ -909,56 +820,6 @@
   & .chakra-dialog__body {
     font-size: 13.5px;
     line-height: 1.5;
-  }
-}
-
-.m-person-questions {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  & li {
-    padding: 9px 0;
-    border-top: 1px solid var(--m-line);
-  }
-
-  & li:first-child {
-    border-top: 0;
-  }
-
-  & li.hidden p {
-    color: var(--m-ink-3);
-    text-decoration: line-through;
-    text-decoration-color: var(--m-line-strong);
-  }
-
-  & p {
-    margin: 0 0 4px;
-    font-size: 13.5px;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-  }
-
-  & .meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 4px 10px;
-    font-size: 12px;
-    color: var(--m-ink-3);
-  }
-
-  & .votes {
-    color: var(--m-brand-300);
-    font-weight: 600;
-  }
-
-  & .tag {
-    padding: 1px 7px;
-    border: 1px solid var(--m-line-strong);
-    border-radius: 999px;
-    font-size: 10.5px;
-    font-weight: 600;
   }
 }
 
