@@ -37,6 +37,13 @@ own installer and switches itself to the version in `packageManager`.
 - **Platform first.** Use Node and Web built-ins before reaching for a
   package: `node:test` + `node:assert`, `fetch`, `URL`, `globalThis.crypto`,
   `structuredClone`, `Intl`.
+- **Components first.** Build the UI from Chakra UI v3 components (`Tabs`,
+  `Menu`, `Dialog`, `SegmentGroup`, `Combobox`, `Table`, `Badge`,
+  `VisuallyHidden`, …) and style them through the theme, recipes and style
+  props. Hand-build a widget with its own markup and CSS only when Chakra has
+  nothing for the job: Chakra's components bring the keyboard support, ARIA
+  and focus handling that home-built ones keep getting wrong, and they follow
+  the per-conference theme.
 
 ## Dependencies
 
