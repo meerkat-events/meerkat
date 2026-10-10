@@ -60,11 +60,9 @@ export default function ManageLayout() {
   const now = useNow(30_000);
   const mockClock = isMockClock();
   const spamPreview = spamPreviewOn();
-  // A stack, so opening someone from someone else's history can step back.
-  const [personStack, setPersonStack] = useState<string[]>([]);
-  const personId = personStack.at(-1) ?? null;
-  const openPerson = (userId: string) =>
-    setPersonStack((stack) => stack.at(-1) === userId ? stack : [...stack, userId]);
+  // Whose history is open; someone opened from it replaces them.
+  const [personId, setPersonId] = useState<string | null>(null);
+  const openPerson = (userId: string) => setPersonId(userId);
 
   if (authLoading || (isAuthenticated && rolesLoading)) {
     return <Gate title="Loading…" />;
@@ -164,17 +162,11 @@ export default function ManageLayout() {
           // fresh dialog treat that same click as an outside click and close.
           conferenceId={context.conferenceId}
           userId={personId}
-          onClose={() => setPersonStack([])}
+          // Closing returns to whatever is underneath, e.g. a session dialog.
+          onClose={() => setPersonId(null)}
           // Blocking hides their questions everywhere, so refetch what's on screen.
           onBlocked={() => mutate(() => true)}
           onPerson={openPerson}
-          // Step back through the people opened from each other, and finally
-          // to the session dialog underneath if that is where this started.
-          onBack={personStack.length > 1
-            ? () => setPersonStack((stack) => stack.slice(0, -1))
-            : params.get("session")
-            ? () => setPersonStack([])
-            : undefined}
         />
       )}
     </div>

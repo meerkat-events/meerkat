@@ -26,15 +26,13 @@ type Tab = "questions" | "votes" | "sessions" | "hidden";
  * part, so blocking them can be sense-checked first.
  */
 export function PersonDialog(
-  { conferenceId, userId, onClose, onBlocked, onPerson, onBack }: {
+  { conferenceId, userId, onClose, onBlocked, onPerson }: {
     conferenceId: number;
     userId: string;
     onClose: () => void;
     onBlocked: () => void;
     /** Opens someone else, e.g. whoever asked a question they voted for. */
     onPerson: (userId: string) => void;
-    /** Set when this was opened from someone else's history. */
-    onBack?: (() => void) | undefined;
   },
 ) {
   const now = useNow(30_000);
@@ -74,11 +72,6 @@ export function PersonDialog(
           <Dialog.Content className="m-person">
             <Dialog.Header>
               <div>
-                {onBack && (
-                  <button type="button" className="m-back" onClick={onBack}>
-                    ← Back
-                  </button>
-                )}
                 <Dialog.Title className="name">
                   {data?.user.name ?? "…"}
                   {data?.user.blocked && <span className="m-chip blocked">Blocked</span>}
