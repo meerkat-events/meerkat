@@ -7,10 +7,11 @@ import {
   deleteQuestion,
   getQuestionByUID,
   markAsAnswered,
+  restoreQuestion,
   selectQuestion,
   toPublicQuestion,
 } from "../models/questions.ts";
-import { getConferenceRolesForConference } from "../models/roles.ts";
+import { canModerate, getConferenceRolesForConference } from "../models/roles.ts";
 import { getUserById } from "../models/user.ts";
 import {
   createVote,
@@ -150,10 +151,15 @@ app.post(
       user.id,
       event.conferenceId,
     );
-    const isOrganizer = roles.some((role) => role.role === "organizer");
+    if (!canModerate(roles)) {
+      throw new HTTPException(403, { message: `User is not a moderator` });
+    }
 
-    if (!isOrganizer) {
-      throw new HTTPException(403, { message: `User is not an organizer` });
+    // Only its author can see it; restore it before putting it on stage.
+    if (question.hiddenAt) {
+      throw new HTTPException(409, {
+        message: `Question ${uid} is hidden by moderation`,
+      });
     }
 
     const result = await selectQuestion(question.id);
@@ -207,10 +213,8 @@ app.post(
       user.id,
       event.conferenceId,
     );
-    const isOrganizer = roles.some((role) => role.role === "organizer");
-
-    if (!isOrganizer) {
-      throw new HTTPException(403, { message: `User is not an organizer` });
+    if (!canModerate(roles)) {
+      throw new HTTPException(403, { message: `User is not a moderator` });
     }
 
     const result = await markAsAnswered(question.id);
@@ -264,10 +268,8 @@ app.delete(
       user.id,
       event.conferenceId,
     );
-    const isOrganizer = roles.some((role) => role.role === "organizer");
-
-    if (!isOrganizer) {
-      throw new HTTPException(403, { message: `User is not an organizer` });
+    if (!canModerate(roles)) {
+      throw new HTTPException(403, { message: `User is not a moderator` });
     }
 
     const result = await deleteQuestion(question.id);
@@ -282,6 +284,68 @@ app.delete(
 
 
     logger.info({ question, userId: user.id, event }, "Deleted question");
+
+    return c.json({ data: toPublicQuestion(result) });
+  },
+);
+
+// Shows a question automatic moderation hid, after an organizer reviewed it.
+app.post(
+  "/api/v1/questions/:uid/restore",
+  jwt(),
+  async (c) => {
+    const uid = c.req.param("uid");
+    const payload = c.get("jwtPayload");
+
+    const [user, question] = await Promise.all([
+      getUserById(payload.sub),
+      getQuestionByUID(uid),
+    ]);
+
+    if (!user) {
+      throw new HTTPException(401, {
+        message: `User ${payload.sub} not found`,
+      });
+    }
+
+    if (!question) {
+      throw new HTTPException(404, {
+        message: `Question ${uid} not found`,
+      });
+    }
+
+    const event = await getEventById(question.eventId);
+
+    if (!event) {
+      throw new HTTPException(404, {
+        message: `Event ${question.eventId} not found`,
+      });
+    }
+
+    const roles = await getConferenceRolesForConference(
+      user.id,
+      event.conferenceId,
+    );
+    const isOrganizer = roles.some((role) => role.role === "organizer");
+
+    if (!isOrganizer) {
+      throw new HTTPException(403, { message: `User is not an organizer` });
+    }
+
+    const result = await restoreQuestion(question.id);
+
+    if (!result) {
+      throw new HTTPException(500, {
+        message: `Failed to restore question ${uid}`,
+      });
+    }
+
+    await broadcastQuestionsUpdate(event.id);
+
+    logger.info(
+      { questionUid: uid, userId: user.id, eventId: event.id },
+      "Restored question hidden by moderation",
+    );
 
     return c.json({ data: toPublicQuestion(result) });
   },

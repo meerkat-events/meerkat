@@ -1,33 +1,23 @@
 import {
   Link,
+  Navigate,
   NavLink,
   Outlet,
+  useNavigate,
   useOutletContext,
   useSearchParams,
 } from "react-router";
-import { Button, Flex, Heading, Text } from "@chakra-ui/react";
+import { Flex, Heading, Text } from "@chakra-ui/react";
 import { useAuth } from "../hooks/use-auth.ts";
-import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
+import { canModerate, useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import {
   type Session,
   useConferenceEvents,
 } from "../hooks/use-conference-events.ts";
-import { useState } from "react";
 import { mutate } from "swr";
 import { SessionSearch } from "../components/Manage/SessionSearch.tsx";
 import { PersonDialog } from "../components/Manage/PersonDialog.tsx";
-import {
-  clearSpamPreview,
-  spamPreviewOn,
-} from "../components/Manage/question-state.ts";
-import {
-  clearMockClock,
-  dayKey,
-  fmtDay,
-  fmtTime,
-  isMockClock,
-  useNow,
-} from "../components/Manage/time.ts";
+import { dayKey, fmtDay } from "../components/Manage/time.ts";
 
 import "./manage.css";
 
@@ -48,7 +38,8 @@ export const useManage = () => useOutletContext<ManageContext>();
 export default function ManageLayout() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { data: roles, isLoading: rolesLoading } = useConferenceRoles();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   // One conference at a time: ?conference=<id>, else the first one (by id)
   // this account organizes.
   const organizerRoles = (roles ?? [])
@@ -57,30 +48,35 @@ export default function ManageLayout() {
   const role = organizerRoles.find((r) => String(r.conferenceId) === params.get("conference")) ??
     organizerRoles[0];
   const { data: sessions } = useConferenceEvents(role?.conferenceId);
-  const now = useNow(30_000);
-  const mockClock = isMockClock();
-  const spamPreview = spamPreviewOn();
-  // Whose history is open; someone opened from it replaces them.
-  const [personId, setPersonId] = useState<string | null>(null);
-  const openPerson = (userId: string) => setPersonId(userId);
+  // Whose history is open, in the URL so it can be shared: ?person=<user id>
+  // on any management page (with ?personTab=). Someone opened from it
+  // replaces them, starting on their questions.
+  const personId = params.get("person");
+  const openPerson = (userId: string) =>
+    setParams((p) => {
+      p.set("person", userId);
+      p.delete("personTab");
+      return p;
+    }, { replace: true });
+  const closePerson = () =>
+    setParams((p) => {
+      p.delete("person");
+      p.delete("personTab");
+      return p;
+    }, { replace: true });
 
   if (authLoading || (isAuthenticated && rolesLoading)) {
     return <Gate title="Loading…" />;
   }
+  // One login page for everyone; it sends organizers back here.
   if (!isAuthenticated) {
-    return (
-      <Gate
-        title="Sign in to manage your event"
-        body="Meerkat Management is for event organizers."
-        action={
-          <Button asChild colorPalette="brand">
-            <Link to="/login?next=/manage">Sign in</Link>
-          </Button>
-        }
-      />
-    );
+    return <Navigate to="/login?next=/manage" replace />;
   }
   if (!role) {
+    // Moderators moderate from their talk picker, not from these pages.
+    if (roles?.some(canModerate)) {
+      return <Navigate to="/account" replace />;
+    }
     return (
       <Gate
         title="You're not an organizer yet"
@@ -112,34 +108,6 @@ export default function ManageLayout() {
           <img src="/logo.png" alt="" width={30} height={30} />
           <span>Meerkat Management</span>
         </Link>
-        {spamPreview && (
-          <button
-            type="button"
-            className="manage-mock"
-            title="Spam flags shown here are made up, so the design can be reviewed before flagging ships. Click to turn off."
-            onClick={() => {
-              clearSpamPreview();
-              globalThis.location.replace(globalThis.location.pathname);
-            }}
-          >
-            Previewing spam flags
-            <span aria-hidden="true">✕</span>
-          </button>
-        )}
-        {mockClock && (
-          <button
-            type="button"
-            className="manage-mock"
-            title="These pages are pretending it is this time. Click to go back to the real clock."
-            onClick={() => {
-              clearMockClock();
-              globalThis.location.replace(globalThis.location.pathname);
-            }}
-          >
-            Pretending it's {fmtDay(now)} · {fmtTime(now)} UTC
-            <span aria-hidden="true">✕</span>
-          </button>
-        )}
         <div className="manage-event">
           <span className="name">{context.conferenceName}</span>
           {dates && <span className="dates">{dates}</span>}
@@ -162,11 +130,18 @@ export default function ManageLayout() {
           // fresh dialog treat that same click as an outside click and close.
           conferenceId={context.conferenceId}
           userId={personId}
-          // Closing returns to whatever is underneath, e.g. a session dialog.
-          onClose={() => setPersonId(null)}
+          onClose={closePerson}
           // Blocking hides their questions everywhere, so refetch what's on screen.
           onBlocked={() => mutate(() => true)}
           onPerson={openPerson}
+          // A session opens in its dialog on the schedule, same conference;
+          // the new URL has no ?person, so this dialog is gone there.
+          onSession={(uid) => {
+            const next = new URLSearchParams({ session: uid });
+            const conference = params.get("conference");
+            if (conference) next.set("conference", conference);
+            navigate(`/manage/schedule?${next}`);
+          }}
         />
       )}
     </div>
@@ -174,10 +149,9 @@ export default function ManageLayout() {
 }
 
 function Gate(
-  { title, body, action }: {
+  { title, body }: {
     title: string;
     body?: string;
-    action?: React.ReactNode;
   },
 ) {
   return (
@@ -193,7 +167,6 @@ function Gate(
       <img src="/logo.png" alt="" width={48} height={48} />
       <Heading size="lg">{title}</Heading>
       {body && <Text color="fg.muted" maxW="40ch">{body}</Text>}
-      {action}
     </Flex>
   );
 }

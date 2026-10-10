@@ -18,6 +18,7 @@ import {
   getConferenceStats,
   getConferenceUserActivity,
 } from "../models/conference-activity.ts";
+import { summarizeModeration } from "../moderation-summary.ts";
 
 const app = new Hono();
 
@@ -73,10 +74,13 @@ async function requireOrganizer(conferenceIdParam: string, userId: string) {
   return conference;
 }
 
+// Organizers get the verdict's summary (decision, reasons, relevance), never
+// the raw scores; attendees never get it at all (toPublicQuestion).
 const toApiQuestion = (
-  { userId: _userId, user, ...rest }: ConferenceQuestions[number],
+  { userId: _userId, user, moderation, ...rest }: ConferenceQuestions[number],
 ) => ({
   ...rest,
+  moderation: summarizeModeration(moderation),
   user: user
     ? { id: user.id, name: user.userMetadata?.["name"] ?? user.id }
     : undefined,
@@ -91,11 +95,7 @@ const conferenceQuestionsQuery = zod.object({
 
 // Questions from every session of a conference (or only the live ones, or one
 // session), for the organizer question feed. `hidden=true` also returns what
-// organizers have hidden, so they can review it.
-//
-// When automatic spam flagging lands, each question is expected to carry the
-// flag (e.g. `flaggedAt` and a short `flagReason`); the organizer pages already
-// render and filter on that shape.
+// organizers or automatic moderation hid, so they can review it.
 app.get(
   "/api/v1/conferences/:id/questions",
   jwt(),
@@ -126,7 +126,11 @@ app.get("/api/v1/conferences/:id/stats", jwt(), async (c) => {
     c.get("jwtPayload").sub,
   );
 
-  return c.json({ data: await getConferenceStats(conference.id) });
+  const stats = await getConferenceStats(conference.id, {
+    moderationEnabled: conference.moderation !== null,
+  });
+
+  return c.json({ data: stats });
 });
 
 // One person's history in this conference, so moderators can check who they

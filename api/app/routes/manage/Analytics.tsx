@@ -1,11 +1,15 @@
 import { useMemo } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useManage } from "../../layouts/manage.tsx";
 import {
   type SessionCounts,
   useConferenceStats,
 } from "../../hooks/use-conference-stats.ts";
 import { SortMenu } from "../../components/Manage/SortMenu.tsx";
+import { useUrlChoice } from "../../components/Manage/use-url-choice.ts";
+import { ModerationOverview } from "../../components/Manage/ModerationOverview.tsx";
+import { RelevanceInfo } from "../../components/Manage/RelevanceInfo.tsx";
+import { relevanceLevel } from "../../components/Manage/question-state.ts";
 import {
   fmtWhen,
   sessionStatus,
@@ -20,11 +24,19 @@ export const meta: Route.MetaFunction = () => [
 const SORTS = [
   { label: "Most recent", value: "recent" },
   { label: "Most activity", value: "activity" },
+  { label: "Most relevant", value: "relevance" },
   { label: "Least recent", value: "oldest" },
 ] as const;
-type Sort = (typeof SORTS)[number]["value"];
 
-const EMPTY: SessionCounts = { questions: 0, votes: 0, reactions: 0, participants: 0 };
+const EMPTY: SessionCounts = {
+  questions: 0,
+  votes: 0,
+  reactions: 0,
+  participants: 0,
+  autoHidden: 0,
+  review: 0,
+  relevance: null,
+};
 const num = (n: number) => n.toLocaleString("en-US");
 // A session opens in its panel on the schedule.
 const sessionPath = (uid: string) => `/manage/schedule?session=${encodeURIComponent(uid)}`;
@@ -35,11 +47,9 @@ const activity = (c: SessionCounts) => c.questions + c.votes + c.reactions;
 export default function Analytics() {
   const { conferenceId, sessions } = useManage();
   const { data: stats } = useConferenceStats(conferenceId);
-  const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const now = useNow(30_000);
-  const sort = (SORTS.find((s) => s.value === params.get("sort"))?.value ??
-    "recent") as Sort;
+  const [sort, setSort] = useUrlChoice("sort", SORTS.map((s) => s.value), "recent");
 
   const all = useMemo(() => sessions ?? [], [sessions]);
   const rows = useMemo(() => {
@@ -51,6 +61,10 @@ export default function Analytics() {
       sort === "activity"
         ? (a, b) =>
           activity(b.counts) - activity(a.counts) ||
+          +b.session.start - +a.session.start
+        : sort === "relevance"
+        ? (a, b) =>
+          (b.counts.relevance ?? -1) - (a.counts.relevance ?? -1) ||
           +b.session.start - +a.session.start
         : sort === "oldest"
         ? (a, b) => +a.session.start - +b.session.start
@@ -98,12 +112,7 @@ export default function Analytics() {
             <SortMenu
               options={SORTS}
               value={sort}
-              onChange={(value) =>
-                setParams((p) => {
-                  if (value === "recent") p.delete("sort");
-                  else p.set("sort", value);
-                  return p;
-                }, { replace: true })}
+              onChange={setSort}
             />
           </div>
         </div>
@@ -115,6 +124,15 @@ export default function Analytics() {
                 <th scope="col" className="n">Questions</th>
                 <th scope="col" className="n">Participants</th>
                 <th scope="col" className="n">Reactions</th>
+                <th scope="col" className="n" title="Questions automatic moderation hid">
+                  Auto-hidden
+                </th>
+                <th scope="col" className="n">
+                  <span className="m-th-info">
+                    Avg. relevance
+                    <RelevanceInfo />
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -143,6 +161,17 @@ export default function Analytics() {
                     <td className="n">{num(counts.questions)}</td>
                     <td className="n">{num(counts.participants)}</td>
                     <td className="n">{num(counts.reactions)}</td>
+                    <td className="n">{num(counts.autoHidden)}</td>
+                    <td className="n relevance">
+                      {counts.relevance !== null
+                        ? (
+                          <>
+                            <span className="score">{counts.relevance.toFixed(1)}</span>
+                            <span className="level">{relevanceLevel(counts.relevance)}</span>
+                          </>
+                        )
+                        : <span className="level">Not scored</span>}
+                    </td>
                   </tr>
                 );
               })}
@@ -151,6 +180,8 @@ export default function Analytics() {
           {rows.length === 0 && <div className="m-empty">No sessions have started yet.</div>}
         </div>
       </section>
+
+      {stats && <ModerationOverview moderation={stats.moderation} />}
     </div>
   );
 }

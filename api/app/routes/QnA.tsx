@@ -24,7 +24,7 @@ import { NavigationDrawer } from "../components/NavigationDrawer/index.tsx";
 import { CooldownModal } from "../components/QnA/CooldownModal.tsx";
 import { Footer } from "../components/QnA/Footer.tsx";
 import { QuestionsSection } from "../components/QnA/QuestionsSection.tsx";
-import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
+import { canModerate, useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useEvent } from "../hooks/use-event.ts";
 import { useAuth } from "../hooks/use-auth.ts";
 import { useVotes } from "../hooks/use-votes.ts";
@@ -199,9 +199,10 @@ export default function QnA() {
   };
   const isBlocked = false;
 
-  const isOrganizer =
+  // Organizers and moderators of this conference get the moderation actions.
+  const canModerateHere =
     roles?.some((role) =>
-      role.role === "organizer" && role.conferenceId === event?.conferenceId
+      canModerate(role) && role.conferenceId === event?.conferenceId
     ) ?? false;
 
   const onReactClick = (emoji: ReactionEmoji, origin: ReactionOrigin) => {
@@ -279,7 +280,7 @@ export default function QnA() {
                   You're viewing a past or upcoming event.
                 </Alert.Title>
               </Alert.Content>
-              {event && isOrganizer && (
+              {event && canModerateHere && (
                 <LiveDialog event={event} onConfirm={onConfirm} />
               )}
             </Alert.Root>
@@ -371,7 +372,7 @@ export default function QnA() {
           <QuestionsSection
             questions={questions}
             votes={votes}
-            isOrganizer={isOrganizer}
+            canModerate={canModerateHere}
             refresh={refresh}
             isAuthenticated={isAuthenticated}
             isLoading={isQuestionsLoading}

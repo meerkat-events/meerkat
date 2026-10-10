@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import type { Moderation } from "../components/Manage/question-state.ts";
 
 type RawSession = {
   uid: string;
@@ -22,6 +23,10 @@ type RawQuestion = {
   selectedAt: string | null;
   answeredAt: string | null;
   deletedAt: string | null;
+  /** Their own questions only: set when automatic moderation hid it. */
+  hiddenAt?: string | null;
+  /** Their own questions only: the moderation verdict's summary. */
+  moderation?: Moderation | null;
   votes: number;
   event: { uid: string; title: string; stage: string; start: string };
 };

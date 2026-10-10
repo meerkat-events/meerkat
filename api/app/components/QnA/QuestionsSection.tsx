@@ -9,12 +9,12 @@ export type QuestionsSectionProps = {
   votes: Vote[] | undefined;
   isLoading: boolean;
   isAuthenticated: boolean;
-  isOrganizer: boolean;
+  canModerate: boolean;
   refresh: () => void;
 };
 
 export function QuestionsSection(
-  { questions, votes, isAuthenticated, isOrganizer, refresh, isLoading }:
+  { questions, votes, isAuthenticated, canModerate, refresh, isLoading }:
     QuestionsSectionProps,
 ) {
   const questionLookup = useMemo(() => {
@@ -35,7 +35,7 @@ export function QuestionsSection(
               <Question
                 key={question.uid}
                 question={question}
-                canModerate={isOrganizer}
+                canModerate={canModerate}
                 canVote={isAuthenticated}
                 refresh={refresh}
                 voted={questionLookup?.has(question.uid) ?? false}

@@ -4,7 +4,7 @@ import { getUserById } from "../models/user.ts";
 import { HTTPException } from "hono/http-exception";
 import { getVotesByUserId } from "../models/votes.ts";
 import { markUserAsBlocked } from "../models/user.ts";
-import { getConferenceRoles } from "../models/roles.ts";
+import { canModerate, getConferenceRoles } from "../models/roles.ts";
 import logger from "../logger.ts";
 
 const app = new Hono();
@@ -66,11 +66,11 @@ app.post(
       });
     }
 
+    // Moderators of any conference can block (a global ban), like organizers.
     const roles = await getConferenceRoles(user.id);
-    const isSomeOrganizer = roles.some((r) => r.role == "organizer");
 
-    if (!isSomeOrganizer) {
-      throw new HTTPException(403, { message: `User is not an organizer` });
+    if (!canModerate(roles)) {
+      throw new HTTPException(403, { message: `User is not a moderator` });
     }
 
     if (!blockedUser) {

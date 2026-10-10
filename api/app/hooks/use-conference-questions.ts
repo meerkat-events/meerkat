@@ -6,25 +6,28 @@ import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
 import { useSupabase } from "../context/supabase.tsx";
-import type { Question } from "../types.ts";
+import type { ModeratedQuestion } from "../components/Manage/question-state.ts";
 
-export type ConferenceQuestion = Question & {
+export type ConferenceQuestion = ModeratedQuestion & {
   event: { id: number; uid: string; title: string; stage: string };
-  deletedAt?: string | null;
-  /** Set once automatic spam flagging ships; see question-state.ts. */
-  flaggedAt?: string | null;
-  flagReason?: string | null;
 };
 
 /**
- * Questions from every live session of a conference (organizers only).
- * Refetches whenever a question or vote changes anywhere (asked, selected,
- * answered, hidden, voted), and every 10 seconds for what Realtime doesn't
- * see, such as blocked users.
+ * Questions from every live session of a conference, or from one session
+ * (organizers only), including what organizers or moderation hid. Refetches
+ * whenever a question or vote changes anywhere (asked, selected, answered,
+ * hidden, voted), and every 10 seconds for what Realtime doesn't see, such as
+ * blocked users and questions moderation hid on arrival.
  */
-export function useConferenceQuestions(conferenceId: number | undefined) {
+export function useConferenceQuestions(
+  conferenceId: number | undefined,
+  scope: { live: true } | { event: string },
+) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const filter = "live" in scope
+    ? "live=true"
+    : `event=${encodeURIComponent(scope.event)}`;
 
   const { data, error, isLoading, mutate } = useSWR<
     { data: ConferenceQuestion[] },
@@ -32,7 +35,7 @@ export function useConferenceQuestions(conferenceId: number | undefined) {
   >(
     conferenceId && token
       ? [
-        `/api/v1/conferences/${conferenceId}/questions?live=true&hidden=true`,
+        `/api/v1/conferences/${conferenceId}/questions?${filter}&hidden=true`,
         token,
       ]
       : undefined,
@@ -45,10 +48,12 @@ export function useConferenceQuestions(conferenceId: number | undefined) {
   const refresh = useRef(throttle(() => mutateRef.current(), 500)).current;
 
   const { client: supabase } = useSupabase();
+  // One channel per list, so a feed and a session panel each refresh.
+  const channelName = `conference-questions-${conferenceId}-${filter}`;
   useSWRSubscription(
-    supabase && conferenceId ? `conference-questions-${conferenceId}` : undefined,
+    supabase && conferenceId ? channelName : undefined,
     () => {
-      const channel = supabase?.channel(`conference-questions-${conferenceId}`)
+      const channel = supabase?.channel(channelName)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "questions" },

@@ -166,6 +166,18 @@ export async function deleteQuestion(id: number) {
   return results.length === 1 ? results[0] : null;
 }
 
+/**
+ * Shows a question automatic moderation hid. Its verdict stays in
+ * `moderation`, so a hide decision without `hiddenAt` reads as restored.
+ */
+export async function restoreQuestion(id: number) {
+  const results = await db.update(questions).set({
+    hiddenAt: null,
+  }).where(eq(questions.id, id)).returning().execute();
+
+  return results.length === 1 ? results[0] : null;
+}
+
 export function getAllQuestions() {
   return db
     .select({

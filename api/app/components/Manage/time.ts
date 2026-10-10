@@ -47,52 +47,11 @@ export const askedAt = (d: Date, now: Date) => {
 export const askedTitle = (d: Date) =>
   `Asked ${fmtDay(d, true)}, ${fmtTime(d)}:${pad(d.getUTCSeconds())} UTC`;
 
-/**
- * Testing aid: `?now=2026-09-14T15:30Z` on any management page pretends it is
- * that moment, so a schedule that isn't running today can still be walked
- * through. It only shifts what the pages display, never what is stored, and
- * sticks (per browser tab) until reset. `clockOffset()` is the shift in ms.
- */
-const MOCK_KEY = "meerkat-manage-mock-now";
-
-function readOffset(): number {
-  if (typeof globalThis.location === "undefined") return 0;
-  const param = new URLSearchParams(globalThis.location.search).get("now");
-  if (param) {
-    const at = new Date(/[zZ+]|\d{2}:\d{2}$/.test(param) ? param : `${param}Z`);
-    if (!isNaN(at.getTime())) {
-      sessionStorage.setItem(MOCK_KEY, String(at.getTime() - Date.now()));
-    } else if (param === "off") {
-      sessionStorage.removeItem(MOCK_KEY);
-    }
-  }
-  return Number(sessionStorage.getItem(MOCK_KEY) ?? 0);
-}
-
-export const clockOffset = () => {
-  try {
-    return readOffset();
-  } catch {
-    return 0; // storage blocked
-  }
-};
-
-export const isMockClock = () => clockOffset() !== 0;
-
-export const clearMockClock = () => {
-  try {
-    sessionStorage.removeItem(MOCK_KEY);
-  } catch { /* ignore */ }
-};
-
-/** The current time (shifted when a mock clock is set), re-rendering every `intervalMs`. */
+/** The current time, re-rendering every `intervalMs`. */
 export function useNow(intervalMs = 30_000) {
-  const [now, setNow] = useState(() => new Date(Date.now() + clockOffset()));
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = setInterval(
-      () => setNow(new Date(Date.now() + clockOffset())),
-      intervalMs,
-    );
+    const id = setInterval(() => setNow(new Date()), intervalMs);
     return () => clearInterval(id);
   }, [intervalMs]);
   return now;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useUrlChoice } from "./use-url-choice.ts";
 import {
   Badge,
   Button,
@@ -26,25 +27,35 @@ type Tab = "questions" | "votes" | "sessions" | "hidden";
  * part, so blocking them can be sense-checked first.
  */
 export function PersonDialog(
-  { conferenceId, userId, onClose, onBlocked, onPerson }: {
+  { conferenceId, userId, onClose, onBlocked, onPerson, onSession }: {
     conferenceId: number;
     userId: string;
     onClose: () => void;
     onBlocked: () => void;
     /** Opens someone else, e.g. whoever asked a question they voted for. */
     onPerson: (userId: string) => void;
+    /** Opens a session's dialog, once this one has closed. */
+    onSession: (uid: string) => void;
   },
 ) {
   const now = useNow(30_000);
-  // Both are remembered per person: this dialog stays mounted while someone
-  // else is opened from it, so switching person starts on their questions
-  // again and can't inherit an open confirmation.
+  // One dialog at a time: opening a session closes this dialog first and
+  // opens the session once it is gone. (A dialog opened on top of another is
+  // dismissed when the one beneath it closes.)
+  const [open, setOpen] = useState(true);
+  const [sessionAfterClose, setSessionAfterClose] = useState<string | null>(null);
+  const openSessionInstead = (uid: string) => {
+    setSessionAfterClose(uid);
+    setOpen(false);
+  };
+  // The confirmation is remembered per person: this dialog stays mounted
+  // while someone else is opened from it, and they can't inherit it.
   const [confirmFor, setConfirmFor] = useState<string | null>(null);
-  const [tabFor, setTabFor] = useState<{ userId: string; tab: Tab }>({ userId, tab: "questions" });
   const confirming = confirmFor === userId;
   const setConfirming = (open: boolean) => setConfirmFor(open ? userId : null);
-  const tab = tabFor.userId === userId ? tabFor.tab : "questions";
-  const setTab = (next: Tab) => setTabFor({ userId, tab: next });
+  // In the URL so a link opens the same tab; opening someone else clears it
+  // (openPerson), back to their questions.
+  const [tab, setTab] = useUrlChoice("personTab", TABS.map((t) => t.key), "questions");
   const { data, isLoading, mutate } = useUserActivity(conferenceId, userId);
   const { trigger: block } = useBlockUser(userId);
 
@@ -65,7 +76,17 @@ export function PersonDialog(
   };
 
   return (
-    <Dialog.Root open onOpenChange={(e) => !e.open && onClose()} size="xl" scrollBehavior="inside">
+    <Dialog.Root
+      open={open}
+      onOpenChange={(e) => setOpen(e.open)}
+      // One URL change either way: the session's URL has no ?person.
+      onExitComplete={() => {
+        if (sessionAfterClose) onSession(sessionAfterClose);
+        else onClose();
+      }}
+      size="xl"
+      scrollBehavior="inside"
+    >
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>
@@ -97,6 +118,30 @@ export function PersonDialog(
             <Dialog.Body>
               {isLoading || !data
                 ? <div className="m-empty"><Spinner size="sm" /></div>
+                : confirming
+                ? (
+                  // A step inside this dialog, not a second dialog on top:
+                  // what blocking does, at the moment of deciding.
+                  <section className="m-confirm-step" aria-labelledby="block-heading">
+                    <h3 id="block-heading">Block {data.user.name}?</h3>
+                    <Text>
+                      Every question they have asked disappears from the Q&A and the stage
+                      screens, and they cannot ask again at this event.
+                    </Text>
+                    <Text color="fg.muted" mt="2">This can't be undone.</Text>
+                    <div className="m-confirm-actions">
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        autoFocus
+                        onClick={() => setConfirming(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button size="xs" colorPalette="red" onClick={onBlock}>Block user</Button>
+                    </div>
+                  </section>
+                )
                 : (
                   <Tabs.Root
                     value={tab}
@@ -122,6 +167,7 @@ export function PersonDialog(
                           data={data}
                           now={now}
                           onPerson={onPerson}
+                          onSession={openSessionInstead}
                           refresh={() => mutate()}
                         />
                       </Tabs.Content>
@@ -132,41 +178,6 @@ export function PersonDialog(
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
-
-      {/* What blocking actually does, at the moment of deciding. */}
-      <Dialog.Root
-        open={confirming}
-        onOpenChange={(e) => setConfirming(e.open)}
-        size="sm"
-        placement="center"
-        role="alertdialog"
-      >
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content className="m-person m-confirm">
-              <Dialog.Header>
-                <Dialog.Title>Block {data?.user.name}?</Dialog.Title>
-              </Dialog.Header>
-              <Dialog.Body>
-                <Text>
-                  Every question they have asked disappears from the Q&A and the stage
-                  screens, and they cannot ask again at this event.
-                </Text>
-                <Text color="fg.muted" mt="2">
-                  This can't be undone.
-                </Text>
-              </Dialog.Body>
-              <Dialog.Footer>
-                <Button size="xs" variant="outline" onClick={() => setConfirming(false)}>
-                  Cancel
-                </Button>
-                <Button size="xs" colorPalette="red" onClick={onBlock}>Block user</Button>
-              </Dialog.Footer>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
     </Dialog.Root>
   );
 }
@@ -180,11 +191,12 @@ const TABS: { key: Tab; label: string }[] = [
 
 /** The table behind whichever number is selected. */
 function PersonTab(
-  { tab, data, now, onPerson, refresh }: {
+  { tab, data, now, onPerson, onSession, refresh }: {
     tab: Tab;
     data: UserActivity;
     now: Date;
     onPerson: (userId: string) => void;
+    onSession: (uid: string) => void;
     refresh: () => void;
   },
 ) {
@@ -198,10 +210,13 @@ function PersonTab(
     ...asDates(q),
     user: { id: data.user.id, name: data.user.name },
   }));
+  // Hidden by an organizer or by automatic moderation.
+  const isHidden = (q: { deletedAt: string | null; hiddenAt?: string | null | undefined }) =>
+    !!q.deletedAt || !!q.hiddenAt;
   const rows = tab === "questions"
-    ? theirs.filter((q) => !q.deletedAt)
+    ? theirs.filter((q) => !isHidden(q))
     : tab === "hidden"
-    ? theirs.filter((q) => q.deletedAt)
+    ? theirs.filter(isHidden)
     : data.upvoted.map((q) => ({ ...asDates(q), user: q.user }));
 
   const empty = {
@@ -232,11 +247,21 @@ function PersonTab(
                   {data.sessions.map((session) => {
                     const start = new Date(session.start);
                     return (
-                      <tr key={session.uid}>
+                      // The whole row opens the session; the title is the
+                      // button keyboard and screen-reader users reach.
+                      <tr
+                        key={session.uid}
+                        className="clickable"
+                        onClick={() => onSession(session.uid)}
+                      >
                         <td className="session">
                           <span className="m-stage">{session.stage}</span>
                         </td>
-                        <td className="question">{session.title}</td>
+                        <td className="question">
+                          <button type="button" className="m-link-button">
+                            {session.title}
+                          </button>
+                        </td>
                         <td className="when">{fmtDay(start)} · {fmtTime(start)}</td>
                         <td className="n">{session.questions}</td>
                         <td className="n">{session.votes}</td>
@@ -256,6 +281,8 @@ function PersonTab(
             now={now}
             showSession
             showPerson={tab === "votes"}
+            rowOpensSession
+            onSession={onSession}
             onPerson={onPerson}
             refresh={refresh}
           />

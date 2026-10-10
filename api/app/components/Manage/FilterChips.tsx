@@ -1,20 +1,16 @@
 import { type Filter, FILTERS, matchesFilter, type ModeratedQuestion } from "./question-state.ts";
 
-/**
- * All / Open / Answered / Hidden / Spam, each with how many questions it
- * matches. `exclude` drops states a list can never contain.
- */
+/** All / Answered / Hidden / Auto-hidden / Review, each with how many questions it matches. */
 export function FilterChips(
-  { questions, value, onChange, exclude = [] }: {
+  { questions, value, onChange }: {
     questions: ModeratedQuestion[];
     value: Filter;
     onChange: (filter: Filter) => void;
-    exclude?: Filter[];
   },
 ) {
   return (
     <div className="m-filter" role="group" aria-label="Show">
-      {FILTERS.filter(({ value: v }) => !exclude.includes(v)).map(({ value: v, label }) => (
+      {FILTERS.map(({ value: v, label }) => (
         <button
           key={v}
           type="button"

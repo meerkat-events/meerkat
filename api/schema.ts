@@ -92,7 +92,12 @@ export const conferences = pgTable("conferences", {
   moderation: jsonb("moderation").$type<ConferenceModeration>(),
 });
 
-export const roleEnum = pgEnum("role", ["attendee", "speaker", "organizer"]);
+/**
+ * A person's role in one conference. Organizers moderate and see the
+ * management pages; moderators moderate the Q&A (select, answer, hide, go
+ * live, block) without them; attendees take part.
+ */
+export const roleEnum = pgEnum("role", ["attendee", "organizer", "moderator"]);
 
 export const conferenceTickets = pgTable(
   "conference_tickets",

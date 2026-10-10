@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useConferenceRoles } from "./use-conference-roles.ts";
+import { canModerate, useConferenceRoles } from "./use-conference-roles.ts";
 import { fetcher } from "./fetcher.ts";
 import { HTTPError } from "./http-error.ts";
 import type { Event } from "../types.ts";
 
-export function useOrganizerEvents() {
+/** Every session of the conferences this person organizes or moderates. */
+export function useModeratedEvents() {
   const { data: roles, isLoading: isRolesLoading } = useConferenceRoles();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,12 +18,11 @@ export function useOrganizerEvents() {
         return;
       }
 
-      // Filter to only organizer roles
-      const organizerConferenceIds = roles
-        .filter((role) => role.role === "organizer")
+      const moderatedConferenceIds = roles
+        .filter(canModerate)
         .map((role) => role.conferenceId);
 
-      if (organizerConferenceIds.length === 0) {
+      if (moderatedConferenceIds.length === 0) {
         setEvents([]);
         setIsLoading(false);
         return;
@@ -30,7 +30,7 @@ export function useOrganizerEvents() {
 
       try {
         setIsLoading(true);
-        const eventPromises = organizerConferenceIds.map((conferenceId) =>
+        const eventPromises = moderatedConferenceIds.map((conferenceId) =>
           fetcher(`/api/v1/conferences/${conferenceId}/events`)
         );
 

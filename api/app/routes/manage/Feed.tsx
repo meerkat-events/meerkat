@@ -5,24 +5,19 @@ import { useConferenceQuestions } from "../../hooks/use-conference-questions.ts"
 import { QuestionTable } from "../../components/Manage/QuestionTable.tsx";
 import { FilterChips } from "../../components/Manage/FilterChips.tsx";
 import {
-  type Filter,
   FILTERS,
   matchesFilter,
-  withSpamPreview,
+  SORTS,
+  sortQuestions,
 } from "../../components/Manage/question-state.ts";
 import { SortMenu } from "../../components/Manage/SortMenu.tsx";
 import { fmtDay, useNow } from "../../components/Manage/time.ts";
+import { useUrlChoice } from "../../components/Manage/use-url-choice.ts";
 import type { Route } from "./+types/Feed.ts";
 
 export const meta: Route.MetaFunction = () => [
   { title: "Live question feed · Meerkat Management" },
 ];
-
-const SORTS = [
-  { label: "Newest", value: "newest" },
-  { label: "Most votes", value: "votes" },
-] as const;
-type Sort = (typeof SORTS)[number]["value"];
 
 /**
  * Every question from every live session, newest first, so organizers can
@@ -34,11 +29,11 @@ export default function Feed() {
   const now = useNow(30_000);
   const { data: questions, mutate, isLoading } = useConferenceQuestions(
     conferenceId,
+    { live: true },
   );
 
-  const sort: Sort = params.get("sort") === "votes" ? "votes" : "newest";
-  const filter = (FILTERS.find((f) => f.value === params.get("show"))?.value ??
-    "all") as Filter;
+  const [sort, setSort] = useUrlChoice("sort", SORTS.map((s) => s.value), "newest");
+  const [filter, setFilter] = useUrlChoice("show", FILTERS.map((f) => f.value), "all");
   const liveSessions = useMemo(
     () =>
       (sessions ?? []).filter((s) => s.live).sort((a, b) =>
@@ -57,25 +52,14 @@ export default function Feed() {
   }, [questions]);
 
   const inScope = useMemo(
-    () =>
-      withSpamPreview(
-        (questions ?? []).filter((q) => !scope || q.eventId === scope.id),
-      ),
+    () => (questions ?? []).filter((q) => !scope || q.eventId === scope.id),
     [questions, scope],
   );
 
-  const shown = useMemo(() => {
-    const list = inScope.filter((q) => matchesFilter(q, filter));
-    // Newest: a straight ticker. Most votes: highest first, answered last (as in the Q&A).
-    return list.sort(
-      sort === "votes"
-        ? (a, b) =>
-          Number(!!a.answeredAt) - Number(!!b.answeredAt) ||
-          b.votes - a.votes ||
-          +new Date(b.createdAt) - +new Date(a.createdAt)
-        : (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt),
-    );
-  }, [inScope, filter, sort]);
+  const shown = useMemo(
+    () => sortQuestions(inScope.filter((q) => matchesFilter(q, filter)), sort),
+    [inScope, filter, sort],
+  );
 
   const setParam = (key: string, value: string | null) =>
     setParams((p) => {
@@ -134,13 +118,12 @@ export default function Feed() {
             <FilterChips
               questions={inScope}
               value={filter}
-              onChange={(value) => setParam("show", value === "all" ? null : value)}
+              onChange={setFilter}
             />
             <SortMenu
               options={SORTS}
               value={sort}
-              onChange={(value) =>
-                setParam("sort", value === "newest" ? null : value)}
+              onChange={setSort}
             />
           </div>
         </div>

@@ -1,5 +1,6 @@
-import { and, count, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import db from "../db.ts";
+import { summarizeModeration, tallyModeration } from "../moderation-summary.ts";
 import {
   events,
   lower,
@@ -12,8 +13,9 @@ import {
 const notBlocked = () =>
   or(isNull(users.bannedUntil), lte(users.bannedUntil, new Date()));
 
-// Questions automatic moderation hid are shadow-hidden: only their author
-// sees them, so organizer views leave them out like every other query.
+// Questions automatic moderation hid are shadow-hidden: attendees never see
+// them, so counts of what happened in a session leave them out. Organizers
+// see them only where they review moderation (feed, person history).
 const notModerationHidden = isNull(questions.hiddenAt);
 
 const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
@@ -22,8 +24,8 @@ const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
 
 /**
  * Questions across a conference, newest first, for organizers moderating
- * several stages at once. Hidden questions and questions from blocked users
- * are left out, matching what attendees see.
+ * several stages at once. Questions from blocked users are left out. Hidden
+ * ones, by an organizer or by automatic moderation, only with `includeHidden`.
  */
 export function getConferenceQuestions(
   conferenceId: number,
@@ -31,16 +33,17 @@ export function getConferenceQuestions(
     live?: boolean;
     eventUid?: string;
     limit?: number;
-    /** Organizers can also see what they have hidden, to review it. */
+    /** Also what organizers or automatic moderation hid, to review it. */
     includeHidden?: boolean;
   } = {},
 ) {
   const conditions = [
     eq(events.conferenceId, conferenceId),
     notBlocked(),
-    notModerationHidden,
   ];
-  if (!options.includeHidden) conditions.push(isNull(questions.deletedAt));
+  if (!options.includeHidden) {
+    conditions.push(isNull(questions.deletedAt), notModerationHidden);
+  }
   if (options.live) conditions.push(eq(events.live, true));
   if (options.eventUid) {
     conditions.push(eq(lower(events.uid), options.eventUid.toLowerCase()));
@@ -56,6 +59,8 @@ export function getConferenceQuestions(
       selectedAt: questions.selectedAt,
       answeredAt: questions.answeredAt,
       deletedAt: questions.deletedAt,
+      hiddenAt: questions.hiddenAt,
+      moderation: questions.moderation,
       userId: questions.userId,
       user: users,
       votes: votesSnippet,
@@ -86,17 +91,27 @@ type EventCounts = {
   votes: number;
   reactions: number;
   participants: number;
+  /** Questions automatic moderation hid and nobody restored. */
+  autoHidden: number;
+  /** Questions moderation shows but marked for an organizer to check. */
+  review: number;
+  /** Average relevance (0 to 4) of the questions attendees saw. */
+  relevance: number | null;
 };
 
 /**
  * Activity totals for a conference and for each of its sessions. Participants
  * are people who asked or voted (as in `countParticipants`), counted once
- * across the whole conference for the totals.
+ * across the whole conference for the totals. Counts cover what attendees
+ * saw; `moderation` adds what automatic moderation did.
  */
-export async function getConferenceStats(conferenceId: number) {
+export async function getConferenceStats(
+  conferenceId: number,
+  { moderationEnabled }: { moderationEnabled: boolean },
+) {
   const inConference = eq(events.conferenceId, conferenceId);
 
-  const [questionRows, voteRows, reactionRows, participantRows, total] =
+  const [questionRows, voteRows, reactionRows, participantRows, total, verdictRows] =
     await Promise.all([
       // Same questions the feed and Q&A show: not hidden, author not blocked.
       db.select({ eventId: questions.eventId, n: count() })
@@ -131,13 +146,34 @@ export async function getConferenceStats(conferenceId: number) {
       db.execute<{ n: number }>(sql`
         SELECT COUNT(DISTINCT p.user_id)::int AS n
         FROM (${participantsSql(conferenceId)}) AS p`),
+      // Every verdict, to tally moderation and relevance.
+      db.select({
+        eventId: questions.eventId,
+        hiddenAt: questions.hiddenAt,
+        deletedAt: questions.deletedAt,
+        moderation: questions.moderation,
+      })
+        .from(questions)
+        .innerJoin(events, eq(questions.eventId, events.id))
+        .where(and(inConference, isNotNull(questions.moderation)))
+        .execute(),
     ]);
+
+  const moderation = tallyModeration(verdictRows, moderationEnabled);
 
   const byEvent = new Map<number, EventCounts>();
   const get = (eventId: number) => {
     let counts = byEvent.get(eventId);
     if (!counts) {
-      counts = { questions: 0, votes: 0, reactions: 0, participants: 0 };
+      counts = {
+        questions: 0,
+        votes: 0,
+        reactions: 0,
+        participants: 0,
+        autoHidden: 0,
+        review: 0,
+        relevance: null,
+      };
       byEvent.set(eventId, counts);
     }
     return counts;
@@ -146,8 +182,14 @@ export async function getConferenceStats(conferenceId: number) {
   voteRows.forEach((r) => (get(r.eventId).votes = r.n));
   reactionRows.forEach((r) => (get(r.eventId).reactions = r.n));
   for (const r of participantRows) get(r.event_id).participants = r.n;
+  for (const [eventId, m] of moderation.perEvent) {
+    const counts = get(eventId);
+    counts.autoHidden = m.autoHidden;
+    counts.review = m.review;
+    counts.relevance = m.scored > 0 ? m.relevanceSum / m.scored : null;
+  }
 
-  const sum = (key: keyof EventCounts) =>
+  const sum = (key: "questions" | "votes" | "reactions") =>
     [...byEvent.values()].reduce((acc, counts) => acc + counts[key], 0);
 
   return {
@@ -157,6 +199,7 @@ export async function getConferenceStats(conferenceId: number) {
       reactions: sum("reactions"),
       participants: total.at(0)?.n ?? 0,
     },
+    moderation: moderation.totals,
     events: [...byEvent.entries()].map(([eventId, counts]) => ({
       eventId,
       ...counts,
@@ -216,6 +259,8 @@ export async function getConferenceUserActivity(
       selectedAt: questions.selectedAt,
       answeredAt: questions.answeredAt,
       deletedAt: questions.deletedAt,
+      hiddenAt: questions.hiddenAt,
+      moderation: questions.moderation,
       votes: votesSnippet,
       event: {
         uid: events.uid,
@@ -230,7 +275,6 @@ export async function getConferenceUserActivity(
       .where(and(
         eq(questions.userId, userId),
         eq(events.conferenceId, conferenceId),
-        notModerationHidden,
       ))
       .groupBy(questions.id, events.id)
       .orderBy(desc(questions.createdAt))
@@ -289,8 +333,7 @@ export async function getConferenceUserActivity(
     }>(sql`
       SELECT e.uid, e.title, e.stage, e.start,
         (SELECT COUNT(*)::int FROM questions q
-          WHERE q.event_id = e.id AND q.user_id = ${userId}
-            AND q.hidden_at IS NULL) AS questions,
+          WHERE q.event_id = e.id AND q.user_id = ${userId}) AS questions,
         (SELECT COUNT(*)::int FROM votes v
           INNER JOIN questions q ON q.id = v.question_id
           WHERE q.event_id = e.id AND v.user_id = ${userId}
@@ -300,8 +343,7 @@ export async function getConferenceUserActivity(
       FROM ${events} e
       WHERE e.conference_id = ${conferenceId}
         AND (
-          EXISTS (SELECT 1 FROM questions q WHERE q.event_id = e.id AND q.user_id = ${userId}
-                    AND q.hidden_at IS NULL)
+          EXISTS (SELECT 1 FROM questions q WHERE q.event_id = e.id AND q.user_id = ${userId})
           OR EXISTS (SELECT 1 FROM votes v INNER JOIN questions q ON q.id = v.question_id
                       WHERE q.event_id = e.id AND v.user_id = ${userId}
                         AND q.hidden_at IS NULL)
@@ -311,6 +353,9 @@ export async function getConferenceUserActivity(
   ]);
 
   const blocked = !!person.bannedUntil && person.bannedUntil > new Date();
+  // Hidden by an organizer or by automatic moderation.
+  const isHidden = (q: { deletedAt: Date | null; hiddenAt: Date | null }) =>
+    q.deletedAt !== null || q.hiddenAt !== null;
 
   return {
     user: {
@@ -319,14 +364,17 @@ export async function getConferenceUserActivity(
       blocked,
     },
     summary: {
-      questions: asked.filter((q) => !q.deletedAt).length,
-      hidden: asked.filter((q) => q.deletedAt).length,
+      questions: asked.filter((q) => !isHidden(q)).length,
+      hidden: asked.filter(isHidden).length,
       votes: votesCast.at(0)?.n ?? 0,
       reactions: sessionRows.reduce((total, s) => total + s.reactions, 0),
       sessions: sessionRows.length,
     },
     sessions: sessionRows,
-    questions: asked,
+    questions: asked.map(({ moderation, ...rest }) => ({
+      ...rest,
+      moderation: summarizeModeration(moderation),
+    })),
     upvoted: upvoted.map(({ askedById, askedByMetadata, ...rest }) => ({
       ...rest,
       user: {

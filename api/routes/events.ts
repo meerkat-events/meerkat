@@ -46,7 +46,7 @@ import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { REACTION_EMOJIS } from "../reactions.ts";
 import { type Feature, getFeatures } from "../models/features.ts";
 import { createAttendancePOD } from "../zupass.ts";
-import { getConferenceRolesForConference } from "../models/roles.ts";
+import { canModerate, getConferenceRolesForConference } from "../models/roles.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
 import { supabase } from "../supabase.ts";
@@ -386,10 +386,8 @@ app.post(
       user.id,
       event.conferenceId,
     );
-    const isOrganizer = roles.some((role) => role.role === "organizer");
-
-    if (!isOrganizer) {
-      throw new HTTPException(403, { message: `User is not an organizer` });
+    if (!canModerate(roles)) {
+      throw new HTTPException(403, { message: `User is not a moderator` });
     }
 
     const result = await setEventLive(event.id);

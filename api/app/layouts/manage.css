@@ -75,26 +75,6 @@
   flex-wrap: wrap;
 }
 
-/* Shown only while the clock is shifted for testing (?now=…). */
-.manage-mock {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  margin-right: 14px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px dashed var(--m-accent-line);
-  background: var(--m-accent-soft);
-  color: var(--m-ink);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.manage-mock:hover {
-  border-style: solid;
-}
-
 .manage-event {
   display: flex;
   flex-direction: column;
@@ -449,7 +429,7 @@
 
 }
 
-/* Show: all / open / answered / hidden / spam, with how many of each. */
+/* Show: all / answered / hidden / auto-hidden / review, with how many of each. */
 .m-filter {
   display: flex;
   gap: 4px;
@@ -489,10 +469,26 @@
   }
 }
 
-.m-qtable .tag.spam {
+/* Hidden by automatic moderation. */
+.m-qtable .tag.flagged {
   border-color: transparent;
   background: color-mix(in srgb, #ff6b6b 20%, transparent);
   color: #ffb4b4;
+}
+
+/* Shown, but moderation asks an organizer to look at it. */
+.m-qtable .tag.review {
+  border-color: color-mix(in srgb, #fbbf24 55%, transparent);
+  color: #fcd34d;
+}
+
+/* Why moderation hid it or asks for a review. */
+.m-qtable td.status .reason {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--m-ink-2);
 }
 
 /* Dense question table: as many questions on screen as possible. */
@@ -596,7 +592,74 @@
 }
 
 .m-qtable .status {
-  width: 92px;
+  width: 120px;
+}
+
+.m-qtable .relevance {
+  width: 120px;
+  text-align: right;
+}
+
+/* The score with the level it is closest to beneath, e.g. 2.6 / Highly relevant. */
+.relevance .score {
+  display: block;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--m-ink);
+}
+
+.relevance .level {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--m-ink-3);
+  white-space: nowrap;
+}
+
+/* A heading with an info button next to it. */
+.m-th-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Explanations opened from an info button (RelevanceInfo). */
+.m-popover {
+  max-width: 340px;
+  background: var(--m-surface-2);
+  color: var(--m-ink);
+  border: 1px solid var(--m-line-strong);
+  font-size: 12.5px;
+  line-height: 1.5;
+
+  & [data-part="title"] {
+    margin-bottom: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  & p {
+    margin: 0 0 8px;
+    color: var(--m-ink-2);
+  }
+
+  & p:last-child {
+    margin-bottom: 0;
+  }
+
+  & ul {
+    display: grid;
+    gap: 3px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+    color: var(--m-ink-2);
+  }
+
+  & b {
+    color: var(--m-ink);
+    font-weight: 600;
+  }
 }
 
 /* A question can be both flagged and on stage, so the tags stack instead of
@@ -695,10 +758,21 @@
     color: var(--m-ink);
   }
 
-  /* No column headers here, so mark the vote count. */
+  /* No column headers here, so mark the vote count and relevance. */
   .m-qtable td.n::before {
     content: "\25B2 ";
     color: var(--m-ink-3);
+  }
+
+  .m-qtable td.relevance::before {
+    content: "Relevance ";
+    color: var(--m-ink-3);
+  }
+
+  .m-qtable td.relevance .score,
+  .m-qtable td.relevance .level {
+    display: inline;
+    margin-right: 4px;
   }
 
   .m-qtable td.n {
@@ -730,6 +804,24 @@
   text-decoration-color: var(--m-accent);
 }
 
+/* A table row that opens something (e.g. a session from someone's history);
+   its title is the button keyboard users reach. */
+.m-qtable tr.clickable {
+  cursor: pointer;
+}
+
+.m-link-button {
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.m-qtable tr.clickable:hover .m-link-button {
+  text-decoration: underline;
+  text-decoration-color: var(--m-accent);
+  text-underline-offset: 3px;
+}
+
 /* ---------- a person's history ---------- */
 .m-person {
   container-type: inline-size;
@@ -742,32 +834,35 @@
   color: var(--m-ink);
   border: 1px solid var(--m-line-strong);
 
-  /* Title on the left; on the right the close button, with the header's
-     actions below it so they never sit next to close. */
+  /* A compact first row with only the close button; beneath it the title on
+     the left and the dialog's actions on the right, so they never sit next
+     to close. Same as the session dialog's top row. */
   & .chakra-dialog__header {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 6px 12px;
+    align-items: center;
+    column-gap: 12px;
+    padding-top: 10px;
     border-bottom: 1px solid var(--m-line);
   }
 
   & .chakra-dialog__header > :first-child {
-    grid-row: span 2;
+    grid-row: 2;
+    grid-column: 1;
   }
 
-  /* Chakra positions the close button absolutely; here it takes its place in
-     the header, so the actions below it can't overlap it. */
+  /* Chakra positions the close button absolutely; here it gets its own row. */
   & .chakra-dialog__header > .chakra-dialog__closeTrigger {
     position: static;
-    grid-column: 2;
     grid-row: 1;
+    grid-column: 1 / -1;
     justify-self: end;
+    margin-right: -8px;
   }
 
   & .m-head-actions {
+    grid-row: 2;
     grid-column: 2;
-    align-self: end;
     justify-self: end;
   }
 
@@ -809,18 +904,32 @@
   }
 }
 
-.m-confirm {
-  max-width: min(440px, calc(100vw - 48px));
+/* Blocking someone: a confirmation step in place of the person's history. */
+.m-confirm-step {
+  max-width: 460px;
+  margin: 24px auto;
+  padding: 18px 20px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: var(--m-radius);
+  background: var(--m-surface-2);
+  font-size: 13.5px;
+  line-height: 1.5;
 
-  & [data-scope="dialog"][data-part="title"] {
+  & h3 {
+    margin: 0 0 8px;
     font-size: 16px;
     font-weight: 700;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--m-ink);
   }
+}
 
-  & .chakra-dialog__body {
-    font-size: 13.5px;
-    line-height: 1.5;
-  }
+.m-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 /* ---------- schedule ---------- */
@@ -1135,10 +1244,9 @@
 }
 
 /* ---------- session panel ---------- */
-/* Every full-size management dialog is the same box, so one opened from
-   another covers it exactly instead of peeking out around the edges. The
-   small block-user confirmation keeps its own size. */
-.m-person:not(.m-confirm) {
+/* Every management dialog is the same box, so switching from one to another
+   (a session, then someone's history) doesn't jump around. */
+.m-person {
   height: min(820px, calc(100dvh - 56px));
 }
 
@@ -1148,7 +1256,7 @@
 }
 
 .m-session .m-sec:first-child {
-  padding-top: 18px;
+  padding-top: 10px;
 }
 
 .m-sec {
@@ -1251,23 +1359,9 @@
   margin-left: auto;
 }
 
-/* The QR code is its own dialog, so the card inside it drops the frame. */
-.m-qr-dialog .chakra-dialog__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.m-qr-dialog .m-qr {
-  margin-top: 0;
-  padding: 0;
-  border: 0;
-  max-width: none;
-}
-
+/* The QR code tab: one centered card. */
 .m-qr {
-  margin-top: 12px;
+  margin: 4px auto 0;
   max-width: 380px;
   padding: 14px;
   display: flex;
@@ -1355,6 +1449,111 @@
     font-weight: 700;
     letter-spacing: -0.025em;
     font-variant-numeric: tabular-nums;
+  }
+
+  & .value small {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--m-ink-3);
+  }
+}
+
+/* ---------- moderation (analytics) ---------- */
+.m-moderation {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+
+  & h2 {
+    margin: 0 0 2px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  & .m-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  & .m-tile {
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: var(--m-surface-2);
+  }
+
+  & .m-tile .value {
+    font-size: 30px;
+  }
+}
+
+.m-moderation-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+/* A single-series horizontal bar chart with its values printed (BarList). */
+.m-bars {
+  margin: 0;
+
+  & figcaption {
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m-ink-2);
+  }
+
+  & ul {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  & li {
+    display: grid;
+    grid-template-columns: 140px minmax(0, 1fr) 40px;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+  }
+
+  & .label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--m-ink-2);
+  }
+
+  & .track {
+    height: 12px;
+  }
+
+  /* Square at the baseline, rounded at the data end. */
+  & .bar {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    border-radius: 0 4px 4px 0;
+    background: var(--chakra-colors-brand-500);
+  }
+
+  & .value {
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--m-ink);
+  }
+}
+
+@media (max-width: 760px) {
+  .m-moderation .m-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .m-moderation-charts {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

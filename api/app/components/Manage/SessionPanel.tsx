@@ -8,14 +8,15 @@ import {
   SegmentGroup,
   Tabs,
 } from "@chakra-ui/react";
-import { useQuestions } from "@meerkat-events/react";
 import type { Session } from "../../hooks/use-conference-events.ts";
 import type { SessionCounts } from "../../hooks/use-conference-stats.ts";
-import type { Question as QuestionType } from "../../types.ts";
+import { useConferenceQuestions } from "../../hooks/use-conference-questions.ts";
+import { useManage } from "../../layouts/manage.tsx";
 import { useGoLive } from "../../hooks/use-go-live.ts";
 import { QuestionTable } from "./QuestionTable.tsx";
 import { FilterChips } from "./FilterChips.tsx";
-import { type Filter, matchesFilter, withSpamPreview } from "./question-state.ts";
+import { FILTERS, matchesFilter, SORTS, sortQuestions } from "./question-state.ts";
+import { useUrlChoice } from "./use-url-choice.ts";
 import QR from "../QR.tsx";
 import { toaster } from "../ui/toaster.tsx";
 import { apiUrl, appOrigin } from "../../lib/api-url.ts";
@@ -31,18 +32,14 @@ import {
   useNow,
 } from "./time.ts";
 
-const SORTS = [
-  { label: "Popular", value: "popular" },
-  { label: "Newest", value: "newest" },
-] as const;
-type Sort = (typeof SORTS)[number]["value"];
-
 const qaUrl = (session: Session) => new URL(`/e/${session.uid}/qa`, appOrigin());
 // The presenter view the stage screen shows.
 const presenterUrl = (session: Session) => new URL(`/e/${session.uid}`, appOrigin());
 // Redirects to whatever is live on the stage (or next up), so it can be printed once.
 const stageUrl = (session: Session) =>
   new URL(`/stage/${encodeURIComponent(session.stage)}/qa`, appOrigin());
+
+const SESSION_TABS = ["questions", "details", "qr"] as const;
 
 /** One session: status, Go live, Q&A link and QR codes, its questions and details. */
 export function SessionPanel(
@@ -55,7 +52,17 @@ export function SessionPanel(
   },
 ) {
   const now = useNow(30_000);
-  const [showQR, setShowQR] = useState(false);
+  // What this dialog shows is in the URL, so a link opens the same view.
+  const [tab, setTab] = useUrlChoice("sessionTab", SESSION_TABS, "questions");
+  // One dialog at a time: opening someone's history closes this dialog first
+  // and opens theirs once it is gone. (A dialog opened on top of another is
+  // dismissed when the one beneath it closes.)
+  const [open, setOpen] = useState(true);
+  const [personAfterClose, setPersonAfterClose] = useState<string | null>(null);
+  const openPersonInstead = (userId: string) => {
+    setPersonAfterClose(userId);
+    setOpen(false);
+  };
   const status = sessionStatus(session, now);
   const { trigger: goLive } = useGoLive(session.uid);
 
@@ -84,8 +91,13 @@ export function SessionPanel(
 
   return (
     <Dialog.Root
-      open
-      onOpenChange={(e) => !e.open && onClose()}
+      open={open}
+      onOpenChange={(e) => setOpen(e.open)}
+      // One URL change either way: opening a person also drops ?session.
+      onExitComplete={() => {
+        if (personAfterClose) onPerson(personAfterClose);
+        else onClose();
+      }}
       size="xl"
       scrollBehavior="inside"
     >
@@ -140,40 +152,23 @@ export function SessionPanel(
                           label: "Copy Q&A link",
                           onSelect: () => copy(qaUrl(session).toString(), "Q&A link copied"),
                         },
-                        { label: "QR code", onSelect: () => setShowQR(true) },
+                        { label: "QR code", onSelect: () => setTab("qr") },
                       ]}
                     />
                   </div>
-                  {/* Its own dialog, so the session's details stay put behind it. */}
-                  <Dialog.Root
-                    open={showQR}
-                    onOpenChange={(e) => setShowQR(e.open)}
-                    size="sm"
-                    placement="center"
-                  >
-                    <Portal>
-                      <Dialog.Backdrop />
-                      <Dialog.Positioner>
-                        <Dialog.Content className="m-person m-confirm m-qr-dialog">
-                          <Dialog.Header>
-                            <Dialog.Title>QR code</Dialog.Title>
-                            <Dialog.CloseTrigger asChild>
-                              <CloseButton size="sm" aria-label="Close" />
-                            </Dialog.CloseTrigger>
-                          </Dialog.Header>
-                          <Dialog.Body>
-                            <QRBlock session={session} onCopy={copy} />
-                          </Dialog.Body>
-                        </Dialog.Content>
-                      </Dialog.Positioner>
-                    </Portal>
-                  </Dialog.Root>
                 </div>
 
-                <Tabs.Root defaultValue="questions" lazyMount unmountOnExit>
+                {/* One dialog at a time: the QR code is a tab, not a dialog on top. */}
+                <Tabs.Root
+                  value={tab}
+                  onValueChange={(e) => setTab(SESSION_TABS.find((t) => t === e.value) ?? "questions")}
+                  lazyMount
+                  unmountOnExit
+                >
                   <Tabs.List className="m-session-tabs" aria-label="Session">
                     <Tabs.Trigger value="questions">Questions</Tabs.Trigger>
                     <Tabs.Trigger value="details">Details</Tabs.Trigger>
+                    <Tabs.Trigger value="qr">QR code</Tabs.Trigger>
                   </Tabs.List>
                   <Tabs.Content value="questions" padding="0">
                     <SessionQuestions
@@ -181,11 +176,16 @@ export function SessionPanel(
                       counts={counts}
                       status={status}
                       now={now}
-                      onPerson={onPerson}
+                      onPerson={openPersonInstead}
                     />
                   </Tabs.Content>
                   <Tabs.Content value="details" padding="0">
                     <SessionDetails session={session} />
+                  </Tabs.Content>
+                  <Tabs.Content value="qr" padding="0">
+                    <div className="m-sec">
+                      <QRBlock session={session} onCopy={copy} />
+                    </div>
                   </Tabs.Content>
                 </Tabs.Root>
             </Dialog.Body>
@@ -205,13 +205,10 @@ function SessionQuestions(
     onPerson: (userId: string) => void;
   },
 ) {
-  const [sort, setSort] = useState<Sort>("newest");
-  const [filter, setFilter] = useState<Filter>("all");
-  const { data, mutate } = useQuestions({
-    sessionId: session.uid,
-    sort,
-    realtime: true,
-  }) as { data: QuestionType[] | undefined; mutate: () => void };
+  const [sort, setSort] = useUrlChoice("sort", SORTS.map((s) => s.value), "newest");
+  const [filter, setFilter] = useUrlChoice("show", FILTERS.map((f) => f.value), "all");
+  const { conferenceId } = useManage();
+  const { data, mutate } = useConferenceQuestions(conferenceId, { event: session.uid });
 
   if (status === "upcoming" && !data?.length) {
     return (
@@ -225,9 +222,8 @@ function SessionQuestions(
     );
   }
 
-  // The public Q&A stream never returns hidden questions, so that filter is left out.
-  const questions = withSpamPreview(data ?? []);
-  const shown = questions.filter((q) => matchesFilter(q, filter));
+  const questions = data ?? [];
+  const shown = sortQuestions(questions.filter((q) => matchesFilter(q, filter)), sort);
   return (
     <>
       <div className="m-sec">
@@ -240,12 +236,7 @@ function SessionQuestions(
       </div>
       <div className="m-sec">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <FilterChips
-            questions={questions}
-            value={filter}
-            onChange={setFilter}
-            exclude={["hidden"]}
-          />
+          <FilterChips questions={questions} value={filter} onChange={setFilter} />
           <SortMenu options={SORTS} value={sort} onChange={setSort} />
         </div>
         {shown.length
@@ -255,7 +246,7 @@ function SessionQuestions(
               now={now}
               showSession={false}
               onPerson={onPerson}
-              refresh={mutate}
+              refresh={() => mutate()}
             />
           )
           : (
@@ -297,7 +288,7 @@ function QRBlock(
     onCopy: (text: string, title: string) => void;
   },
 ) {
-  const [target, setTarget] = useState<"session" | "stage">("session");
+  const [target, setTarget] = useUrlChoice("qr", ["session", "stage"] as const, "session");
   const [size, setSize] = useState("1024");
   // Stable per target so the QR component doesn't regenerate on every render.
   const url = useMemo(

@@ -15,11 +15,20 @@ export const meta: Route.MetaFunction = () => [
 const DAY = 86_400_000;
 
 /**
+ * The open session (?session=) and what its dialog shows: tab, filter, sort
+ * and QR code target (SessionPanel). They go together.
+ */
+function clearSession(p: URLSearchParams) {
+  for (const key of ["session", "sessionTab", "show", "sort", "qr"]) p.delete(key);
+}
+
+/**
  * The conference day by day, a row per stage. `?day=YYYY-MM-DD` picks the day
- * and `?session=<uid>` opens a session's panel (search and the analytics link here).
+ * and `?session=<uid>` opens a session's panel (search and the analytics link
+ * here), with `?sessionTab=`, `?show=`, `?sort=` and `?qr=` for what it shows.
  */
 export default function Schedule() {
-  const { conferenceId, sessions: allSessions, openPerson } = useManage();
+  const { conferenceId, sessions: allSessions } = useManage();
   const { mutate: refreshSessions } = useConferenceEvents(conferenceId);
   const { data: stats } = useConferenceStats(conferenceId);
   const [params, setParams] = useSearchParams();
@@ -40,6 +49,7 @@ export default function Schedule() {
   );
 
   const selected = sessions.find((s) => s.uid === params.get("session"));
+
   const today = dayKey(now);
   const day = params.get("day") ??
     (selected ? dayKey(selected.start) : undefined) ??
@@ -53,14 +63,22 @@ export default function Schedule() {
   const setDay = (d: string) =>
     setParams((p) => {
       p.set("day", d);
-      p.delete("session");
+      clearSession(p);
       return p;
     }, { replace: true });
   const select = (uid: string | undefined) =>
     setParams((p) => {
+      clearSession(p);
       if (uid) p.set("session", uid);
-      else p.delete("session");
       if (day) p.set("day", day);
+      return p;
+    }, { replace: true });
+  // From a session's questions to someone's history, in one URL change.
+  const openPersonInstead = (userId: string) =>
+    setParams((p) => {
+      clearSession(p);
+      p.set("person", userId);
+      p.delete("personTab");
       return p;
     }, { replace: true });
 
@@ -92,14 +110,15 @@ export default function Schedule() {
             onSelect={(s) => select(s.uid)}
           />
         )}
-        {selected && (
+        {/* One dialog at a time, even if a link names a session and a person. */}
+        {selected && !params.get("person") && (
           <SessionPanel
             key={selected.uid}
             session={selected}
             counts={counts.get(selected.id)}
             onClose={() => select(undefined)}
             onChanged={() => refreshSessions()}
-            onPerson={openPerson}
+            onPerson={openPersonInstead}
           />
         )}
       </div>
