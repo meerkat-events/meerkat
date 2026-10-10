@@ -18,8 +18,9 @@ export type ConferenceQuestion = Question & {
 
 /**
  * Questions from every live session of a conference (organizers only).
- * Refetches when a question is asked anywhere, and every 10 seconds so vote
- * counts and moderation by other organizers stay current.
+ * Refetches whenever a question or vote changes anywhere (asked, selected,
+ * answered, hidden, voted), and every 10 seconds for what Realtime doesn't
+ * see, such as blocked users.
  */
 export function useConferenceQuestions(conferenceId: number | undefined) {
   const { session } = useAuth();
@@ -50,7 +51,12 @@ export function useConferenceQuestions(conferenceId: number | undefined) {
       const channel = supabase?.channel(`conference-questions-${conferenceId}`)
         .on(
           "postgres_changes",
-          { event: "INSERT", schema: "public", table: "questions" },
+          { event: "*", schema: "public", table: "questions" },
+          () => refresh(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "votes" },
           () => refresh(),
         )
         .subscribe();
