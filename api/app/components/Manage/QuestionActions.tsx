@@ -59,7 +59,7 @@ export function QuestionActions(
       </Menu.Trigger>
       <Portal>
         <Menu.Positioner>
-          <Menu.Content>
+          <Menu.Content className="m-menu">
             <Menu.Item
               value="select"
               onClick={() =>

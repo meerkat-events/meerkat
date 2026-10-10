@@ -36,6 +36,18 @@
   --chakra-colors-color-palette-subtle: color-mix(in srgb, var(--m-brand-300) 16%, transparent);
 }
 
+/* Everything clickable shows a pointer. Browsers default <button> to an
+   arrow and Chakra does the same for menu items; dialogs and menus are
+   portalled out of .manage, so they are listed too. */
+:is(.manage, .m-person, .m-menu)
+  :is(button, a[href], select, [role="tab"], [role="menuitem"], [role="menuitemradio"]):not(
+    :disabled,
+    [aria-disabled="true"],
+    [data-disabled]
+  ) {
+  cursor: pointer;
+}
+
 .manage {
   background: var(--m-bg);
   display: grid;
@@ -864,8 +876,13 @@
     border-top: 1px solid var(--m-line);
   }
 
-  & [data-part="footer"] .m-hint {
-    margin-right: auto;
+  /* Header action bar, under the title and away from the close button. */
+  & .m-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
   }
 }
 
@@ -883,46 +900,26 @@
   }
 }
 
-/* The four numbers double as tabs: each one opens its own table. */
-.m-person-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+/* A person's tabs sit in the padded dialog body, so they line up with the
+   tables below instead of the session panel's inset. */
+.m-person-tabs {
+  padding-inline: 0;
+  margin-bottom: 14px;
+}
 
-  & button {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 10px 12px;
-    border: 1px solid var(--m-line);
-    border-radius: 10px;
-    text-align: left;
-  }
+.m-tab-count {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--m-surface-2);
+  color: var(--m-ink-3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 
-  & button:hover {
-    border-color: var(--m-line-strong);
-    background: var(--m-surface-2);
-  }
-
-  & button[aria-selected="true"] {
-    border-color: var(--m-accent-line);
-    background: var(--m-accent-soft);
-  }
-
-  & button[aria-selected="true"] span {
-    color: var(--m-ink-2);
-  }
-
-  & b {
-    font-size: 20px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-  }
-
-  & span {
-    font-size: 11px;
-    color: var(--m-ink-3);
-  }
+[aria-selected="true"] > .m-tab-count {
+  background: var(--m-accent-soft);
+  color: var(--m-ink-2);
 }
 
 .m-person-questions {
@@ -972,12 +969,6 @@
     border-radius: 999px;
     font-size: 10.5px;
     font-weight: 600;
-  }
-}
-
-@media (max-width: 620px) {
-  .m-person-summary {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -1509,13 +1500,6 @@
 
   & > * {
     flex-shrink: 0;
-  }
-
-  & h1 {
-    margin: 2px 0 0;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.015em;
   }
 }
 

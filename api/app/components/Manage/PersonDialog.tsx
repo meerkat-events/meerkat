@@ -74,6 +74,22 @@ export function PersonDialog(
                   {data?.user.blocked && <span className="m-chip blocked">Blocked</span>}
                 </Dialog.Title>
                 <span className="m-hint">Their history at this event</span>
+                {data && (
+                  <div className="m-actions">
+                    {data.user.blocked
+                      ? <span className="m-hint">Their questions are hidden from the Q&A.</span>
+                      : (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          colorPalette="red"
+                          onClick={() => setConfirming(true)}
+                        >
+                          Block user
+                        </Button>
+                      )}
+                  </div>
+                )}
               </div>
               <Dialog.CloseTrigger asChild>
                 <CloseButton size="sm" />
@@ -85,48 +101,35 @@ export function PersonDialog(
                 ? <div className="m-empty"><Spinner size="sm" /></div>
                 : (
                   <>
-                    <div className="m-person-summary" role="tablist">
-                      {([
-                        ["questions", data.summary.questions, "questions"],
-                        ["votes", data.summary.votes, "votes cast"],
-                        ["sessions", data.summary.sessions, "sessions"],
-                        ["hidden", data.summary.hidden, "hidden"],
-                      ] as [Tab, number, string][]).map(([key, value, label]) => (
+                    <div className="m-tabs m-person-tabs" role="tablist">
+                      {TABS.map(({ key, label }) => (
                         <button
                           key={key}
+                          id={`person-tab-${key}`}
                           type="button"
                           role="tab"
                           aria-selected={tab === key}
+                          aria-controls="person-tabpanel"
                           onClick={() => setTab(key)}
                         >
-                          <b>{value}</b>
-                          <span>{label}</span>
+                          {label}
+                          <span className="m-tab-count">{data.summary[key]}</span>
                         </button>
                       ))}
                     </div>
 
-                    <PersonTab
-                      tab={tab}
-                      data={data}
-                      now={now}
-                      onPerson={onPerson}
-                      refresh={() => mutate()}
-                    />
+                    <div id="person-tabpanel" role="tabpanel" aria-labelledby={`person-tab-${tab}`}>
+                      <PersonTab
+                        tab={tab}
+                        data={data}
+                        now={now}
+                        onPerson={onPerson}
+                        refresh={() => mutate()}
+                      />
+                    </div>
                   </>
                 )}
             </Dialog.Body>
-
-            <Dialog.Footer>
-              {data?.user.blocked && (
-                <span className="m-hint">Their questions are hidden from the Q&A.</span>
-              )}
-              <Button size="xs" variant="outline" onClick={onClose}>Close</Button>
-              {data && !data.user.blocked && (
-                <Button size="xs" colorPalette="red" onClick={() => setConfirming(true)}>
-                  Block user
-                </Button>
-              )}
-            </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -169,12 +172,12 @@ export function PersonDialog(
   );
 }
 
-const TAB_TITLES: Record<Tab, string> = {
-  questions: "Questions asked",
-  votes: "Votes cast",
-  sessions: "Sessions joined",
-  hidden: "Questions hidden",
-};
+const TABS: { key: Tab; label: string }[] = [
+  { key: "questions", label: "Questions" },
+  { key: "votes", label: "Votes" },
+  { key: "sessions", label: "Sessions" },
+  { key: "hidden", label: "Hidden" },
+];
 
 /** The table behind whichever number is selected. */
 function PersonTab(
@@ -211,7 +214,6 @@ function PersonTab(
 
   return (
     <>
-      <h3>{TAB_TITLES[tab]}</h3>
       {tab === "sessions"
         ? (
           data.sessions.length

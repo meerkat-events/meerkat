@@ -42,7 +42,7 @@ export type ManageContext = {
 export const useManage = () => useOutletContext<ManageContext>();
 
 /**
- * Organizer pages: live question feed, schedule and dashboard for one
+ * Organizer pages: live question feed, schedule and analytics for one
  * conference the signed-in user organizes.
  */
 export default function ManageLayout() {
@@ -151,7 +151,7 @@ export default function ManageLayout() {
         <nav className="manage-pages" aria-label="Pages">
           <NavLink to="/manage" end>Live question feed</NavLink>
           <NavLink to="/manage/schedule">Schedule</NavLink>
-          <NavLink to="/manage/dashboard">Dashboard</NavLink>
+          <NavLink to="/manage/analytics">Analytics</NavLink>
         </nav>
         <SessionSearch sessions={sessions ?? []} />
       </div>

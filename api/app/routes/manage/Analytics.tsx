@@ -25,7 +25,7 @@ const num = (n: number) => n.toLocaleString("en-US");
 const activity = (c: SessionCounts) => c.questions + c.votes + c.reactions;
 
 /** Event-wide totals, then every session that has started with the same numbers. */
-export default function Dashboard() {
+export default function Analytics() {
   const { conferenceId, sessions } = useManage();
   const { data: stats } = useConferenceStats(conferenceId);
   const [params, setParams] = useSearchParams();
@@ -59,8 +59,6 @@ export default function Dashboard() {
 
   return (
     <div className="m-dash">
-      <h1>Event dashboard</h1>
-
       <div className="m-tiles">
         <div className="m-card m-tile">
           <span className="label">Questions asked</span>

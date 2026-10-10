@@ -19,7 +19,7 @@ export default [
     layout("layouts/manage.tsx", [
       route("/manage", "routes/manage/Feed.tsx"),
       route("/manage/schedule", "routes/manage/Schedule.tsx"),
-      route("/manage/dashboard", "routes/manage/Dashboard.tsx"),
+      route("/manage/analytics", "routes/manage/Analytics.tsx"),
     ]),
   ]),
 ] satisfies RouteConfig;

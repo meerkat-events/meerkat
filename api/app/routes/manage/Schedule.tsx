@@ -11,7 +11,7 @@ const DAY = 86_400_000;
 
 /**
  * The conference day by day, a row per stage. `?day=YYYY-MM-DD` picks the day
- * and `?session=<uid>` opens a session's panel (search and the dashboard link here).
+ * and `?session=<uid>` opens a session's panel (search and the analytics link here).
  */
 export default function Schedule() {
   const { conferenceId, sessions: allSessions, openPerson } = useManage();

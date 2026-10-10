@@ -31,7 +31,7 @@ export function SortMenu<T extends string>(
       </Menu.Trigger>
       <Portal>
         <Menu.Positioner>
-          <Menu.Content minW="10rem">
+          <Menu.Content className="m-menu" minW="10rem">
             <Menu.RadioItemGroup
               value={value}
               onValueChange={(e) => onChange(e.value as T)}
