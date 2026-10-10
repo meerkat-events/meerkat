@@ -28,6 +28,7 @@ import { useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useEvent } from "../hooks/use-event.ts";
 import { useAuth } from "../hooks/use-auth.ts";
 import { useVotes } from "../hooks/use-votes.ts";
+import { useEventQuestions } from "../hooks/use-event-questions.ts";
 import { qa } from "../routing.ts";
 import { useReact } from "../hooks/use-react.ts";
 import { Reaction, type ReactionItem } from "../components/QnA/Reaction.tsx";
@@ -39,7 +40,6 @@ import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
 import type { ReactionEmoji } from "../../reactions.ts";
 import { uuidv7 } from "uuidv7";
 import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
-import { useQuestions } from "@meerkat-events/react";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
@@ -127,15 +127,7 @@ export default function QnA() {
     data: questions,
     mutate: refreshQuestions,
     isLoading: isQuestionsLoading,
-  } = useQuestions({
-    sessionId: uid ?? "",
-    sort,
-    realtime: true,
-  }) as {
-    data: import("../types.ts").Question[] | undefined;
-    mutate: () => void;
-    isLoading: boolean;
-  };
+  } = useEventQuestions(uid, sort);
   const changeSort = (sort: string) => {
     setSearchParams((searchParams) => {
       const vettedSort = parseSort(sort);

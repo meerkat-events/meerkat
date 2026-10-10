@@ -8,6 +8,7 @@ import {
   getQuestionByUID,
   markAsAnswered,
   selectQuestion,
+  toPublicQuestion,
 } from "../models/questions.ts";
 import { getConferenceRolesForConference } from "../models/roles.ts";
 import { getUserById } from "../models/user.ts";
@@ -106,11 +107,10 @@ app.post(
 
     await broadcastQuestionsUpdate(event.id);
 
-    const { id: _id, userId: _userId, ...rest } = question;
 
-    logger.info({ question, user, event }, "Upvoted question");
+    logger.info({ question, userId: user.id, event }, "Upvoted question");
 
-    return c.json({ data: rest });
+    return c.json({ data: toPublicQuestion(question) });
   },
 );
 
@@ -164,11 +164,10 @@ app.post(
 
     await broadcastQuestionsUpdate(event.id);
 
-    const { id: _id, userId: _userId, ...rest } = result;
 
-    logger.info({ question, user, event }, "Selected question");
+    logger.info({ question, userId: user.id, event }, "Selected question");
 
-    return c.json({ data: rest });
+    return c.json({ data: toPublicQuestion(result) });
   },
 );
 
@@ -222,11 +221,10 @@ app.post(
 
     await broadcastQuestionsUpdate(event.id);
 
-    const { id: _id, userId: _userId, ...rest } = result;
 
-    logger.info({ question, user, event }, "Marked question as answered");
+    logger.info({ question, userId: user.id, event }, "Marked question as answered");
 
-    return c.json({ data: rest });
+    return c.json({ data: toPublicQuestion(result) });
   },
 );
 
@@ -282,11 +280,10 @@ app.delete(
 
     await broadcastQuestionsUpdate(event.id);
 
-    const { id: _id, userId: _userId, ...rest } = result;
 
-    logger.info({ question, user, event }, "Deleted question");
+    logger.info({ question, userId: user.id, event }, "Deleted question");
 
-    return c.json({ data: rest });
+    return c.json({ data: toPublicQuestion(result) });
   },
 );
 

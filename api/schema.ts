@@ -17,6 +17,10 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import type { ReactionEmoji } from "./reactions.ts";
+import type {
+  ConferenceModeration,
+  QuestionModeration,
+} from "./moderation.ts";
 
 const authSchema = pgSchema("auth");
 
@@ -83,6 +87,9 @@ export const conferences = pgTable("conferences", {
     headerBarSpacing?: string;
     sessionTimeWidth?: string;
   }>(),
+  // Automatic question moderation: written context and optional overrides
+  // (conferenceModerationSchema in moderation.ts); null = not moderated.
+  moderation: jsonb("moderation").$type<ConferenceModeration>(),
 });
 
 export const roleEnum = pgEnum("role", ["attendee", "speaker", "organizer"]);
@@ -140,6 +147,12 @@ export const questions = pgTable(
     selectedAt: timestamp("selected_at"),
     answeredAt: timestamp("answered_at"),
     deletedAt: timestamp("deleted_at"),
+    // Set when automatic moderation hid the question: only its author still
+    // sees it. Null means visible.
+    hiddenAt: timestamp("hidden_at"),
+    // Verdict of automatic moderation; null when the question was not
+    // classified (moderation off, or the classifier failed).
+    moderation: jsonb("moderation").$type<QuestionModeration>(),
   },
   (
     table,

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import env from "../env.ts";
-import { getConferences } from "../models/conferences.ts";
+import { getConferences, toApiConference } from "../models/conferences.ts";
 import { HTTPException } from "hono/http-exception";
 import { getLiveEvent } from "../models/events.ts";
 
@@ -8,7 +8,7 @@ const app = new Hono();
 
 app.get("/api/v1/conferences", async (c) => {
   const conferences = await getConferences();
-  return c.json({ data: conferences });
+  return c.json({ data: conferences.map(toApiConference) });
 });
 
 app.get("/api/v1/conferences/:id/live", async (c) => {

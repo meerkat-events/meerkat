@@ -7,6 +7,9 @@ import env, { redactedEnv } from "./env.ts";
 import logger from "./logger.ts";
 
 logger.info({ env: redactedEnv }, "Parsed environment variables");
+if (!env.openRouterApiKey) {
+  logger.info("OPENROUTER_API_KEY not set, moderation disabled");
+}
 
 // @ts-expect-error - generated React Router build output has no TypeScript declarations
 const build = (await import("./build/server/index.js")) as unknown as ServerBuild;

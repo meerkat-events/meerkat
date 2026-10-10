@@ -4,6 +4,16 @@ import db from "../db.ts";
 
 export type Conference = typeof conferences.$inferSelect;
 
+/**
+ * A conference as public endpoints return it: without the moderation config,
+ * which would show attendees what the classifier looks for.
+ */
+export function toApiConference(
+  { moderation: _moderation, ...conference }: Conference,
+) {
+  return conference;
+}
+
 export async function getConferenceById(
   id: number,
 ): Promise<Conference | null> {

@@ -23,10 +23,16 @@ const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
 
 export type Questions = Awaited<ReturnType<typeof getQuestions>>;
 
+/**
+ * Visible questions of an event. Questions hidden by automatic moderation are
+ * left out, except for their author: pass the viewer's user id so their own
+ * hidden questions appear among the rest, as if nothing had happened.
+ */
 export function getQuestions(
   eventId: number,
   sort: Sort = "popular",
   answered?: boolean,
+  viewerId?: string,
 ) {
   const orderBy = sort === "popular"
     ? [
@@ -36,10 +42,15 @@ export function getQuestions(
     ]
     : [desc(questions.createdAt)];
 
+  const visibleToViewer = viewerId
+    ? or(isNull(questions.hiddenAt), eq(questions.userId, viewerId))
+    : isNull(questions.hiddenAt);
+
   const conditions = [
     eq(questions.eventId, eventId),
     or(isNull(users.bannedUntil), lte(users.bannedUntil, new Date())),
     isNull(questions.deletedAt),
+    visibleToViewer,
   ];
 
   if (answered === true) {
@@ -179,7 +190,7 @@ export function getAllQuestions() {
     .leftJoin(votes, eq(questions.id, votes.questionId))
     .leftJoin(users, eq(questions.userId, users.id))
     .innerJoin(events, eq(questions.eventId, events.id))
-    .where(isNull(questions.deletedAt))
+    .where(and(isNull(questions.deletedAt), isNull(questions.hiddenAt)))
     .groupBy(questions.id, users.id, events.id)
     .orderBy(desc(questions.createdAt))
     .limit(100)
@@ -187,4 +198,21 @@ export function getAllQuestions() {
 }
 
 export type Question = typeof questions.$inferSelect;
+
+/**
+ * A question row as clients receive it: without internal ids and without the
+ * moderation fields, which must never tell an author that their question was
+ * hidden or why.
+ */
+export function toPublicQuestion(
+  {
+    id: _id,
+    userId: _userId,
+    hiddenAt: _hiddenAt,
+    moderation: _moderation,
+    ...question
+  }: Question,
+) {
+  return question;
+}
 export type QuestionWithVotes = Question & { votes: number };

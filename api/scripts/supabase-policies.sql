@@ -25,10 +25,11 @@ ALTER TABLE public.api_keys           ENABLE ROW LEVEL SECURITY;
 
 -- 2. Browser realtime (supabase-js `postgres_changes`) needs a SELECT policy for
 --    the subscribing role: questions (app/hooks/use-all-questions.ts), reactions
---    (app/hooks/use-reactions-subscription.ts) and votes.
+--    (app/hooks/use-reactions-subscription.ts) and votes. Questions hidden by
+--    automatic moderation (hidden_at set) must never reach other browsers.
 DROP POLICY IF EXISTS "Realtime" ON public.questions;
 CREATE POLICY "Realtime" ON public.questions
-  FOR SELECT TO anon, authenticated USING (true);
+  FOR SELECT TO anon, authenticated USING (hidden_at IS NULL);
 
 DROP POLICY IF EXISTS "Realtime" ON public.reactions;
 CREATE POLICY "Realtime" ON public.reactions

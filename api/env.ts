@@ -60,6 +60,12 @@ const corsOrigins: "*" | string[] = !corsOriginsRaw || corsOriginsRaw === "*"
 const pretalxUrl = process.env["PRETALX_URL"]?.trim().replace(/\/+$/, "") ||
   undefined;
 
+// OpenRouter key for automatic question moderation (classifier.ts). Unset
+// disables moderation for every conference; questions are then shown as
+// before.
+const openRouterApiKey = process.env["OPENROUTER_API_KEY"]?.trim() ||
+  undefined;
+
 const env = {
   connectionString,
   port,
@@ -77,6 +83,7 @@ const env = {
   devconVerificationSecret,
   corsOrigins,
   pretalxUrl,
+  openRouterApiKey,
 };
 
 /** `env` with secrets masked, for startup logging (see `main.ts`). */
@@ -88,6 +95,8 @@ export const redactedEnv = {
   supabaseServiceRoleKey: "REDACTED",
   // Unset stays visible: it tells whether the handover forwards client IPs.
   supabaseSecretKey: env.supabaseSecretKey ? "REDACTED" : undefined,
+  // Unset stays visible: it tells whether questions are moderated.
+  openRouterApiKey: env.openRouterApiKey ? "REDACTED" : undefined,
 };
 
 export default env;

@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { jwt } from "../middlewares/jwt.ts";
+import { jwt, optionalJwt } from "../middlewares/jwt.ts";
+import { logModerationCall, moderateQuestion } from "../moderate-question.ts";
 import { zValidator } from "@hono/zod-validator";
 import zod from "zod";
 import {
@@ -11,7 +12,11 @@ import {
   MAX_REACTIONS_PER_INTERVAL,
 } from "../moderation.ts";
 import env from "../env.ts";
-import { type Conference, getConferenceById } from "../models/conferences.ts";
+import {
+  type Conference,
+  getConferenceById,
+  toApiConference,
+} from "../models/conferences.ts";
 import {
   countParticipants,
   type Event,
@@ -26,6 +31,7 @@ import {
   getSelectedQuestion,
   type Sort,
   Sorts,
+  toPublicQuestion,
 } from "../models/questions.ts";
 import {
   createReaction,
@@ -101,7 +107,7 @@ app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
       votes,
       participants,
       conference: {
-        ...conference,
+        ...toApiConference(conference),
         features: features.reduce((acc, val) => {
           acc[val.name] = val.active;
           return acc;
@@ -166,7 +172,7 @@ app.post(
     const pod = createAttendancePOD(conference!, event, zupassId);
 
     logger.info(
-      { pod, conference, event, zupassId, user },
+      { pod, conference, event, zupassId, userId: user.id },
       "Created attendance pod",
     );
 
@@ -176,24 +182,37 @@ app.post(
   },
 );
 
-app.get("/api/v1/events/:uid/questions", eventMiddleware, async (c) => {
-  const event = c.get("event");
-  const sort = c.req.query("sort") ?? "newest";
-  const answeredString = c.req.query("answered");
-  const answered = typeof answeredString === "string"
-    ? answeredString === "true"
-    : undefined;
+// Authentication is optional: with a valid token, the viewer's own hidden
+// questions are included (automatic moderation hides them from everyone else).
+app.get(
+  "/api/v1/events/:uid/questions",
+  optionalJwt(),
+  eventMiddleware,
+  async (c) => {
+    const event = c.get("event");
+    const sort = c.req.query("sort") ?? "newest";
+    const answeredString = c.req.query("answered");
+    const answered = typeof answeredString === "string"
+      ? answeredString === "true"
+      : undefined;
 
-  if (!Sorts.includes(sort as Sort)) {
-    throw new HTTPException(400, { message: `Invalid sort ${sort}` });
-  }
+    if (!Sorts.includes(sort as Sort)) {
+      throw new HTTPException(400, { message: `Invalid sort ${sort}` });
+    }
 
-  const questions = await getQuestions(event.id, sort as Sort, answered);
+    const viewerId = c.get("jwtPayload")?.sub;
+    const questions = await getQuestions(
+      event.id,
+      sort as Sort,
+      answered,
+      typeof viewerId === "string" ? viewerId : undefined,
+    );
 
-  return c.json({
-    data: questions.map(toApiQuestion),
-  });
-});
+    return c.json({
+      data: questions.map(toApiQuestion),
+    });
+  },
+);
 
 app.get(
   "/api/v1/events/:uid/questions/selected",
@@ -238,9 +257,10 @@ app.post(
       minuteAgo,
     );
     const talkActivityPromise = getUserPostCountPerTalk(user.id, event.id);
-    const [lastMinuteActivity, talkActivity] = await Promise.all([
+    const [lastMinuteActivity, talkActivity, conference] = await Promise.all([
       lastMinuteActivityPromise,
       talkActivityPromise,
+      getConferenceById(event.conferenceId),
     ]);
 
     if (
@@ -250,17 +270,48 @@ app.post(
       throw new HTTPException(429, { message: "User has too many posts" });
     }
 
+    const { hiddenAt, moderation, call } = await moderateQuestion({
+      question: questionData.question,
+      talk: {
+        title: event.title,
+        speaker: event.speaker,
+        description: event.description,
+      },
+      conference,
+    });
+
     const question = await createQuestion({
       question: questionData.question,
       eventId: event.id,
       userId: user.id,
+      hiddenAt,
+      moderation,
     });
 
-    await broadcastQuestionsUpdate(event.id);
-    logger.info({ question, event, user }, "Created question");
+    if (call) {
+      logModerationCall({
+        questionUid: question.uid,
+        eventId: event.id,
+        conferenceId: event.conferenceId,
+        moderation,
+        call,
+      });
+    }
+
+    // A hidden question changes no one else's list, so there is nothing to
+    // broadcast; its author's page refreshes after posting.
+    if (question.hiddenAt) {
+      logger.info(
+        { question, event, userId: user.id },
+        "Created question, hidden by moderation",
+      );
+    } else {
+      await broadcastQuestionsUpdate(event.id);
+      logger.info({ question, event, userId: user.id }, "Created question");
+    }
 
     return c.json({
-      data: question,
+      data: toPublicQuestion(question),
     });
   },
 );
@@ -306,7 +357,7 @@ app.post(
       emoji,
     });
 
-    logger.info({ reaction, event, user }, "Created reaction");
+    logger.info({ reaction, event, userId: user.id }, "Created reaction");
 
     return c.json({
       data: {
@@ -370,7 +421,7 @@ app.post(
       });
     }
 
-    logger.info({ result, event, user }, "Set event live");
+    logger.info({ result, event, userId: user.id }, "Set event live");
 
     return c.json({ data: result });
   },
@@ -520,7 +571,7 @@ const toFullApiEvent = (
     votes: questions.reduce((acc, question) => acc + question.votes, 0),
     participants,
     conference: {
-      ...conference,
+      ...toApiConference(conference),
       features: features.reduce((acc, val) => {
         acc[val.name] = val.active;
         return acc;

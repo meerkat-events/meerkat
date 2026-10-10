@@ -57,6 +57,13 @@
       "when": 1791095807235,
       "tag": "0007_omniscient_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791529476701,
+      "tag": "0008_special_guardian",
+      "breakpoints": true
     }
   ]
 }

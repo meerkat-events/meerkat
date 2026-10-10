@@ -127,11 +127,14 @@ export async function consumeHandoverToken(
 
   try {
     const session = await createSession(email, clientIp);
-    logger.info({ email }, "Devcon handover: session established");
+    logger.info(
+      { userId: session.user.id },
+      "Devcon handover: session established",
+    );
     return { ok: true, session };
   } catch (error) {
     logger.error(
-      { err: error, email },
+      { err: error },
       "Devcon handover: failed to create session",
     );
     return { ok: false, error: "failed" };
