@@ -925,28 +925,6 @@
   }
 }
 
-/* A person's tabs sit in the padded dialog body, so they line up with the
-   tables below instead of the session panel's inset. */
-.m-person-tabs {
-  padding-inline: 0;
-  margin-bottom: 14px;
-}
-
-.m-tab-count {
-  margin-left: 6px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--m-surface-2);
-  color: var(--m-ink-3);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-[aria-selected="true"] > .m-tab-count {
-  background: var(--m-accent-soft);
-  color: var(--m-ink-2);
-}
-
 .m-person-questions {
   margin: 0;
   padding: 0;
@@ -1368,28 +1346,13 @@
   }
 }
 
-.m-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--m-line);
+/* The session's tabs stay above its questions as they scroll. */
+.m-session-tabs {
   position: sticky;
   top: 0;
   z-index: 2;
+  padding-inline: 12px;
   background: var(--m-surface);
-
-  & button {
-    padding: 10px 8px;
-    margin-bottom: -1px;
-    font-weight: 600;
-    color: var(--m-ink-3);
-    border-bottom: 2px solid transparent;
-  }
-
-  & button[aria-selected="true"] {
-    color: var(--m-ink);
-    border-color: var(--chakra-colors-brand-500);
-  }
 }
 
 .m-stats {
@@ -1488,30 +1451,6 @@
     color: var(--m-ink-3);
     overflow-wrap: anywhere;
     text-align: center;
-  }
-}
-
-.m-seg {
-  display: flex;
-  gap: 2px;
-  width: 100%;
-  padding: 3px;
-  border: 1px solid var(--m-line);
-  border-radius: 10px;
-  background: var(--m-surface);
-
-  & button {
-    flex: 1;
-    border-radius: 7px;
-    padding: 5px 8px;
-    font-weight: 600;
-    font-size: 12px;
-    color: var(--m-ink-2);
-  }
-
-  & button[aria-checked="true"] {
-    background: var(--m-accent);
-    color: #fff;
   }
 }
 

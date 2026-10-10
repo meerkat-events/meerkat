@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Button, CloseButton, Dialog, Portal, Spinner, Text } from "@chakra-ui/react";
+import {
+  Badge,
+  Button,
+  CloseButton,
+  Dialog,
+  Portal,
+  Spinner,
+  Tabs,
+  Text,
+} from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
 import { ActionMenu } from "./ActionMenu.tsx";
 import {
@@ -96,34 +105,35 @@ export function PersonDialog(
               {isLoading || !data
                 ? <div className="m-empty"><Spinner size="sm" /></div>
                 : (
-                  <>
-                    <div className="m-tabs m-person-tabs" role="tablist">
+                  <Tabs.Root
+                    value={tab}
+                    onValueChange={(e) => {
+                      const next = TABS.find((t) => t.key === e.value);
+                      if (next) setTab(next.key);
+                    }}
+                    lazyMount
+                    unmountOnExit
+                  >
+                    <Tabs.List aria-label={`${data.user.name}'s activity`}>
                       {TABS.map(({ key, label }) => (
-                        <button
-                          key={key}
-                          id={`person-tab-${key}`}
-                          type="button"
-                          role="tab"
-                          aria-selected={tab === key}
-                          aria-controls="person-tabpanel"
-                          onClick={() => setTab(key)}
-                        >
+                        <Tabs.Trigger key={key} value={key}>
                           {label}
-                          <span className="m-tab-count">{data.summary[key]}</span>
-                        </button>
+                          <Badge size="sm" variant="subtle">{data.summary[key]}</Badge>
+                        </Tabs.Trigger>
                       ))}
-                    </div>
-
-                    <div id="person-tabpanel" role="tabpanel" aria-labelledby={`person-tab-${tab}`}>
-                      <PersonTab
-                        tab={tab}
-                        data={data}
-                        now={now}
-                        onPerson={onPerson}
-                        refresh={() => mutate()}
-                      />
-                    </div>
-                  </>
+                    </Tabs.List>
+                    {TABS.map(({ key }) => (
+                      <Tabs.Content key={key} value={key}>
+                        <PersonTab
+                          tab={key}
+                          data={data}
+                          now={now}
+                          onPerson={onPerson}
+                          refresh={() => mutate()}
+                        />
+                      </Tabs.Content>
+                    ))}
+                  </Tabs.Root>
                 )}
             </Dialog.Body>
           </Dialog.Content>

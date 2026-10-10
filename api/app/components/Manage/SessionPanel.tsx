@@ -1,5 +1,13 @@
 import { useMemo, useState } from "react";
-import { Button, CloseButton, Dialog, NativeSelect, Portal } from "@chakra-ui/react";
+import {
+  Button,
+  CloseButton,
+  Dialog,
+  NativeSelect,
+  Portal,
+  SegmentGroup,
+  Tabs,
+} from "@chakra-ui/react";
 import { useQuestions } from "@meerkat-events/react";
 import type { Session } from "../../hooks/use-conference-events.ts";
 import type { SessionCounts } from "../../hooks/use-conference-stats.ts";
@@ -47,7 +55,6 @@ export function SessionPanel(
   },
 ) {
   const now = useNow(30_000);
-  const [tab, setTab] = useState<"questions" | "details">("questions");
   const [showQR, setShowQR] = useState(false);
   const status = sessionStatus(session, now);
   const { trigger: goLive } = useGoLive(session.uid);
@@ -163,17 +170,12 @@ export function SessionPanel(
                   </Dialog.Root>
                 </div>
 
-                <div className="m-tabs" role="tablist">
-                  <button type="button" role="tab" aria-selected={tab === "questions"} onClick={() => setTab("questions")}>
-                    Questions
-                  </button>
-                  <button type="button" role="tab" aria-selected={tab === "details"} onClick={() => setTab("details")}>
-                    Details
-                  </button>
-                </div>
-
-                {tab === "questions"
-                  ? (
+                <Tabs.Root defaultValue="questions" lazyMount unmountOnExit>
+                  <Tabs.List className="m-session-tabs" aria-label="Session">
+                    <Tabs.Trigger value="questions">Questions</Tabs.Trigger>
+                    <Tabs.Trigger value="details">Details</Tabs.Trigger>
+                  </Tabs.List>
+                  <Tabs.Content value="questions" padding="0">
                     <SessionQuestions
                       session={session}
                       counts={counts}
@@ -181,8 +183,11 @@ export function SessionPanel(
                       now={now}
                       onPerson={onPerson}
                     />
-                  )
-                : <SessionDetails session={session} />}
+                  </Tabs.Content>
+                  <Tabs.Content value="details" padding="0">
+                    <SessionDetails session={session} />
+                  </Tabs.Content>
+                </Tabs.Root>
             </Dialog.Body>
           </Dialog.Content>
         </Dialog.Positioner>
@@ -306,14 +311,20 @@ function QRBlock(
 
   return (
     <div className="m-qr">
-      <div className="m-seg" role="radiogroup" aria-label="QR code opens">
-        <button type="button" role="radio" aria-checked={target === "session"} onClick={() => setTarget("session")}>
-          This session
-        </button>
-        <button type="button" role="radio" aria-checked={target === "stage"} onClick={() => setTarget("stage")}>
-          Whole stage
-        </button>
-      </div>
+      <SegmentGroup.Root
+        size="sm"
+        value={target}
+        onValueChange={(e) => setTarget(e.value === "stage" ? "stage" : "session")}
+        aria-label="QR code opens"
+      >
+        <SegmentGroup.Indicator />
+        <SegmentGroup.Items
+          items={[
+            { value: "session", label: "This session" },
+            { value: "stage", label: "Whole stage" },
+          ]}
+        />
+      </SegmentGroup.Root>
       <QR url={url} />
       <p className="m-hint" style={{ margin: 0, textAlign: "center", maxWidth: "32ch" }}>
         {target === "stage"
