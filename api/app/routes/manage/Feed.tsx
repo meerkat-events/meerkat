@@ -12,6 +12,11 @@ import {
 } from "../../components/Manage/question-state.ts";
 import { SortMenu } from "../../components/Manage/SortMenu.tsx";
 import { fmtDay, useNow } from "../../components/Manage/time.ts";
+import type { Route } from "./+types/Feed.ts";
+
+export const meta: Route.MetaFunction = () => [
+  { title: "Live question feed · Meerkat Management" },
+];
 
 const SORTS = [
   { label: "Newest", value: "newest" },

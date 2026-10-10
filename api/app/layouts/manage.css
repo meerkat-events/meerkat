@@ -48,6 +48,13 @@
   cursor: pointer;
 }
 
+/* One visible focus ring for keyboard users, 4.7:1 on every surface here;
+   browser defaults vary and some fall below 3:1 on the dark background. */
+:is(.manage, .m-person, .m-menu) :focus-visible {
+  outline: 2px solid var(--chakra-colors-brand-500);
+  outline-offset: 2px;
+}
+
 .manage {
   background: var(--m-bg);
   display: grid;
@@ -403,6 +410,11 @@
     background: var(--m-surface-3);
   }
 
+  /* The option the arrow keys are on; the fill alone is too faint. */
+  &[aria-selected="true"] {
+    box-shadow: inset 0 0 0 2px var(--chakra-colors-brand-500);
+  }
+
   & .title {
     display: flex;
     align-items: center;
@@ -493,9 +505,10 @@
     background: var(--m-surface-2);
   }
 
+  /* The bar, not the fill, marks the current item: it needs 3:1. */
   &[aria-current="true"] {
     background: var(--m-accent-soft);
-    box-shadow: inset 0 0 0 1px var(--m-accent-line);
+    box-shadow: inset 3px 0 0 var(--chakra-colors-brand-500);
   }
 }
 
@@ -569,6 +582,11 @@
     font-variant-numeric: tabular-nums;
     opacity: 0.7;
   }
+
+  /* Faded white on the accent falls below 4.5:1. */
+  & button[aria-pressed="true"] .count {
+    opacity: 1;
+  }
 }
 
 .m-qtable .tag.spam {
@@ -614,7 +632,9 @@
   background: var(--m-surface-2);
 }
 
-.m-qtable tr.answered td {
+/* Answered and hidden questions fade, but only the question text: the
+   already-dim columns (time, name, tags) would fall below 4.5:1. */
+.m-qtable tr.answered td.question {
   opacity: 0.55;
 }
 
@@ -733,79 +753,64 @@
   padding-block: 3px;
 }
 
-/* Narrow columns (the session panel): question first, its details beneath. */
-.m-qtable.compact {
-  table-layout: auto;
-}
-
-.m-qtable.compact thead {
-  display: none;
-}
-
-.m-qtable.compact tbody,
-.m-qtable.compact tr {
-  display: block;
-}
-
-.m-qtable.compact tr {
-  padding: 9px 2px;
-  border-top: 1px solid var(--m-line);
-}
-
-.m-qtable.compact tbody tr:first-child {
-  border-top: 0;
-}
-
-.m-qtable.compact td {
-  display: inline-block;
-  width: auto;
-  padding: 0;
-  border: 0;
-  margin-right: 10px;
-  font-size: 12px;
-  color: var(--m-ink-3);
-}
-
-.m-qtable.compact td.question {
-  display: block;
-  width: 100%;
-  margin: 0 0 4px;
-  font-size: 13px;
-  color: var(--m-ink);
-}
-
-/* No column headers here, so mark the vote count. */
-.m-qtable.compact td.n::before {
-  content: "\25B2 ";
-  color: var(--m-ink-3);
-}
-
-.m-qtable.compact td.n {
-  color: var(--m-brand-300);
-  font-weight: 600;
-}
-
-.m-qtable.compact td.actions {
-  float: right;
-  margin: 0;
-}
-
-/* Drop the supporting columns before the question itself gets squeezed. */
+/* Too narrow for the columns: each question stacks, the question first and
+   every detail beneath it, so nothing is hidden when the page is zoomed or
+   on a phone. */
 @container (max-width: 860px) {
-  .m-qtable .who {
+  .m-qtable {
+    table-layout: auto;
+  }
+
+  .m-qtable thead {
     display: none;
   }
-}
 
-@container (max-width: 680px) {
-  .m-qtable .session {
-    display: none;
+  .m-qtable tbody,
+  .m-qtable tr {
+    display: block;
   }
-}
 
-@container (max-width: 520px) {
-  .m-qtable .status {
-    display: none;
+  .m-qtable tr {
+    padding: 9px 2px;
+    border-top: 1px solid var(--m-line);
+  }
+
+  .m-qtable tbody tr:first-child {
+    border-top: 0;
+  }
+
+  .m-qtable td {
+    display: inline-block;
+    width: auto;
+    padding: 0;
+    border: 0;
+    margin-right: 10px;
+    font-size: 12px;
+    color: var(--m-ink-3);
+  }
+
+  .m-qtable td.question {
+    display: block;
+    width: 100%;
+    margin: 0 0 4px;
+    font-size: 13px;
+    color: var(--m-ink);
+  }
+
+  /* No column headers here, so mark the vote count. */
+  .m-qtable td.n::before {
+    content: "\25B2 ";
+    color: var(--m-ink-3);
+  }
+
+  .m-qtable td.n {
+    color: var(--m-brand-300);
+    font-weight: 600;
+  }
+
+  .m-qtable td.actions {
+    float: right;
+    margin: 0;
   }
 }
 
@@ -1047,6 +1052,11 @@
     opacity: 0.75;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+  }
+
+  /* Faded white on the accent falls below 4.5:1. */
+  & button[aria-current="true"] small {
+    opacity: 1;
   }
 }
 
@@ -1599,10 +1609,19 @@
     cursor: pointer;
   }
 
-  & tbody tr:hover,
-  & tbody tr:focus-visible {
+  /* Clicking anywhere on a row opens it; keyboard and screen-reader users
+     get the link on its title. */
+  & tbody tr:hover {
     background: var(--m-surface-2);
-    outline: none;
+  }
+
+  & .title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  & tbody tr:hover .title a {
+    text-decoration: underline;
   }
 
   & .n {

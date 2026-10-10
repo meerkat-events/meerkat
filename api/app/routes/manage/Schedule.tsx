@@ -6,6 +6,11 @@ import { useConferenceStats } from "../../hooks/use-conference-stats.ts";
 import { Timeline } from "../../components/Manage/Timeline.tsx";
 import { SessionPanel } from "../../components/Manage/SessionPanel.tsx";
 import { dayKey, fmtDay, useNow } from "../../components/Manage/time.ts";
+import type { Route } from "./+types/Schedule.ts";
+
+export const meta: Route.MetaFunction = () => [
+  { title: "Schedule · Meerkat Management" },
+];
 
 const DAY = 86_400_000;
 

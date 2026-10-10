@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { LuSearch } from "react-icons/lu";
+import { VisuallyHidden } from "@chakra-ui/react";
 import type { Session } from "../../hooks/use-conference-events.ts";
 import { fmtWhen, sessionStatus } from "./time.ts";
 
@@ -21,7 +22,8 @@ function Highlight({ text, query }: { text: string; query: string }) {
 
 /**
  * Finds a session by title, speaker or stage and opens it on the schedule.
- * "/" or Cmd/Ctrl+K focuses it from anywhere.
+ * Cmd/Ctrl+K focuses it from anywhere. (Not a bare "/": single-key shortcuts
+ * fire by accident for speech-input users, WCAG 2.1.4.)
  */
 export function SessionSearch({ sessions }: { sessions: Session[] }) {
   const navigate = useNavigate();
@@ -62,13 +64,7 @@ export function SessionSearch({ sessions }: { sessions: Session[] }) {
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
-      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(
-        (document.activeElement as HTMLElement | null)?.tagName ?? "",
-      );
-      if (
-        (ev.key === "/" && !typing) ||
-        (ev.key.toLowerCase() === "k" && (ev.metaKey || ev.ctrlKey))
-      ) {
+      if (ev.key.toLowerCase() === "k" && (ev.metaKey || ev.ctrlKey)) {
         ev.preventDefault();
         inputRef.current?.focus();
         inputRef.current?.select();
@@ -101,8 +97,15 @@ export function SessionSearch({ sessions }: { sessions: Session[] }) {
     }
   };
 
-  const showList = open && query.length > 0;
+  const searching = open && query.length > 0;
+  const showList = searching && results.length > 0;
   const now = new Date();
+  // Read out by screen readers as the results change.
+  const announcement = !searching
+    ? ""
+    : results.length === 0
+    ? `No sessions match ${value.trim()}`
+    : `${results.length} ${results.length === 1 ? "session" : "sessions"} found`;
 
   return (
     <div className="m-search">
@@ -140,40 +143,47 @@ export function SessionSearch({ sessions }: { sessions: Session[] }) {
           // Keep focus in the input while picking with the mouse.
           onPointerDown={(ev) => ev.preventDefault()}
         >
-          {results.length
-            ? results.map((session, i) => (
-              <li
-                key={session.uid}
-                id={`session-result-${session.id}`}
-                role="option"
-                aria-selected={i === active}
-                className="m-search-result"
-                onClick={() => choose(session)}
-              >
-                <span className="title">
-                  {sessionStatus(session, now) === "live" && (
-                    <span className="m-live-dot" aria-label="Live" />
-                  )}
+          {results.map((session, i) => (
+            <li
+              key={session.uid}
+              id={`session-result-${session.id}`}
+              role="option"
+              aria-selected={i === active}
+              className="m-search-result"
+              onClick={() => choose(session)}
+            >
+              <span className="title">
+                {sessionStatus(session, now) === "live" && (
+                  <>
+                    <span className="m-live-dot" aria-hidden="true" />
+                    <VisuallyHidden>Live:</VisuallyHidden>
+                  </>
+                )}
+                <span>
+                  <Highlight text={session.title} query={query} />
+                </span>
+              </span>
+              <span className="meta">
+                <span className="m-stage">
+                  <Highlight text={session.stage} query={query} />
+                </span>
+                {session.speaker && (
                   <span>
-                    <Highlight text={session.title} query={query} />
+                    <Highlight text={session.speaker} query={query} />
                   </span>
-                </span>
-                <span className="meta">
-                  <span className="m-stage">
-                    <Highlight text={session.stage} query={query} />
-                  </span>
-                  {session.speaker && (
-                    <span>
-                      <Highlight text={session.speaker} query={query} />
-                    </span>
-                  )}
-                  <span>{fmtWhen(session)}</span>
-                </span>
-              </li>
-            ))
-            : <li className="m-empty">No sessions match “{value.trim()}”.</li>}
+                )}
+                <span>{fmtWhen(session)}</span>
+              </span>
+            </li>
+          ))}
         </ul>
       )}
+      {searching && results.length === 0 && (
+        <div className="m-search-results" aria-hidden="true">
+          <p className="m-empty">No sessions match “{value.trim()}”.</p>
+        </div>
+      )}
+      <VisuallyHidden aria-live="polite">{announcement}</VisuallyHidden>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useManage } from "../../layouts/manage.tsx";
 import {
   type SessionCounts,
@@ -11,6 +11,11 @@ import {
   sessionStatus,
   useNow,
 } from "../../components/Manage/time.ts";
+import type { Route } from "./+types/Analytics.ts";
+
+export const meta: Route.MetaFunction = () => [
+  { title: "Analytics · Meerkat Management" },
+];
 
 const SORTS = [
   { label: "Most recent", value: "recent" },
@@ -21,6 +26,8 @@ type Sort = (typeof SORTS)[number]["value"];
 
 const EMPTY: SessionCounts = { questions: 0, votes: 0, reactions: 0, participants: 0 };
 const num = (n: number) => n.toLocaleString("en-US");
+// A session opens in its panel on the schedule.
+const sessionPath = (uid: string) => `/manage/schedule?session=${encodeURIComponent(uid)}`;
 // Everything people did in a session.
 const activity = (c: SessionCounts) => c.questions + c.votes + c.reactions;
 
@@ -54,8 +61,6 @@ export default function Analytics() {
   const upcoming = all.length - rows.length;
   const totals = stats?.totals;
 
-  const open = (uid: string) =>
-    navigate(`/manage/schedule?session=${encodeURIComponent(uid)}`);
 
   return (
     <div className="m-dash">
@@ -118,20 +123,16 @@ export default function Analytics() {
                 return (
                   <tr
                     key={session.uid}
-                    tabIndex={0}
-                    aria-label={`Open ${session.title}`}
-                    onClick={() => open(session.uid)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Enter" || ev.key === " ") {
-                        ev.preventDefault();
-                        open(session.uid);
-                      }
+                    onClick={(ev) => {
+                      // The title link handles its own clicks.
+                      if ((ev.target as HTMLElement).closest("a")) return;
+                      navigate(sessionPath(session.uid));
                     }}
                   >
                     <td>
                       <div className="title">
-                        {live && <span className="m-live-dot" aria-label="Live" />}
-                        <span>{session.title}</span>
+                        {live && <span className="m-live-dot" aria-hidden="true" />}
+                        <Link to={sessionPath(session.uid)}>{session.title}</Link>
                       </div>
                       <div className="meta">
                         <span className="m-stage">{session.stage}</span>

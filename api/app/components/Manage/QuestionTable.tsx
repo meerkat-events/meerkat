@@ -11,21 +11,19 @@ type Row = ModeratedQuestion & {
  * Used by the live feed (many sessions) and the session panel (one session).
  */
 export function QuestionTable(
-  { questions, now, showSession, showPerson = true, compact, onSession, onPerson, refresh }: {
+  { questions, now, showSession, showPerson = true, onSession, onPerson, refresh }: {
     questions: Row[];
     now: Date;
     showSession: boolean;
     /** Off when every row is the same person (their history). */
     showPerson?: boolean;
-    /** Stacks each row (question, then its details) for narrow columns. */
-    compact?: boolean;
     onSession?: (uid: string) => void;
     onPerson: (userId: string) => void;
     refresh: () => void;
   },
 ) {
   return (
-    <table className={`m-qtable ${compact ? "compact" : ""}`}>
+    <table className="m-qtable">
       <thead>
         <tr>
           <th scope="col" className="when">Asked</th>
