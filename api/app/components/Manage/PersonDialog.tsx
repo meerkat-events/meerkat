@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, CloseButton, Dialog, Portal, Spinner, Text } from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
+import { ActionMenu } from "./ActionMenu.tsx";
 import {
   type UserActivity,
   useUserActivity,
@@ -73,27 +74,22 @@ export function PersonDialog(
                   {data?.user.name ?? "…"}
                   {data?.user.blocked && <span className="m-chip blocked">Blocked</span>}
                 </Dialog.Title>
-                <span className="m-hint">Their history at this event</span>
-                {data && (
-                  <div className="m-actions">
-                    {data.user.blocked
-                      ? <span className="m-hint">Their questions are hidden from the Q&A.</span>
-                      : (
-                        <Button
-                          size="xs"
-                          variant="outline"
-                          colorPalette="red"
-                          onClick={() => setConfirming(true)}
-                        >
-                          Block user
-                        </Button>
-                      )}
-                  </div>
-                )}
+                <span className="m-hint">
+                  {data?.user.blocked
+                    ? "Their questions are hidden from the Q&A."
+                    : "Their history at this event"}
+                </span>
               </div>
               <Dialog.CloseTrigger asChild>
                 <CloseButton size="sm" />
               </Dialog.CloseTrigger>
+              <div className="m-head-actions">
+                <ActionMenu
+                  actions={data && !data.user.blocked
+                    ? [{ label: "Block user", danger: true, onSelect: () => setConfirming(true) }]
+                    : []}
+                />
+              </div>
             </Dialog.Header>
 
             <Dialog.Body>

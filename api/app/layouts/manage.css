@@ -839,12 +839,33 @@
   color: var(--m-ink);
   border: 1px solid var(--m-line-strong);
 
-  & [data-scope="dialog"][data-part="header"] {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
+  /* Title on the left; on the right the close button, with the header's
+     actions below it so they never sit next to close. */
+  & .chakra-dialog__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 6px 12px;
     border-bottom: 1px solid var(--m-line);
+  }
+
+  & .chakra-dialog__header > :first-child {
+    grid-row: span 2;
+  }
+
+  /* Chakra positions the close button absolutely; here it takes its place in
+     the header, so the actions below it can't overlap it. */
+  & .chakra-dialog__header > .chakra-dialog__closeTrigger {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  & .m-head-actions {
+    grid-column: 2;
+    align-self: end;
+    justify-self: end;
   }
 
   & .name {
@@ -871,18 +892,17 @@
     color: var(--m-ink-3);
   }
 
-  & [data-scope="dialog"][data-part="footer"] {
+  & .chakra-dialog__footer {
     gap: 10px;
     border-top: 1px solid var(--m-line);
   }
 
-  /* Header action bar, under the title and away from the close button. */
-  & .m-actions {
+  /* A title block with the header's actions on its right. */
+  & .m-title-row {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
   }
 }
 
@@ -894,7 +914,7 @@
     font-weight: 700;
   }
 
-  & [data-scope="dialog"][data-part="body"] {
+  & .chakra-dialog__body {
     font-size: 13.5px;
     line-height: 1.5;
   }
@@ -1287,7 +1307,7 @@
 }
 
 /* The session deep dive is a dialog, so it gets the full width of .m-person. */
-.m-session [data-scope="dialog"][data-part="body"] {
+.m-session .chakra-dialog__body {
   padding: 0;
 }
 
@@ -1394,13 +1414,24 @@
 }
 
 /* Whether the session is live sits top right, beside the close button. */
+/* Stage, status and close in one row; Chakra would position the close
+   button absolutely, on top of the status. */
+.m-session-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  & .chakra-dialog__closeTrigger {
+    position: static;
+  }
+}
+
 .m-session-status {
   margin-left: auto;
-  margin-right: 10px;
 }
 
 /* The QR code is its own dialog, so the card inside it drops the frame. */
-.m-qr-dialog [data-scope="dialog"][data-part="header"] {
+.m-qr-dialog .chakra-dialog__header {
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -13,6 +13,7 @@ import { toaster } from "../ui/toaster.tsx";
 import { apiUrl, appOrigin } from "../../lib/api-url.ts";
 import { generateQRCodeSVG } from "../../code.ts";
 import { SortMenu } from "./SortMenu.tsx";
+import { ActionMenu } from "./ActionMenu.tsx";
 import {
   fmtDay,
   fmtDuration,
@@ -29,6 +30,8 @@ const SORTS = [
 type Sort = (typeof SORTS)[number]["value"];
 
 const qaUrl = (session: Session) => new URL(`/e/${session.uid}/qa`, appOrigin());
+// The presenter view the stage screen shows.
+const presenterUrl = (session: Session) => new URL(`/e/${session.uid}`, appOrigin());
 // Redirects to whatever is live on the stage (or next up), so it can be printed once.
 const stageUrl = (session: Session) =>
   new URL(`/stage/${encodeURIComponent(session.stage)}/qa`, appOrigin());
@@ -85,7 +88,7 @@ export function SessionPanel(
           <Dialog.Content className="m-person m-session" aria-label={session.title}>
             <Dialog.Body>
               <div className="m-sec">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div className="m-session-top">
                     <span className="m-stage">{session.stage}</span>
                     <div className="m-session-status">
                       {status === "live"
@@ -109,32 +112,30 @@ export function SessionPanel(
                       <CloseButton size="sm" aria-label="Close" />
                     </Dialog.CloseTrigger>
                   </div>
-                  <h2>{session.title}</h2>
-                  <div className="m-meta">
-                    <span>{session.speaker ?? "No speaker"}</span>
-                    <span>
-                      {fmtWhen(session)} UTC
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
-                    {status !== "live" && status !== "ended" && (
-                      <Button size="xs" colorPalette="brand" onClick={onGoLive}>Go live</Button>
-                    )}
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      onClick={() => copy(qaUrl(session).toString(), "Q&A link copied")}
-                    >
-                      Copy Q&A link
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      aria-expanded={showQR}
-                      onClick={() => setShowQR((v) => !v)}
-                    >
-                      QR code
-                    </Button>
+                  <div className="m-title-row">
+                    <div>
+                      <h2>{session.title}</h2>
+                      <div className="m-meta">
+                        <span>{session.speaker ?? "No speaker"}</span>
+                        <span>
+                          {fmtWhen(session)} UTC
+                        </span>
+                      </div>
+                    </div>
+                    <ActionMenu
+                      actions={[
+                        ...(status !== "live" && status !== "ended"
+                          ? [{ label: "Go live", onSelect: onGoLive }]
+                          : []),
+                        { label: "Open Q&A", href: qaUrl(session).toString() },
+                        { label: "Open stage screen", href: presenterUrl(session).toString() },
+                        {
+                          label: "Copy Q&A link",
+                          onSelect: () => copy(qaUrl(session).toString(), "Q&A link copied"),
+                        },
+                        { label: "QR code", onSelect: () => setShowQR(true) },
+                      ]}
+                    />
                   </div>
                   {/* Its own dialog, so the session's details stay put behind it. */}
                   <Dialog.Root
