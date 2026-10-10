@@ -281,9 +281,6 @@ function SessionDetails({ session }: { session: Session }) {
         <dt>Description</dt>
         <dd>{session.description ?? "–"}</dd>
       </dl>
-      <p className="m-hint" style={{ margin: "14px 0 0" }}>
-        Editing sessions isn't available here yet.
-      </p>
     </div>
   );
 }
