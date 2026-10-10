@@ -12,6 +12,10 @@ import {
 const notBlocked = () =>
   or(isNull(users.bannedUntil), lte(users.bannedUntil, new Date()));
 
+// Questions automatic moderation hid are shadow-hidden: only their author
+// sees them, so organizer views leave them out like every other query.
+const notModerationHidden = isNull(questions.hiddenAt);
+
 const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
   "votes",
 );
@@ -34,6 +38,7 @@ export function getConferenceQuestions(
   const conditions = [
     eq(events.conferenceId, conferenceId),
     notBlocked(),
+    notModerationHidden,
   ];
   if (!options.includeHidden) conditions.push(isNull(questions.deletedAt));
   if (options.live) conditions.push(eq(events.live, true));
@@ -98,14 +103,19 @@ export async function getConferenceStats(conferenceId: number) {
         .from(questions)
         .innerJoin(events, eq(questions.eventId, events.id))
         .leftJoin(users, eq(questions.userId, users.id))
-        .where(and(inConference, isNull(questions.deletedAt), notBlocked()))
+        .where(and(
+          inConference,
+          isNull(questions.deletedAt),
+          notModerationHidden,
+          notBlocked(),
+        ))
         .groupBy(questions.eventId)
         .execute(),
       db.select({ eventId: questions.eventId, n: count() })
         .from(votes)
         .innerJoin(questions, eq(votes.questionId, questions.id))
         .innerJoin(events, eq(questions.eventId, events.id))
-        .where(inConference)
+        .where(and(inConference, notModerationHidden))
         .groupBy(questions.eventId)
         .execute(),
       db.select({ eventId: reactions.eventId, n: count() })
@@ -162,12 +172,14 @@ function participantsSql(conferenceId: number) {
     FROM ${questions}
     INNER JOIN ${events} ON ${events.id} = ${questions.eventId}
     WHERE ${events.conferenceId} = ${conferenceId}
+      AND ${questions.hiddenAt} IS NULL
     UNION
     SELECT ${questions.eventId} AS event_id, ${votes.userId} AS user_id
     FROM ${votes}
     INNER JOIN ${questions} ON ${questions.id} = ${votes.questionId}
     INNER JOIN ${events} ON ${events.id} = ${questions.eventId}
-    WHERE ${events.conferenceId} = ${conferenceId}`;
+    WHERE ${events.conferenceId} = ${conferenceId}
+      AND ${questions.hiddenAt} IS NULL`;
 }
 
 export type UserActivity = Awaited<ReturnType<typeof getConferenceUserActivity>>;
@@ -215,7 +227,11 @@ export async function getConferenceUserActivity(
       .from(questions)
       .innerJoin(events, eq(questions.eventId, events.id))
       .leftJoin(votes, eq(questions.id, votes.questionId))
-      .where(and(eq(questions.userId, userId), eq(events.conferenceId, conferenceId)))
+      .where(and(
+        eq(questions.userId, userId),
+        eq(events.conferenceId, conferenceId),
+        notModerationHidden,
+      ))
       .groupBy(questions.id, events.id)
       .orderBy(desc(questions.createdAt))
       .execute(),
@@ -246,6 +262,7 @@ export async function getConferenceUserActivity(
       .leftJoin(users, eq(questions.userId, users.id))
       .where(and(
         eq(events.conferenceId, conferenceId),
+        notModerationHidden,
         sql`EXISTS (SELECT 1 FROM votes v WHERE v.question_id = ${questions.id} AND v.user_id = ${userId})`,
       ))
       .orderBy(desc(questions.createdAt))
@@ -254,7 +271,11 @@ export async function getConferenceUserActivity(
       .from(votes)
       .innerJoin(questions, eq(votes.questionId, questions.id))
       .innerJoin(events, eq(questions.eventId, events.id))
-      .where(and(eq(votes.userId, userId), eq(events.conferenceId, conferenceId)))
+      .where(and(
+        eq(votes.userId, userId),
+        eq(events.conferenceId, conferenceId),
+        notModerationHidden,
+      ))
       .execute(),
     // Every session they touched, with what they did there.
     db.execute<{
@@ -268,18 +289,22 @@ export async function getConferenceUserActivity(
     }>(sql`
       SELECT e.uid, e.title, e.stage, e.start,
         (SELECT COUNT(*)::int FROM questions q
-          WHERE q.event_id = e.id AND q.user_id = ${userId}) AS questions,
+          WHERE q.event_id = e.id AND q.user_id = ${userId}
+            AND q.hidden_at IS NULL) AS questions,
         (SELECT COUNT(*)::int FROM votes v
           INNER JOIN questions q ON q.id = v.question_id
-          WHERE q.event_id = e.id AND v.user_id = ${userId}) AS votes,
+          WHERE q.event_id = e.id AND v.user_id = ${userId}
+            AND q.hidden_at IS NULL) AS votes,
         (SELECT COUNT(*)::int FROM reactions r
           WHERE r.event_id = e.id AND r.user_id = ${userId}) AS reactions
       FROM ${events} e
       WHERE e.conference_id = ${conferenceId}
         AND (
-          EXISTS (SELECT 1 FROM questions q WHERE q.event_id = e.id AND q.user_id = ${userId})
+          EXISTS (SELECT 1 FROM questions q WHERE q.event_id = e.id AND q.user_id = ${userId}
+                    AND q.hidden_at IS NULL)
           OR EXISTS (SELECT 1 FROM votes v INNER JOIN questions q ON q.id = v.question_id
-                      WHERE q.event_id = e.id AND v.user_id = ${userId})
+                      WHERE q.event_id = e.id AND v.user_id = ${userId}
+                        AND q.hidden_at IS NULL)
           OR EXISTS (SELECT 1 FROM reactions r WHERE r.event_id = e.id AND r.user_id = ${userId})
         )
       ORDER BY e.start DESC`),
