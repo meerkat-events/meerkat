@@ -176,10 +176,16 @@ as `event.conference.features` (`collect` shows the Event Card link).
   when a valid token is present and otherwise lets the request through
   anonymously (the question list uses it to include the viewer's own hidden
   questions).
-- **Roles** (`conference_role`: attendee/speaker/organizer, per conference)
+- **Roles** (`conference_role`: attendee/organizer/moderator, per conference)
   are granted only by a DB trigger on `auth.users` insert that claims
-  matching `invitations` rows by email (migration 0002). Routes check
-  organizer rights inline with `getConferenceRolesForConference`.
+  matching `invitations` rows by email (migration 0002). Organizers and
+  moderators moderate the Q&A (select, answer, hide, go live, block):
+  routes check `canModerate` (`models/roles.ts`) on the roles from
+  `getConferenceRolesForConference`. Only organizers see the management
+  pages (`/manage`, `requireOrganizer` in `routes/conferences.ts`) and can
+  restore moderation-hidden questions. `/login` is the one sign-in page:
+  after `?next=`, organizers land on `/manage` and everyone else on
+  `/account`, where moderators pick a talk (`homeFor`).
 - **Admin API**: `x-api-key` header checked against argon2 hashes in
   `api_keys` (`middlewares/api-key.ts`); no endpoint creates keys. Admin
   routes create conferences and batch-upsert events by `uid`, for importing
@@ -212,14 +218,21 @@ as `event.conference.features` (`collect` shows the Event Card link).
   is stored as "review". A provider refusal hides the question; any other
   error, or no `OPENROUTER_API_KEY`, fails open. A `relevance` score (0-4,
   `buildRelevanceQuestion`) and the decision are stored in
-  `questions.moderation` but not used or exposed yet. Every classifier call
+  `questions.moderation`. Every classifier call
   writes one structured log line after the insert (`logModerationCall`:
   outcome, decision, scores, duration, tokens, cost; no question text). Hidden questions are
   shadow-hidden: only their author sees them (`getQuestions` with `viewerId`, `useEventQuestions` on the Q&A
-  page); every other query, the Realtime policy and all responses
+  page), and organizers on the management pages, which review them; every
+  other query, the Realtime policy and all public responses
   (`toPublicQuestion`, `toApiConference`) leave them and the moderation
-  fields out. The react package never sees hidden questions, because
-  embedders don't ask questions.
+  fields out. Organizers get only a summary of the verdict (decision,
+  reasons, relevance; `moderation-summary.ts`), never raw scores, and can
+  restore a hidden question (`POST /api/v1/questions/:uid/restore`, which
+  keeps the verdict, so "hide" without `hidden_at` reads as restored); one
+  can't be selected for the stage while hidden. Counts of session activity
+  leave hidden questions out; Analytics adds moderation totals and relevance.
+  The react package never sees hidden questions, because embedders don't
+  ask questions.
 - **The moderation eval is the gate.** Any change to `MODERATION_MODEL`,
   the thresholds, the default criteria, the topic questions or a
   conference's moderation config must pass

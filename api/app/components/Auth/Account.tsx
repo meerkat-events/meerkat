@@ -10,7 +10,9 @@ import {
 import { FiChevronDown } from "react-icons/fi";
 import { useState } from "react";
 import { useLogout } from "../../hooks/use-logout.ts";
-import { useOrganizerEvents } from "../../hooks/use-organizer-events.ts";
+import { Link } from "react-router";
+import { useModeratedEvents } from "../../hooks/use-moderated-events.ts";
+import { useConferenceRoles } from "../../hooks/use-conference-roles.ts";
 import type { User } from "../../hooks/use-auth.ts";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog.tsx";
 import { qa } from "../../routing.ts";
@@ -22,7 +24,9 @@ interface AccountProps {
 
 export function Account({ user }: AccountProps) {
   const { logout } = useLogout();
-  const { data: events, isLoading } = useOrganizerEvents();
+  const { data: events, isLoading } = useModeratedEvents();
+  const { data: roles } = useConferenceRoles();
+  const isOrganizer = roles?.some((r) => r.role === "organizer") ?? false;
   const { open: isOpen, onOpen, onClose } = useDisclosure();
   const [selectedEventUid, setSelectedEventUid] = useState<string | undefined>(
     undefined,
@@ -60,6 +64,12 @@ export function Account({ user }: AccountProps) {
               <Text fontSize="md" textAlign="center">
                 {user.email}
               </Text>
+
+              {isOrganizer && (
+                <Button asChild colorPalette="brand">
+                  <Link to="/manage">Open Meerkat Management</Link>
+                </Button>
+              )}
 
               {isLoading
                 ? <Text color="gray.400">Loading events...</Text>

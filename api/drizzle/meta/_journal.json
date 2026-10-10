@@ -64,6 +64,13 @@
       "when": 1791529476701,
       "tag": "0008_special_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791649430029,
+      "tag": "0009_sour_xavin",
+      "breakpoints": true
     }
   ]
 }

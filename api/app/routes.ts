@@ -16,5 +16,10 @@ export default [
     route("/moderation", "routes/Moderation.tsx"),
     route("/e/:uid/qa", "routes/QnA.tsx"),
     route("/e/:uid/card", "routes/EventCard.tsx"),
+    layout("layouts/manage.tsx", [
+      route("/manage", "routes/manage/Feed.tsx"),
+      route("/manage/schedule", "routes/manage/Schedule.tsx"),
+      route("/manage/analytics", "routes/manage/Analytics.tsx"),
+    ]),
   ]),
 ] satisfies RouteConfig;
