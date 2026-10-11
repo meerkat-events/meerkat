@@ -2,22 +2,18 @@ import { useId } from "react";
 
 export type MeerkatMascotProps = {
   className?: string;
-  /**
-   * "clever" raises the right paw to the temple. The arm is drawn raised;
-   * animate `.meerkat-arm-raised` (rotating about the shoulder) to lift it.
-   */
-  pose?: "standing" | "clever";
 };
 
 /**
- * Flat, two-tone standing meerkat. The left half is lit and the right half
+ * Flat, two-tone standing meerkat with its right paw raised to the temple.
+ * The arm is drawn raised; animate `.meerkat-arm-raised` (rotating about the
+ * shoulder) to lift it. The left half is lit and the right half
  * is in shade, so every shape is painted twice: once in the shade color and
  * once in the light color clipped to the left half.
  */
 export function MeerkatMascot(
-  { className, pose = "standing" }: MeerkatMascotProps,
+  { className }: MeerkatMascotProps,
 ) {
-  const isClever = pose === "clever";
   const clipId = `meerkat-lit-${useId()}`;
   const lit = `url(#${clipId})`;
   const body =
@@ -65,16 +61,8 @@ export function MeerkatMascot(
         d="M37 66C30 78 31 96 39 106C43 108 46 104 44 100C40 92 40 80 43 70Z"
         fill="#D8B48A"
       />
-      {!isClever && (
-        <path
-          d="M63 66C70 78 69 96 61 106C57 108 54 104 56 100C60 92 60 80 57 70Z"
-          fill="#9A6E46"
-        />
-      )}
       <path
-        d={isClever
-          ? "M39 104l-1 4M41.5 105l-.5 4M44 104.5l0 4"
-          : "M39 104l-1 4M41.5 105l-.5 4M44 104.5l0 4M61 104l1 4M58.5 105l.5 4M56 104.5l0 4"}
+        d="M39 104l-1 4M41.5 105l-.5 4M44 104.5l0 4"
         stroke="#2A1A12"
         strokeWidth="1.1"
         strokeLinecap="round"
@@ -120,26 +108,24 @@ export function MeerkatMascot(
         fill="none"
         strokeLinecap="round"
       />
-      {isClever && (
-        // Shoulder at (62, 66); the paw ends beside the head with one finger
-        // on the temple.
-        <g className="meerkat-arm-raised">
-          <path
-            d="M62 66Q81 56 79 33"
-            stroke="#9A6E46"
-            strokeWidth="7"
-            fill="none"
-            strokeLinecap="round"
-          />
-          <path
-            d="M78.5 31L73 22.5"
-            stroke="#9A6E46"
-            strokeWidth="2.8"
-            strokeLinecap="round"
-          />
-          <circle cx="79" cy="32" r="3.6" fill="#8F6440" />
-        </g>
-      )}
+      {/* Shoulder at (62, 66); the paw ends beside the head with one finger
+          on the temple. */}
+      <g className="meerkat-arm-raised">
+        <path
+          d="M62 66Q81 56 79 33"
+          stroke="#9A6E46"
+          strokeWidth="7"
+          fill="none"
+          strokeLinecap="round"
+        />
+        <path
+          d="M78.5 31L73 22.5"
+          stroke="#9A6E46"
+          strokeWidth="2.8"
+          strokeLinecap="round"
+        />
+        <circle cx="79" cy="32" r="3.6" fill="#8F6440" />
+      </g>
     </svg>
   );
 }

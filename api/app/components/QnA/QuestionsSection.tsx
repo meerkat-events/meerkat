@@ -1,40 +1,26 @@
-import { useMemo } from "react";
 import type { Question as QuestionType } from "../../types.ts";
-import type { Vote } from "../../hooks/use-votes.ts";
 import { Question, type QuestionSupervotes } from "./Question.tsx";
 import { Flex } from "@chakra-ui/react";
 
 export type QuestionsSectionProps = {
   questions: QuestionType[] | undefined;
-  votes: Vote[] | undefined;
   isLoading: boolean;
   isAuthenticated: boolean;
   canModerate: boolean;
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
-  /** Uids of questions the user spent a supervote on. */
-  supervoted?: Set<string>;
 };
 
 export function QuestionsSection(
   {
     questions,
-    votes,
     isAuthenticated,
     canModerate,
     refresh,
     isLoading,
     supervotes,
-    supervoted,
   }: QuestionsSectionProps,
 ) {
-  const questionLookup = useMemo(() => {
-    return votes?.reduce((acc, vote) => {
-      acc.add(vote.questionUid);
-      return acc;
-    }, new Set());
-  }, [votes]);
-
   const hasQuestions = !!questions?.length;
 
   return (
@@ -49,9 +35,9 @@ export function QuestionsSection(
                 canModerate={canModerate}
                 canVote={isAuthenticated}
                 refresh={refresh}
-                voted={questionLookup?.has(question.uid) ?? false}
+                voted={!!question.vote}
                 supervotes={supervotes}
-                supervoted={supervoted?.has(question.uid) ?? false}
+                supervoted={!!question.vote && question.vote.weight > 1}
               />
             ))}
           </ol>

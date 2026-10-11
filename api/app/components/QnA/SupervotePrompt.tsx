@@ -6,7 +6,7 @@ export type SupervotePromptProps = {
   open: boolean;
   /** Supervotes the user can still spend. */
   available: number;
-  multiplier: number;
+  weight: number;
   onSupervote: () => void;
   onRegularVote: () => void;
   /** Closed without choosing: no vote is cast. */
@@ -15,11 +15,13 @@ export type SupervotePromptProps = {
 
 /** Asks whether an upvote should spend one of the user's supervotes. */
 export function SupervotePrompt(
-  { open, available, multiplier, onSupervote, onRegularVote, onCancel }:
+  { open, available, weight, onSupervote, onRegularVote, onCancel }:
     SupervotePromptProps,
 ) {
   return (
     <Dialog.Root
+      lazyMount
+      unmountOnExit
       open={open}
       onOpenChange={(event) => !event.open && onCancel()}
       placement="center"
@@ -36,15 +38,16 @@ export function SupervotePrompt(
               <Dialog.Title>Use your supervote?</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body color="fg.muted" textStyle="sm">
-              It counts x{multiplier} on this question. You have {available}
+              It counts x{weight} on this question. You have {available}
               {" "}
-              {available === 1 ? "supervote" : "supervotes"}.
+              {available === 1 ? "supervote" : "supervotes"}. A supervote
+              can't be taken back.
             </Dialog.Body>
             <Dialog.Footer>
               <Stack width="full" gap="2">
                 <Button onClick={onSupervote} borderRadius="full">
                   <FiZap />
-                  Use supervote · x{multiplier}
+                  Use supervote · x{weight}
                 </Button>
                 <Button
                   variant="ghost"

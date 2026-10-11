@@ -33,10 +33,10 @@ export type QuestionPickedProps = {
    */
   onDismiss: (supervoteFrom?: DOMRect) => void;
   /**
-   * Vote multiplier earned for the asker's next upvote, e.g. 3. Omitted until
-   * the backend awards supervotes, so the reward row stays hidden.
+   * Set when the asker just earned a supervote: its weight, e.g. 3. Omitted
+   * otherwise, which hides the reward row.
    */
-  supervote?: number | undefined;
+  weight?: number | undefined;
 };
 
 /**
@@ -45,7 +45,7 @@ export type QuestionPickedProps = {
  * Escape): the asker may be busy listening to the answer.
  */
 export function QuestionPicked(
-  { onDismiss, supervote }: QuestionPickedProps,
+  { onDismiss, weight }: QuestionPickedProps,
 ) {
   const supervoteIconRef = useRef<HTMLDivElement>(null);
   const dismissRef = useRef(() => {});
@@ -89,7 +89,7 @@ export function QuestionPicked(
           <div className="question-picked-medal">
             <div className="question-picked-rays" />
             <div className="question-picked-disc">
-              <MeerkatMascot className="question-picked-meerkat" pose="clever" />
+              <MeerkatMascot className="question-picked-meerkat" />
             </div>
             <svg
               className="question-picked-sparkles"
@@ -116,7 +116,7 @@ export function QuestionPicked(
           >
             Your question is being answered right now.
           </p>
-          {supervote && (
+          {weight && (
             <div className="question-picked-supervote">
               <div
                 ref={supervoteIconRef}
@@ -129,7 +129,7 @@ export function QuestionPicked(
                   Supervote earned
                 </div>
                 <div className="question-picked-supervote-description">
-                  Your next upvote counts x{supervote}
+                  Your next upvote counts x{weight}
                 </div>
               </div>
             </div>

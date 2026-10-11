@@ -1,4 +1,5 @@
-import { Hono } from "hono";
+import { Hono, type HonoRequest } from "hono";
+import zod from "zod";
 import { HTTPException } from "hono/http-exception";
 import { MAX_VOTES_PER_EVENT } from "../moderation.ts";
 import { jwt } from "../middlewares/jwt.ts";
@@ -24,11 +25,34 @@ import logger from "../logger.ts";
 import { getAllQuestions } from "../models/questions.ts";
 import { broadcastQuestionsUpdate } from "../utils/broadcast.ts";
 import {
-  createSupervote,
   isSupervotesEnabled,
+  spendSupervote,
+  SUPERVOTE_WEIGHT,
 } from "../models/supervotes.ts";
 
 const app = new Hono();
+
+// `{ "weight": 3 }` (SUPERVOTE_WEIGHT) spends a supervote on the new vote.
+const upvoteSchema = zod.object({
+  weight: zod.union([zod.literal(1), zod.literal(SUPERVOTE_WEIGHT)])
+    .default(1),
+});
+
+/**
+ * The request's JSON body, or `{}` when there is none (older clients send
+ * none). Malformed JSON is a 400, not an empty body.
+ */
+async function readOptionalJson(request: HonoRequest): Promise<unknown> {
+  const text = await request.text();
+  if (text.trim() === "") {
+    return {};
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new HTTPException(400, { message: "Invalid JSON body" });
+  }
+}
 
 app.get("/api/v1/questions", async (c) => {
   const questions = await getAllQuestions();
@@ -56,10 +80,13 @@ app.post(
   jwt(),
   async (c) => {
     const uid = c.req.param("uid");
-    // `{ "supervote": true }` spends a supervote on a new vote. The body is
-    // optional: older clients send none.
-    const body = await c.req.json<{ supervote?: unknown }>().catch(() => ({}));
-    const wantsSupervote = "supervote" in body && body.supervote === true;
+    const parsedBody = upvoteSchema.safeParse(await readOptionalJson(c.req));
+    if (!parsedBody.success) {
+      throw new HTTPException(400, {
+        message: `Weight must be 1 or ${SUPERVOTE_WEIGHT}`,
+      });
+    }
+    const { weight } = parsedBody.data;
 
     const payload = c.get("jwtPayload");
 
@@ -103,27 +130,36 @@ app.post(
       throw new HTTPException(429, { message: "User has too many votes" });
     }
 
-    const hasVoted = await getVotesByQuestionIdAndUserId({
+    const existingVote = await getVotesByQuestionIdAndUserId({
       questionId: question.id,
       userId: user.id,
     });
+    const hasVoted = !!existingVote;
 
-    let supervoted = false;
+    // The endpoint toggles: voting again removes the vote. A supervote is
+    // spent once and can't be removed, and a supervote request never removes
+    // a vote (a double tap would otherwise undo the one just spent).
+    if (existingVote && existingVote.weight > 1) {
+      throw new HTTPException(409, {
+        message: "A supervote can't be removed",
+      });
+    }
+    if (existingVote && weight === SUPERVOTE_WEIGHT) {
+      throw new HTTPException(409, {
+        message: "You already voted for this question",
+      });
+    }
+
     if (hasVoted) {
-      // Removing a supervoted vote refunds the supervote (it's derived).
       await deleteVote(question.id, user.id);
-    } else if (wantsSupervote) {
+    } else if (weight === SUPERVOTE_WEIGHT) {
       if (!await isSupervotesEnabled(event.conferenceId)) {
         throw new HTTPException(403, {
           message: "Supervotes aren't enabled for this conference",
         });
       }
-      supervoted = await createSupervote(
-        question.id,
-        user.id,
-        event.conferenceId,
-      );
-      if (!supervoted) {
+      const isSpent = await spendSupervote(question.id, user.id);
+      if (!isSpent) {
         throw new HTTPException(409, { message: "No supervotes left" });
       }
     } else {
@@ -133,11 +169,17 @@ app.post(
     await broadcastQuestionsUpdate(event.id);
 
     logger.info(
-      { questionUid: question.uid, userId: user.id, eventId: event.id, supervoted },
+      {
+        questionUid: question.uid,
+        userId: user.id,
+        eventId: event.id,
+        removed: hasVoted,
+        weight,
+      },
       "Upvoted question",
     );
 
-    return c.json({ data: { ...toPublicQuestion(question), supervoted } });
+    return c.json({ data: toPublicQuestion(question) });
   },
 );
 
@@ -188,7 +230,9 @@ app.post(
       });
     }
 
-    const result = await selectQuestion(question.id);
+    const result = await selectQuestion(question.id, {
+      earnsSupervote: await isSupervotesEnabled(event.conferenceId),
+    });
 
     if (!result) {
       throw new HTTPException(500, { message: `Failed to select question` });

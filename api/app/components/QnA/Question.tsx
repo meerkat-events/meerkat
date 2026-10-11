@@ -22,9 +22,7 @@ import { SupervotePrompt } from "./SupervotePrompt.tsx";
 export type QuestionSupervotes = {
   /** Supervotes the user can spend; the prompt only shows when above 0. */
   available: number;
-  multiplier: number;
-  /** Called after a supervoted vote, with where the vote button is. */
-  onSpend: (questionUid: string, button: DOMRect | undefined) => void;
+  weight: number;
 };
 
 interface QuestionProps {
@@ -48,7 +46,6 @@ export function Question(
     supervoted,
   }: QuestionProps,
 ) {
-  const voteButtonRef = useRef<HTMLButtonElement>(null);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   // Set while a supervoted vote is in flight, so its toast can say so.
   const isSupervotingRef = useRef(false);
@@ -60,7 +57,7 @@ export function Question(
         toaster.create({
           title: "Supervote used",
           description:
-            `Your vote counts x${supervotes.multiplier} on this question.`,
+            `Your vote counts x${supervotes.weight} on this question.`,
           type: "success",
           duration: 3000,
           meta: { hideIndicator: true },
@@ -74,6 +71,12 @@ export function Question(
       });
     },
     onError: (error) => {
+      isSupervotingRef.current = false;
+      // 409: no supervotes left (spent elsewhere) or the vote changed in the
+      // meantime. Refetch, so the counter and the vote pill catch up.
+      if (error.status === 409) {
+        refresh();
+      }
       toaster.create({
         title: `Failed to vote`,
         type: "error",
@@ -81,6 +84,14 @@ export function Question(
       });
     },
   });
+  const handleVoteClick = () => {
+    if (!voted && supervotes && supervotes.available > 0) {
+      setIsPromptOpen(true);
+      return;
+    }
+    toggleVote({ uid: question.uid });
+  };
+
   const { trigger: block } = useBlockUser(question.user?.id ?? "");
   const { trigger: markAsAnswered } = useMarkAsAnswered(question.uid);
   const { trigger: deleteQuestion } = useDeleteQuestion(question.uid);
@@ -205,27 +216,20 @@ export function Question(
           votes={question.votes}
           voted={voted}
           loading={isVoting}
-          ref={voteButtonRef}
           supervoted={supervoted}
-          onClick={() =>
-            !voted && supervotes && supervotes.available > 0
-              ? setIsPromptOpen(true)
-              : toggleVote({ uid: question.uid })}
-          disabled={!canVote || isAnswered}
+          onClick={handleVoteClick}
+          // A supervote is spent for good: it can't be un-voted.
+          disabled={!canVote || isAnswered || supervoted}
         />
         {supervotes && (
           <SupervotePrompt
             open={isPromptOpen}
             available={supervotes.available}
-            multiplier={supervotes.multiplier}
+            weight={supervotes.weight}
             onSupervote={() => {
               setIsPromptOpen(false);
               isSupervotingRef.current = true;
-              toggleVote({ uid: question.uid, supervote: true });
-              supervotes.onSpend(
-                question.uid,
-                voteButtonRef.current?.getBoundingClientRect(),
-              );
+              toggleVote({ uid: question.uid, weight: supervotes.weight });
             }}
             onRegularVote={() => {
               setIsPromptOpen(false);

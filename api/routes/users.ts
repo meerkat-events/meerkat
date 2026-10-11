@@ -2,33 +2,26 @@ import { Hono } from "hono";
 import { jwt } from "../middlewares/jwt.ts";
 import { getUserById } from "../models/user.ts";
 import { HTTPException } from "hono/http-exception";
-import { getVotesByUserId } from "../models/votes.ts";
+import {
+  getSupervoteBalance,
+  SUPERVOTE_WEIGHT,
+} from "../models/supervotes.ts";
 import { markUserAsBlocked } from "../models/user.ts";
 import { canModerate, getConferenceRoles } from "../models/roles.ts";
 import logger from "../logger.ts";
 
 const app = new Hono();
 
+// Supervotes the user can spend, in any conference with the `supervotes`
+// feature on, and how much a supervoted upvote weighs.
 app.get(
-  "/api/v1/users/me/votes",
+  "/api/v1/users/me/supervotes",
   jwt(),
   async (c) => {
     const payload = c.get("jwtPayload");
-    const user = await getUserById(payload.sub);
+    const available = await getSupervoteBalance(payload.sub);
 
-    if (!user) {
-      throw new HTTPException(401, { message: `User not found` });
-    }
-
-    const votes = await getVotesByUserId(user.id);
-    const apiVotes = votes.map((vote) => ({
-      questionUid: vote.question.uid,
-      userId: user.id,
-      createdAt: vote.createdAt,
-      supervote: vote.weight > 1,
-    }));
-
-    return c.json({ data: apiVotes });
+    return c.json({ data: { available, weight: SUPERVOTE_WEIGHT } });
   },
 );
 

@@ -1,4 +1,3 @@
-import type { Ref } from "react";
 import { Button, type ButtonProps } from "@chakra-ui/react";
 import { LuArrowBigUp } from "react-icons/lu";
 import { tapTargetStyles } from "../../theme/index.ts";
@@ -7,10 +6,16 @@ import { FiZap } from "react-icons/fi";
 type UpVoteButtonProps = Omit<ButtonProps, "children"> & {
   votes: number;
   voted: boolean;
-  /** The user spent a supervote here: gold ring and bolt. */
+  /**
+   * The user spent a supervote here: gold ring and bolt. Callers disable the
+   * pill then (a supervote can't be un-voted); it keeps its full color.
+   */
   supervoted?: boolean | undefined;
-  ref?: Ref<HTMLButtonElement>;
 };
+
+const supervotedStyles = {
+  _disabled: { opacity: 1, cursor: "default" },
+} as const;
 
 // The vote.* colors come from the theme (theme/index.ts): by default the
 // darker brand.800 on light themes, so the count stays readable on white and
@@ -37,6 +42,7 @@ export function UpVoteButton(
     <Button
       {...props}
       {...(voted ? votedStyles : notVotedStyles)}
+      {...(supervoted ? supervotedStyles : {})}
       {...tapTargetStyles}
       type="button"
       size="sm"

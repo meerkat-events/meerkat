@@ -6,11 +6,11 @@ import "./Supervote.css";
 const SIZE = 36;
 
 export type SupervoteFlightProps = {
-  /** Where the bolt takes off, e.g. the celebration's supervote icon. */
+  /** Where the bolt takes off: the celebration's supervote icon. */
   from: DOMRect;
   /**
-   * Where it lands, e.g. the header counter. Read when the flight starts, so
-   * an element that mounts alongside the flight can be the target.
+   * Where it lands: the header counter. Read when the flight starts, so an
+   * element that mounts alongside the flight can be the target.
    */
   to: () => DOMRect | undefined;
   onLand: () => void;

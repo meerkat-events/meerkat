@@ -22,6 +22,7 @@ ALTER TABLE public.invitations        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.features           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reactions          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.api_keys           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supervote_balances ENABLE ROW LEVEL SECURITY;
 
 -- 2. Browser realtime (supabase-js `postgres_changes`) needs a SELECT policy for
 --    the subscribing role: questions (app/hooks/use-all-questions.ts), reactions

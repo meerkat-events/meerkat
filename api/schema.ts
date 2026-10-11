@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -177,8 +178,8 @@ export const votes = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    // How much this vote counts: 1, or SUPERVOTE_MULTIPLIER when the voter
-    // spent a supervote on it (supervotes.ts).
+    // How much this vote counts: 1, or SUPERVOTE_WEIGHT when the voter
+    // spent a supervote on it (models/supervotes.ts).
     weight: integer("weight").notNull().default(1),
   },
   (
@@ -225,6 +226,21 @@ export const invitations = pgTable(
   (table) => [
     index("invitations_email_idx").on(table.email),
     index("invitations_conference_id_idx").on(table.conferenceId),
+  ],
+);
+
+// Supervotes a user can spend, across all conferences. Selecting one of their
+// questions adds one; spending one on a vote takes it (models/supervotes.ts).
+export const supervoteBalances = pgTable(
+  "supervote_balances",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    balance: integer("balance").notNull().default(0),
+  },
+  (table) => [
+    check("supervote_balances_balance_not_negative", sql`${table.balance} >= 0`),
   ],
 );
 

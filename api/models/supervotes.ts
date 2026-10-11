@@ -1,23 +1,14 @@
-import { and, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import db from "../db.ts";
-import { events, features, questions, votes } from "../schema.ts";
+import { features, supervoteBalances, votes } from "../schema.ts";
 
-/** How much a supervoted upvote counts. */
-export const SUPERVOTE_MULTIPLIER = 3;
+/** The weight of a supervote; a regular vote weighs 1. */
+export const SUPERVOTE_WEIGHT = 3;
 
 /** Conference feature flag (features table) that switches supervotes on. */
 export const SUPERVOTES_FEATURE = "supervotes";
 
-type Db = typeof db;
-type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
-
-export type SupervoteBalance = {
-  /** One per question of the user's an organizer selected for answering. */
-  earned: number;
-  /** Votes the user cast as supervotes; deleting the vote refunds it. */
-  spent: number;
-  available: number;
-};
+type Tx = Parameters<Parameters<typeof db["transaction"]>[0]>[0];
 
 export async function isSupervotesEnabled(conferenceId: number) {
   const [feature] = await db.select({ active: features.active })
@@ -33,90 +24,68 @@ export async function isSupervotesEnabled(conferenceId: number) {
   return feature?.active ?? false;
 }
 
-/**
- * The user's supervotes within a conference. Derived from questions and
- * votes rather than stored, so it can't drift: selecting a question earns
- * one, a supervoted vote spends one and removing that vote refunds it.
- */
-export async function getSupervoteBalance(
-  userId: string,
-  conferenceId: number,
-  tx: Db | Tx = db,
-): Promise<SupervoteBalance> {
-  const [[earned], [spent]] = await Promise.all([
-    tx.select({ count: sql<number>`count(*)`.mapWith(Number) })
-      .from(questions)
-      .innerJoin(events, eq(questions.eventId, events.id))
-      .where(
-        and(
-          eq(questions.userId, userId),
-          eq(events.conferenceId, conferenceId),
-          isNotNull(questions.selectedAt),
-          isNull(questions.deletedAt),
-        ),
-      )
-      .execute(),
-    tx.select({ count: sql<number>`count(*)`.mapWith(Number) })
-      .from(votes)
-      .innerJoin(questions, eq(votes.questionId, questions.id))
-      .innerJoin(events, eq(questions.eventId, events.id))
-      .where(
-        and(
-          eq(votes.userId, userId),
-          eq(events.conferenceId, conferenceId),
-          gt(votes.weight, 1),
-        ),
-      )
-      .execute(),
-  ]);
+/** Supervotes the user can spend, in any conference. */
+export async function getSupervoteBalance(userId: string) {
+  const [row] = await db.select({ balance: supervoteBalances.balance })
+    .from(supervoteBalances)
+    .where(eq(supervoteBalances.userId, userId))
+    .execute();
 
-  const earnedCount = earned?.count ?? 0;
-  const spentCount = spent?.count ?? 0;
-  return {
-    earned: earnedCount,
-    spent: spentCount,
-    available: Math.max(0, earnedCount - spentCount),
-  };
+  return row?.balance ?? 0;
 }
 
-/** Uids of the questions in a conference the user spent a supervote on. */
-export async function getSupervotedQuestionUids(
-  userId: string,
-  conferenceId: number,
-) {
-  const rows = await db.select({ uid: questions.uid })
+/**
+ * Gives the user one supervote. Runs inside the caller's transaction: earning
+ * one for a selected question, or refunding one for a deleted question.
+ */
+export async function addSupervote(tx: Tx, userId: string) {
+  await tx.insert(supervoteBalances)
+    .values({ userId, balance: 1 })
+    .onConflictDoUpdate({
+      target: supervoteBalances.userId,
+      set: { balance: sql`${supervoteBalances.balance} + 1` },
+    })
+    .execute();
+}
+
+/**
+ * Refunds the supervotes spent on a question to their voters. Runs inside the
+ * transaction that deletes the question.
+ */
+export async function refundSupervotes(tx: Tx, questionId: number) {
+  const supervotes = await tx.select({ userId: votes.userId })
     .from(votes)
-    .innerJoin(questions, eq(votes.questionId, questions.id))
-    .innerJoin(events, eq(questions.eventId, events.id))
     .where(
-      and(
-        eq(votes.userId, userId),
-        eq(events.conferenceId, conferenceId),
-        gt(votes.weight, 1),
-      ),
+      and(eq(votes.questionId, questionId), gt(votes.weight, 1)),
     )
     .execute();
 
-  return rows.map((row) => row.uid);
+  for (const supervote of supervotes) {
+    await addSupervote(tx, supervote.userId);
+  }
 }
 
 /**
- * Casts a supervote if the user has one available. Serialized per user with
- * an advisory lock so two quick taps can't spend the same supervote twice.
- * Returns false when there's none left to spend.
+ * Spends one of the user's supervotes on a new vote, in one transaction.
+ * The balance only drops while it is above 0, and the update locks the
+ * user's balance row, so two quick taps can't both spend the last one.
+ * Un-voting deletes the vote but doesn't refund it: a supervote is spent
+ * once. Returns false when there's none left to spend.
  */
-export function createSupervote(
-  questionId: number,
-  userId: string,
-  conferenceId: number,
-): Promise<boolean> {
+export function spendSupervote(questionId: number, userId: string) {
   return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`SELECT pg_advisory_xact_lock(hashtext(${`supervote:${userId}`}))`,
-    );
+    const spent = await tx.update(supervoteBalances)
+      .set({ balance: sql`${supervoteBalances.balance} - 1` })
+      .where(
+        and(
+          eq(supervoteBalances.userId, userId),
+          gt(supervoteBalances.balance, 0),
+        ),
+      )
+      .returning({ balance: supervoteBalances.balance })
+      .execute();
 
-    const { available } = await getSupervoteBalance(userId, conferenceId, tx);
-    if (available < 1) {
+    if (spent.length === 0) {
       return false;
     }
 
@@ -124,7 +93,7 @@ export function createSupervote(
       questionId,
       userId,
       createdAt: new Date(),
-      weight: SUPERVOTE_MULTIPLIER,
+      weight: SUPERVOTE_WEIGHT,
     }).execute();
 
     return true;

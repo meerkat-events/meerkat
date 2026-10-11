@@ -8,23 +8,23 @@ export type SupervoteInfoProps = {
   onClose: () => void;
   /** Supervotes the user can spend right now. */
   available: number;
-  /** Supervotes the user has already used. */
-  spent: number;
-  multiplier: number;
+  weight: number;
 };
 
 /** Explains supervotes: how to earn one and what it does. */
 export function SupervoteInfo(
-  { open, onClose, available, spent, multiplier }: SupervoteInfoProps,
+  { open, onClose, available, weight }: SupervoteInfoProps,
 ) {
   const steps = [
     "Ask a question",
-    "Earn a supervote if your question is answered",
-    `Use supervotes to boost other questions x${multiplier}`,
+    "Earn a supervote when your question is picked",
+    `Use supervotes to boost other questions x${weight}`,
   ];
 
   return (
     <Dialog.Root
+      lazyMount
+      unmountOnExit
       open={open}
       onOpenChange={(event) => !event.open && onClose()}
       placement="center"
@@ -35,25 +35,19 @@ export function SupervoteInfo(
         <Dialog.Positioner padding="4">
           <Dialog.Content textAlign="center" paddingTop="6">
             <div className="supervote-info-medal" aria-hidden="true">
-              <MeerkatMascot className="supervote-info-meerkat" pose="clever" />
+              <MeerkatMascot className="supervote-info-meerkat" />
             </div>
             <Dialog.Header justifyContent="center" paddingBottom="2">
               <Dialog.Title>Supervotes</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
-              <dl className="supervote-info-stats">
-                <div className="supervote-info-stat available">
-                  <dt>Available</dt>
-                  <dd>
-                    <FiZap aria-hidden="true" />
-                    {available}
-                  </dd>
-                </div>
-                <div className="supervote-info-stat">
-                  <dt>Spent</dt>
-                  <dd>{spent}</dd>
-                </div>
-              </dl>
+              <div className="supervote-info-available">
+                <span className="supervote-info-available-label">Available</span>
+                <span className="supervote-info-available-count">
+                  <FiZap aria-hidden="true" />
+                  {available}
+                </span>
+              </div>
               {available > 0 && (
                 <p className="supervote-info-hint">
                   Tap upvote on any question to use one.
