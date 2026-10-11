@@ -27,7 +27,6 @@ import { QuestionsSection } from "../components/QnA/QuestionsSection.tsx";
 import { canModerate, useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import { useEvent } from "../hooks/use-event.ts";
 import { useAuth } from "../hooks/use-auth.ts";
-import { useVotes } from "../hooks/use-votes.ts";
 import { useEventQuestions } from "../hooks/use-event-questions.ts";
 import { qa } from "../routing.ts";
 import { useReact } from "../hooks/use-react.ts";
@@ -47,6 +46,14 @@ import { toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
+import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
+import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
+import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
+import { SupervoteInfo } from "../components/QnA/SupervoteInfo.tsx";
+import { useSupervoteInfoSeen } from "../hooks/use-supervote-info-seen.ts";
+import { useSupervotes } from "../hooks/use-supervotes.ts";
+import { useSupervoteEarning } from "../hooks/use-supervote-earning.ts";
+import { usePickedQuestion } from "../hooks/use-picked-question.ts";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
 import {
@@ -135,15 +142,20 @@ export default function QnA() {
       return searchParams;
     });
   };
-  const { data: votes, mutate: refreshVotes } = useVotes();
+  const isSupervotesEnabled = !!event?.conference.features["supervotes"];
+  const { data: supervoteData, mutate: refreshSupervotes } = useSupervotes(
+    isSupervotesEnabled,
+  );
   const { data: roles } = useConferenceRoles();
   const refreshQuestionsRef = useRef(refreshQuestions);
   refreshQuestionsRef.current = refreshQuestions;
-  const refreshVotesRef = useRef(refreshVotes);
-  refreshVotesRef.current = refreshVotes;
+  const refreshSupervotesRef = useRef(refreshSupervotes);
+  refreshSupervotesRef.current = refreshSupervotes;
   const refresh = useRef(throttle(() => {
+    // The questions carry the user's votes; a supervoted vote also lowers
+    // the balance.
     refreshQuestionsRef.current();
-    refreshVotesRef.current();
+    refreshSupervotesRef.current();
   }, 500)).current;
 
   const { trigger } = useReact(
@@ -198,6 +210,29 @@ export default function QnA() {
     }, { replace: true });
   };
   const isBlocked = false;
+  const { picked, dismiss: dismissPicked } = usePickedQuestion(
+    questions,
+    user?.id,
+  );
+  // Undefined while supervotes are off for this conference.
+  const supervoteWeight = isSupervotesEnabled
+    ? supervoteData?.weight
+    : undefined;
+  const supervoteEarning = useSupervoteEarning({
+    available: supervoteData?.available,
+    refresh: () => void refreshSupervotes(),
+    answeringQuestionUid: questions?.find((question) =>
+      question.selectedAt && !question.answeredAt
+    )?.uid,
+    isCelebrating: !!picked,
+  });
+  const [isSupervoteInfoOpen, setIsSupervoteInfoOpen] = useState(false);
+  const { seen: hasSeenSupervoteInfo, markSeen: markSupervoteInfoSeen } =
+    useSupervoteInfoSeen();
+  const onPickedDismiss = (supervoteIconRect?: DOMRect) => {
+    dismissPicked();
+    supervoteEarning.onCelebrationDismiss(supervoteIconRect);
+  };
 
   // Organizers and moderators of this conference get the moderation actions.
   const canModerateHere =
@@ -302,6 +337,19 @@ export default function QnA() {
             <Text as="span" textStyle="sm" fontWeight="medium" truncate>
               {event?.conference.name}
             </Text>
+            <Flex justifyContent="flex-end">
+              {supervoteWeight && (
+                <SupervoteCounter
+                  ref={supervoteEarning.counterRef}
+                  count={supervoteEarning.count}
+                  isNew={!hasSeenSupervoteInfo}
+                  onClick={() => {
+                    setIsSupervoteInfoOpen(true);
+                    markSupervoteInfoSeen();
+                  }}
+                />
+              )}
+            </Flex>
           </Grid>
           <Flex
             padding="0 1rem 0.25rem"
@@ -371,11 +419,16 @@ export default function QnA() {
         <main className="content flex">
           <QuestionsSection
             questions={questions}
-            votes={votes}
             canModerate={canModerateHere}
             refresh={refresh}
             isAuthenticated={isAuthenticated}
             isLoading={isQuestionsLoading}
+            supervotes={supervoteWeight
+              ? {
+                available: supervoteEarning.count,
+                weight: supervoteWeight,
+              }
+              : undefined}
           />
         </main>
         <footer className="footer">
@@ -417,6 +470,27 @@ export default function QnA() {
         </Modal>
       )}
       <CooldownModal />
+      {picked && (
+        <QuestionPicked
+          onDismiss={onPickedDismiss}
+          weight={supervoteEarning.hasEarned ? supervoteWeight : undefined}
+        />
+      )}
+      {supervoteWeight && (
+        <SupervoteInfo
+          open={isSupervoteInfoOpen}
+          onClose={() => setIsSupervoteInfoOpen(false)}
+          available={supervoteEarning.count}
+          weight={supervoteWeight}
+        />
+      )}
+      {supervoteEarning.flightFrom && (
+        <SupervoteFlight
+          from={supervoteEarning.flightFrom}
+          to={supervoteEarning.flightTarget}
+          onLand={supervoteEarning.onFlightLand}
+        />
+      )}
     </>
   );
 }

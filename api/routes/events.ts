@@ -138,10 +138,11 @@ app.get("/api/v1/events/:uid/code", eventMiddleware, async (c) => {
   });
 });
 
+// The viewer's vote is left out here: only the Q&A page's own list, fetched
+// with a token, gets it (see the questions route).
 const toApiQuestion = (
-  { userId: _userId, user, ...rest }: Awaited<
-    ReturnType<typeof getQuestions>
-  >[number],
+  { userId: _userId, user, viewerVoteWeight: _viewerVoteWeight, ...rest }:
+    Awaited<ReturnType<typeof getQuestions>>[number],
 ) => ({
   ...rest,
   user: user
@@ -183,7 +184,8 @@ app.post(
 );
 
 // Authentication is optional: with a valid token, the viewer's own hidden
-// questions are included (automatic moderation hides them from everyone else).
+// questions are included (automatic moderation hides them from everyone else)
+// and each question carries the viewer's `vote` on it, or null.
 app.get(
   "/api/v1/events/:uid/questions",
   optionalJwt(),
@@ -200,16 +202,26 @@ app.get(
       throw new HTTPException(400, { message: `Invalid sort ${sort}` });
     }
 
-    const viewerId = c.get("jwtPayload")?.sub;
+    const payloadSub = c.get("jwtPayload")?.sub;
+    const viewerId = typeof payloadSub === "string" ? payloadSub : undefined;
     const questions = await getQuestions(
       event.id,
       sort as Sort,
       answered,
-      typeof viewerId === "string" ? viewerId : undefined,
+      viewerId,
     );
 
+    if (!viewerId) {
+      return c.json({ data: questions.map(toApiQuestion) });
+    }
+
     return c.json({
-      data: questions.map(toApiQuestion),
+      data: questions.map((question) => ({
+        ...toApiQuestion(question),
+        vote: question.viewerVoteWeight === null
+          ? null
+          : { weight: question.viewerVoteWeight },
+      })),
     });
   },
 );

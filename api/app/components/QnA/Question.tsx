@@ -16,6 +16,14 @@ import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import { toaster } from "../../components/ui/toaster.tsx";
 import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
+import { useRef, useState } from "react";
+import { SupervotePrompt } from "./SupervotePrompt.tsx";
+
+export type QuestionSupervotes = {
+  /** Supervotes the user can spend; the prompt only shows when above 0. */
+  available: number;
+  weight: number;
+};
 
 interface QuestionProps {
   canVote: boolean;
@@ -23,14 +31,39 @@ interface QuestionProps {
   question: QuestionType;
   voted: boolean;
   refresh: () => void;
+  supervotes?: QuestionSupervotes | undefined;
+  supervoted?: boolean;
 }
 
 export function Question(
-  { canVote, canModerate, question, voted, refresh }: QuestionProps,
+  {
+    canVote,
+    canModerate,
+    question,
+    voted,
+    refresh,
+    supervotes,
+    supervoted,
+  }: QuestionProps,
 ) {
+  const [isPromptOpen, setIsPromptOpen] = useState(false);
+  // Set while a supervoted vote is in flight, so its toast can say so.
+  const isSupervotingRef = useRef(false);
   const { trigger: toggleVote, isMutating: isVoting } = useVote(question.uid, {
     onSuccess: () => {
       refresh();
+      if (isSupervotingRef.current && supervotes) {
+        isSupervotingRef.current = false;
+        toaster.create({
+          title: "Supervote used",
+          description:
+            `Your vote counts x${supervotes.weight} on this question.`,
+          type: "success",
+          duration: 3000,
+          meta: { hideIndicator: true },
+        });
+        return;
+      }
       toaster.create({
         title: "Vote recorded",
         type: "success",
@@ -38,6 +71,12 @@ export function Question(
       });
     },
     onError: (error) => {
+      isSupervotingRef.current = false;
+      // 409: no supervotes left (spent elsewhere) or the vote changed in the
+      // meantime. Refetch, so the counter and the vote pill catch up.
+      if (error.status === 409) {
+        refresh();
+      }
       toaster.create({
         title: `Failed to vote`,
         type: "error",
@@ -45,6 +84,14 @@ export function Question(
       });
     },
   });
+  const handleVoteClick = () => {
+    if (!voted && supervotes && supervotes.available > 0) {
+      setIsPromptOpen(true);
+      return;
+    }
+    toggleVote({ uid: question.uid });
+  };
+
   const { trigger: block } = useBlockUser(question.user?.id ?? "");
   const { trigger: markAsAnswered } = useMarkAsAnswered(question.uid);
   const { trigger: deleteQuestion } = useDeleteQuestion(question.uid);
@@ -169,9 +216,28 @@ export function Question(
           votes={question.votes}
           voted={voted}
           loading={isVoting}
-          onClick={() => toggleVote({ uid: question.uid })}
-          disabled={!canVote || isAnswered}
+          supervoted={supervoted}
+          onClick={handleVoteClick}
+          // A supervote is spent for good: it can't be un-voted.
+          disabled={!canVote || isAnswered || supervoted}
         />
+        {supervotes && (
+          <SupervotePrompt
+            open={isPromptOpen}
+            available={supervotes.available}
+            weight={supervotes.weight}
+            onSupervote={() => {
+              setIsPromptOpen(false);
+              isSupervotingRef.current = true;
+              toggleVote({ uid: question.uid, weight: supervotes.weight });
+            }}
+            onRegularVote={() => {
+              setIsPromptOpen(false);
+              toggleVote({ uid: question.uid });
+            }}
+            onCancel={() => setIsPromptOpen(false)}
+          />
+        )}
       </div>
     </li>
   );

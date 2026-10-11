@@ -13,20 +13,21 @@ import {
 import { uuidv7 } from "uuidv7";
 import { events, questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
+import { addSupervote, refundSupervotes } from "./supervotes.ts";
+import { voteTotal } from "./votes.ts";
 
 export const Sorts = ["popular", "newest"] as const;
 export type Sort = (typeof Sorts)[number];
 
-const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
-  "votes",
-);
 
 export type Questions = Awaited<ReturnType<typeof getQuestions>>;
 
 /**
  * Visible questions of an event. Questions hidden by automatic moderation are
  * left out, except for their author: pass the viewer's user id so their own
- * hidden questions appear among the rest, as if nothing had happened.
+ * hidden questions appear among the rest, as if nothing had happened. With a
+ * viewer, each question also carries the weight of the viewer's vote on it
+ * (`viewerVoteWeight`, null when they haven't voted).
  */
 export function getQuestions(
   eventId: number,
@@ -37,7 +38,7 @@ export function getQuestions(
   const orderBy = sort === "popular"
     ? [
       sql`${questions.answeredAt} DESC NULLs FIRST`,
-      desc(votesSnippet),
+      desc(voteTotal),
       asc(questions.createdAt),
     ]
     : [desc(questions.createdAt)];
@@ -61,6 +62,10 @@ export function getQuestions(
 
   const where = and(...conditions);
 
+  const viewerVoteWeight = viewerId
+    ? sql<number | null>`MAX(${votes.weight}) FILTER (WHERE ${votes.userId} = ${viewerId})`
+    : sql<null>`NULL`;
+
   return db
     .select({
       id: questions.id,
@@ -73,7 +78,8 @@ export function getQuestions(
       deletedAt: questions.deletedAt,
       userId: questions.userId,
       user: users,
-      votes: votesSnippet,
+      votes: voteTotal,
+      viewerVoteWeight: viewerVoteWeight.as("viewer_vote_weight"),
     })
     .from(questions)
     .leftJoin(votes, eq(questions.id, votes.questionId))
@@ -105,8 +111,24 @@ export async function getQuestionByUID(uid: string) {
   return result.at(0) ?? null;
 }
 
-export async function selectQuestion(id: number) {
+/**
+ * Puts a question on stage and marks the previous selection answered. With
+ * `earnsSupervote`, the author gets a supervote the first time the question
+ * is selected.
+ */
+export async function selectQuestion(
+  id: number,
+  { earnsSupervote }: { earnsSupervote: boolean },
+) {
   const result = await db.transaction(async (tx) => {
+    // Locked, so two concurrent selects can't both award the supervote.
+    const [previous] = await tx.select({ selectedAt: questions.selectedAt })
+      .from(questions)
+      .where(eq(questions.id, id))
+      .for("update")
+      .execute();
+    if (!previous) return null;
+
     const result = await tx.update(questions).set({
       selectedAt: new Date(),
     }).where(eq(questions.id, id)).returning().execute();
@@ -123,6 +145,10 @@ export async function selectQuestion(id: number) {
         isNotNull(questions.selectedAt),
       ),
     ).execute();
+
+    if (earnsSupervote && !previous.selectedAt) {
+      await addSupervote(tx, question.userId);
+    }
 
     return question;
   });
@@ -158,12 +184,28 @@ export async function markAsAnswered(
   return results.length === 1 ? results[0] : null;
 }
 
-export async function deleteQuestion(id: number) {
-  const results = await db.update(questions).set({
-    deletedAt: new Date(),
-  }).where(eq(questions.id, id)).returning().execute();
+/**
+ * Soft-deletes a question and refunds the supervotes spent on it. Deleting
+ * an already deleted question changes nothing and refunds nothing.
+ */
+export function deleteQuestion(id: number) {
+  return db.transaction(async (tx) => {
+    const [deleted] = await tx.update(questions).set({
+      deletedAt: new Date(),
+    }).where(
+      and(eq(questions.id, id), isNull(questions.deletedAt)),
+    ).returning().execute();
 
-  return results.length === 1 ? results[0] : null;
+    if (!deleted) {
+      const [existing] = await tx.select().from(questions)
+        .where(eq(questions.id, id))
+        .execute();
+      return existing ?? null;
+    }
+
+    await refundSupervotes(tx, deleted.id);
+    return deleted;
+  });
 }
 
 /**
@@ -191,7 +233,7 @@ export function getAllQuestions() {
       deletedAt: questions.deletedAt,
       userId: questions.userId,
       user: users,
-      votes: votesSnippet,
+      votes: voteTotal,
       event: {
         id: events.id,
         uid: events.uid,

@@ -150,7 +150,8 @@ effects.
 Theming is per conference: `conferences.theme` (JSONB) becomes a Chakra
 system in `app/theme/index.ts`; the layouts' `clientLoader` fetches the event
 to pick it. Rows in the `features` table are per-conference flags, surfaced
-as `event.conference.features` (`collect` shows the Event Card link).
+as `event.conference.features` (`collect` shows the Event Card link,
+`supervotes` turns on supervotes).
 
 ### Auth and roles
 
@@ -175,7 +176,7 @@ as `event.conference.features` (`collect` shows the Event Card link).
   `c.get("jwtPayload").sub` is the user id. `optionalJwt()` sets the payload
   when a valid token is present and otherwise lets the request through
   anonymously (the question list uses it to include the viewer's own hidden
-  questions).
+  questions and their `vote` on each question).
 - **Roles** (`conference_role`: attendee/organizer/moderator, per conference)
   are granted only by a DB trigger on `auth.users` insert that claims
   matching `invitations` rows by email (migration 0002). Organizers and
@@ -204,6 +205,24 @@ as `event.conference.features` (`collect` shows the Event Card link).
   transaction. Event upserts never overwrite `live`.
 - Rate limits are constants in `api/moderation.ts`; routes answer 429 and the
   frontend shows a cooldown modal (`UserContext.isOnCooldown`).
+- **Votes are weighted**: `votes.weight` is 1, or `SUPERVOTE_WEIGHT` (3) for
+  a supervote. A question's vote total is the sum of the weights; every
+  query that shows one uses `voteTotal`/`voteTotalOf` from `models/votes.ts`,
+  so the Q&A page, the stage screen and the organizer views agree (activity
+  stats counting votes cast use `COUNT`). The question list
+  fetched with a token gives each question the viewer's `vote: { weight }`
+  or null; the Q&A page reads its vote state from there. No other response
+  carries `vote`.
+- **Supervotes** (`models/supervotes.ts`, conferences with the `supervotes`
+  feature) live in one stored balance per user across all conferences
+  (`supervote_balances`, `CHECK balance >= 0`). Selecting a question earns
+  its author one, the first time only. Spending one (`POST
+  /api/v1/questions/:uid/upvote` with `{ "weight": 3 }`) lowers the balance
+  only while it's above 0 and inserts the vote in the same transaction; 409
+  when none is left. A supervote is spent once and can't be removed (the
+  toggle answers 409, and the UI disables the gold pill); deleting the
+  question refunds everyone who supervoted it, in the delete's transaction. `GET /api/v1/users/me/supervotes` returns
+  `{ available, weight }`.
 - **Automatic moderation** (design: `designs/002-question-moderation.md`):
   for a conference with a `conferences.moderation` config (written context,
   optional `instructions`/`criteria` overrides; null = off), the create route

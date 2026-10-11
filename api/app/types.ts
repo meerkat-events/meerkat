@@ -122,6 +122,11 @@ export type Question = {
     id: string;
     name?: string | undefined;
   } | undefined;
+  /**
+   * The signed-in viewer's vote on the question, or null. Only in the event's
+   * question list fetched with a token (`useEventQuestions`).
+   */
+  vote?: { weight: number } | null | undefined;
 };
 
 export type EventPod = {

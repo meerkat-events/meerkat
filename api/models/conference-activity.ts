@@ -9,6 +9,7 @@ import {
   users,
   votes,
 } from "../schema.ts";
+import { voteTotal, voteTotalOf } from "./votes.ts";
 
 const notBlocked = () =>
   or(isNull(users.bannedUntil), lte(users.bannedUntil, new Date()));
@@ -18,9 +19,6 @@ const notBlocked = () =>
 // see them only where they review moderation (feed, person history).
 const notModerationHidden = isNull(questions.hiddenAt);
 
-const votesSnippet = sql`COUNT(${votes.questionId})`.mapWith(Number).as(
-  "votes",
-);
 
 /**
  * Questions across a conference, newest first, for organizers moderating
@@ -63,7 +61,7 @@ export function getConferenceQuestions(
       moderation: questions.moderation,
       userId: questions.userId,
       user: users,
-      votes: votesSnippet,
+      votes: voteTotal,
       event: {
         id: events.id,
         uid: events.uid,
@@ -261,7 +259,7 @@ export async function getConferenceUserActivity(
       deletedAt: questions.deletedAt,
       hiddenAt: questions.hiddenAt,
       moderation: questions.moderation,
-      votes: votesSnippet,
+      votes: voteTotal,
       event: {
         uid: events.uid,
         title: events.title,
@@ -290,8 +288,7 @@ export async function getConferenceUserActivity(
       selectedAt: questions.selectedAt,
       answeredAt: questions.answeredAt,
       deletedAt: questions.deletedAt,
-      votes: sql<number>`(SELECT COUNT(*)::int FROM votes v WHERE v.question_id = ${questions.id})`
-        .mapWith(Number).as("votes"),
+      votes: voteTotalOf(questions.id),
       askedById: questions.userId,
       askedByMetadata: users.userMetadata,
       event: {
