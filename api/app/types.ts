@@ -129,6 +129,30 @@ export type Question = {
   vote?: { weight: number } | null | undefined;
 };
 
+/**
+ * A percentile tier at a conference: at most this share (in percent) of
+ * everyone who asked or voted there is at or above the participant's place.
+ */
+export type Tier = 0.1 | 1 | 10 | 25;
+
+/** Someone's points at a conference (`GET .../participants/:userId`). */
+export type Participant = {
+  user: { id: string; name: string };
+  points: number;
+  /** Their questions a moderator selected for the stage. */
+  picked: number;
+  /** Votes on their questions; a supervote counts as several. */
+  votesReceived: number;
+  tier: Tier | null;
+  /** Everyone who asked or voted at the conference. */
+  contributors: number;
+};
+
+export type PointsScoring = {
+  picked: number;
+  vote: number;
+};
+
 export type EventPod = {
   uid: string;
   event: Event;

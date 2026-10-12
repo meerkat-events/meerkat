@@ -19,7 +19,7 @@ import {
   getConferenceUserActivity,
 } from "../models/conference-activity.ts";
 import { summarizeModeration } from "../moderation-summary.ts";
-import { getLeaderboard, SCORING } from "../models/leaderboard.ts";
+import { getParticipantPoints, SCORING } from "../models/points.ts";
 
 const app = new Hono();
 
@@ -156,26 +156,38 @@ app.get("/api/v1/conferences/:id/users/:userId/activity", jwt(), async (c) => {
   return c.json({ data: activity });
 });
 
-app.get("/api/v1/conferences/:id/leaderboard", async (c) => {
-  const conferenceId = parseInt(c.req.param("id"));
-  if (Number.isInteger(conferenceId) === false) {
-    throw new HTTPException(400, {
-      message: `Invalid conference id ${conferenceId}`,
-    });
-  }
-
-  const entries = await getLeaderboard(conferenceId);
-
-  return c.json({
-    data: entries.map(({ userId: _userId, user, ...rest }) => ({
-      ...rest,
-      user: {
-        id: user.id,
-        name: user.userMetadata?.["name"] ?? user.id,
-      },
-    })),
-    scoring: SCORING,
-  });
+const participantParams = zod.object({
+  id: zod.coerce.number().int(),
+  userId: zod.uuid(),
 });
+
+// One participant's points and percentile tier at a conference, fetched when
+// someone opens their profile from a question (and for the signed-in user's
+// own tier). Public, like the questions it is computed from.
+app.get(
+  "/api/v1/conferences/:id/participants/:userId",
+  zValidator("param", participantParams),
+  async (c) => {
+    const { id: conferenceId, userId } = c.req.valid("param");
+
+    const [user, points] = await Promise.all([
+      getUserById(userId),
+      getParticipantPoints(conferenceId, userId),
+    ]);
+    if (!user || !points) {
+      throw new HTTPException(404, {
+        message: `User ${userId} has not taken part in conference ${conferenceId}`,
+      });
+    }
+
+    return c.json({
+      data: {
+        user: { id: user.id, name: user.userMetadata?.["name"] ?? user.id },
+        ...points,
+      },
+      scoring: SCORING,
+    });
+  },
+);
 
 export default app;

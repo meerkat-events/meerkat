@@ -16,7 +16,6 @@ export default [
     route("/moderation", "routes/Moderation.tsx"),
     route("/e/:uid/qa", "routes/QnA.tsx"),
     route("/e/:uid/card", "routes/EventCard.tsx"),
-    route("/e/:uid/leaderboard", "routes/Leaderboard.tsx"),
     layout("layouts/manage.tsx", [
       route("/manage", "routes/manage/Feed.tsx"),
       route("/manage/schedule", "routes/manage/Schedule.tsx"),

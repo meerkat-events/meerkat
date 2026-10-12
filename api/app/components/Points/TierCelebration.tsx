@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { CloseButton, Portal } from "@chakra-ui/react";
-import { PodiumMeerkat } from "./PodiumMeerkat.tsx";
-import {
-  type PodiumBadge,
-  podiumLabel,
-  podiumPaletteStyle,
-} from "./podium.ts";
-// Same overlay, card, rays, confetti and sparkles as the question-picked
-// celebration; Podium.css recolors them in the badge's palette.
+import { MeerkatMascot } from "../QnA/MeerkatMascot.tsx";
+import type { TierPromotion } from "../../hooks/use-tier-promotion.ts";
+import { tierLabel, tierPaletteStyle } from "./tier.ts";
+// Same overlay, card, rays, confetti, sparkles and mascot as the
+// question-picked celebration; TierCelebration.css recolors them in the
+// tier's palette.
 import "../QnA/QuestionPicked.css";
-import "./Podium.css";
+import "./TierCelebration.css";
 
 const CONFETTI_COLORS = [
   "var(--chakra-colors-color-palette-solid)",
@@ -31,7 +29,7 @@ const GREETINGS = [
   "Way to go!",
 ];
 
-const GREETING_KEY = "meerkat:podium-greeting";
+const GREETING_KEY = "meerkat:tier-greeting";
 
 /** The next greeting in the cycle, remembered in localStorage. */
 function nextGreeting() {
@@ -60,32 +58,22 @@ const CONFETTI = Array.from({ length: 60 }, (_, i) => ({
   round: i % 3 === 0,
 }));
 
-export type PodiumCelebrationProps = {
-  /** The badge the user just earned. */
-  badge: PodiumBadge;
-  /** Their previous badge, when they moved up from another podium spot. */
-  previous: PodiumBadge | undefined;
-  /**
-   * Called on tap, the close button or Escape, with where the meerkat sat so
-   * it can fly into the header.
-   */
-  onDismiss: (meerkatFrom?: DOMRect) => void;
+export type TierCelebrationProps = {
+  promotion: TierPromotion;
+  /** Called on tap, the close button or Escape. */
+  onDismiss: () => void;
 };
 
 /**
- * Full-screen celebration when the user reaches the leaderboard podium or
- * moves up on it, in the style of the question-picked celebration. It stays
- * until dismissed.
+ * Full-screen celebration when the user moves into a better percentile tier,
+ * in the style of the question-picked celebration. It stays until dismissed.
  */
-export function PodiumCelebration(
-  { badge, previous, onDismiss }: PodiumCelebrationProps,
-) {
-  const discRef = useRef<HTMLDivElement>(null);
+export function TierCelebration({ promotion, onDismiss }: TierCelebrationProps) {
+  const { from, to } = promotion;
   // Picked once per celebration
   const [greeting] = useState(nextGreeting);
-  const dismissRef = useRef(() => {});
-  dismissRef.current = () =>
-    onDismiss(discRef.current?.getBoundingClientRect());
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -100,13 +88,11 @@ export function PodiumCelebration(
   return (
     <Portal>
       <div
-        className="question-picked podium-celebration"
-        style={podiumPaletteStyle(badge)}
+        className="question-picked tier-celebration"
+        style={tierPaletteStyle(to)}
         role="alertdialog"
-        aria-labelledby="podium-celebration-title"
-        aria-describedby={previous
-          ? "podium-celebration-description"
-          : undefined}
+        aria-labelledby="tier-celebration-title"
+        aria-describedby="tier-celebration-description"
         onClick={() => dismissRef.current()}
       >
         <div className="question-picked-confetti" aria-hidden="true">
@@ -126,11 +112,8 @@ export function PodiumCelebration(
           />
           <div className="question-picked-medal">
             <div className="question-picked-rays" />
-            <div ref={discRef} className="question-picked-disc">
-              <PodiumMeerkat
-                className="podium-celebration-meerkat"
-                role={badge.role}
-              />
+            <div className="question-picked-disc">
+              <MeerkatMascot className="question-picked-meerkat" />
             </div>
             <svg
               className="question-picked-sparkles"
@@ -148,28 +131,23 @@ export function PodiumCelebration(
               </g>
             </svg>
           </div>
-          <p className="podium-celebration-greeting" aria-hidden="true">
+          <p className="tier-celebration-greeting" aria-hidden="true">
             {greeting}
           </p>
-          <h2 id="podium-celebration-title" className="question-picked-title">
-            {previous ? "Moving up!" : `You're number ${badge.rank}!`}
+          <h2 id="tier-celebration-title" className="question-picked-title">
+            {from === null ? `You're in the ${tierLabel(to).toLowerCase()}!` : "Moving up!"}
           </h2>
-          {previous && (
-            <p
-              id="podium-celebration-description"
-              className="question-picked-description"
-            >
-              From {podiumLabel(previous)} to {podiumLabel(badge)}.
-            </p>
-          )}
-          <div className="question-picked-supervote podium-celebration-badge">
-            <div>
-              <div className="question-picked-supervote-title">
-                {badge.title}
-              </div>
-              <div className="question-picked-supervote-description">
-                {badge.description}
-              </div>
+          <p
+            id="tier-celebration-description"
+            className="question-picked-description"
+          >
+            {from === null
+              ? "Of everyone asking and voting at this conference."
+              : `From the ${tierLabel(from).toLowerCase()} to the ${tierLabel(to).toLowerCase()}.`}
+          </p>
+          <div className="question-picked-supervote tier-celebration-badge">
+            <div className="question-picked-supervote-title">
+              {tierLabel(to)}
             </div>
           </div>
         </div>

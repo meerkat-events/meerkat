@@ -28,14 +28,7 @@ import { canModerate, useConferenceRoles } from "../hooks/use-conference-roles.t
 import { useEvent } from "../hooks/use-event.ts";
 import { useAuth } from "../hooks/use-auth.ts";
 import { useEventQuestions } from "../hooks/use-event-questions.ts";
-import { leaderboard, qa } from "../routing.ts";
-import { usePodiumBadges } from "../hooks/use-podium-badges.ts";
-import { PodiumStatus } from "../components/Leaderboard/PodiumStatus.tsx";
-import { PodiumCelebration } from "../components/Leaderboard/PodiumCelebration.tsx";
-import { PodiumFlight } from "../components/Leaderboard/PodiumFlight.tsx";
-import { EntryDetails } from "../components/Leaderboard/EntryDetails.tsx";
-import type { PodiumBadge } from "../components/Leaderboard/podium.ts";
-import { usePodiumChange } from "../hooks/use-podium-change.ts";
+import { qa } from "../routing.ts";
 import { useReact } from "../hooks/use-react.ts";
 import { Reaction, type ReactionItem } from "../components/QnA/Reaction.tsx";
 import {
@@ -61,6 +54,10 @@ import { useSupervoteInfoSeen } from "../hooks/use-supervote-info-seen.ts";
 import { useSupervotes } from "../hooks/use-supervotes.ts";
 import { useSupervoteEarning } from "../hooks/use-supervote-earning.ts";
 import { usePickedQuestion } from "../hooks/use-picked-question.ts";
+import { useOwnTier } from "../hooks/use-own-tier.ts";
+import { useTierPromotion } from "../hooks/use-tier-promotion.ts";
+import { ParticipantDetails } from "../components/Points/ParticipantDetails.tsx";
+import { TierCelebration } from "../components/Points/TierCelebration.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
 import {
@@ -123,14 +120,6 @@ export default function QnA() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data, mutate: refreshEvent } = useEvent(uid);
   const event = data?.data;
-  const {
-    data: podiumPlaces,
-    ranked: podiumRanked,
-    scoring: podiumScoring,
-    isLoaded: isPodiumLoaded,
-  } = usePodiumBadges(
-    event?.conferenceId,
-  );
   const { data: eventsData, mutate: refreshEvents } = useStageEvents({
     ...(event?.stage ? { stage: event.stage } : {}),
     ...(searchParams.get("date") ? { date: searchParams.get("date")! } : {}),
@@ -241,45 +230,19 @@ export default function QnA() {
     )?.uid,
     isCelebrating: !!picked,
   });
-  // The signed-in user's own leaderboard place, and badge in the top three
-  const myRanked = user
-    ? podiumRanked.find(({ entry }) => entry.user.id === user.id)
-    : undefined;
-  const myBadge = myRanked?.badge;
-  // Leaderboard details, opened from the header place or a question's badge
-  const [podiumDetails, setPodiumDetails] = useState<
-    (typeof podiumRanked)[number]
-  >();
-  const openPodiumDetails = (userId: string) =>
-    setPodiumDetails(
-      podiumRanked.find(({ entry }) => entry.user.id === userId),
-    );
-  const { change: podiumChange, dismiss: dismissPodiumChange } =
-    usePodiumChange({
-      conferenceId: event?.conferenceId,
-      userId: user?.id,
-      badge: myBadge,
-      isLoaded: isPodiumLoaded,
-    });
-  // Reaching or climbing the podium is celebrated full-screen, after any
-  // question-picked celebration has been dismissed; then the meerkat flies
-  // into the header badge, which pops when it lands.
-  const isPodiumUp = podiumChange?.kind === "up" && !!podiumChange.to;
-  const [podiumFlight, setPodiumFlight] = useState<
-    { badge: PodiumBadge; from: DOMRect }
-  >();
-  const [podiumLandedKey, setPodiumLandedKey] = useState(0);
-  const podiumStatusRef = useRef<HTMLDivElement>(null);
-  const onPodiumDismiss = (from?: DOMRect) => {
-    if (podiumChange?.to && from) {
-      setPodiumFlight({ badge: podiumChange.to, from });
-    } else {
-      setPodiumLandedKey((key) => key + 1);
-    }
-    dismissPodiumChange();
-  };
-
   const [isSupervoteInfoOpen, setIsSupervoteInfoOpen] = useState(false);
+  // Someone's points, opened from their name on a question
+  const [selectedAuthor, setSelectedAuthor] = useState<
+    { id: string; name: string }
+  >();
+  // Moving into a better tier is celebrated full-screen, after any
+  // question-picked celebration has been dismissed
+  const ownTier = useOwnTier(event?.conferenceId, user?.id, questions);
+  const { promotion, dismiss: dismissPromotion } = useTierPromotion({
+    conferenceId: event?.conferenceId,
+    userId: user?.id,
+    ...ownTier,
+  });
   const { seen: hasSeenSupervoteInfo, markSeen: markSupervoteInfoSeen } =
     useSupervoteInfoSeen();
   const onPickedDismiss = (supervoteIconRect?: DOMRect) => {
@@ -390,18 +353,7 @@ export default function QnA() {
             <Text as="span" textStyle="sm" fontWeight="medium" truncate>
               {event?.conference.name}
             </Text>
-            <Flex justifyContent="flex-end" alignItems="center" gap="2">
-              {event && (
-                <PodiumStatus
-                  ref={podiumStatusRef}
-                  rank={myRanked?.rank}
-                  badge={myBadge}
-                  change={podiumChange}
-                  pending={isPodiumUp || !!podiumFlight}
-                  landedKey={podiumLandedKey}
-                  onOpen={() => setPodiumDetails(myRanked)}
-                />
-              )}
+            <Flex justifyContent="flex-end">
               {supervoteWeight && (
                 <SupervoteCounter
                   ref={supervoteEarning.counterRef}
@@ -493,8 +445,7 @@ export default function QnA() {
                 weight: supervoteWeight,
               }
               : undefined}
-            places={podiumPlaces}
-            onBadgeSelect={openPodiumDetails}
+            onAuthorSelect={setSelectedAuthor}
           />
         </main>
         <footer className="footer">
@@ -542,33 +493,18 @@ export default function QnA() {
           weight={supervoteEarning.hasEarned ? supervoteWeight : undefined}
         />
       )}
-      {!picked && isPodiumUp && podiumChange?.to && (
-        <PodiumCelebration
-          badge={podiumChange.to}
-          previous={podiumChange.from}
-          onDismiss={onPodiumDismiss}
-        />
+      {!picked && promotion && (
+        <TierCelebration promotion={promotion} onDismiss={dismissPromotion} />
       )}
-      <EntryDetails
-        selected={podiumDetails && {
-          ...podiumDetails,
-          isMe: podiumDetails.entry.user.id === myRanked?.entry.user.id,
+      <ParticipantDetails
+        conferenceId={event?.conferenceId}
+        selected={selectedAuthor && {
+          userId: selectedAuthor.id,
+          name: selectedAuthor.name,
+          isMe: selectedAuthor.id === user?.id,
         }}
-        scoring={podiumScoring}
-        leaderboardHref={event ? leaderboard(event.uid) : undefined}
-        onClose={() => setPodiumDetails(undefined)}
+        onClose={() => setSelectedAuthor(undefined)}
       />
-      {podiumFlight && (
-        <PodiumFlight
-          badge={podiumFlight.badge}
-          from={podiumFlight.from}
-          to={() => podiumStatusRef.current?.getBoundingClientRect()}
-          onLand={() => {
-            setPodiumFlight(undefined);
-            setPodiumLandedKey((key) => key + 1);
-          }}
-        />
-      )}
       {supervoteWeight && (
         <SupervoteInfo
           open={isSupervoteInfoOpen}

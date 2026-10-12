@@ -4,7 +4,15 @@ import {
   FiMoreHorizontal,
   FiStopCircle as NotAllowedIcon,
 } from "react-icons/fi";
-import { Box, Icon, IconButton, Menu, Portal, Text } from "@chakra-ui/react";
+import {
+  Box,
+  chakra,
+  Icon,
+  IconButton,
+  Menu,
+  Portal,
+  Text,
+} from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
 import type { Question as QuestionType } from "../../types.ts";
 import { useMarkAsAnswered } from "../../hooks/use-mark-as-answered.ts";
@@ -18,8 +26,6 @@ import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useRef, useState } from "react";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
-import { PodiumTag } from "../Leaderboard/PodiumTag.tsx";
-import type { LeaderboardPlace } from "../Leaderboard/podium.ts";
 
 export type QuestionSupervotes = {
   /** Supervotes the user can spend; the prompt only shows when above 0. */
@@ -35,10 +41,8 @@ interface QuestionProps {
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
   supervoted?: boolean;
-  /** The author's leaderboard place, when they're on the board. */
-  place?: LeaderboardPlace | undefined;
-  /** Opens the author's leaderboard details from their badge. */
-  onBadgeSelect?: (() => void) | undefined;
+  /** Opens the author's points from their name. */
+  onAuthorSelect?: (() => void) | undefined;
 }
 
 export function Question(
@@ -50,11 +54,11 @@ export function Question(
     refresh,
     supervotes,
     supervoted,
-    place,
-    onBadgeSelect,
+    onAuthorSelect,
   }: QuestionProps,
 ) {
   const [isPromptOpen, setIsPromptOpen] = useState(false);
+  const authorName = question.user?.name ?? question.user?.id ?? "Unknown";
   // Set while a supervoted vote is in flight, so its toast can say so.
   const isSupervotingRef = useRef(false);
   const { trigger: toggleVote, isMutating: isVoting } = useVote(question.uid, {
@@ -176,12 +180,29 @@ export function Question(
       </Text>
       <div className="question-card-meta">
         <div className="question-card-byline">
-          <Text as="span" textStyle="sm" color="fg.muted" minW="0" truncate>
-            {question.user?.name ?? question.user?.id ?? "Unknown"}
-          </Text>
-          {place && onBadgeSelect && (
-            <PodiumTag {...place} onSelect={onBadgeSelect} />
-          )}
+          {onAuthorSelect
+            ? (
+              <chakra.button
+                type="button"
+                onClick={onAuthorSelect}
+                textStyle="sm"
+                color="fg.muted"
+                minW="0"
+                truncate
+                cursor="pointer"
+                borderRadius="sm"
+                _hover={{ color: "fg", textDecoration: "underline" }}
+                focusVisibleRing="outside"
+                aria-label={`Show ${authorName}'s points`}
+              >
+                {authorName}
+              </chakra.button>
+            )
+            : (
+              <Text as="span" textStyle="sm" color="fg.muted" minW="0" truncate>
+                {authorName}
+              </Text>
+            )}
           {canModerate && (
             <Menu.Root positioning={{ placement: "bottom-start" }}>
               <Menu.Trigger asChild>

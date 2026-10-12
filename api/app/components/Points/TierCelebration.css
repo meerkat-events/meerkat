@@ -1,0 +1,46 @@
+/* The question-picked overlay recolored in the tier's palette */
+
+.tier-celebration .question-picked-card {
+  border-color: var(--chakra-colors-color-palette-solid);
+}
+
+.tier-celebration .question-picked-rays {
+  background: repeating-conic-gradient(
+    color-mix(in srgb, var(--chakra-colors-color-palette-solid) 35%, transparent)
+      0 10deg,
+    transparent 10deg 30deg
+  );
+}
+
+.tier-celebration .question-picked-disc {
+  background-color: var(--chakra-colors-color-palette-muted);
+  border-color: var(--chakra-colors-color-palette-solid);
+}
+
+/* "Chirp chirp!": a small, bouncy greeting above the heading */
+.tier-celebration-greeting {
+  margin-bottom: 0.25rem;
+  font-size: var(--chakra-font-sizes-sm);
+  font-weight: var(--chakra-font-weights-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--chakra-colors-color-palette-fg);
+  animation: question-picked-charge 0.6s ease 0.9s;
+}
+
+/* Scoped under .tier-celebration to win over the question-picked styles,
+   which can load after this file */
+.tier-celebration .tier-celebration-badge {
+  /* Roomier than the supervote row it borrows from, which leaves space for
+     an icon instead */
+  padding: 0.875rem 1.125rem;
+  /* Centered like the rest of the card (the supervote row it borrows from
+     is left-aligned beside its icon) */
+  justify-content: center;
+  text-align: center;
+  background-color: color-mix(
+    in srgb,
+    var(--chakra-colors-color-palette-solid) 18%,
+    transparent
+  );
+}

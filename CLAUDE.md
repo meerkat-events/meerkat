@@ -223,6 +223,16 @@ as `event.conference.features` (`collect` shows the Event Card link,
   toggle answers 409, and the UI disables the gold pill); deleting the
   question refunds everyone who supervoted it, in the delete's transaction. `GET /api/v1/users/me/supervotes` returns
   `{ available, weight }`.
+- **Points** (`models/points.ts`) are per conference and come only from
+  others: 5 per question selected or answered, 1 per vote received
+  (weighted, so a supervote is 3 votes; own votes don't count). Tiers
+  (`api/tiers.ts`: top 0.1/1/10/25%) rank against everyone who asked or
+  voted; ties share the better tier, 0 points has none. There is no
+  leaderboard: `GET /api/v1/conferences/:id/participants/:userId` returns
+  one person, fetched when their name on a question is tapped, and for the
+  signed-in user only when their questions' votes or picks change
+  (`useOwnTier`), to celebrate moving into a better tier (last tier seen is
+  kept in localStorage, so dropping out and back in celebrates again).
 - **Automatic moderation** (design: `designs/002-question-moderation.md`):
   for a conference with a `conferences.moderation` config (written context,
   optional `instructions`/`criteria` overrides; null = off), the create route

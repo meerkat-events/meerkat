@@ -1,7 +1,6 @@
 import type { Question as QuestionType } from "../../types.ts";
 import { Question, type QuestionSupervotes } from "./Question.tsx";
 import { Flex } from "@chakra-ui/react";
-import type { LeaderboardPlace } from "../Leaderboard/podium.ts";
 
 export type QuestionsSectionProps = {
   questions: QuestionType[] | undefined;
@@ -10,10 +9,8 @@ export type QuestionsSectionProps = {
   canModerate: boolean;
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
-  /** Everyone's leaderboard place, keyed by user id. */
-  places?: Map<string, LeaderboardPlace>;
-  /** Opens an author's leaderboard details from their badge. */
-  onBadgeSelect?: ((userId: string) => void) | undefined;
+  /** Opens an author's points from their name. */
+  onAuthorSelect?: ((author: { id: string; name: string }) => void) | undefined;
 };
 
 export function QuestionsSection(
@@ -24,8 +21,7 @@ export function QuestionsSection(
     refresh,
     isLoading,
     supervotes,
-    places,
-    onBadgeSelect,
+    onAuthorSelect,
   }: QuestionsSectionProps,
 ) {
   const hasQuestions = !!questions?.length;
@@ -45,9 +41,12 @@ export function QuestionsSection(
                 voted={!!question.vote}
                 supervotes={supervotes}
                 supervoted={!!question.vote && question.vote.weight > 1}
-                place={question.user ? places?.get(question.user.id) : undefined}
-                onBadgeSelect={question.user && onBadgeSelect
-                  ? () => onBadgeSelect(question.user!.id)
+                onAuthorSelect={question.user && onAuthorSelect
+                  ? () =>
+                    onAuthorSelect({
+                      id: question.user!.id,
+                      name: question.user!.name ?? question.user!.id,
+                    })
                   : undefined}
               />
             ))}
