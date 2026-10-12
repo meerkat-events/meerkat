@@ -4,7 +4,15 @@ import {
   FiMoreHorizontal,
   FiStopCircle as NotAllowedIcon,
 } from "react-icons/fi";
-import { Box, Icon, IconButton, Menu, Portal, Text } from "@chakra-ui/react";
+import {
+  Box,
+  chakra,
+  Icon,
+  IconButton,
+  Menu,
+  Portal,
+  Text,
+} from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
 import type { Question as QuestionType } from "../../types.ts";
 import { useMarkAsAnswered } from "../../hooks/use-mark-as-answered.ts";
@@ -33,6 +41,8 @@ interface QuestionProps {
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
   supervoted?: boolean;
+  /** Opens the author's points from their name. */
+  onAuthorSelect?: (() => void) | undefined;
 }
 
 export function Question(
@@ -44,9 +54,11 @@ export function Question(
     refresh,
     supervotes,
     supervoted,
+    onAuthorSelect,
   }: QuestionProps,
 ) {
   const [isPromptOpen, setIsPromptOpen] = useState(false);
+  const authorName = question.user?.name ?? question.user?.id ?? "Unknown";
   // Set while a supervoted vote is in flight, so its toast can say so.
   const isSupervotingRef = useRef(false);
   const { trigger: toggleVote, isMutating: isVoting } = useVote(question.uid, {
@@ -168,9 +180,33 @@ export function Question(
       </Text>
       <div className="question-card-meta">
         <div className="question-card-byline">
-          <Text as="span" textStyle="sm" color="fg.muted" minW="0" truncate>
-            {question.user?.name ?? question.user?.id ?? "Unknown"}
-          </Text>
+          {onAuthorSelect
+            ? (
+              <chakra.button
+                type="button"
+                onClick={onAuthorSelect}
+                // Relative and not clipped, so the tap target can reach
+                // beyond the line of text; the name itself truncates
+                position="relative"
+                display="inline-flex"
+                minW="0"
+                textStyle="sm"
+                color="fg.muted"
+                cursor="pointer"
+                borderRadius="sm"
+                _hover={{ color: "fg", textDecoration: "underline" }}
+                focusVisibleRing="outside"
+                aria-label={`Show ${authorName}'s points`}
+                {...tapTargetStyles}
+              >
+                <chakra.span truncate>{authorName}</chakra.span>
+              </chakra.button>
+            )
+            : (
+              <Text as="span" textStyle="sm" color="fg.muted" minW="0" truncate>
+                {authorName}
+              </Text>
+            )}
           {canModerate && (
             <Menu.Root positioning={{ placement: "bottom-start" }}>
               <Menu.Trigger asChild>

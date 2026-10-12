@@ -122,9 +122,11 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
           disabled={disabled}
           onClick={toggle}
           variant="plain"
-          w="28px"
-          h="28px"
-          minW="28px"
+          // A full-height tap target around the small arrow; the bubble
+          // clips anything that reaches outside it
+          w="44px"
+          h="50px"
+          minW="44px"
           borderRadius="full"
           color="fg.muted"
           aria-label={open ? "Hide more reactions" : "Show more reactions"}
@@ -146,9 +148,9 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
               style={{ transitionDelay: open ? `${index * 30}ms` : undefined }}
               onClick={react(emoji)}
               variant="plain"
-              w="40px"
-              h="40px"
-              minW="40px"
+              w="44px"
+              h="44px"
+              minW="44px"
               borderRadius="full"
               aria-label={`React with ${REACTION_LABELS[emoji]}`}
               type="button"

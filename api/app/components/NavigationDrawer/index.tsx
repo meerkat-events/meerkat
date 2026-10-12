@@ -9,6 +9,7 @@ import {
   Portal,
 } from "@chakra-ui/react";
 import { FiMenu } from "react-icons/fi";
+import { tapTargetStyles } from "../../theme/index.ts";
 import { Link as ReactRouterLink } from "react-router";
 import { Logo } from "../Logo.tsx";
 
@@ -52,6 +53,7 @@ export function NavigationDrawer({ navLinks }: NavigationDrawerProps) {
           paddingLeft="0"
           paddingRight="0"
           justifyContent="start"
+          {...tapTargetStyles}
         >
           <FiMenu />
         </Button>

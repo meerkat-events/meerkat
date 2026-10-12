@@ -9,6 +9,8 @@ export type QuestionsSectionProps = {
   canModerate: boolean;
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
+  /** Opens an author's points from their name. */
+  onAuthorSelect?: ((author: { id: string; name: string }) => void) | undefined;
 };
 
 export function QuestionsSection(
@@ -19,6 +21,7 @@ export function QuestionsSection(
     refresh,
     isLoading,
     supervotes,
+    onAuthorSelect,
   }: QuestionsSectionProps,
 ) {
   const hasQuestions = !!questions?.length;
@@ -38,6 +41,13 @@ export function QuestionsSection(
                 voted={!!question.vote}
                 supervotes={supervotes}
                 supervoted={!!question.vote && question.vote.weight > 1}
+                onAuthorSelect={question.user && onAuthorSelect
+                  ? () =>
+                    onAuthorSelect({
+                      id: question.user!.id,
+                      name: question.user!.name ?? question.user!.id,
+                    })
+                  : undefined}
               />
             ))}
           </ol>

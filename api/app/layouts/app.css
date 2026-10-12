@@ -218,7 +218,6 @@ ul {
 .reaction-bar {
   display: flex;
   align-items: center;
-  padding-left: 6px;
 }
 
 .reaction-toggle svg {
@@ -239,7 +238,7 @@ ul {
 }
 
 .reaction-bar[data-open] .reaction-bar-items {
-  max-width: 168px; /* four 40px reactions plus gaps */
+  max-width: 182px; /* four 44px reactions plus gaps */
 }
 
 .reaction-bar-item {

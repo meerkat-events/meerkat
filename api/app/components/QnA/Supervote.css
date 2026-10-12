@@ -1,3 +1,14 @@
+/* The full tap target around the pill, like tapTargetStyles */
+.supervote-counter::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, var(--chakra-sizes-tap-target));
+  height: max(100%, var(--chakra-sizes-tap-target));
+  transform: translate(-50%, -50%);
+}
+
 .supervote-counter {
   position: relative;
   display: inline-flex;

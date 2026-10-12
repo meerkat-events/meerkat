@@ -54,6 +54,13 @@ import { useSupervoteInfoSeen } from "../hooks/use-supervote-info-seen.ts";
 import { useSupervotes } from "../hooks/use-supervotes.ts";
 import { useSupervoteEarning } from "../hooks/use-supervote-earning.ts";
 import { usePickedQuestion } from "../hooks/use-picked-question.ts";
+import { useOwnTier } from "../hooks/use-own-tier.ts";
+import { useTierPromotion } from "../hooks/use-tier-promotion.ts";
+import { ParticipantDetails } from "../components/Points/ParticipantDetails.tsx";
+import { LogoutConfirmDialog } from "../components/Auth/LogoutConfirmDialog.tsx";
+import { useLogout } from "../hooks/use-logout.ts";
+import { tapTargetStyles } from "../theme/index.ts";
+import { TierCelebration } from "../components/Points/TierCelebration.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
 import {
@@ -227,6 +234,33 @@ export default function QnA() {
     isCelebrating: !!picked,
   });
   const [isSupervoteInfoOpen, setIsSupervoteInfoOpen] = useState(false);
+  // Someone's points, opened from their name on a question, or the user's
+  // own from their name below the question input
+  const [selectedAuthor, setSelectedAuthor] = useState<
+    { id: string; name: string }
+  >();
+  const openOwnProfile = () => {
+    if (!user) return;
+    setSelectedAuthor({
+      id: user.id,
+      name: user.user_metadata["name"] ?? user.id,
+    });
+  };
+  // Logging out is offered on the user's own profile, behind a confirmation
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const { logout } = useLogout();
+  const onLogoutConfirm = async () => {
+    await logout();
+    globalThis.location.reload();
+  };
+  // Moving into a better tier is celebrated full-screen, after any
+  // question-picked celebration has been dismissed
+  const ownTier = useOwnTier(event?.conferenceId, user?.id, questions);
+  const { promotion, dismiss: dismissPromotion } = useTierPromotion({
+    conferenceId: event?.conferenceId,
+    userId: user?.id,
+    ...ownTier,
+  });
   const { seen: hasSeenSupervoteInfo, markSeen: markSupervoteInfoSeen } =
     useSupervoteInfoSeen();
   const onPickedDismiss = (supervoteIconRect?: DOMRect) => {
@@ -378,6 +412,7 @@ export default function QnA() {
                     fontWeight="medium"
                     color="accent.text"
                     aria-label={`Sort by ${sortLabel}`}
+                    {...tapTargetStyles}
                   >
                     <Icon as={LuArrowDownUp} color="accent.icon" />
                     {sortLabel}
@@ -402,17 +437,6 @@ export default function QnA() {
                   </Menu.Positioner>
                 </Portal>
               </Menu.Root>
-              {/* Just the number, at the far right, to leave room for the session name */}
-              <Text
-                textStyle="sm"
-                color="fg.muted"
-                aria-label={questions &&
-                  `${questions.length} ${
-                    questions.length === 1 ? "question" : "questions"
-                  }`}
-              >
-                {questions?.length}
-              </Text>
             </Flex>
           </Flex>
         </header>
@@ -429,6 +453,7 @@ export default function QnA() {
                 weight: supervoteWeight,
               }
               : undefined}
+            onAuthorSelect={setSelectedAuthor}
           />
         </main>
         <footer className="footer">
@@ -445,6 +470,7 @@ export default function QnA() {
             isUserLoading={isLoading}
             isAuthenticated={isAuthenticated}
             refresh={refresh}
+            onProfileOpen={openOwnProfile}
           />
         </footer>
       </div>
@@ -476,6 +502,27 @@ export default function QnA() {
           weight={supervoteEarning.hasEarned ? supervoteWeight : undefined}
         />
       )}
+      {!picked && promotion && (
+        <TierCelebration promotion={promotion} onDismiss={dismissPromotion} />
+      )}
+      <ParticipantDetails
+        conferenceId={event?.conferenceId}
+        selected={selectedAuthor && {
+          userId: selectedAuthor.id,
+          name: selectedAuthor.name,
+          isMe: selectedAuthor.id === user?.id,
+        }}
+        onClose={() => setSelectedAuthor(undefined)}
+        onLogout={() => {
+          setSelectedAuthor(undefined);
+          setIsLogoutOpen(true);
+        }}
+      />
+      <LogoutConfirmDialog
+        isOpen={isLogoutOpen}
+        onClose={() => setIsLogoutOpen(false)}
+        onConfirm={onLogoutConfirm}
+      />
       {supervoteWeight && (
         <SupervoteInfo
           open={isSupervoteInfoOpen}

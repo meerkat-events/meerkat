@@ -19,6 +19,7 @@ import {
   getConferenceUserActivity,
 } from "../models/conference-activity.ts";
 import { summarizeModeration } from "../moderation-summary.ts";
+import { getParticipantPoints, SCORING } from "../models/points.ts";
 
 const app = new Hono();
 
@@ -154,5 +155,39 @@ app.get("/api/v1/conferences/:id/users/:userId/activity", jwt(), async (c) => {
 
   return c.json({ data: activity });
 });
+
+const participantParams = zod.object({
+  id: zod.coerce.number().int(),
+  userId: zod.uuid(),
+});
+
+// One participant's points and percentile tier at a conference, fetched when
+// someone opens their profile from a question (and for the signed-in user's
+// own tier). Public, like the questions it is computed from.
+app.get(
+  "/api/v1/conferences/:id/participants/:userId",
+  zValidator("param", participantParams),
+  async (c) => {
+    const { id: conferenceId, userId } = c.req.valid("param");
+
+    const [user, points] = await Promise.all([
+      getUserById(userId),
+      getParticipantPoints(conferenceId, userId),
+    ]);
+    if (!user || !points) {
+      throw new HTTPException(404, {
+        message: `User ${userId} has not taken part in conference ${conferenceId}`,
+      });
+    }
+
+    return c.json({
+      data: {
+        user: { id: user.id, name: user.userMetadata?.["name"] ?? user.id },
+        ...points,
+      },
+      scoring: SCORING,
+    });
+  },
+);
 
 export default app;
