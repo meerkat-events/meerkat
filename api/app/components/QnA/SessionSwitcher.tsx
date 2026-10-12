@@ -13,6 +13,7 @@ import {
   VisuallyHidden,
 } from "@chakra-ui/react";
 import { qa } from "../../routing.ts";
+import { tapTargetStyles } from "../../theme/index.ts";
 
 export type SessionItem = {
   uid: string;
@@ -64,6 +65,7 @@ export function SessionSwitcher(
           <Dialog.Trigger asChild>
             <chakra.button
               type="button"
+              position="relative"
               display="inline-flex"
               alignItems="center"
               gap="1"
@@ -72,6 +74,7 @@ export function SessionSwitcher(
               cursor="pointer"
               borderRadius="l1"
               focusVisibleRing="outside"
+              {...tapTargetStyles}
             >
               {/* One line: long titles truncate, the chevron stays visible */}
               <chakra.span minW="0" truncate>

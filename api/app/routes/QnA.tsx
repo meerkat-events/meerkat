@@ -59,6 +59,7 @@ import { useTierPromotion } from "../hooks/use-tier-promotion.ts";
 import { ParticipantDetails } from "../components/Points/ParticipantDetails.tsx";
 import { LogoutConfirmDialog } from "../components/Auth/LogoutConfirmDialog.tsx";
 import { useLogout } from "../hooks/use-logout.ts";
+import { tapTargetStyles } from "../theme/index.ts";
 import { TierCelebration } from "../components/Points/TierCelebration.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
@@ -411,6 +412,7 @@ export default function QnA() {
                     fontWeight="medium"
                     color="accent.text"
                     aria-label={`Sort by ${sortLabel}`}
+                    {...tapTargetStyles}
                   >
                     <Icon as={LuArrowDownUp} color="accent.icon" />
                     {sortLabel}
