@@ -4,17 +4,14 @@ import {
   IconButton,
   Link as ChakraLink,
   Textarea,
-  useDisclosure,
 } from "@chakra-ui/react";
 import type { Event } from "../../types.ts";
 import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
-import { useLogout } from "../../hooks/use-logout.ts";
 import { toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
 import type { User } from "../../hooks/use-auth.ts";
-import { LogoutConfirmDialog } from "../Auth/LogoutConfirmDialog.tsx";
 
 import "./Footer.css";
 
@@ -26,6 +23,8 @@ export type FooterProps = {
   isUserLoading: boolean;
   user: User | undefined;
   refresh: () => void;
+  /** Opens the signed-in user's own profile, from their name. */
+  onProfileOpen: () => void;
 };
 
 export function Footer({
@@ -34,6 +33,7 @@ export function Footer({
   isUserLoading,
   user,
   refresh,
+  onProfileOpen,
 }: FooterProps) {
   const { login: loginAnonymousUser } = useAnonymousUser();
 
@@ -69,21 +69,12 @@ export function Footer({
     },
   });
 
-  const { open: isOpen, onOpen, onClose } = useDisclosure();
-
-  const { logout } = useLogout();
-
   const submitQuestion = () => {
     if (question) {
       trigger({
         question,
       });
     }
-  };
-
-  const onLogout = async () => {
-    await logout();
-    globalThis.location.reload();
   };
 
   return (
@@ -134,7 +125,7 @@ export function Footer({
           </Flex>
           <span className="signin-name">
             Signed as{" "}
-            <ChakraLink onClick={onOpen}>
+            <ChakraLink as="button" onClick={onProfileOpen}>
               {user?.user_metadata["name"] ?? user?.id ?? "Anonymous"}
             </ChakraLink>
           </span>
@@ -150,11 +141,6 @@ export function Footer({
           </LoginOverlay>
         )}
       </div>
-      <LogoutConfirmDialog
-        isOpen={isOpen}
-        onClose={onClose}
-        onConfirm={onLogout}
-      />
     </>
   );
 }

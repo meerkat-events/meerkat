@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   CloseButton,
   Dialog,
   Flex,
@@ -18,6 +19,8 @@ export type ParticipantDetailsProps = {
   /** The participant to show; the dialog is closed while undefined. */
   selected: { userId: string; name: string; isMe: boolean } | undefined;
   onClose: () => void;
+  /** Offered on the user's own profile. */
+  onLogout?: (() => void) | undefined;
 };
 
 const plural = (count: number, singular: string, plural: string) =>
@@ -28,7 +31,7 @@ const plural = (count: number, singular: string, plural: string) =>
  * their name on a question. Their points are fetched only while it's open.
  */
 export function ParticipantDetails(
-  { conferenceId, selected, onClose }: ParticipantDetailsProps,
+  { conferenceId, selected, onClose, onLogout }: ParticipantDetailsProps,
 ) {
   return (
     <Dialog.Root
@@ -46,6 +49,18 @@ export function ParticipantDetails(
           <Dialog.Content textAlign="center" paddingTop="6">
             {selected && (
               <Details conferenceId={conferenceId} {...selected} />
+            )}
+            {selected?.isMe && onLogout && (
+              <Dialog.Footer paddingTop="0">
+                <Button
+                  variant="outline"
+                  width="full"
+                  borderRadius="full"
+                  onClick={onLogout}
+                >
+                  Log out
+                </Button>
+              </Dialog.Footer>
             )}
             <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" color="fg.muted" />
@@ -114,6 +129,15 @@ function Details(
       <Dialog.Body paddingBottom="6">
         {isLoading
           ? <Spinner color="fg.muted" />
+          : error?.status === 404
+          ? (
+            // Hasn't asked or voted at this conference yet
+            <Text textStyle="sm" color="fg.muted">
+              No points yet. Points come from votes on{" "}
+              {isMe ? "your" : "their"} questions and from questions picked
+              for the stage.
+            </Text>
+          )
           : error || !data
           ? (
             <Text textStyle="sm" color="fg.muted">

@@ -227,7 +227,8 @@ as `event.conference.features` (`collect` shows the Event Card link,
   others: 5 per question selected or answered, 1 per vote received
   (weighted, so a supervote is 3 votes; own votes don't count). Tiers
   (`api/tiers.ts`: top 0.1/1/10/25%) rank against everyone who asked or
-  voted; ties share the better tier, 0 points has none. There is no
+  voted; ties share the better tier, 0 points has none, and nobody has one
+  below `MIN_CONTRIBUTORS` (20) contributors. There is no
   leaderboard: `GET /api/v1/conferences/:id/participants/:userId` returns
   one person, fetched when their name on a question is tapped, and for the
   signed-in user only when their questions' votes or picks change
