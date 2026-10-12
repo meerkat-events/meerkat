@@ -3,6 +3,8 @@ import { CloseButton, Portal } from "@chakra-ui/react";
 import { MeerkatMascot } from "../QnA/MeerkatMascot.tsx";
 import type { TierPromotion } from "../../hooks/use-tier-promotion.ts";
 import { tierLabel, tierPaletteStyle } from "./tier.ts";
+import { useModalOverlay } from "../../hooks/use-modal-overlay.ts";
+import { tapTargetStyles } from "../../theme/index.ts";
 // Same overlay, card, rays, confetti, sparkles and mascot as the
 // question-picked celebration; TierCelebration.css recolors them in the
 // tier's palette.
@@ -74,6 +76,9 @@ export function TierCelebration({ promotion, onDismiss }: TierCelebrationProps) 
   const [greeting] = useState(nextGreeting);
   const dismissRef = useRef(onDismiss);
   dismissRef.current = onDismiss;
+  const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useModalOverlay(overlay, closeRef);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -88,9 +93,11 @@ export function TierCelebration({ promotion, onDismiss }: TierCelebrationProps) 
   return (
     <Portal>
       <div
+        ref={setOverlay}
         className="question-picked tier-celebration"
         style={tierPaletteStyle(to)}
         role="alertdialog"
+        aria-modal="true"
         aria-labelledby="tier-celebration-title"
         aria-describedby="tier-celebration-description"
         onClick={() => dismissRef.current()}
@@ -105,10 +112,14 @@ export function TierCelebration({ promotion, onDismiss }: TierCelebrationProps) 
           ))}
         </div>
         <div className="question-picked-card">
+          {/* Tapping anywhere closes the overlay; the button is for keyboards
+              and screen readers, and gets focus when it opens */}
           <CloseButton
+            ref={closeRef}
             className="question-picked-close"
             size="sm"
             aria-label="Close"
+            {...tapTargetStyles}
           />
           <div className="question-picked-medal">
             <div className="question-picked-rays" />

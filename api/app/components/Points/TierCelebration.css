@@ -44,3 +44,9 @@
     transparent
   );
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .tier-celebration-greeting {
+    animation: none;
+  }
+}

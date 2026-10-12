@@ -1,7 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CloseButton, Portal } from "@chakra-ui/react";
 import { FiZap } from "react-icons/fi";
 import { MeerkatMascot } from "./MeerkatMascot.tsx";
+import { useModalOverlay } from "../../hooks/use-modal-overlay.ts";
+import { tapTargetStyles } from "../../theme/index.ts";
 import "./QuestionPicked.css";
 
 const CONFETTI_COLORS = [
@@ -51,6 +53,9 @@ export function QuestionPicked(
   const dismissRef = useRef(() => {});
   dismissRef.current = () =>
     onDismiss(supervoteIconRef.current?.getBoundingClientRect());
+  const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useModalOverlay(overlay, closeRef);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -65,8 +70,10 @@ export function QuestionPicked(
   return (
     <Portal>
       <div
+        ref={setOverlay}
         className="question-picked"
         role="alertdialog"
+        aria-modal="true"
         aria-labelledby="question-picked-title"
         aria-describedby="question-picked-description"
         onClick={() => dismissRef.current()}
@@ -81,10 +88,14 @@ export function QuestionPicked(
           ))}
         </div>
         <div className="question-picked-card">
+          {/* Tapping anywhere closes the overlay; the button is for keyboards
+              and screen readers, and gets focus when it opens */}
           <CloseButton
+            ref={closeRef}
             className="question-picked-close"
             size="sm"
             aria-label="Close"
+            {...tapTargetStyles}
           />
           <div className="question-picked-medal">
             <div className="question-picked-rays" />
