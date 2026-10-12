@@ -4,7 +4,14 @@ import {
   defineConfig,
 } from "@chakra-ui/react";
 import { dialogAnatomy, menuAnatomy } from "@chakra-ui/react/anatomy";
-import { darken, lighten, transparentize } from "color2k";
+import {
+  darken,
+  getContrast,
+  getLuminance,
+  lighten,
+  mix,
+  transparentize,
+} from "color2k";
 import type { Theme } from "../types.ts";
 
 export { meerkat } from "./meerkat.ts";
@@ -28,6 +35,51 @@ const generateColorScale = (baseColor: string) => {
     1000: { value: darken(baseColor, 0.6) },
   };
 };
+
+// Shades of generateColorScale from the base color outwards: darker ones
+// stand out on light themes, lighter ones on dark themes.
+const DARKER_SHADES = [600, 700, 800, 900, 950, 975, 1000] as const;
+const LIGHTER_SHADES = [600, 500, 400, 300, 200, 100, 50] as const;
+
+/** WCAG 2.2 minimum contrast for text (1.4.3). */
+const TEXT_CONTRAST = 4.5;
+/** WCAG 2.2 minimum contrast for focus rings and icons (1.4.11). */
+const NON_TEXT_CONTRAST = 3;
+
+const isColor = (value: string) => {
+  try {
+    getLuminance(value);
+    return true;
+  } catch {
+    // A gradient or another non-color background
+    return false;
+  }
+};
+
+/**
+ * The `preferred` brand shade if it has at least `minContrast` against what
+ * the theme's content sits on, otherwise the first shade from the base color
+ * outwards that does, or the last one. On themes with dark text that is white
+ * with the light brand tint of a hovered button, which also covers the
+ * lightly tinted page gradients; on themes with light text, the background.
+ */
+function readableBrandShade(
+  theme: Theme,
+  preferred: keyof ReturnType<typeof generateColorScale>,
+  minContrast: number,
+) {
+  const scale = generateColorScale(theme.brandColor);
+  const isDarkTheme = getLuminance(theme.textColor) > 0.5;
+  const surface = isDarkTheme
+    ? isColor(theme.background) ? theme.background : "#000000"
+    // Same tint as brandTint(10) over white
+    : mix("#FFFFFF", theme.brandColor, 0.1);
+  const shades = isDarkTheme ? LIGHTER_SHADES : DARKER_SHADES;
+  const readable = [preferred, ...shades].find((shade) =>
+    getContrast(scale[shade].value, surface) >= minContrast
+  );
+  return `{colors.brand.${readable ?? shades[shades.length - 1]}}`;
+}
 
 /**
  * Style props that grow a button's tappable area to at least the theme's
@@ -83,6 +135,16 @@ const dialogOverride = (theme: Theme) => {
       defaultVariants: { placement: dialogPlacement },
     }),
     base: {
+      closeTrigger: {
+        // Every dialog's close button gets the full tap target
+        ...tapTargetStyles,
+        ...(dialogCloseIconSize && {
+          // Keeps Chakra's 0.625rem around the icon on each side.
+          boxSize: `calc(${dialogCloseIconSize} + 1.25rem)`,
+          minW: "auto",
+          _icon: { boxSize: dialogCloseIconSize },
+        }),
+      },
       header: {
         // Also for titles placed straight in the header (Modal).
         ...(dialogTitleFontWeight && { fontWeight: dialogTitleFontWeight }),
@@ -90,14 +152,6 @@ const dialogOverride = (theme: Theme) => {
       },
       ...(dialogTitleFontWeight && {
         title: { fontWeight: dialogTitleFontWeight },
-      }),
-      ...(dialogCloseIconSize && {
-        closeTrigger: {
-          // Keeps Chakra's 0.625rem around the icon on each side.
-          boxSize: `calc(${dialogCloseIconSize} + 1.25rem)`,
-          minW: "auto",
-          _icon: { boxSize: dialogCloseIconSize },
-        },
       }),
     },
     ...(gutter && {
@@ -122,10 +176,11 @@ const recipeOverrides = (theme: Theme) => {
     base: { outline: "1px solid", outlineColor: inputOutlineColor },
   };
   // Light hover for icon buttons (Close, a question's options) and outline
-  // buttons (Cancel), whose own hover is a dark brand.subtle.
-  const highlightHover = highlightColor && {
-    _hover: { bg: highlightColor },
-    _expanded: { bg: highlightColor },
+  // buttons (Cancel), whose own hover is brand.subtle: a dark brand shade
+  // here, which would hide their brand-colored text.
+  const highlightHover = {
+    _hover: { bg: highlightColor ?? brandTint(10) },
+    _expanded: { bg: highlightColor ?? brandTint(10) },
   };
   return {
     recipes: {
@@ -136,11 +191,9 @@ const recipeOverrides = (theme: Theme) => {
           ...(buttonRadius && { borderRadius: buttonRadius }),
           ...(buttonFontWeight && { fontWeight: buttonFontWeight }),
         },
-        ...(highlightHover && {
-          variants: {
-            variant: { ghost: highlightHover, outline: highlightHover },
-          },
-        }),
+        variants: {
+          variant: { ghost: highlightHover, outline: highlightHover },
+        },
       },
       ...(accentColor && {
         link: {
@@ -218,11 +271,14 @@ const chakraAdapter = (theme: Theme) => {
           brand: {
             solid: { value: "{colors.brand.600}" },
             contrast: { value: theme.contrastColor },
-            fg: { value: "{colors.brand.700}" },
+            // Brand text and links (outline buttons, "Signed as" name)
+            fg: { value: readableBrandShade(theme, 700, TEXT_CONTRAST) },
             muted: { value: "{colors.brand.800}" },
             subtle: { value: "{colors.brand.900}" },
             emphasized: { value: "{colors.brand.700}" },
-            focusRing: { value: "{colors.brand.600}" },
+            focusRing: {
+              value: readableBrandShade(theme, 600, NON_TEXT_CONTRAST),
+            },
             // Hover of solid brand buttons (send, primary actions).
             hover: { value: theme.brandHoverColor ?? brandTint(90) },
           },
@@ -328,8 +384,9 @@ const chakraAdapter = (theme: Theme) => {
           questionControl: {
             value: theme.questionControlSize ?? "{sizes.9}",
           },
-          // Minimum tappable size, see tapTargetStyles; 0 adds nothing.
-          tapTarget: { value: theme.minTapTarget ?? "0px" },
+          // Minimum tappable size, see tapTargetStyles. 44px is WCAG's
+          // enhanced target size (2.5.5) and Apple's touch guideline.
+          tapTarget: { value: theme.minTapTarget ?? "44px" },
         },
         fonts: {
           ...(theme.headingFontFamily && {
