@@ -56,6 +56,9 @@ export function ParticipantDetails(
                   variant="outline"
                   width="full"
                   borderRadius="full"
+                  // The outline hover (brand.subtle) is a dark brand shade in
+                  // conference themes, which hides the brand text
+                  _hover={{ bg: "bg.muted" }}
                   onClick={onLogout}
                 >
                   Log out
