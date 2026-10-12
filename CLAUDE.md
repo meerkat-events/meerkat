@@ -323,9 +323,7 @@ as `event.conference.features` (`collect` shows the Event Card link,
 2. Run `pnpm generate` in `api/` and review the SQL. **Delete any
    `auth.users` DDL** from the new migration.
 3. Run `pnpm migrate` for your local database. Deployments migrate
-   themselves (see Deployment) while the previous version is still serving,
-   so a migration must work with the old code: add columns freely; renames
-   and drops take two deploys.
+   themselves (see Deployment).
 4. A new table also goes into `api/scripts/supabase-policies.sql`, which
    holds the Supabase setup Drizzle doesn't manage. Every table needs Row
    Level Security there, because the anon key is public and PostgREST
