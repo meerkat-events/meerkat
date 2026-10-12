@@ -7,6 +7,7 @@ import {
 } from "@chakra-ui/react";
 import type { Event } from "../../types.ts";
 import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
+import { tapTargetStyles } from "../../theme/index.ts";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { toaster } from "../ui/toaster.tsx";
@@ -125,7 +126,17 @@ export function Footer({
           </Flex>
           <span className="signin-name">
             Signed as{" "}
-            <ChakraLink as="button" onClick={onProfileOpen}>
+            <ChakraLink
+              as="button"
+              onClick={onProfileOpen}
+              position="relative"
+              // The full tap target, shifted down into the padding below so
+              // it stays off the question input just above
+              _before={{
+                ...tapTargetStyles._before,
+                transform: "translate(-50%, calc(-50% + 6px))",
+              }}
+            >
               {user?.user_metadata["name"] ?? user?.id ?? "Anonymous"}
             </ChakraLink>
           </span>

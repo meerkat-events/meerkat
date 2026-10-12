@@ -7,7 +7,10 @@ import {
   Portal,
   Spinner,
   Text,
+  VisuallyHidden,
 } from "@chakra-ui/react";
+import { useRef } from "react";
+import { tapTargetStyles } from "../../theme/index.ts";
 import { MeerkatMascot } from "../QnA/MeerkatMascot.tsx";
 import { useParticipant } from "../../hooks/use-participant.ts";
 import type { Participant, PointsScoring } from "../../types.ts";
@@ -33,6 +36,10 @@ const plural = (count: number, singular: string, plural: string) =>
 export function ParticipantDetails(
   { conferenceId, selected, onClose, onLogout }: ParticipantDetailsProps,
 ) {
+  // Focus starts on Close rather than the first button, which on the user's
+  // own profile would be Log out
+  const closeRef = useRef<HTMLButtonElement>(null);
+
   return (
     <Dialog.Root
       placement="center"
@@ -40,6 +47,7 @@ export function ParticipantDetails(
       size="xs"
       open={!!selected}
       onOpenChange={(details) => !details.open && onClose()}
+      initialFocusEl={() => closeRef.current}
       lazyMount
       unmountOnExit
     >
@@ -56,17 +64,15 @@ export function ParticipantDetails(
                   variant="outline"
                   width="full"
                   borderRadius="full"
-                  // The outline hover (brand.subtle) is a dark brand shade in
-                  // conference themes, which hides the brand text
-                  _hover={{ bg: "bg.muted" }}
                   onClick={onLogout}
+                  {...tapTargetStyles}
                 >
                   Log out
                 </Button>
               </Dialog.Footer>
             )}
             <Dialog.CloseTrigger asChild>
-              <CloseButton size="sm" color="fg.muted" />
+              <CloseButton ref={closeRef} size="sm" color="fg.muted" />
             </Dialog.CloseTrigger>
           </Dialog.Content>
         </Dialog.Positioner>
@@ -97,7 +103,8 @@ function Details(
         gap="1"
         paddingBottom="2"
       >
-        <Dialog.Title textStyle="lg" lineClamp={2}>
+        {/* Wraps however long the name, so enlarged text still shows it */}
+        <Dialog.Title textStyle="lg" overflowWrap="anywhere">
           {name}
           {isMe && (
             <Text as="span" color="fg.muted" fontWeight="normal">
@@ -131,7 +138,12 @@ function Details(
       </Dialog.Header>
       <Dialog.Body paddingBottom="6">
         {isLoading
-          ? <Spinner color="fg.muted" />
+          ? (
+            <Box role="status">
+              <Spinner color="fg.muted" aria-hidden="true" />
+              <VisuallyHidden>Loading points…</VisuallyHidden>
+            </Box>
+          )
           : error?.status === 404
           ? (
             // Hasn't asked or voted at this conference yet
@@ -172,12 +184,21 @@ function PointsBreakdown(
 
   return (
     <Box textAlign="start">
-      <Box as="dl" borderRadius="lg" bg="bg.muted" paddingX="4" paddingY="1">
+      {/* Outlined rather than filled: muted text keeps 4.5:1 contrast only on
+          the dialog's own background */}
+      <Box
+        as="dl"
+        borderRadius="lg"
+        borderWidth="1px"
+        borderColor="border"
+        paddingX="4"
+        paddingY="1"
+      >
         {lines.map(({ label, points }) => (
           <Flex
             key={label}
             // Zero lines stay, as a hint of how to earn points, but muted
-            color={points ? "fg" : "fg.subtle"}
+            color={points ? "fg" : "fg.muted"}
             justifyContent="space-between"
             gap="3"
             paddingY="2.5"

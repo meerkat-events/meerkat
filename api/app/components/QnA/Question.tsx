@@ -185,17 +185,21 @@ export function Question(
               <chakra.button
                 type="button"
                 onClick={onAuthorSelect}
+                // Relative and not clipped, so the tap target can reach
+                // beyond the line of text; the name itself truncates
+                position="relative"
+                display="inline-flex"
+                minW="0"
                 textStyle="sm"
                 color="fg.muted"
-                minW="0"
-                truncate
                 cursor="pointer"
                 borderRadius="sm"
                 _hover={{ color: "fg", textDecoration: "underline" }}
                 focusVisibleRing="outside"
                 aria-label={`Show ${authorName}'s points`}
+                {...tapTargetStyles}
               >
-                {authorName}
+                <chakra.span truncate>{authorName}</chakra.span>
               </chakra.button>
             )
             : (
