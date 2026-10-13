@@ -22,8 +22,6 @@ export const devcon8: Theme = {
   notLiveBannerColor: "#FFE0CC",
   buttonRadius: "9999px",
   buttonFontWeight: "700",
-  // Half the input's one-line height: a pill on one line, rounded beyond.
-  questionInputRadius: "1.5625rem",
   dialogPlacement: "center",
   dialogGutter: "1rem",
   dialogTitleFontWeight: "700",

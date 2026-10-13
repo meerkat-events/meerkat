@@ -51,7 +51,8 @@ export type Theme = {
   buttonFontWeight?: string;
   /**
    * Corners of the question input. It grows with its text, so a value above
-   * half its one-line height clips multi-line questions; defaults to md.
+   * half its one-line height clips multi-line questions; defaults to that
+   * half, a pill on one line.
    */
   questionInputRadius?: string;
   /** Vertical position of dialogs that don't set their own; defaults to "top". */

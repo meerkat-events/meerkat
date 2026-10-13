@@ -381,8 +381,10 @@ const chakraAdapter = (theme: Theme) => {
           headerBar: { value: theme.headerBarSpacing ?? "{spacing.2}" },
         },
         radii: {
-          // The question input, which grows with its text.
-          questionInput: { value: theme.questionInputRadius ?? "{radii.md}" },
+          // The question input, which grows with its text. Half its one-line
+          // height (50px): a pill on one line, rounded beyond, and concentric
+          // with the send button (40px, inset 5px) in the bottom corner.
+          questionInput: { value: theme.questionInputRadius ?? "1.5625rem" },
         },
         fontWeights: {
           // Emphasized text in dialogs, such as the event in Go Live.
