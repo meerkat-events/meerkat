@@ -1,5 +1,6 @@
 import { type Ref, useEffect, useRef, useState } from "react";
 import { IconButton } from "@chakra-ui/react";
+import { LuChevronLeft } from "react-icons/lu";
 import { REACTION_LABELS, type ReactionEmoji } from "../../../reactions.ts";
 import { HeartIcon } from "./HeartIcon.tsx";
 import { ReactionGlyph } from "./ReactionGlyph.tsx";
@@ -12,13 +13,10 @@ const MORE_REACTIONS: ReactionEmoji[] = [
   "star-struck",
   "clap",
 ];
-/** How long the bar stays out after the last reaction. */
+/** How long the bar stays out after the last interaction. */
 const HIDE_AFTER_MS = 4000;
-/** How long the bar stays out after the mouse leaves it. */
-const HIDE_AFTER_LEAVE_MS = 300;
 /** Delay between reactions sliding in, nearest the heart first. */
 const STAGGER_MS = 30;
-const lastIndex = MORE_REACTIONS.length - 1;
 
 export type ReactionOrigin = { x: number; y: number };
 
@@ -29,49 +27,31 @@ export type ReactButtonProps = {
 };
 
 /**
- * Floating heart bubble with a bar of the other reactions beside it. With a
- * mouse, hovering the bubble slides the bar out and a click on the heart
- * sends a heart. On touch, the first tap on the heart slides the bar out;
- * then a tap sends a heart or any other reaction. The bar tucks away again a
- * few seconds after the last reaction, or soon after the mouse leaves it.
+ * Floating bubble holding the heart and a small arrow. A tap on the heart
+ * sends a heart; the arrow slides out a bar with the other reactions between
+ * itself and the heart, and flips to point back in. The bar tucks away again
+ * a few seconds after the last interaction, on a tap outside it or on Escape.
  */
 export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
   const [open, setOpen] = useState(false);
-  // Closing keeps the bar mounted while it slides back in (see app.css).
-  const [isClosing, setIsClosing] = useState(false);
-  // A disabled button shows no bar: drop it at once, so it can't come back
-  // to play its exit once the button is enabled again.
-  if (disabled && (open || isClosing)) {
-    setOpen(false);
-    setIsClosing(false);
-  }
-  // Timers close the bar from earlier renders, so they read this, not `open`.
-  const isOpen = useRef(open);
-  isOpen.current = open;
+  // A disabled button shows no bar.
+  if (disabled && open) setOpen(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const isHovered = useRef(false);
 
   const close = () => {
     clearTimeout(hideTimer.current);
-    if (!isOpen.current) return;
     setOpen(false);
-    // Without motion there is no animation to wait for.
-    const reducedMotion =
-      globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setIsClosing(!reducedMotion);
   };
 
   const scheduleHide = () => {
     clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(function hide() {
-      // Keyboard users moving through the bar, and a mouse resting on it,
-      // keep it open.
+      // Keyboard users moving through the bar keep it open.
       const focused = document.activeElement;
       if (
-        isHovered.current ||
         focused && containerRef.current?.contains(focused) &&
-          focused.matches(":focus-visible")
+        focused.matches(":focus-visible")
       ) {
         hideTimer.current = setTimeout(hide, HIDE_AFTER_MS);
         return;
@@ -109,86 +89,72 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
       });
-      setOpen(true);
-      scheduleHide();
+      if (open) scheduleHide();
     };
 
-  const show = () => {
+  const toggle = () => {
+    if (open) {
+      close();
+      return;
+    }
     // The bar slides out where toasts sit (see app.css), so it clears them.
-    if (!isOpen.current) toaster.dismiss();
+    toaster.dismiss();
     setOpen(true);
-    setIsClosing(false);
     scheduleHide();
   };
 
-  // Touch has no hover, so only a mouse opens the bar by pointing at it.
-  const onPointerEnter = (event: React.PointerEvent) => {
-    if (event.pointerType !== "mouse" || disabled) return;
-    isHovered.current = true;
-    show();
-  };
-
-  const onPointerLeave = (event: React.PointerEvent) => {
-    if (event.pointerType !== "mouse") return;
-    isHovered.current = false;
-    clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(close, HIDE_AFTER_LEAVE_MS);
-  };
-
   return (
-    <div
-      className="reaction-picker"
-      ref={containerRef}
-      onPointerEnter={onPointerEnter}
-      onPointerLeave={onPointerLeave}
-    >
+    <div className="reaction-picker" ref={containerRef}>
       <IconButton
         ref={ref}
         disabled={disabled}
-        // Opens the bar first, so a heart is never sent by accident.
-        onClick={open ? react("heart") : show}
-        // Floating bubble above the question input
+        onClick={react("heart")}
+        // Sized to match the send button below it
         variant="plain"
         size="lg"
         w="50px"
         h="50px"
         borderRadius="full"
-        bg="bg.panel"
-        boxShadow="floating"
-        aria-label={open ? "React with Heart" : "Show reactions"}
-        aria-expanded={open}
+        aria-label="React with Heart"
         type="button"
       >
         <div className={disabled ? undefined : "heart-pulsate"}>
           <HeartIcon />
         </div>
       </IconButton>
-      {(open || isClosing) && !disabled && (
+      {/* The arrow rides the bubble's left edge as it opens, then flips to
+          point back in towards the heart. */}
+      <div className="reaction-bar" data-open={open || undefined}>
+        <IconButton
+          className="reaction-toggle"
+          disabled={disabled}
+          onClick={toggle}
+          variant="plain"
+          // A full-height tap target around the small arrow; the bubble
+          // clips anything that reaches outside it
+          w="44px"
+          h="50px"
+          minW="44px"
+          borderRadius="full"
+          color="fg.muted"
+          aria-label={open ? "Hide more reactions" : "Show more reactions"}
+          aria-expanded={open}
+          type="button"
+        >
+          <LuChevronLeft />
+        </IconButton>
         <div
-          className="reaction-bar"
+          className="reaction-bar-items"
           role="group"
           aria-label="More reactions"
-          // Closing plays the opening backwards: the farthest reaction goes
-          // first and the bar shrinks once the last one has left.
-          data-closing={isClosing || undefined}
-          inert={isClosing}
-          style={isClosing
-            ? { animationDelay: `${lastIndex * STAGGER_MS}ms` }
-            : undefined}
-          onAnimationEnd={(event) => {
-            if (isClosing && event.target === event.currentTarget) {
-              setIsClosing(false);
-            }
-          }}
+          inert={!open || disabled}
         >
           {MORE_REACTIONS.map((emoji, index) => (
             <IconButton
               key={emoji}
               className="reaction-bar-item"
               style={{
-                animationDelay: `${
-                  (isClosing ? lastIndex - index : index) * STAGGER_MS
-                }ms`,
+                transitionDelay: open ? `${index * STAGGER_MS}ms` : undefined,
               }}
               onClick={react(emoji)}
               variant="plain"
@@ -203,7 +169,7 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
             </IconButton>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
