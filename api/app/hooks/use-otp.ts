@@ -69,5 +69,39 @@ export function useOTP() {
     }
   };
 
-  return { signUp, verify, isLoading, error };
+  /**
+   * Signs in with the link in the sign-in email, which carries the same
+   * one-time token as the code, hashed (`{{ .TokenHash }}` in the template).
+   */
+  const verifyLink = async (tokenHash: string) => {
+    if (!client) {
+      setError("Supabase client not found");
+      return undefined;
+    }
+    setIsLoading(true);
+    try {
+      const {
+        data: { session },
+        error,
+      } = await client.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: "email",
+      });
+      if (error) {
+        throw error;
+      }
+      return session;
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("An unknown error occurred");
+      }
+      return undefined;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { signUp, verify, verifyLink, isLoading, error };
 }

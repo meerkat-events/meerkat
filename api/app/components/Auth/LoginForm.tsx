@@ -50,7 +50,7 @@ export function LoginForm() {
               </Text>
               <Text color="gray.400" fontSize="sm">
                 {emailSubmitted
-                  ? "Enter the code we sent to your email"
+                  ? "Enter the code we sent to your email, or open its link"
                   : "Enter your email to receive a login code"}
               </Text>
             </Flex>

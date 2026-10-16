@@ -5,4 +5,9 @@
 <p style="font:32px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:2px;margin:16px 0">
   {{ .Token }}
 </p>
+<p>Or confirm on this device with one click:</p>
+<p style="margin:16px 0">
+  <a href="{{ .SiteURL }}/login?token_hash={{ .TokenHash }}&type=email" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#111;color:#fff;text-decoration:none;font-weight:600">Confirm and sign in</a>
+</p>
+<p>The code and the link work once, whichever you use first.</p>
 <p>If you didn’t request this for Meerkat QA, ignore this email.</p>

@@ -92,7 +92,7 @@ all carry over to a new project:
 | `auth.email.max_frequency` | `1m` | resend cooldown |
 | `auth.mfa.totp.{enroll,verify}_enabled` | `true` | |
 | `db.pooler.default_pool_size` / `max_client_conn` | `15` / `200` | |
-| `auth.email.template.{confirmation,magic_link}` | `templates/*.html` | deliver `{{ .Token }}`, not a magic link |
+| `auth.email.template.{confirmation,magic_link}` | `templates/*.html` | deliver the `{{ .Token }}` code and a `/login?token_hash=` link |
 | `auth.rate_limit.token_verifications` | `6000` / 5 min / IP | every Devcon handover verifies a one-time token server-side |
 | `auth.rate_limit.token_refresh` | `3000` / 5 min / IP | session refreshes from a venue's shared Wi-Fi IP |
 | `auth.rate_limit.anonymous_users` | `3000` / hour / IP | anonymous joins from a venue's shared Wi-Fi IP |
@@ -129,7 +129,11 @@ key is undeclared even when its section header is live: with CLI 2.120,
   projects using the default email provider`. Configure `[auth.email.smtp]`
   (custom SMTP) or upgrade the plan first — until then a new project sends
   Supabase's stock link-based emails, which do **not** carry the
-  `{{ .Token }}` code the sign-in UI asks for.
+  `{{ .Token }}` code the sign-in UI asks for, and whose link does not sign
+  in. The default provider also delivers only to members of the Supabase
+  org, so a production project needs custom SMTP regardless. With custom
+  SMTP, raise `auth.rate_limit.email_sent` (default 30 per hour, for the
+  whole project) to fit the expected number of sign-ins.
 - **Custom domains and vanity subdomains** — Pro plan only.
 - **Admin API keys** (`api_keys` table) — no endpoint creates them; insert an
   argon2 hash directly.

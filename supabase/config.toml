@@ -258,11 +258,14 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# The two templates Meerkat actually customizes, pulled from meerkat-dev. Both
-# deliver the one-time code ({{ .Token }}, 8 digits per auth.email.otp_length)
-# rather than a magic link, because app/hooks/use-otp.ts signs in with
-# signInWithOtp and the UI asks for a code. Every other template on meerkat-dev
-# is Supabase stock and is left undeclared so `config push` does not touch it.
+# The two templates Meerkat actually customizes. Both deliver the one-time code
+# ({{ .Token }}, 8 digits per auth.email.otp_length), which the login form
+# asks for, and a link to /login?token_hash={{ .TokenHash }} on the Site URL,
+# which app/routes/Login.tsx verifies in the browser. Not Supabase's own
+# {{ .ConfirmationURL }}: it lands on the Site URL root, which drops the session
+# it carries, and mail scanners that prefetch links would spend the token.
+# Every other template is Supabase stock and is left undeclared so
+# `config push` does not touch it.
 #
 # NOTE: on the Free plan the Management API rejects mailer subject/template
 # writes with HTTP 400 unless custom SMTP is configured, so `supabase config
