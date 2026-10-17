@@ -16,4 +16,10 @@ export class HTTPError extends Error {
   get status() {
     return this.response.status;
   }
+
+  /** Seconds from the Retry-After header, if the response has one. */
+  get retryAfter() {
+    const seconds = Number(this.response.headers.get("Retry-After"));
+    return seconds > 0 ? seconds : undefined;
+  }
 }

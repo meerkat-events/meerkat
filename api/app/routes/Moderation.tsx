@@ -3,7 +3,7 @@ import { FiRefreshCw } from "react-icons/fi";
 import { useAllQuestions } from "../hooks/use-all-questions.ts";
 import { useDeleteQuestion } from "../hooks/use-delete-question.ts";
 import { qa } from "../routing.ts";
-import { toaster } from "~/components/ui/toaster.tsx";
+import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
 
 export default function Moderation() {
   const { data: questions, mutate: refreshQuestions, isLoading, isValidating } =
@@ -87,7 +87,7 @@ function QuestionRow(
       toaster.create({
         title: "Question hidden",
         type: "success",
-        duration: 2000,
+        duration: CONFIRMATION_DURATION,
       });
     } catch (error) {
       toaster.create({

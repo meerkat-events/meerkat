@@ -32,20 +32,54 @@ const OVERRIDES: Record<string, Partial<Record<string, string>>> = {
   gray: { solid: "gray-400", contrast: "gray-900" },
 };
 
+/** The supervote gold (QnA/Supervote.css). */
+const GOLD = "#F6B613";
+
+/**
+ * Each tier's accent on the profile card, read through CSS vars:
+ * --tier-accent fills the tier pill and the medal behind the mascot,
+ * --tier-accent-fg is the pill's text, --tier-ring rings the medal and
+ * --tier-pill-ring the pill. By default the palette's subtle shade and its fg
+ * text inside the emphasized shade, with no ring on the pill. Gold is light
+ * yellow inside the supervote gold, on the medal and the pill alike; the
+ * same in both color modes, so its text is a dark yellow that keeps 4.5:1 in
+ * both.
+ */
+const ACCENTS: Partial<
+  Record<Tier, { color: string; fg: string; ring: string; pillRing: string }>
+> = {
+  0.1: {
+    color: "var(--chakra-colors-yellow-300)",
+    fg: "var(--chakra-colors-yellow-900)",
+    ring: GOLD,
+    pillRing: GOLD,
+  },
+};
+
 /**
  * Inline style that points Chakra's color-palette vars at the tier's color,
  * so `colorPalette.*` tokens and plain CSS using
  * `--chakra-colors-color-palette-*` both follow it (inline vars also reach
- * portals and non-Chakra elements, unlike the colorPalette prop).
+ * portals and non-Chakra elements, unlike the colorPalette prop). It also
+ * sets the tier's accent vars (see ACCENTS).
  */
 export function tierPaletteStyle(tier: Tier) {
   const palette = PALETTES[tier];
-  return Object.fromEntries(
-    PALETTE_TOKENS.map((token) => [
-      `--chakra-colors-color-palette-${token}`,
-      `var(--chakra-colors-${
-        OVERRIDES[palette]?.[token] ?? `${palette}-${token}`
-      })`,
-    ]),
-  ) as CSSProperties;
+  const accent = ACCENTS[tier];
+  return {
+    ...Object.fromEntries(
+      PALETTE_TOKENS.map((token) => [
+        `--chakra-colors-color-palette-${token}`,
+        `var(--chakra-colors-${
+          OVERRIDES[palette]?.[token] ?? `${palette}-${token}`
+        })`,
+      ]),
+    ),
+    "--tier-accent": accent?.color ?? "var(--chakra-colors-color-palette-subtle)",
+    "--tier-accent-fg": accent?.fg ?? "var(--chakra-colors-color-palette-fg)",
+    "--tier-ring": accent?.ring ??
+      "var(--chakra-colors-color-palette-emphasized)",
+    "--tier-pill-ring": accent?.pillRing ?? "transparent",
+  } as CSSProperties;
 }
+

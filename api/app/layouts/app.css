@@ -36,18 +36,19 @@ body {
   position: relative;
 }
 
-.title-section {
-  padding: 0 1rem 0 1rem;
+/* Toasts on the Q&A page sit in line with the reaction bubble (.reaction-picker),
+   across the column to its left, and follow the footer up as the question
+   input grows (routes/QnA.tsx sets --footer-height; see ui/toaster.tsx). */
+:root:has(.footer) {
+  --toast-column-inset: calc(max(0px, (100vw - 512px) / 2) + 1rem);
+  --toast-offset-bottom: calc(var(--footer-height, 7rem) + 0.25rem);
+  --toast-offset-left: var(--toast-column-inset);
+  --toast-offset-right: calc(var(--toast-column-inset) + 94px + 0.5rem);
+  --toast-width: 100%;
 }
 
-ol,
-ul {
-  list-style-type: none;
-
-  & > li {
-    margin: 0;
-    padding: 0;
-  }
+.title-section {
+  padding: 0 1rem 0 1rem;
 }
 
 ol,
@@ -245,8 +246,8 @@ ul {
   opacity: 0;
   transform: scale(0.8);
   transition:
-    opacity 160ms ease-out,
-    transform 160ms ease-out;
+    opacity 200ms ease-out,
+    transform 200ms ease-out;
 }
 
 .reaction-bar[data-open] .reaction-bar-item {

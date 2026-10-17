@@ -234,6 +234,8 @@ const chakraAdapter = (theme: Theme) => {
         colorPalette: "brand",
         color: theme.textColor,
       },
+      // Selected text, instead of Chakra's brand.emphasized at 80%.
+      ...(highlightColor && { "*::selection": { bg: highlightColor } }),
     },
     theme: {
       ...recipeOverrides(theme),
@@ -327,6 +329,16 @@ const chakraAdapter = (theme: Theme) => {
                 : "{colors.brand.contrast}",
             },
           },
+          // Error toasts, styled like confirmations: by default Chakra's red;
+          // a theme's light errorToastColor takes the regular text color.
+          errorToast: {
+            bg: { value: theme.errorToastColor ?? "{colors.red.solid}" },
+            fg: {
+              value: theme.errorToastColor
+                ? "{colors.fg}"
+                : "{colors.red.contrast}",
+            },
+          },
           // Banner on events that aren't live. By default a brand tint with
           // high-contrast brand text; a theme's notLiveBannerColor takes the
           // regular text color instead.
@@ -356,9 +368,10 @@ const chakraAdapter = (theme: Theme) => {
           },
           // Floating controls: the heart button and its reaction bar.
           floating: {
-            value: `0 8px 16px ${shadowColor ?? brandTint(35)}, 0 0 1px ${
-              shadowColor ?? brandTint(60)
-            }`,
+            value: theme.floatingShadow ??
+              `0 8px 16px ${shadowColor ?? brandTint(35)}, 0 0 1px ${
+                shadowColor ?? brandTint(60)
+              }`,
           },
         },
         spacing: {
@@ -368,8 +381,10 @@ const chakraAdapter = (theme: Theme) => {
           headerBar: { value: theme.headerBarSpacing ?? "{spacing.2}" },
         },
         radii: {
-          // The question input, which grows with its text.
-          questionInput: { value: theme.questionInputRadius ?? "{radii.md}" },
+          // The question input, which grows with its text. Half its one-line
+          // height (50px): a pill on one line, rounded beyond, and concentric
+          // with the send button (40px, inset 5px) in the bottom corner.
+          questionInput: { value: theme.questionInputRadius ?? "1.5625rem" },
         },
         fontWeights: {
           // Emphasized text in dialogs, such as the event in Go Live.

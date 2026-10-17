@@ -39,6 +39,10 @@ export function ParticipantDetails(
   // Focus starts on Close rather than the first button, which on the user's
   // own profile would be Log out
   const closeRef = useRef<HTMLButtonElement>(null);
+  // The same request as in Details (SWR shares it), for the tier's colors on
+  // the whole card
+  const { data } = useParticipant(conferenceId, selected?.userId);
+  const tier = data?.tier ?? null;
 
   return (
     <Dialog.Root
@@ -54,7 +58,11 @@ export function ParticipantDetails(
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner padding="4">
-          <Dialog.Content textAlign="center" paddingTop="6">
+          <Dialog.Content
+            textAlign="center"
+            paddingTop="6"
+            style={tier !== null ? tierPaletteStyle(tier) : undefined}
+          >
             {selected && (
               <Details conferenceId={conferenceId} {...selected} />
             )}
@@ -93,8 +101,18 @@ function Details(
   const tier = data?.tier ?? null;
 
   return (
-    <Box style={tier !== null ? tierPaletteStyle(tier) : undefined}>
-      <div className="supervote-info-medal" aria-hidden="true">
+    <>
+      <div
+        className="supervote-info-medal"
+        aria-hidden="true"
+        // In the tier's accent, like the tier pill below (purple without one)
+        style={tier !== null
+          ? {
+            backgroundColor: "var(--tier-accent)",
+            borderColor: "var(--tier-ring)",
+          }
+          : undefined}
+      >
         <MeerkatMascot className="supervote-info-meerkat" />
       </div>
       <Dialog.Header
@@ -121,8 +139,10 @@ function Details(
               paddingX="2.5"
               paddingY="0.5"
               borderRadius="full"
-              bg="colorPalette.subtle"
-              color="colorPalette.fg"
+              bg="var(--tier-accent)"
+              color="var(--tier-accent-fg)"
+              // Inset, so a ringed pill is no bigger than the others
+              boxShadow="inset 0 0 0 1.5px var(--tier-pill-ring)"
               textStyle="xs"
               fontWeight="bold"
               textTransform="uppercase"
@@ -161,7 +181,7 @@ function Details(
           )
           : <PointsBreakdown participant={data} scoring={scoring} />}
       </Dialog.Body>
-    </Box>
+    </>
   );
 }
 

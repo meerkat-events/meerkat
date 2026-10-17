@@ -2,8 +2,29 @@ import { createContext, useEffect, useState } from "react";
 import { useSupabase } from "./supabase.tsx";
 import * as Sentry from "@sentry/react";
 import type { Session, User } from "@supabase/supabase-js";
+import type { HTTPError } from "../hooks/http-error.ts";
 
 export { type Session, type User };
+
+/**
+ * A rate limit the user ran into: what they were doing, and when they can do
+ * it again (unset for limits that don't lift with time).
+ */
+export type Cooldown = {
+  action: "question" | "vote" | "reaction";
+  until: Date | undefined;
+};
+
+/** The cooldown a 429 answer to `action` puts the user on. */
+export const cooldownFor = (
+  action: Cooldown["action"],
+  error: HTTPError,
+): Cooldown => ({
+  action,
+  until: error.retryAfter === undefined
+    ? undefined
+    : new Date(Date.now() + error.retryAfter * 1000),
+});
 
 export const UserContext = createContext<
   {
@@ -12,8 +33,8 @@ export const UserContext = createContext<
     session: Session | undefined;
     isLoading: boolean;
     isAuthenticated: boolean;
-    isOnCooldown: boolean;
-    setIsOnCooldown: (cooldown: boolean) => void;
+    cooldown: Cooldown | undefined;
+    setCooldown: (cooldown: Cooldown | undefined) => void;
     isValidated: boolean;
     setIsValidated: (validated: boolean) => void;
   }
@@ -23,8 +44,8 @@ export const UserContext = createContext<
   session: undefined,
   isLoading: true,
   isAuthenticated: false,
-  isOnCooldown: false,
-  setIsOnCooldown: () => {},
+  cooldown: undefined,
+  setCooldown: () => {},
   isValidated: false,
   setIsValidated: () => {},
 });
@@ -34,7 +55,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | undefined>(undefined);
   const [session, setSession] = useState<Session | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
-  const [isOnCooldown, setIsOnCooldown] = useState<boolean>(false);
+  const [cooldown, setCooldown] = useState<Cooldown | undefined>(undefined);
   const [isValidated, setIsValidated] = useState<boolean>(false);
 
   useEffect(() => {
@@ -82,8 +103,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         session,
         isLoading,
         isAuthenticated: !!session?.user,
-        isOnCooldown,
-        setIsOnCooldown,
+        cooldown,
+        setCooldown,
         isValidated,
         setIsValidated,
       }}

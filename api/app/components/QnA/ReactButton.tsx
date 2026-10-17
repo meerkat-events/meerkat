@@ -4,6 +4,7 @@ import { LuChevronLeft } from "react-icons/lu";
 import { REACTION_LABELS, type ReactionEmoji } from "../../../reactions.ts";
 import { HeartIcon } from "./HeartIcon.tsx";
 import { ReactionGlyph } from "./ReactionGlyph.tsx";
+import { toaster } from "../ui/toaster.tsx";
 
 /** Reactions revealed next to the heart, nearest the heart first. */
 const MORE_REACTIONS: ReactionEmoji[] = [
@@ -12,8 +13,10 @@ const MORE_REACTIONS: ReactionEmoji[] = [
   "star-struck",
   "clap",
 ];
-/** How long the bar stays out after the last reaction. */
+/** How long the bar stays out after the last interaction. */
 const HIDE_AFTER_MS = 4000;
+/** Delay between reactions sliding in, nearest the heart first. */
+const STAGGER_MS = 30;
 
 export type ReactionOrigin = { x: number; y: number };
 
@@ -24,12 +27,15 @@ export type ReactButtonProps = {
 };
 
 /**
- * Floating heart bubble. A tap sends a heart; the small arrow beside it slides
- * out a bar with the other reactions, which tucks away again a few seconds
- * after the last interaction.
+ * Floating bubble holding the heart and a small arrow. A tap on the heart
+ * sends a heart; the arrow slides out a bar with the other reactions between
+ * itself and the heart, and flips to point back in. The bar tucks away again
+ * a few seconds after the last interaction, on a tap outside it or on Escape.
  */
 export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
   const [open, setOpen] = useState(false);
+  // A disabled button shows no bar.
+  if (disabled && open) setOpen(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -91,6 +97,8 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
       close();
       return;
     }
+    // The bar slides out where toasts sit (see app.css), so it clears them.
+    toaster.dismiss();
     setOpen(true);
     scheduleHide();
   };
@@ -101,7 +109,7 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
         ref={ref}
         disabled={disabled}
         onClick={react("heart")}
-        // Floating bubble, sized to match the send button below it
+        // Sized to match the send button below it
         variant="plain"
         size="lg"
         w="50px"
@@ -145,7 +153,9 @@ export function ReactButton({ ref, disabled, onReact }: ReactButtonProps) {
             <IconButton
               key={emoji}
               className="reaction-bar-item"
-              style={{ transitionDelay: open ? `${index * 30}ms` : undefined }}
+              style={{
+                transitionDelay: open ? `${index * STAGGER_MS}ms` : undefined,
+              }}
               onClick={react(emoji)}
               variant="plain"
               w="44px"

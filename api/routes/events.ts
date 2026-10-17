@@ -35,14 +35,15 @@ import {
 } from "../models/questions.ts";
 import {
   createReaction,
-  getUserReactionCountAfterDate,
+  getUserReactionTimesAfterDate,
 } from "../models/reactions.ts";
 import {
   getUserById,
-  getUserPostCountAfterDate,
+  getUserPostTimesAfterDate,
   getUserPostCountPerTalk,
 } from "../models/user.ts";
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
+import { tooManyRequests } from "../utils/too-many-requests.ts";
 import { REACTION_EMOJIS } from "../reactions.ts";
 import { type Feature, getFeatures } from "../models/features.ts";
 import { createAttendancePOD } from "../zupass.ts";
@@ -264,7 +265,7 @@ app.post(
     }
 
     const minuteAgo = dateDeductedMinutes(1);
-    const lastMinuteActivityPromise = getUserPostCountAfterDate(
+    const lastMinuteActivityPromise = getUserPostTimesAfterDate(
       user.id,
       minuteAgo,
     );
@@ -275,11 +276,17 @@ app.post(
       getConferenceById(event.conferenceId),
     ]);
 
-    if (
-      lastMinuteActivity >= MAX_QUESTIONS_PER_INTERVAL ||
-      talkActivity >= MAX_QUESTIONS_PER_EVENT
-    ) {
-      throw new HTTPException(429, { message: "User has too many posts" });
+    // The session cap first: it doesn't lift, so a countdown would mislead.
+    if (talkActivity >= MAX_QUESTIONS_PER_EVENT) {
+      throw tooManyRequests("User has too many posts");
+    }
+
+    if (lastMinuteActivity.length >= MAX_QUESTIONS_PER_INTERVAL) {
+      throw tooManyRequests("User has too many posts", {
+        recent: lastMinuteActivity,
+        allowed: MAX_QUESTIONS_PER_INTERVAL - 1,
+        windowStart: minuteAgo,
+      });
     }
 
     const { hiddenAt, moderation, call } = await moderateQuestion({
@@ -353,13 +360,17 @@ app.post(
     }
 
     const thirtySecondsAgo = dateDeductedMinutes(0.5);
-    const thirtySecondsActivity = await getUserReactionCountAfterDate(
+    const thirtySecondsActivity = await getUserReactionTimesAfterDate(
       user.id,
       thirtySecondsAgo,
     );
 
-    if (thirtySecondsActivity > MAX_REACTIONS_PER_INTERVAL) {
-      throw new HTTPException(429, { message: `User has too many reactions` });
+    if (thirtySecondsActivity.length > MAX_REACTIONS_PER_INTERVAL) {
+      throw tooManyRequests("User has too many reactions", {
+        recent: thirtySecondsActivity,
+        allowed: MAX_REACTIONS_PER_INTERVAL,
+        windowStart: thirtySecondsAgo,
+      });
     }
 
     const reaction = await createReaction({
