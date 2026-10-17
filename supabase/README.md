@@ -87,12 +87,11 @@ all carry over to a new project:
 | Setting | Value | Why it matters |
 | --- | --- | --- |
 | `auth.enable_anonymous_sign_ins` | `true` | attendees join without an account (`use-anonymous-user.ts`) |
-| `auth.email.otp_length` | `8` | the code in the sign-in emails |
-| `auth.email.enable_confirmations` | `true` | email OTP sign-up (`use-otp.ts`) |
+| `auth.email.enable_confirmations` | `true` | email sign-up by link (`use-otp.ts`) |
 | `auth.email.max_frequency` | `1m` | resend cooldown |
 | `auth.mfa.totp.{enroll,verify}_enabled` | `true` | |
 | `db.pooler.default_pool_size` / `max_client_conn` | `15` / `200` | |
-| `auth.email.template.{confirmation,magic_link}` | `templates/*.html` | deliver `{{ .Token }}`, not a magic link |
+| `auth.email.template.{confirmation,magic_link}` | `templates/*.html` | Meerkat-branded sign-in link (optional, see below) |
 | `auth.rate_limit.token_verifications` | `6000` / 5 min / IP | every Devcon handover verifies a one-time token server-side |
 | `auth.rate_limit.token_refresh` | `3000` / 5 min / IP | session refreshes from a venue's shared Wi-Fi IP |
 | `auth.rate_limit.anonymous_users` | `3000` / hour / IP | anonymous joins from a venue's shared Wi-Fi IP |
@@ -126,10 +125,14 @@ key is undeclared even when its section header is live: with CLI 2.120,
   set, is rate-limited per attendee rather than per server.
 - **Email subjects and templates on the Free plan.** The Management API rejects
   these with `400 Email template modification is not available for free tier
-  projects using the default email provider`. Configure `[auth.email.smtp]`
-  (custom SMTP) or upgrade the plan first — until then a new project sends
-  Supabase's stock link-based emails, which do **not** carry the
-  `{{ .Token }}` code the sign-in UI asks for.
+  projects using the default email provider`. Sign-in does not need them: the
+  stock emails carry the same `{{ .ConfirmationURL }}` link, which redirects
+  to `/login` (the app's `emailRedirectTo`, allowed by the project's redirect
+  URLs) or else to the Site URL root, which forwards the session to `/login`.
+  The default email provider has its own limits, though: it delivers only to
+  members of the Supabase org, at 2 emails per hour for the whole project.
+  Signing in anyone else needs custom SMTP (`[auth.email.smtp]`); then also
+  raise `auth.rate_limit.email_sent` (30 per hour by default).
 - **Custom domains and vanity subdomains** — Pro plan only.
 - **Admin API keys** (`api_keys` table) — no endpoint creates them; insert an
   argon2 hash directly.

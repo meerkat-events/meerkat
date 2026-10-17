@@ -258,22 +258,24 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# The two templates Meerkat actually customizes, pulled from meerkat-dev. Both
-# deliver the one-time code ({{ .Token }}, 8 digits per auth.email.otp_length)
-# rather than a magic link, because app/hooks/use-otp.ts signs in with
-# signInWithOtp and the UI asks for a code. Every other template on meerkat-dev
-# is Supabase stock and is left undeclared so `config push` does not touch it.
+# The two templates Meerkat customizes. Like Supabase's stock emails they
+# carry {{ .ConfirmationURL }}: Supabase's verify endpoint, which redirects
+# to the emailRedirectTo that app/hooks/use-otp.ts passes (/login) with the
+# session in the URL fragment. So sign-in works the same with these and with
+# the stock emails a Free-plan project without custom SMTP sends. Every other
+# template is Supabase stock and is left undeclared so `config push` does not
+# touch it.
 #
 # NOTE: on the Free plan the Management API rejects mailer subject/template
-# writes with HTTP 400 unless custom SMTP is configured, so `supabase config
-# push` will fail on these two until [auth.email.smtp] above is filled in.
-# Comment this block out to push the rest of the config to a Free-plan project.
+# writes with HTTP 400 unless custom SMTP is configured. Comment this block
+# out to push the rest of the config to such a project; it then sends the
+# stock emails, which work too.
 [auth.email.template.confirmation]
 subject = "Meerkat QA — confirm your signup"
 content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.magic_link]
-subject = "Meerkat QA — your login code"
+subject = "Meerkat QA — your sign-in link"
 content_path = "./supabase/templates/magic_link.html"
 
 # Uncomment to customize email template
