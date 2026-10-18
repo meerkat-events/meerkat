@@ -44,7 +44,7 @@ grace_period = "10s"
 interval = "30s"
 method = "GET"
 timeout = "5s"
-path = "/api/v1/conferences"
+path = "/api/v1/health"
 
 [[vm]]
 cpus = $CPUS

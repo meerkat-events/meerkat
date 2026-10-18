@@ -1,6 +1,7 @@
 import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
+import { useAuth } from "./use-auth.ts";
 import { participantUrl } from "./use-participant.ts";
 import type { Participant, Question } from "../types.ts";
 
@@ -30,16 +31,18 @@ export function useOwnTier(
   userId: string | undefined,
   questions: Question[] | undefined,
 ) {
+  const { session } = useAuth();
+  const token = session?.access_token;
   const signature = userId && questions
     ? earnedSignature(questions, userId)
     : undefined;
 
   // The signature is only in the key so that a change refetches
   const { data } = useSWR<{ data: Participant }, HTTPError>(
-    conferenceId !== undefined && userId && signature
-      ? [participantUrl(conferenceId, userId), signature]
+    conferenceId !== undefined && userId && signature && token
+      ? [participantUrl(conferenceId, userId), token, signature]
       : undefined,
-    ([endpoint]: [string, string]) => fetcher(endpoint),
+    ([endpoint, token]: [string, string, string]) => fetcher(endpoint, token),
     { keepPreviousData: true },
   );
 

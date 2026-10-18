@@ -173,12 +173,37 @@ as `event.conference.features` (`collect` shows the Event Card link,
   `Fly-Client-IP` in `sb-forwarded-for`, so the limit applies per attendee
   (needs IP Address Forwarding enabled in the project). Spec:
   https://github.com/efdevcon/monorepo/blob/main/event-app/src/app/api/meerkat/README.md
-- **API auth**: protected routes use `jwt()` from `middlewares/jwt.ts` (Hono
-  `jwk()` against Supabase's JWKS, cached for 10 minutes);
-  `c.get("jwtPayload").sub` is the user id. `optionalJwt()` sets the payload
-  when a valid token is present and otherwise lets the request through
-  anonymously (the question list uses it to include the viewer's own hidden
-  questions and their `vote` on each question).
+- **API auth: every route requires a JWT unless it is on the public list.**
+  Protected routes put `jwt()` from `middlewares/jwt.ts` first (Hono `jwk()`
+  against Supabase's JWKS, cached for 10 minutes), so a request without a
+  token gets 401 before anything else runs; `c.get("jwtPayload").sub` is
+  the user id. A route is public only when someone without a Meerkat
+  session needs it:
+  - **guests** (the Q&A page before signing in, which signs in anonymously
+    only when they ask or vote, and the presenter view `/e/:uid`, which
+    has no auth at all) and **embedders** (`packages/react`):
+    `GET /api/v1/events/:uid` (also the layouts' `clientLoader`, for
+    theming), `/api/v1/events/:uid/questions` and its `/stream`, and
+    `GET /api/v1/events` (the Q&A page's session switcher);
+  - **signage**: `/stage/:stage`, `/stage/:stage/qa`,
+    `GET /api/v1/events/stage/:stage/live` (`useKeepLive`) and
+    `GET /api/v1/conferences/:id/live` (printed QR codes; redirects only);
+  - **login**: `GET /api/v1/config` (the Supabase URL and anon key); sign-in
+    itself goes straight to Supabase Auth, and the Devcon handover is a
+    page loader, not an API route;
+  - **infrastructure**: `GET /api/v1/health` (Fly's health check) and
+    `POST /api/v1/pretalx/:event/sync` (see Pretalx sync).
+
+  Admin routes use an API key instead (below). Public responses never
+  carry hidden questions, moderation fields or emails (`toPublicQuestion`,
+  `toApiConference`). `api/app.test.ts` holds the same list and checks that
+  every other route answers 401 without credentials, so a new public route
+  has to be added there on purpose. On the frontend, a hook calling a
+  protected route passes `session?.access_token` and keeps its SWR key
+  `null` until there is one. `optionalJwt()` sets the payload when a valid
+  token is present and otherwise lets the request through anonymously (the
+  question list uses it to include the viewer's own hidden questions and
+  their `vote` on each question).
 - **Roles** (`conference_role`: attendee/organizer/moderator, per conference)
   are granted only by a DB trigger on `auth.users` insert that claims
   matching `invitations` rows by email (migration 0002). Organizers and
@@ -233,8 +258,9 @@ as `event.conference.features` (`collect` shows the Event Card link,
   (`api/tiers.ts`: top 0.1/1/10/25%) rank against everyone who asked or
   voted; ties share the better tier, 0 points has none, and nobody has one
   below `MIN_CONTRIBUTORS` (20) contributors. There is no
-  leaderboard: `GET /api/v1/conferences/:id/participants/:userId` returns
-  one person, fetched when their name on a question is tapped, and for the
+  leaderboard: `GET /api/v1/conferences/:id/participants/:userId` (signed-in
+  users only) returns one person, fetched when their name on a question is
+  tapped (names aren't tappable for guests), and for the
   signed-in user only when their questions' votes or picks change
   (`useOwnTier`), to celebrate moving into a better tier (last tier seen is
   kept in localStorage, so dropping out and back in celebrates again).
@@ -278,7 +304,8 @@ as `event.conference.features` (`collect` shows the Event Card link,
   (`uid` = submission code, which the Devcon app links to; `stage` =
   slugified room). Talks gone from Pretalx are deleted unless the event is
   live or has questions. `POST /api/v1/pretalx/:event/sync` is deliberately
-  unauthenticated (it only re-pulls a public schedule) and throttled to one
+  unauthenticated, the only public write (it only re-pulls a public
+  schedule), and throttled to one
   sync per conference per minute across instances
   (`conferences.pretalx_synced_at`). Callers: the Devcon team's webhook and
   `.github/workflows/sync.yml` (manual).
@@ -296,10 +323,11 @@ as `event.conference.features` (`collect` shows the Event Card link,
    and `Event.tsx`; `QnA.tsx` uses `useEventQuestions`, which sends the
    session token, plus the package's `useEventSource`.
 2. **`postgres_changes` in the browser**: reactions on the presenter view
-   (`use-reactions-subscription`) and new questions on the moderation page
-   (`useAllQuestions`). Their tables need a SELECT policy and membership in
-   the `supabase_realtime` publication (see Database changes); the questions
-   policy excludes rows hidden by moderation.
+   (`use-reactions-subscription`) and question and vote changes on the
+   management pages (`useConferenceQuestions`). Their tables need a SELECT
+   policy and membership in the `supabase_realtime` publication (see
+   Database changes); the questions policy excludes rows hidden by
+   moderation.
 3. **Live-event broadcasts**: `POST /api/v1/events/:uid/live` sends on
    `conference-{id}` and `stage-{stage}`; `useLiveEventSubscription` and
    `useKeepLive` listen, and `useKeepLive` also polls
@@ -410,6 +438,7 @@ deploys `dev`, a GitHub release deploys `prod`. `fly.template.toml` is
 rendered with `envsubst` from GitHub secrets. Its `release_command` runs
 `api/migrate.ts` once per deploy, before the rollout, and a failed migration
 aborts the deploy; unlike the app, `migrate.ts` prefers `DATABASE_URL` over
-`DATABASE_POOLER_URL`. The health check hits `/api/v1/conferences`.
+`DATABASE_POOLER_URL`. The health check hits `/api/v1/health` (public; a
+`SELECT 1`, so it fails while the database is unreachable).
 `.github/workflows/sync.yml` runs a Pretalx sync by hand and needs the
 `MEERKAT_BASE` secret in the chosen environment.

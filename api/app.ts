@@ -8,6 +8,7 @@ import questions from "./routes/questions.ts";
 import admin from "./routes/admin.ts";
 import pretalx from "./routes/pretalx.ts";
 import { config } from "./models/config.ts";
+import { pingDatabase } from "./models/health.ts";
 import env from "./env.ts";
 import logger from "./logger.ts";
 import { HTTPException } from "hono/http-exception";
@@ -34,7 +35,16 @@ app.route("/", questions);
 app.route("/", admin);
 app.route("/", pretalx);
 
+// Public: every page reads it before a session exists, for the Supabase URL
+// and anon key it signs in with.
 app.get("/api/v1/config", (c) => c.json(config));
+
+// Fly's health check (fly.template.toml): public, cheap, and failing while
+// the database is unreachable.
+app.get("/api/v1/health", async (c) => {
+  await pingDatabase();
+  return c.json({ data: { status: "ok" } });
+});
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) {

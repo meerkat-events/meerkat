@@ -19,7 +19,7 @@ import { FILTERS, matchesFilter, SORTS, sortQuestions } from "./question-state.t
 import { useUrlChoice } from "./use-url-choice.ts";
 import QR from "../QR.tsx";
 import { toaster } from "../ui/toaster.tsx";
-import { apiUrl, appOrigin } from "../../lib/api-url.ts";
+import { appOrigin } from "../../lib/api-url.ts";
 import { generateQRCodeSVG } from "../../code.ts";
 import { SortMenu } from "./SortMenu.tsx";
 import { ActionMenu } from "./ActionMenu.tsx";
@@ -336,27 +336,13 @@ function QRBlock(
           </NativeSelect.Field>
           <NativeSelect.Indicator />
         </NativeSelect.Root>
-        {target === "session"
-          ? (
-            // The existing PNG endpoint (api/code.ts) renders session QR codes.
-            <Button asChild size="xs" colorPalette="brand">
-              <a
-                href={apiUrl(`/api/v1/events/${session.uid}/code?width=${size}`)}
-                download={fileName}
-              >
-                Download PNG
-              </a>
-            </Button>
-          )
-          : (
-            <Button
-              size="xs"
-              colorPalette="brand"
-              onClick={() => downloadQRCode(url.toString(), Number(size), fileName)}
-            >
-              Download PNG
-            </Button>
-          )}
+        <Button
+          size="xs"
+          colorPalette="brand"
+          onClick={() => downloadQRCode(url.toString(), Number(size), fileName)}
+        >
+          Download PNG
+        </Button>
         <Button size="xs" variant="outline" onClick={() => onCopy(url.toString(), "Link copied")}>
           Copy link
         </Button>
@@ -365,7 +351,11 @@ function QRBlock(
   );
 }
 
-/** Draws a QR code to a PNG in the browser, styled like the PNG endpoint. */
+/**
+ * Draws a QR code to a PNG in the browser, styled like the PNG endpoint
+ * (`GET /api/v1/events/:uid/code`, which needs a token a download link can't
+ * send).
+ */
 async function downloadQRCode(url: string, size: number, fileName: string) {
   const svg = (await generateQRCodeSVG(url))
     .replace('fill="none"', 'fill="#ffffff"')

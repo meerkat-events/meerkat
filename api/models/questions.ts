@@ -11,7 +11,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import { events, questions, users, votes } from "../schema.ts";
+import { questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
 import { addSupervote, refundSupervotes } from "./supervotes.ts";
 import { voteTotal } from "./votes.ts";
@@ -218,37 +218,6 @@ export async function restoreQuestion(id: number) {
   }).where(eq(questions.id, id)).returning().execute();
 
   return results.length === 1 ? results[0] : null;
-}
-
-export function getAllQuestions() {
-  return db
-    .select({
-      id: questions.id,
-      uid: questions.uid,
-      eventId: questions.eventId,
-      question: questions.question,
-      createdAt: questions.createdAt,
-      selectedAt: questions.selectedAt,
-      answeredAt: questions.answeredAt,
-      deletedAt: questions.deletedAt,
-      userId: questions.userId,
-      user: users,
-      votes: voteTotal,
-      event: {
-        id: events.id,
-        uid: events.uid,
-        title: events.title,
-      },
-    })
-    .from(questions)
-    .leftJoin(votes, eq(questions.id, votes.questionId))
-    .leftJoin(users, eq(questions.userId, users.id))
-    .innerJoin(events, eq(questions.eventId, events.id))
-    .where(and(isNull(questions.deletedAt), isNull(questions.hiddenAt)))
-    .groupBy(questions.id, users.id, events.id)
-    .orderBy(desc(questions.createdAt))
-    .limit(100)
-    .execute();
 }
 
 export type Question = typeof questions.$inferSelect;

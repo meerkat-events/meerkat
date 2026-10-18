@@ -449,7 +449,9 @@ export default function QnA() {
                 weight: supervoteWeight,
               }
               : undefined}
-            onAuthorSelect={setSelectedAuthor}
+            // Profiles need a session (the points endpoint does); guests
+            // see names only
+            onAuthorSelect={isAuthenticated ? setSelectedAuthor : undefined}
           />
         </main>
         <footer className="footer" ref={footerRef}>
