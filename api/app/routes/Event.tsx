@@ -33,10 +33,10 @@ export default function EventPage() {
 
   useKeepLive({
     event: keepLive ? event : undefined,
-    onUpdate: (newEvent) => {
+    onUpdate: (eventUid) => {
       const searchParams = new URLSearchParams();
       searchParams.set("keep-live", "true");
-      navigate(`/e/${newEvent.uid}?${searchParams.toString()}`);
+      navigate(`/e/${eventUid}?${searchParams.toString()}`);
     },
   });
 

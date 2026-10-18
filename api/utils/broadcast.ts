@@ -1,6 +1,7 @@
 import { supabase } from "../supabase.ts";
 import env from "../env.ts";
 import logger from "../logger.ts";
+import { LIVE_EVENT, type LiveEventMessage } from "../live-event.ts";
 
 const BROADCAST_EVENT = "questions";
 
@@ -101,5 +102,69 @@ async function postBroadcast(eventId: number): Promise<void> {
     // cause can carry the Supabase host.
     const reason = error instanceof Error ? error.name : "unknown";
     logger.warn({ eventId, reason }, "Questions broadcast failed");
+  }
+}
+
+type LiveEvent = {
+  id: number;
+  uid: string;
+  conferenceId: number;
+  stage: string;
+};
+
+/**
+ * Tell the event's conference and stage that it went live, in one request to
+ * the REST broadcast API (topics `conference-{id}` and `stage-{stage}`).
+ * Never throws: a failed broadcast is logged, and stage screens still pick up
+ * the change from their poll.
+ */
+export async function broadcastLiveEvent(event: LiveEvent): Promise<void> {
+  if (!env.supabaseUrl) return;
+
+  const payload: LiveEventMessage = {
+    eventId: event.id,
+    eventUid: event.uid,
+  };
+
+  try {
+    const response = await fetch(
+      `${env.supabaseUrl}/realtime/v1/api/broadcast`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${env.supabaseServiceRoleKey}`,
+          "apikey": env.supabaseServiceRoleKey,
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              topic: `conference-${event.conferenceId}`,
+              event: LIVE_EVENT,
+              payload,
+            },
+            {
+              topic: `stage-${event.stage}`,
+              event: LIVE_EVENT,
+              payload,
+            },
+          ],
+        }),
+        signal: AbortSignal.timeout(BROADCAST_TIMEOUT_MS),
+      },
+    );
+    await response.body?.cancel();
+
+    if (!response.ok) {
+      logger.warn(
+        { eventId: event.id, status: response.status },
+        "Live event broadcast failed",
+      );
+    }
+  } catch (error) {
+    // The error's name only, as in postBroadcast: its message and cause can
+    // carry the Supabase host.
+    const reason = error instanceof Error ? error.name : "unknown";
+    logger.warn({ eventId: event.id, reason }, "Live event broadcast failed");
   }
 }
