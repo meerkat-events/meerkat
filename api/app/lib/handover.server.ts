@@ -1,4 +1,8 @@
-import { createClient, type Session } from "@supabase/supabase-js";
+import {
+  type AuthError,
+  createClient,
+  type Session,
+} from "@supabase/supabase-js";
 import env from "../../env.ts";
 import logger from "../../logger.ts";
 import { generateUsername } from "../../usernames.ts";
@@ -72,8 +76,12 @@ const createSession = async (
     email,
     options: { data: { name: generateUsername() } },
   });
+  // Supabase's error messages can quote the email address, so only its code
+  // and status reach the error (and the log).
   if (error || !data.properties) {
-    throw new Error(`generateLink failed: ${error?.message ?? "no properties"}`);
+    throw new Error(
+      `generateLink failed: ${describeAuthError(error) ?? "no properties"}`,
+    );
   }
 
   // For a first-time user `generateLink` creates the account and reports a
@@ -86,12 +94,15 @@ const createSession = async (
   });
   if (verified.error || !verified.data.session) {
     throw new Error(
-      `verifyOtp failed: ${verified.error?.message ?? "no session"}`,
+      `verifyOtp failed: ${describeAuthError(verified.error) ?? "no session"}`,
     );
   }
 
   return verified.data.session;
 };
+
+const describeAuthError = (error: AuthError | null): string | null =>
+  error ? `code ${error.code ?? "unknown"}, HTTP ${error.status ?? "?"}` : null;
 
 /**
  * Verifies a Devcon handover token and, if valid, establishes a Supabase

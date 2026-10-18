@@ -42,7 +42,7 @@ function getSigningKeys(): Promise<HonoJsonWebKey[]> {
   const keys = fetchSigningKeys();
   cachedKeys = { keys, fetchedAt: Date.now() };
   keys.catch((error) => {
-    logger.warn({ error }, "Failed to fetch Supabase JWKS");
+    logger.warn({ err: error }, "Failed to fetch Supabase JWKS");
     if (cachedKeys?.keys === keys) {
       cachedKeys = null;
     }

@@ -39,7 +39,9 @@ own installer and switches itself to the version in `packageManager`.
   parties). Never commit them, quoted or paraphrased, not even as test
   cases; describe them instead. Dumps and derived files live in the
   gitignored `.backups/`. Logs carry ids (`userId`, question `uid`), never
-  user rows or email addresses.
+  user rows, question text, email addresses, tokens or query strings; log
+  errors under `err` (`api/logger.ts` keeps message, code and stack and
+  drops query parameters), never in another field.
 - **Platform first.** Use Node and Web built-ins before reaching for a
   package: `node:test` + `node:assert`, `fetch`, `URL`, `globalThis.crypto`,
   `structuredClone`, `Intl`.
