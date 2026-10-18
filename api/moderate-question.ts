@@ -23,7 +23,9 @@ export type ModerationCall =
     durationMs: number;
     usage: { inputTokens: number; cost: number };
   }
-  | { outcome: "refused"; durationMs: number; message: string }
+  // Without the provider's refusal text: the model may restate the question
+  // in it.
+  | { outcome: "refused"; durationMs: number }
   | { outcome: "error"; durationMs: number; error: string };
 
 export type ModerationResult = {
@@ -98,7 +100,7 @@ export async function moderateQuestion(
     return {
       hiddenAt: new Date(),
       moderation: { refused: true, decision: "hide", model: MODERATION_MODEL },
-      call: { outcome: "refused", durationMs, message: result.refused },
+      call: { outcome: "refused", durationMs },
     };
   }
 
@@ -166,7 +168,7 @@ export function logModerationCall(
     });
   }
   if (call.outcome === "refused") {
-    Object.assign(fields, { decision: "hide", refusal: call.message });
+    Object.assign(fields, { decision: "hide" });
   }
 
   if (call.outcome === "error") {

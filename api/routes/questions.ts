@@ -245,8 +245,10 @@ app.post(
 
     await broadcastQuestionsUpdate(event.id);
 
-
-    logger.info({ question, userId: user.id, event }, "Selected question");
+    logger.info(
+      { questionUid: question.uid, eventId: event.id, userId: user.id },
+      "Selected question",
+    );
 
     return c.json({ data: toPublicQuestion(result) });
   },
@@ -300,8 +302,10 @@ app.post(
 
     await broadcastQuestionsUpdate(event.id);
 
-
-    logger.info({ question, userId: user.id, event }, "Marked question as answered");
+    logger.info(
+      { questionUid: question.uid, eventId: event.id, userId: user.id },
+      "Marked question as answered",
+    );
 
     return c.json({ data: toPublicQuestion(result) });
   },
@@ -357,8 +361,10 @@ app.delete(
 
     await broadcastQuestionsUpdate(event.id);
 
-
-    logger.info({ question, userId: user.id, event }, "Deleted question");
+    logger.info(
+      { questionUid: question.uid, eventId: event.id, userId: user.id },
+      "Deleted question",
+    );
 
     return c.json({ data: toPublicQuestion(result) });
   },

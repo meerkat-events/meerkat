@@ -174,7 +174,7 @@ app.post(
     const pod = createAttendancePOD(conference!, event, zupassId);
 
     logger.info(
-      { pod, conference, event, zupassId, userId: user.id },
+      { eventId: event.id, conferenceId: event.conferenceId, userId: user.id },
       "Created attendance pod",
     );
 
@@ -321,12 +321,15 @@ app.post(
     // broadcast; its author's page refreshes after posting.
     if (question.hiddenAt) {
       logger.info(
-        { question, event, userId: user.id },
+        { questionUid: question.uid, eventId: event.id, userId: user.id },
         "Created question, hidden by moderation",
       );
     } else {
       await broadcastQuestionsUpdate(event.id);
-      logger.info({ question, event, userId: user.id }, "Created question");
+      logger.info(
+        { questionUid: question.uid, eventId: event.id, userId: user.id },
+        "Created question",
+      );
     }
 
     return c.json({
@@ -380,7 +383,15 @@ app.post(
       emoji,
     });
 
-    logger.info({ reaction, event, userId: user.id }, "Created reaction");
+    logger.info(
+      {
+        reactionUid: reaction.uid,
+        emoji: reaction.emoji,
+        eventId: event.id,
+        userId: user.id,
+      },
+      "Created reaction",
+    );
 
     return c.json({
       data: {
@@ -442,7 +453,15 @@ app.post(
       });
     }
 
-    logger.info({ result, event, userId: user.id }, "Set event live");
+    logger.info(
+      {
+        eventId: event.id,
+        eventUid: event.uid,
+        stage: event.stage,
+        userId: user.id,
+      },
+      "Set event live",
+    );
 
     return c.json({ data: result });
   },

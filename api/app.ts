@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger as honoLogger } from "hono/logger";
 import conferences from "./routes/conferences.ts";
 import users from "./routes/users.ts";
 import events from "./routes/events.ts";
@@ -11,10 +10,11 @@ import { config } from "./models/config.ts";
 import env from "./env.ts";
 import logger from "./logger.ts";
 import { HTTPException } from "hono/http-exception";
+import { requestLogger } from "./middlewares/request-logger.ts";
 
 const app = new Hono();
 
-app.use(honoLogger());
+app.use(requestLogger());
 // Browser clients on other origins (e.g. `@meerkat-events/react` embedded in
 // the Devcon event app) need CORS headers on every /api response, including
 // the SSE stream and error responses. Preflights are answered here with 204.
@@ -40,7 +40,10 @@ app.onError((err, c) => {
   if (err instanceof HTTPException) {
     return err.getResponse();
   }
-  logger.error({ err }, "Unhandled error");
+  logger.error(
+    { err, method: c.req.method, path: c.req.path },
+    "Unhandled error",
+  );
   return c.json({ error: "Internal server error" }, 500);
 });
 
