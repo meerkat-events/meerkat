@@ -135,8 +135,22 @@ export const events = pgTable("events", {
   speaker: text("speaker"),
   live: boolean("live").notNull().default(false),
 }, (table) => [
+  // The upserts' ON CONFLICT target.
   uniqueIndex("events_uid_uniq").on(table.uid),
+  // getEventByUID matches lower(uid). Not unique: a second unique index
+  // would make an upsert of a uid differing only in case fail instead of
+  // insert.
+  index("events_uid_lower_idx").on(lower(table.uid)),
   index("events_conference_id_idx").on(table.conferenceId),
+  // The signage polls (getStageLiveEvent) first look for the stage's live
+  // event: stage = ? and live, ordered by start. Partial, so it holds only
+  // the few live rows.
+  index("events_stage_live_idx").on(table.stage, table.start)
+    .where(sql`${table.live}`),
+  // When nothing is live, the stage's next event: stage = ? and
+  // start >= now(), ordered by start. Also serves the stage filter of
+  // getEvents and setEventLive's update.
+  index("events_stage_start_idx").on(table.stage, table.start),
 ]);
 
 export const questions = pgTable(
