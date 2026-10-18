@@ -1,6 +1,6 @@
 {
   "name": "@meerkat-events/react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React hooks for Meerkat Q&A — fetch questions and receive real-time updates via SSE",
   "license": "MIT",
   "author": "Florian Dreschner <code@dreschner.eu>",

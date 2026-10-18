@@ -325,7 +325,7 @@ app.post(
         "Created question, hidden by moderation",
       );
     } else {
-      await broadcastQuestionsUpdate(event.id);
+      broadcastQuestionsUpdate(event.id);
       logger.info({ question, event, userId: user.id }, "Created question");
     }
 
@@ -608,6 +608,15 @@ const toFullApiEvent = (
   };
 };
 
+const MIN_RECONNECT_DELAY_MS = 2000;
+const MAX_RECONNECT_DELAY_MS = 7000;
+
+/** A random SSE `retry:` delay, so reconnects don't all arrive at once. */
+function reconnectDelayMs(): number {
+  const spread = MAX_RECONNECT_DELAY_MS - MIN_RECONNECT_DELAY_MS;
+  return MIN_RECONNECT_DELAY_MS + Math.floor(Math.random() * spread);
+}
+
 app.get(
   "/api/v1/events/:uid/questions/stream",
   eventMiddleware,
@@ -619,8 +628,14 @@ app.get(
     const event = c.get("event");
 
     return streamSSE(c, async (stream) => {
-      const unsubscribe = subscribeToEventQuestions(event.id, async () => {
-        await stream.writeSSE({ data: "update" });
+      // A "ping" carrying the reconnection delay: clients ignore pings, and
+      // after a restart they come back spread over a few seconds instead of
+      // all in the same one.
+      await stream.writeSSE({ data: "ping", retry: reconnectDelayMs() });
+
+      // writeSSE swallows write errors, so this promise never rejects.
+      const unsubscribe = subscribeToEventQuestions(event.id, () => {
+        void stream.writeSSE({ data: "update" });
       });
 
       stream.onAbort(unsubscribe);

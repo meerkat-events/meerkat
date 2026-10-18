@@ -3,6 +3,7 @@ import useSWR from "swr";
 import { useMeerkatContext } from "./context.ts";
 import { parseQuestions } from "./fetcher.ts";
 import { useEventSource } from "./use-event-source.ts";
+import { useJitteredRefresh } from "./use-jittered-refresh.ts";
 import type {
   Question,
   UseQuestionsProps,
@@ -29,9 +30,9 @@ export function useQuestions({
     },
   });
 
-  const stableMutate = useCallback(() => {
-    mutate();
-  }, [mutate]);
+  // Every viewer gets the same SSE update at once: refetch after a random
+  // delay, one request at a time.
+  const scheduleRefresh = useJitteredRefresh(() => mutate());
 
   const sseUrl = useMemo(
     () =>
@@ -43,7 +44,7 @@ export function useQuestions({
 
   const { isConnected } = useEventSource({
     url: sseUrl,
-    onMessage: stableMutate,
+    onMessage: scheduleRefresh,
   });
 
   const boundMutate = useCallback(async () => {

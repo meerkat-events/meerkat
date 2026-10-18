@@ -171,7 +171,7 @@ app.post(
       await createVote(question.id, user.id);
     }
 
-    await broadcastQuestionsUpdate(event.id);
+    broadcastQuestionsUpdate(event.id);
 
     logger.info(
       {
@@ -243,7 +243,7 @@ app.post(
       throw new HTTPException(500, { message: `Failed to select question` });
     }
 
-    await broadcastQuestionsUpdate(event.id);
+    broadcastQuestionsUpdate(event.id);
 
 
     logger.info({ question, userId: user.id, event }, "Selected question");
@@ -298,7 +298,7 @@ app.post(
       throw new HTTPException(500, { message: `Failed to mark as answered` });
     }
 
-    await broadcastQuestionsUpdate(event.id);
+    broadcastQuestionsUpdate(event.id);
 
 
     logger.info({ question, userId: user.id, event }, "Marked question as answered");
@@ -355,7 +355,7 @@ app.delete(
       });
     }
 
-    await broadcastQuestionsUpdate(event.id);
+    broadcastQuestionsUpdate(event.id);
 
 
     logger.info({ question, userId: user.id, event }, "Deleted question");
@@ -415,7 +415,7 @@ app.post(
       });
     }
 
-    await broadcastQuestionsUpdate(event.id);
+    broadcastQuestionsUpdate(event.id);
 
     logger.info(
       { questionUid: uid, userId: user.id, eventId: event.id },
