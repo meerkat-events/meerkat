@@ -12,8 +12,9 @@ function readLinkError() {
 }
 
 export function LoginForm({ next }: { next: string | undefined }) {
-  const { sendLink, isLoading, error } = useOTP();
+  const { sendEmail, verify, isLoading, error } = useOTP();
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [linkError] = useState(readLinkError);
 
@@ -21,10 +22,17 @@ export function LoginForm({ next }: { next: string | undefined }) {
     e.preventDefault();
     if (!email) return;
 
-    const result = await sendLink(email, next);
+    const result = await sendEmail(email, next);
     if (result) {
       setEmailSubmitted(true);
     }
+  };
+
+  const handleCodeSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!code) return;
+
+    await verify(email, code.trim());
   };
 
   const shownError = error ?? (emailSubmitted ? null : linkError);
@@ -54,35 +62,50 @@ export function LoginForm({ next }: { next: string | undefined }) {
               </Text>
               <Text color="gray.400" fontSize="sm">
                 {emailSubmitted
-                  ? `Open the link we sent to ${email} on the device you want to sign in on.`
-                  : "Enter your email to receive a sign-in link"}
+                  ? "Enter the code we sent to your email, or open its link"
+                  : "Enter your email to receive a login code"}
               </Text>
             </Flex>
 
-            {!emailSubmitted && (
-              <form onSubmit={handleEmailSubmit}>
-                <Flex flexDirection="column" gap="16px">
+            <form
+              onSubmit={emailSubmitted ? handleCodeSubmit : handleEmailSubmit}
+            >
+              <Flex flexDirection="column" gap="16px">
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  readOnly={emailSubmitted}
+                  disabled={isLoading}
+                  size="lg"
+                />
+
+                {emailSubmitted && (
                   <Input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="Code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
                     disabled={isLoading}
                     size="lg"
+                    autoFocus
                   />
+                )}
 
-                  <Button type="submit" loading={isLoading} size="lg">
-                    Send Link
-                  </Button>
-                </Flex>
-              </form>
-            )}
+                <Button type="submit" loading={isLoading} size="lg">
+                  {emailSubmitted ? "Verify Code" : "Send Code"}
+                </Button>
 
-            {shownError && (
-              <Text color="red.500" fontSize="sm" textAlign="center">
-                {shownError}
-              </Text>
-            )}
+                {shownError && (
+                  <Text color="red.500" fontSize="sm" textAlign="center">
+                    {shownError}
+                  </Text>
+                )}
+              </Flex>
+            </form>
           </Flex>
         </Flex>
       </main>
