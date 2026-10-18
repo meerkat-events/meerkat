@@ -2,16 +2,31 @@ import type { Event } from "../types.ts";
 import useSWRSubscription from "swr/subscription";
 import { useSupabase } from "../context/supabase.tsx";
 import useSWR from "swr";
+import { useRef } from "react";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
+import { LIVE_EVENT, parseLiveEventMessage } from "../../live-event.ts";
 
 export type UseKeepLiveProps = {
   event?: Event | undefined;
-  onUpdate?: (newEvent: Event) => void;
+  onUpdate?: (eventUid: string) => void;
 };
 
 export function useKeepLive({ event, onUpdate }: UseKeepLiveProps) {
   const { client: supabase } = useSupabase();
+
+  // The subscription lives as long as the stage stays the same, so its
+  // callback reads the current event and callback through refs.
+  const eventUidRef = useRef(event?.uid);
+  eventUidRef.current = event?.uid;
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  const followLiveEvent = (eventUid: string) => {
+    if (eventUidRef.current === undefined) return;
+    if (eventUidRef.current === eventUid) return;
+    onUpdateRef.current?.(eventUid);
+  };
 
   useSWR<
     { data: Event | undefined },
@@ -22,10 +37,8 @@ export function useKeepLive({ event, onUpdate }: UseKeepLiveProps) {
     {
       refreshInterval: 10_000,
       onSuccess: (data) => {
-        if (!event || !data.data) return;
-        if (event.uid !== data.data.uid) {
-          onUpdate?.(data.data);
-        }
+        if (!data.data) return;
+        followLiveEvent(data.data.uid);
       },
     },
   );
@@ -37,11 +50,12 @@ export function useKeepLive({ event, onUpdate }: UseKeepLiveProps) {
         .on(
           "broadcast",
           {
-            event: "live",
+            event: LIVE_EVENT,
           },
-          (_payload) => {
-            const newEvent = _payload["new"] as Event;
-            onUpdate?.(newEvent);
+          (message) => {
+            const liveEvent = parseLiveEventMessage(message["payload"]);
+            if (!liveEvent) return;
+            followLiveEvent(liveEvent.eventUid);
           },
         )
         .subscribe();

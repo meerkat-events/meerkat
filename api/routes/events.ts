@@ -55,6 +55,7 @@ import { getStageLiveEvent } from "../models/events.ts";
 import type { Questions } from "../models/questions.ts";
 import { streamSSE } from "hono/streaming";
 import {
+  broadcastLiveEvent,
   broadcastQuestionsUpdate,
   subscribeToEventQuestions,
 } from "../utils/broadcast.ts";
@@ -419,28 +420,9 @@ app.post(
       throw new HTTPException(500, { message: `Failed to set event live` });
     }
 
-    if (supabase) {
-      const channel = supabase.channel(`conference-${event.conferenceId}`);
-
-      await channel.send({
-        "type": "broadcast",
-        "event": "live",
-        "data": {
-          "eventId": event.id,
-          "eventUid": event.uid,
-        },
-      });
-
-      const channelTwo = supabase.channel(`stage-${event.stage}`);
-
-      await channelTwo.send({
-        "type": "broadcast",
-        "event": "live",
-        "data": {
-          "event": event,
-        },
-      });
-    }
+    // Not awaited: the event is live once the transaction commits, and the
+    // broadcast logs its own failures instead of throwing.
+    void broadcastLiveEvent(result);
 
     logger.info({ result, event, userId: user.id }, "Set event live");
 

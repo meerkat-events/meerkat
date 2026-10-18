@@ -1,11 +1,16 @@
 import { useSupabase } from "../context/supabase.tsx";
 import useSWRSubscription from "swr/subscription";
 import type { Event } from "../types.ts";
+import {
+  LIVE_EVENT,
+  type LiveEventMessage,
+  parseLiveEventMessage,
+} from "../../live-event.ts";
 
 const PREFIX = "conference-";
 
 export type UseLiveEventSubscriptionProps = {
-  onUpdate: () => void;
+  onUpdate: (liveEvent: LiveEventMessage) => void;
 };
 
 export function useLiveEventSubscription(
@@ -23,10 +28,12 @@ export function useLiveEventSubscription(
         .on(
           "broadcast",
           {
-            event: "live",
+            event: LIVE_EVENT,
           },
-          (_payload) => {
-            onUpdate();
+          (message) => {
+            const liveEvent = parseLiveEventMessage(message["payload"]);
+            if (!liveEvent) return;
+            onUpdate(liveEvent);
           },
         )
         .subscribe();
