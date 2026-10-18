@@ -23,11 +23,14 @@ import { getParticipantPoints, SCORING } from "../models/points.ts";
 
 const app = new Hono();
 
-app.get("/api/v1/conferences", async (c) => {
+// No page lists conferences; signed-in API clients still can.
+app.get("/api/v1/conferences", jwt(), async (c) => {
   const conferences = await getConferences();
   return c.json({ data: conferences.map(toApiConference) });
 });
 
+// Public: the conference page's QR code points here, so a phone camera opens
+// whatever is live, like /stage/:stage/qa. It only redirects.
 app.get("/api/v1/conferences/:id/live", async (c) => {
   const conferenceId = parseInt(c.req.param("id"));
   if (Number.isInteger(conferenceId) === false) {
@@ -163,9 +166,10 @@ const participantParams = zod.object({
 
 // One participant's points and percentile tier at a conference, fetched when
 // someone opens their profile from a question (and for the signed-in user's
-// own tier). Public, like the questions it is computed from.
+// own tier). Signed-in users only: guests see the questions, not profiles.
 app.get(
   "/api/v1/conferences/:id/participants/:userId",
+  jwt(),
   zValidator("param", participantParams),
   async (c) => {
     const { id: conferenceId, userId } = c.req.valid("param");

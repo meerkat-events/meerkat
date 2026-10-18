@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
+import { useAuth } from "./use-auth.ts";
 
 /** A session as the events table stores it (no counts attached). */
 export type Session = {
@@ -22,16 +23,22 @@ type RawSession = Omit<Session, "start" | "end"> & {
   end: string;
 };
 
-/** Every session of a conference, refreshed every 30 seconds. */
+/**
+ * Every session of a conference, refreshed every 30 seconds (its organizers
+ * and moderators only).
+ */
 export function useConferenceEvents(conferenceId: number | undefined) {
+  const { session } = useAuth();
+  const token = session?.access_token;
+
   const { data, error, isLoading, mutate } = useSWR<
     { data: RawSession[] },
     HTTPError
   >(
-    conferenceId
-      ? `/api/v1/conferences/${conferenceId}/events?limit=1000`
+    conferenceId && token
+      ? [`/api/v1/conferences/${conferenceId}/events?limit=1000`, token]
       : undefined,
-    fetcher,
+    ([path, token]: [string, string]) => fetcher(path, token),
     { refreshInterval: 30_000 },
   );
 

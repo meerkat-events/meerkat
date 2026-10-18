@@ -67,7 +67,7 @@ Optionally, attendees can collect a signed attendance proof (a
      Supabase-specific setup that Drizzle migrations do not cover (RLS on every
      table, realtime SELECT policies, and the `questions`, `reactions` and
      `votes` tables in the `supabase_realtime` publication). Reactions on the
-     presenter view and live updates on the moderation page subscribe to
+     presenter view and live updates on the management pages subscribe to
      Postgres changes on these tables. The script is idempotent:
 
      ```bash

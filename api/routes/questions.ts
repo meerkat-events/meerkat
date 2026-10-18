@@ -23,7 +23,6 @@ import {
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { tooManyRequests } from "../utils/too-many-requests.ts";
 import logger from "../logger.ts";
-import { getAllQuestions } from "../models/questions.ts";
 import { broadcastQuestionsUpdate } from "../utils/broadcast.ts";
 import {
   isSupervotesEnabled,
@@ -54,27 +53,6 @@ async function readOptionalJson(request: HonoRequest): Promise<unknown> {
     throw new HTTPException(400, { message: "Invalid JSON body" });
   }
 }
-
-app.get("/api/v1/questions", async (c) => {
-  const questions = await getAllQuestions();
-
-  return c.json({
-    data: questions.map(({ userId: _userId, user, event, ...rest }) => ({
-      ...rest,
-      user: user
-        ? {
-          id: user.id,
-          name: user.userMetadata?.["name"] ?? user.id,
-        }
-        : undefined,
-      event: {
-        id: event.id,
-        uid: event.uid,
-        title: event.title,
-      },
-    })),
-  });
-});
 
 app.post(
   "/api/v1/questions/:uid/upvote",

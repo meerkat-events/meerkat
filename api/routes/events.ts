@@ -82,6 +82,8 @@ const eventMiddleware = createMiddleware<Env>(async (c, next) => {
   await next();
 });
 
+// Public: the layouts load it for theming, and guests (the Q&A page before
+// signing in, the presenter view) read the event and its questions from it.
 app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
   const event = c.get("event");
 
@@ -118,7 +120,9 @@ app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
   });
 });
 
-app.get("/api/v1/events/:uid/code", eventMiddleware, async (c) => {
+// The session's Q&A link as a PNG QR code. The app draws its QR codes in the
+// browser; this is for signed-in API clients.
+app.get("/api/v1/events/:uid/code", jwt(), eventMiddleware, async (c) => {
   const widthInput = Number.parseInt(c.req.query("width") ?? "512");
 
   if (isNaN(widthInput)) {
@@ -184,9 +188,10 @@ app.post(
   },
 );
 
-// Authentication is optional: with a valid token, the viewer's own hidden
-// questions are included (automatic moderation hides them from everyone else)
-// and each question carries the viewer's `vote` on it, or null.
+// Public, for guests and embedders (`@meerkat-events/react`). Authentication
+// is optional: with a valid token, the viewer's own hidden questions are
+// included (automatic moderation hides them from everyone else) and each
+// question carries the viewer's `vote` on it, or null.
 app.get(
   "/api/v1/events/:uid/questions",
   optionalJwt(),
@@ -229,6 +234,7 @@ app.get(
 
 app.get(
   "/api/v1/events/:uid/questions/selected",
+  jwt(),
   eventMiddleware,
   async (c) => {
     const event = c.get("event");
@@ -342,8 +348,8 @@ const reactionScheme = zod.object({
 
 app.post(
   "/api/v1/events/:uid/react",
-  zValidator("json", reactionScheme),
   jwt(),
+  zValidator("json", reactionScheme),
   eventMiddleware,
   async (c) => {
     const payload = c.get("jwtPayload");
@@ -394,8 +400,8 @@ app.post(
 
 app.post(
   "/api/v1/events/:uid/live",
-  eventMiddleware,
   jwt(),
+  eventMiddleware,
   async (c) => {
     const event = c.get("event");
     const payload = c.get("jwtPayload");
@@ -448,8 +454,11 @@ app.post(
   },
 );
 
+// Every session of a conference, for its organizers' schedule and its
+// moderators' talk picker.
 app.get(
   "/api/v1/conferences/:id/events",
+  jwt(),
   async (c) => {
     const conferenceId = parseInt(c.req.param("id"));
 
@@ -459,12 +468,19 @@ app.get(
       });
     }
 
-    const conference = await getConferenceById(conferenceId);
+    const [conference, roles] = await Promise.all([
+      getConferenceById(conferenceId),
+      getConferenceRolesForConference(c.get("jwtPayload").sub, conferenceId),
+    ]);
 
     if (!conference) {
       throw new HTTPException(404, {
         message: `Conference with id ${conferenceId} not found`,
       });
+    }
+
+    if (!canModerate(roles)) {
+      throw new HTTPException(403, { message: `User is not a moderator` });
     }
 
     const limit = parseInt(c.req.query("limit") ?? "100");
@@ -479,6 +495,8 @@ app.get(
   },
 );
 
+// Public: the Q&A page's session switcher lists a stage's sessions for
+// guests too.
 app.get("/api/v1/events", async (c) => {
   const limit = parseInt(c.req.query("limit") ?? "100");
   const stage = c.req.query("stage");
@@ -498,7 +516,7 @@ app.get("/api/v1/events", async (c) => {
   return c.json({ data: events });
 });
 
-app.get("/api/v1/conferences/:id/events/live", async (c) => {
+app.get("/api/v1/conferences/:id/events/live", jwt(), async (c) => {
   const conferenceId = parseInt(c.req.param("id"));
   if (Number.isInteger(conferenceId) === false) {
     throw new HTTPException(400, {
@@ -540,6 +558,8 @@ app.get("/api/v1/conferences/:id/events/live", async (c) => {
   });
 });
 
+// Signage, public: the stage screen and printed QR codes open these, and the
+// presenter view polls /api/v1/events/stage/:stage/live (useKeepLive).
 app.get("/stage/:stage", async (c) => {
   const stage = c.req.param("stage");
   const liveEvent = await getStageLiveEvent(stage);
@@ -608,6 +628,8 @@ const toFullApiEvent = (
   };
 };
 
+// Public, like the question list it tells clients to refetch (EventSource
+// can't send a token anyway).
 app.get(
   "/api/v1/events/:uid/questions/stream",
   eventMiddleware,
