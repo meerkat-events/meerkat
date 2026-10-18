@@ -81,6 +81,9 @@ export const redactedEnv = {
   connectionString: "REDACTED",
   devconVerificationSecret: "REDACTED",
   supabaseServiceRoleKey: "REDACTED",
+  // Public by design (the browser gets them), but still credentials.
+  supabaseAnonKey: env.supabaseAnonKey ? "REDACTED" : undefined,
+  sentryDSN: env.sentryDSN ? "REDACTED" : undefined,
   // Unset stays visible: it tells whether the handover forwards client IPs.
   supabaseSecretKey: env.supabaseSecretKey ? "REDACTED" : undefined,
   // Unset stays visible: it tells whether questions are moderated.
