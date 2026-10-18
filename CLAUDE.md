@@ -156,7 +156,9 @@ as `event.conference.features` (`collect` shows the Event Card link,
 ### Auth and roles
 
 - **Sign-in** yields a Supabase Auth session in exactly three ways: anonymous
-  (username from `api/usernames.ts`), email OTP, and the **Devcon handover**.
+  (username from `api/usernames.ts`), the code or
+  link from a sign-in email (`app/hooks/use-otp.ts`), and the **Devcon
+  handover**.
   The Devcon event app sends ticket holders to `/e/:uid/qa?token=<jwt>`; the
   server `loader` in `app/routes/QnA.tsx` verifies the HS256 token
   (`api/devcon.ts`, secret `DEVCON_VERIFICATION_SECRET`, which is the Devcon

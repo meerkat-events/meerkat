@@ -2,28 +2,40 @@ import { Button, Flex, Input, Text } from "@chakra-ui/react";
 import { useState } from "react";
 import { useOTP } from "../../hooks/use-otp.ts";
 
-export function LoginForm() {
-  const { signUp, verify, isLoading, error } = useOTP();
+/**
+ * Supabase redirects a used or expired sign-in link back here with the reason
+ * in the URL fragment (`#error_description=…`).
+ */
+function readLinkError() {
+  const fragment = new URLSearchParams(globalThis.location.hash.slice(1));
+  return fragment.get("error_description");
+}
+
+export function LoginForm({ next }: { next: string | undefined }) {
+  const { sendEmail, verify, isLoading, error } = useOTP();
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
+  const [code, setCode] = useState("");
   const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [linkError] = useState(readLinkError);
 
   const handleEmailSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email) return;
 
-    const result = await signUp(email);
+    const result = await sendEmail(email, next);
     if (result) {
       setEmailSubmitted(true);
     }
   };
 
-  const handleOtpSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleCodeSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!otp) return;
+    if (!code) return;
 
-    await verify(email, otp);
+    await verify(email, code.trim());
   };
+
+  const shownError = error ?? (emailSubmitted ? null : linkError);
 
   return (
     <div className="layout">
@@ -50,13 +62,13 @@ export function LoginForm() {
               </Text>
               <Text color="gray.400" fontSize="sm">
                 {emailSubmitted
-                  ? "Enter the code we sent to your email"
+                  ? "Enter the code we sent to your email, or open its link"
                   : "Enter your email to receive a login code"}
               </Text>
             </Flex>
 
             <form
-              onSubmit={emailSubmitted ? handleOtpSubmit : handleEmailSubmit}
+              onSubmit={emailSubmitted ? handleCodeSubmit : handleEmailSubmit}
             >
               <Flex flexDirection="column" gap="16px">
                 <Input
@@ -72,9 +84,11 @@ export function LoginForm() {
                 {emailSubmitted && (
                   <Input
                     type="text"
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="Code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
                     disabled={isLoading}
                     size="lg"
                     autoFocus
@@ -85,9 +99,9 @@ export function LoginForm() {
                   {emailSubmitted ? "Verify Code" : "Send Code"}
                 </Button>
 
-                {error && (
+                {shownError && (
                   <Text color="red.500" fontSize="sm" textAlign="center">
-                    {error}
+                    {shownError}
                   </Text>
                 )}
               </Flex>

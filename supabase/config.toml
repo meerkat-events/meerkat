@@ -249,25 +249,29 @@ otp_length = 8
 otp_expiry = 3600
 
 # Use a production-ready SMTP server
+# Production sends through Resend (see README.md, "Sending email"). Left
+# commented out so a full push doesn't need the key or touch projects that
+# send with Supabase's default provider.
 # [auth.email.smtp]
 # enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# host = "smtp.resend.com"
+# port = 465
+# user = "resend"
+# pass = "env(RESEND_API_KEY)"
+# admin_email = "login@meerkat.events"
+# sender_name = "Meerkat"
 
-# The two templates Meerkat actually customizes, pulled from meerkat-dev. Both
-# deliver the one-time code ({{ .Token }}, 8 digits per auth.email.otp_length)
-# rather than a magic link, because app/hooks/use-otp.ts signs in with
-# signInWithOtp and the UI asks for a code. Every other template on meerkat-dev
-# is Supabase stock and is left undeclared so `config push` does not touch it.
+# The two templates Meerkat customizes. Both carry the one-time code
+# ({{ .Token }}, 8 digits per auth.email.otp_length) for the login form and
+# {{ .ConfirmationURL }}: Supabase's verify endpoint, which redirects to the
+# emailRedirectTo that app/hooks/use-otp.ts passes (/login) with the session
+# in the URL fragment. Supabase's stock emails carry only that link, which
+# works too. Every other template is Supabase stock and is left undeclared so
+# `config push` does not touch it.
 #
 # NOTE: on the Free plan the Management API rejects mailer subject/template
-# writes with HTTP 400 unless custom SMTP is configured, so `supabase config
-# push` will fail on these two until [auth.email.smtp] above is filled in.
-# Comment this block out to push the rest of the config to a Free-plan project.
+# writes with HTTP 400 unless custom SMTP is configured. Comment this block
+# out to push the rest of the config to such a project.
 [auth.email.template.confirmation]
 subject = "Meerkat QA — confirm your signup"
 content_path = "./supabase/templates/confirmation.html"

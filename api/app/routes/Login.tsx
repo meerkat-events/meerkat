@@ -5,7 +5,8 @@ import { LoadingState } from "../components/Auth/LoadingState.tsx";
 import { LoginForm } from "../components/Auth/LoginForm.tsx";
 
 /**
- * The one sign-in page. Afterwards it goes to `?next=` when given, else by
+ * The one sign-in page. It sends a sign-in link, which leads back here signed
+ * in (see `useOTP`). Afterwards it goes to `?next=` when given, else by
  * role: organizers to the management pages, everyone else to their account,
  * where moderators pick a talk to moderate.
  */
@@ -25,5 +26,5 @@ export default function Login() {
     return <Navigate to={safeNext ?? homeFor(roles ?? [])} replace />;
   }
 
-  return <LoginForm />;
+  return <LoginForm next={safeNext} />;
 }

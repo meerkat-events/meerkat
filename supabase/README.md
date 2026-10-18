@@ -88,11 +88,11 @@ all carry over to a new project:
 | --- | --- | --- |
 | `auth.enable_anonymous_sign_ins` | `true` | attendees join without an account (`use-anonymous-user.ts`) |
 | `auth.email.otp_length` | `8` | the code in the sign-in emails |
-| `auth.email.enable_confirmations` | `true` | email OTP sign-up (`use-otp.ts`) |
+| `auth.email.enable_confirmations` | `true` | email sign-up (`use-otp.ts`) |
 | `auth.email.max_frequency` | `1m` | resend cooldown |
 | `auth.mfa.totp.{enroll,verify}_enabled` | `true` | |
 | `db.pooler.default_pool_size` / `max_client_conn` | `15` / `200` | |
-| `auth.email.template.{confirmation,magic_link}` | `templates/*.html` | deliver `{{ .Token }}`, not a magic link |
+| `auth.email.template.{confirmation,magic_link}` | `templates/*.html` | the code and the sign-in link (needs custom SMTP, see below) |
 | `auth.rate_limit.token_verifications` | `6000` / 5 min / IP | every Devcon handover verifies a one-time token server-side |
 | `auth.rate_limit.token_refresh` | `3000` / 5 min / IP | session refreshes from a venue's shared Wi-Fi IP |
 | `auth.rate_limit.anonymous_users` | `3000` / hour / IP | anonymous joins from a venue's shared Wi-Fi IP |
@@ -126,11 +126,65 @@ key is undeclared even when its section header is live: with CLI 2.120,
   set, is rate-limited per attendee rather than per server.
 - **Email subjects and templates on the Free plan.** The Management API rejects
   these with `400 Email template modification is not available for free tier
-  projects using the default email provider`. Configure `[auth.email.smtp]`
-  (custom SMTP) or upgrade the plan first — until then a new project sends
-  Supabase's stock link-based emails, which do **not** carry the
-  `{{ .Token }}` code the sign-in UI asks for.
+  projects using the default email provider`. Without them the project sends
+  Supabase's stock emails: the link signs in (it redirects to `/login`, or to
+  the Site URL root, which forwards the session there), but there is no code.
+  The default provider also delivers only to members of the Supabase org, at
+  2 emails per hour, so production sends through custom SMTP (next section).
 - **Custom domains and vanity subdomains** — Pro plan only.
 - **Admin API keys** (`api_keys` table) — no endpoint creates them; insert an
   argon2 hash directly.
 - **Seed data** — `api/scripts/seed.sh`.
+
+## Sending email
+
+Production sends auth email through [Resend](https://resend.com) over SMTP,
+from `login@meerkat.events`. Custom SMTP lifts the default provider's limits
+and lets a Free-plan project use the templates in `templates/`.
+
+1. In Resend, add the domain `meerkat.events` and create the DNS records it
+   lists at the domain's DNS host: the DKIM `TXT` record, and the `MX` and SPF
+   `TXT` records on the `send` subdomain. Add a DMARC record if the domain has
+   none, e.g. `_dmarc` `TXT` `v=DMARC1; p=none;`. Wait until Resend shows the
+   domain as verified.
+2. Create a Resend API key with **Sending access** to that domain only.
+3. Push SMTP, the email rate limit and the templates with a minimal config, so
+   nothing else on the project changes (see "Applying to a project that
+   already exists"):
+
+   ```bash
+   mkdir -p /tmp/smtp/supabase/templates && cd /tmp/smtp
+   cp <repo>/supabase/templates/*.html supabase/templates/
+   cat > supabase/config.toml <<'TOML'
+   project_id = "scratch"
+
+   [auth.rate_limit]
+   email_sent = 100
+
+   [auth.email.smtp]
+   enabled = true
+   host = "smtp.resend.com"
+   port = 465
+   user = "resend"
+   pass = "env(RESEND_API_KEY)"
+   admin_email = "login@meerkat.events"
+   sender_name = "Meerkat"
+
+   [auth.email.template.confirmation]
+   subject = "Meerkat QA — confirm your signup"
+   content_path = "./supabase/templates/confirmation.html"
+
+   [auth.email.template.magic_link]
+   subject = "Meerkat QA — your login code"
+   content_path = "./supabase/templates/magic_link.html"
+   TOML
+   export RESEND_API_KEY=<key>
+   supabase config diff --workdir . --project-ref <ref>
+   supabase config push --workdir . --project-ref <ref>
+   ```
+
+   `email_sent` is per hour for the whole project; size it to the expected
+   sign-ins (organizers and moderators; attendees join anonymously) and below
+   the Resend plan's sending limit.
+4. Sign in on the app with an address outside the Supabase org: the email
+   comes from `login@meerkat.events` and carries the code and the link.
