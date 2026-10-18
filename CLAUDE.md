@@ -300,9 +300,12 @@ as `event.conference.features` (`collect` shows the Event Card link,
    (`useAllQuestions`). Their tables need a SELECT policy and membership in
    the `supabase_realtime` publication (see Database changes); the questions
    policy excludes rows hidden by moderation.
-3. **Live-event broadcasts**: `POST /api/v1/events/:uid/live` sends on
-   `conference-{id}` and `stage-{stage}`; `useLiveEventSubscription` and
-   `useKeepLive` listen, and `useKeepLive` also polls
+3. **Live-event broadcasts**: `POST /api/v1/events/:uid/live` sends
+   `{ eventId, eventUid }` (`api/live-event.ts`; public ids only, since
+   anyone with the anon key can listen) on `conference-{id}` and
+   `stage-{stage}`, in one REST broadcast request (`broadcastLiveEvent`);
+   `useLiveEventSubscription` and `useKeepLive` listen, and `useKeepLive`
+   also polls
    `/api/v1/events/stage/:stage/live` every 10 s so signage follows the
    schedule.
 
