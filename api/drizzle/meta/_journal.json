@@ -78,6 +78,13 @@
       "when": 1791730286586,
       "tag": "0010_sparkling_hellfire_club",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792354825019,
+      "tag": "0011_normal_retro_girl",
+      "breakpoints": true
     }
   ]
 }
