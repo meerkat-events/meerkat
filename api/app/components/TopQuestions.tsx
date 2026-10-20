@@ -44,7 +44,12 @@ function Question({ question }: { question: QuestionWithVotes }) {
           Answering
         </div>
       )}
-      <Heading as="h3" size="xl" fontFamily="var(--global-font-body)">
+      <Heading
+        as="h3"
+        fontSize="2.75rem"
+        lineHeight="1.25"
+        fontFamily="inherit"
+      >
         {question.question}
       </Heading>
       <div className="upvote-section">
@@ -64,7 +69,7 @@ function VoteCount({ votes }: { votes: number }) {
       gap="1.5"
       color="brand.800"
       _dark={{ color: "brand.300" }}
-      textStyle="lg"
+      textStyle="3xl"
       fontWeight="semibold"
       fontVariantNumeric="tabular-nums"
       aria-label={`${votes} ${votes === 1 ? "vote" : "votes"}`}

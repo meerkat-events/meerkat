@@ -1,4 +1,5 @@
 import QR from "../QR.tsx";
+import { Logo } from "../Logo.tsx";
 import { Heading, Text } from "@chakra-ui/react";
 import TopQuestions from "../TopQuestions.tsx";
 import { useReactionsSubscription } from "../../hooks/use-reactions-subscription.ts";
@@ -12,6 +13,19 @@ import { randomNormal } from "d3-random";
 import "./styles.css";
 
 const randomX = randomNormal(50, 8);
+
+/** Few enough questions to read from the back of the room. */
+const MAX_QUESTIONS = 5;
+
+/** The top questions, always including the one being answered. */
+function topQuestions<Q extends { selectedAt?: unknown }>(questions: Q[]) {
+  const top = questions.slice(0, MAX_QUESTIONS);
+  const selected = questions.find((question) => question.selectedAt);
+  if (!selected || top.includes(selected)) {
+    return top;
+  }
+  return [selected, ...top.slice(0, MAX_QUESTIONS - 1)];
+}
 
 export type PresenterProps = {
   event: Event | undefined;
@@ -42,6 +56,10 @@ export default function Presenter({ event, url }: PresenterProps) {
     onUpdate: addReaction,
   });
 
+  const allQuestions = event?.questions ?? [];
+  const shownQuestions = topQuestions(allQuestions);
+  const moreCount = allQuestions.length - shownQuestions.length;
+
   return (
     <div className={`page ${hideQRCode ? "hide-qr-code" : ""}`}>
       <header>
@@ -49,32 +67,34 @@ export default function Presenter({ event, url }: PresenterProps) {
           <Heading as="h1" size="3xl">
             {event?.title}
           </Heading>
-          <Text fontSize="xl">
-            {event?.speaker}
-          </Text>
-        </div>
-        <div className="logo">
-          <Text className="font-family-meerkat" fontSize="sm" fontWeight="bold">
-            meerkat.events
-          </Text>
         </div>
       </header>
       <main>
-        <TopQuestions questions={event?.questions ?? []} />
+        <TopQuestions questions={shownQuestions} />
       </main>
-      <aside>
-        {!hideQRCode && url && (
+      <footer>
+        <span className="footer-logo">
+          <Logo height="2.75rem" width="auto" />
+        </span>
+        {moreCount > 0 && (
+          <Text className="more-questions" fontSize="xl" fontWeight="bold">
+            +{moreCount} more {moreCount === 1 ? "question" : "questions"}
+          </Text>
+        )}
+        <Text className="font-family-meerkat" fontSize="2xl" fontWeight="bold">
+          meerkat.events
+        </Text>
+      </footer>
+      {!hideQRCode && url && (
+        <aside>
           <div className="qr-code-group">
             <QR url={url} />
             <Text fontSize="xl" fontWeight="bold" textAlign="center">
               Scan to ask
             </Text>
           </div>
-        )}
-        <Text fontSize="xl" fontWeight="bold" textAlign="center">
-          Participants {event?.participants}
-        </Text>
-      </aside>
+        </aside>
+      )}
 
       <div className="reactions-container">
         {reactions.map((reaction) =>
