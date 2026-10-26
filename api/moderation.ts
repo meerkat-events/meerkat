@@ -1,11 +1,11 @@
 import zod from "zod";
 
 // Rate limits.
-export const MAX_QUESTIONS_PER_INTERVAL = 3;
-export const MAX_QUESTIONS_PER_EVENT = 10;
+export const MAX_QUESTIONS_PER_INTERVAL = 5;
+export const MAX_QUESTIONS_PER_EVENT = 15;
 export const MAX_CHARS_PER_QUESTION = 200;
 export const MAX_REACTIONS_PER_INTERVAL = 50;
-export const MAX_VOTES_PER_EVENT = 3;
+export const MAX_VOTES_PER_EVENT = 10;
 
 // Automatic question moderation (designs/002-question-moderation.md). Every
 // change to the model, the criteria or the threshold must pass the eval in
