@@ -5,7 +5,11 @@
 project_id = "meerkat"
 
 [api]
-enabled = true
+# The Data API (PostgREST, /rest/v1 and /graphql/v1) stays off: Meerkat reads
+# and writes the database only from its server, and the browser uses Supabase
+# only for Auth and Realtime. With it on, the public anon key could reach every
+# table in `public` whose RLS is off.
+enabled = false
 # Port to use for the API URL.
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
