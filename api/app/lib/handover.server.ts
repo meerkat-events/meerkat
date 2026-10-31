@@ -3,6 +3,10 @@ import env from "../../env.ts";
 import logger from "../../logger.ts";
 import { generateUsername } from "../../usernames.ts";
 import { HandoverTokenError, verifyHandoverToken } from "../../devcon.ts";
+import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
+import { getEventByUID } from "../../models/events.ts";
+import { isFeatureActive } from "../../models/features.ts";
+import { grantRoleUnlessPresent } from "../../models/roles.ts";
 import type { HandoverError } from "./handover.ts";
 
 /**
@@ -60,12 +64,38 @@ export const clientIpOf = (request: Request): string | undefined =>
   request.headers.get("fly-client-ip") ?? undefined;
 
 /**
+ * Gives the user the attendee role in the event's conference when that
+ * conference is attendees-only: the Devcon app hands over ticket holders
+ * only. An existing role, such as an invited organizer's, stays as it is.
+ */
+const grantAttendeeRole = async (
+  userId: string,
+  eventUid: string,
+): Promise<void> => {
+  const event = await getEventByUID(eventUid);
+  // An unknown event grants nothing; the page shows its own not-found.
+  if (!event) {
+    return;
+  }
+  const isAttendeesOnly = await isFeatureActive(
+    event.conferenceId,
+    ATTENDEES_ONLY_FEATURE,
+  );
+  if (!isAttendeesOnly) {
+    return;
+  }
+  await grantRoleUnlessPresent(userId, event.conferenceId, "attendee");
+};
+
+/**
  * Creates a Supabase session for `email`, creating the user on first sign-in
- * with a generated display name (like the OTP flow does).
+ * with a generated display name (like the OTP flow does), and grants the
+ * attendee role for the event's conference (see {@link grantAttendeeRole}).
  */
 const createSession = async (
   email: string,
   clientIp: string | undefined,
+  eventUid: string,
 ): Promise<Session> => {
   const { data, error } = await supabaseAdmin().auth.admin.generateLink({
     type: "magiclink",
@@ -90,18 +120,25 @@ const createSession = async (
     );
   }
 
+  // Only once sign-in has worked, so a failed one leaves no role behind. By
+  // now generateLink has created a first-time user's account, and the sign-up
+  // trigger has turned any invitation into a role.
+  await grantAttendeeRole(data.user.id, eventUid);
+
   return verified.data.session;
 };
 
 /**
  * Verifies a Devcon handover token and, if valid, establishes a Supabase
- * session for the email it carries. Never throws for bad tokens; the caller
- * decides how to surface `error`. `clientIp` (see {@link clientIpOf}) is
- * forwarded to Supabase for rate limiting.
+ * session for the email it carries and grants the attendee role for the
+ * conference of `eventUid` when it is attendees-only. Never throws for bad
+ * tokens; the caller decides how to surface `error`. `clientIp` (see
+ * {@link clientIpOf}) is forwarded to Supabase for rate limiting.
  */
 export async function consumeHandoverToken(
   token: string,
   clientIp: string | undefined,
+  eventUid: string,
 ): Promise<HandoverResult> {
   if (!env.supabaseUrl || !env.supabaseAnonKey) {
     logger.error("Devcon handover: Supabase is not configured");
@@ -126,7 +163,7 @@ export async function consumeHandoverToken(
   }
 
   try {
-    const session = await createSession(email, clientIp);
+    const session = await createSession(email, clientIp, eventUid);
     logger.info(
       { userId: session.user.id },
       "Devcon handover: session established",
@@ -135,7 +172,7 @@ export async function consumeHandoverToken(
   } catch (error) {
     logger.error(
       { err: error },
-      "Devcon handover: failed to create session",
+      "Devcon handover: failed to sign in or grant the role",
     );
     return { ok: false, error: "failed" };
   }

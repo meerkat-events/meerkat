@@ -2,6 +2,7 @@ import { Hono, type HonoRequest } from "hono";
 import zod from "zod";
 import { HTTPException } from "hono/http-exception";
 import { MAX_VOTES_PER_EVENT } from "../moderation.ts";
+import { ATTENDEES_ONLY_MESSAGE } from "../features.ts";
 import { jwt } from "../middlewares/jwt.ts";
 import { getEventById } from "../models/events.ts";
 import {
@@ -12,7 +13,11 @@ import {
   selectQuestion,
   toPublicQuestion,
 } from "../models/questions.ts";
-import { canModerate, getConferenceRolesForConference } from "../models/roles.ts";
+import {
+  canModerate,
+  getConferenceRolesForConference,
+  mayParticipate,
+} from "../models/roles.ts";
 import { getUserById } from "../models/user.ts";
 import {
   createVote,
@@ -96,6 +101,10 @@ app.post(
       throw new HTTPException(404, {
         message: `Event not found`,
       });
+    }
+
+    if (!await mayParticipate(user.id, event.conferenceId)) {
+      throw new HTTPException(403, { message: ATTENDEES_ONLY_MESSAGE });
     }
 
     const minuteAgo = dateDeductedMinutes(1);

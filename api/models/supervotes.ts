@@ -1,6 +1,7 @@
 import { and, eq, gt, sql } from "drizzle-orm";
 import db from "../db.ts";
-import { features, supervoteBalances, votes } from "../schema.ts";
+import { supervoteBalances, votes } from "../schema.ts";
+import { isFeatureActive } from "./features.ts";
 
 /** The weight of a supervote; a regular vote weighs 1. */
 export const SUPERVOTE_WEIGHT = 3;
@@ -10,18 +11,8 @@ export const SUPERVOTES_FEATURE = "supervotes";
 
 type Tx = Parameters<Parameters<typeof db["transaction"]>[0]>[0];
 
-export async function isSupervotesEnabled(conferenceId: number) {
-  const [feature] = await db.select({ active: features.active })
-    .from(features)
-    .where(
-      and(
-        eq(features.conferenceId, conferenceId),
-        eq(features.name, SUPERVOTES_FEATURE),
-      ),
-    )
-    .execute();
-
-  return feature?.active ?? false;
+export function isSupervotesEnabled(conferenceId: number) {
+  return isFeatureActive(conferenceId, SUPERVOTES_FEATURE);
 }
 
 /** Supervotes the user can spend, in any conference. */

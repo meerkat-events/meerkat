@@ -107,6 +107,15 @@ docker stop "$tag"
 New tests use Node's built-in runner, `node:test` with `node:assert`;
 `node --test` picks up `*.test.ts` files directly.
 
+Integration tests (`api/integration/*.int.ts`, outside `node --test`'s
+default globs) run against the local Supabase CLI stack, never a cloud
+project: `pnpm --dir api test:integration` (`scripts/test-integration.sh`)
+needs Docker, starts the stack, migrates, applies the policies and runs them
+with an environment of its own, not `api/.env`. The stack is shared by every
+worktree, and the tests empty its tables. Run them for changes to auth,
+authorization or rate limits; `integration/helpers.ts` resets the database,
+seeds conferences and signs users in with real local tokens.
+
 ## Architecture
 
 ### Server: one Hono process
@@ -138,16 +147,18 @@ handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
   package, `apiUrl=""`), Supabase client, `UserProvider`, Chakra system.
 
 Server-only code for loaders lives in `.server.ts` modules (the build fails if
-client code imports one). Whatever such a module imports from outside `app/`
-(`env.ts`, `logger.ts`, …) is bundled as a separate **copy**, not the
-instance Hono uses: keep loaders away from `db.ts` (a copy would open a
-second connection pool) and keep those modules free of import-time side
-effects.
+client code imports one). The server build doesn't bundle the server modules
+outside `app/` (`db.ts`, `models/`, `env.ts`, `logger.ts`, …): `vite.config.ts`
+keeps them external, so the built loaders import the same source files
+`main.ts` runs and share Hono's instances, including its one database pool.
+Loaders may therefore call `models/` directly.
 
 Theming is per conference: `conferences.theme` (JSONB) becomes a Chakra
 system in `app/theme/index.ts`; the layouts' `clientLoader` fetches the event
 to pick it. Rows in the `features` table are per-conference flags, surfaced
-as `event.conference.features` (`supervotes` turns on supervotes).
+as `event.conference.features` (`supervotes` turns on supervotes,
+`attendees_only` limits taking part to people with a role; its name lives in
+the DB-free `api/features.ts`, which the loader and the client import too).
 
 ### Auth and roles
 
@@ -160,8 +171,11 @@ as `event.conference.features` (`supervotes` turns on supervotes).
   (`api/devcon.ts`, secret `DEVCON_VERIFICATION_SECRET`, which is the Devcon
   app's `VERIFICATION_SECRET`). Its `iat`/`exp` are **milliseconds**, so
   `hono/jwt`'s time checks are off and expiry is checked separately. The
-  loader then mints a session (`app/lib/handover.server.ts`) and redirects
-  with it in the URL fragment, which the browser's Supabase client adopts;
+  loader then mints a session (`app/lib/handover.server.ts`), grants the
+  attendee role in the event's conference if it is attendees-only (never
+  overwriting an existing role) and
+  redirects with the session in the URL fragment, which the browser's
+  Supabase client adopts;
   failures redirect with `?handover=expired|invalid|failed`. The route's
   `clientLoader` forces a document load for token URLs. No API endpoint is
   involved. Minting calls Supabase's per-IP rate-limited `/verify` from our
@@ -202,8 +216,11 @@ as `event.conference.features` (`supervotes` turns on supervotes).
   question list uses it to include the viewer's own hidden questions and
   their `vote` on each question).
 - **Roles** (`conference_role`: attendee/organizer/moderator, per conference)
-  are granted only by a DB trigger on `auth.users` insert that claims
-  matching `invitations` rows by email (migration 0002). Organizers and
+  are granted by a DB trigger on `auth.users` insert that claims matching
+  `invitations` rows by email (migration 0002), and by the Devcon handover
+  (attendee, attendees-only conferences only). An invitation for an email
+  that already has an account isn't claimed; insert its `conference_role`
+  row directly. Organizers and
   moderators moderate the Q&A (select, answer, hide, go live, block):
   routes check `canModerate` (`models/roles.ts`) on the roles from
   `getConferenceRolesForConference`. Only organizers see the management
@@ -224,6 +241,12 @@ as `event.conference.features` (`supervotes` turns on supervotes).
   deleted.
 - One live event per stage: `setEventLive` turns the others off in a
   transaction. Event upserts never overwrite `live`.
+- **Attendees-only conferences** (`attendees_only` feature, Devcon 8): asking,
+  voting (also removing a vote) and reacting need a role in the conference
+  (`mayParticipate` in `models/roles.ts`; 403 otherwise, checked after the ban check and before
+  the rate limits). Reads stay public. The Q&A page offers no anonymous
+  sign-in there and tells people without a role to open the session from
+  the conference app.
 - Rate limits are constants in `api/moderation.ts`; routes answer 429, with a
   `Retry-After` for limits over a time window (`utils/too-many-requests.ts`),
   and the frontend shows a cooldown modal with the reason and the time left

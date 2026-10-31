@@ -3,6 +3,7 @@ import {
   Box,
   IconButton,
   Link as ChakraLink,
+  Text,
   Textarea,
 } from "@chakra-ui/react";
 import type { Event } from "../../types.ts";
@@ -13,6 +14,7 @@ import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { CONFIRMATION_DURATION, toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
 import type { User } from "../../hooks/use-auth.ts";
+import { ATTENDEES_ONLY_FEATURE } from "../../../features.ts";
 
 import "./Footer.css";
 
@@ -21,6 +23,13 @@ const MAX_QUESTION_LENGTH = 200;
 export type FooterProps = {
   event: Event | undefined;
   isAuthenticated: boolean;
+  /** Signed in, and allowed to take part in this conference. */
+  canParticipate: boolean;
+  /**
+   * The conference is attendees-only and this visitor has no role there:
+   * an overlay points them to the conference app.
+   */
+  showDevconPrompt: boolean;
   isUserLoading: boolean;
   user: User | undefined;
   refresh: () => void;
@@ -31,6 +40,8 @@ export type FooterProps = {
 export function Footer({
   event,
   isAuthenticated,
+  canParticipate,
+  showDevconPrompt,
   isUserLoading,
   user,
   refresh,
@@ -100,8 +111,9 @@ export function Footer({
                   submitQuestion();
                 }
               }}
-              disabled={!isAuthenticated}
-              placeholder="Type a question..."
+              disabled={!canParticipate}
+              // The conference-app hint takes the placeholder's place
+              placeholder={showDevconPrompt ? "" : "Type a question..."}
               name="question"
               borderRadius="questionInput"
               borderColor="transparent"
@@ -117,7 +129,7 @@ export function Footer({
             />
             <IconButton
               loading={isMutating}
-              disabled={!isAuthenticated}
+              disabled={!canParticipate}
               size="md"
               onClick={submitQuestion}
               aria-label="Submit question"
@@ -133,33 +145,54 @@ export function Footer({
               <FiSend />
             </IconButton>
           </Box>
-          <span className="signin-name">
-            Signed as{" "}
-            <ChakraLink
-              as="button"
-              onClick={onProfileOpen}
-              position="relative"
-              // The full tap target, shifted down into the padding below so
-              // it stays off the question input just above
-              _before={{
-                ...tapTargetStyles._before,
-                transform: "translate(-50%, calc(-50% + 6px))",
-              }}
-            >
-              {user?.user_metadata["name"] ?? user?.id ?? "Anonymous"}
-            </ChakraLink>
-          </span>
+          {/* Guests have no account yet; one is created only when they
+              join the conversation. */}
+          {isAuthenticated && (
+            <span className="signin-name">
+              Signed as{" "}
+              <ChakraLink
+                as="button"
+                onClick={onProfileOpen}
+                position="relative"
+                // The full tap target, shifted down into the padding below so
+                // it stays off the question input just above
+                _before={{
+                  ...tapTargetStyles._before,
+                  transform: "translate(-50%, calc(-50% + 6px))",
+                }}
+              >
+                {user?.user_metadata["name"] ?? user?.id}
+              </ChakraLink>
+            </span>
+          )}
         </div>
-        {!isAuthenticated && !isUserLoading && (
-          <LoginOverlay>
-            <PrimaryButton
-              loadingText="Joining..."
-              onClick={() => loginAnonymousUser()}
-            >
-              Join conversation
-            </PrimaryButton>
-          </LoginOverlay>
-        )}
+        {/* Attendees-only conferences offer no anonymous sign-in: people
+            without a role there are pointed to the conference app instead. */}
+        {showDevconPrompt
+          ? (
+            <LoginOverlay>
+              <Text
+                // Positioned, so it paints above the positioned field below
+                // it, like the Join button does
+                position="relative"
+                color="fg.muted"
+                textAlign="center"
+              >
+                Open this session from the conference app
+              </Text>
+            </LoginOverlay>
+          )
+          : !isAuthenticated && !isUserLoading && event &&
+            !event.conference.features[ATTENDEES_ONLY_FEATURE] && (
+            <LoginOverlay>
+              <PrimaryButton
+                loadingText="Joining..."
+                onClick={() => loginAnonymousUser()}
+              >
+                Join conversation
+              </PrimaryButton>
+            </LoginOverlay>
+          )}
       </div>
     </>
   );

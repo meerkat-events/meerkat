@@ -35,6 +35,7 @@ import {
 } from "../components/QnA/ReactButton.tsx";
 import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
 import type { ReactionEmoji } from "../../reactions.ts";
+import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
 import { uuidv7 } from "uuidv7";
 import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
 import { useDocumentTitle } from "@uidotdev/usehooks";
@@ -90,7 +91,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
   url.searchParams.delete(HANDOVER_TOKEN_PARAM);
 
-  const result = await consumeHandoverToken(token, clientIpOf(request));
+  const result = await consumeHandoverToken(token, clientIpOf(request), uid);
   if (!result.ok) {
     url.searchParams.set(HANDOVER_ERROR_PARAM, result.error);
     throw redirect(`${qa(uid)}${url.search}`);
@@ -291,6 +292,18 @@ export default function QnA() {
       canModerate(role) && role.conferenceId === event?.conferenceId
     ) ?? false;
 
+  // An attendees-only conference lets only people with a role there (the
+  // Devcon handover or an invitation) ask, vote and react.
+  const isAttendeesOnly = !!event?.conference.features[ATTENDEES_ONLY_FEATURE];
+  const hasRoleHere =
+    roles?.some((role) => role.conferenceId === event?.conferenceId) ?? false;
+  const canParticipate = isAuthenticated &&
+    (!isAttendeesOnly || hasRoleHere);
+  // Guests see the prompt once auth has loaded; signed-in users only once
+  // their roles are in, so a role holder never sees it flash.
+  const showDevconPrompt = isAttendeesOnly &&
+    (isAuthenticated ? roles !== undefined && !hasRoleHere : !isLoading);
+
   const onReactClick = (emoji: ReactionEmoji, origin: ReactionOrigin) => {
     const reaction = {
       uid: uuidv7(),
@@ -441,7 +454,7 @@ export default function QnA() {
             questions={questions}
             canModerate={canModerateHere}
             refresh={refresh}
-            isAuthenticated={isAuthenticated}
+            canVote={canParticipate}
             isLoading={isQuestionsLoading}
             supervotes={supervoteWeight
               ? {
@@ -458,7 +471,7 @@ export default function QnA() {
           <div className="react-bubble">
             <ReactButton
               ref={reactButtonRef}
-              disabled={!isAuthenticated}
+              disabled={!canParticipate}
               onReact={onReactClick}
             />
           </div>
@@ -467,6 +480,8 @@ export default function QnA() {
             user={user}
             isUserLoading={isLoading}
             isAuthenticated={isAuthenticated}
+            canParticipate={canParticipate}
+            showDevconPrompt={showDevconPrompt}
             refresh={refresh}
             onProfileOpen={openOwnProfile}
           />
