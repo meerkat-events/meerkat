@@ -1,5 +1,5 @@
 {
-  "id": "998cf9ac-1d27-433f-8311-20011b2a649b",
+  "id": "b1f258d1-f1f8-40c6-8b63-5f24991a393c",
   "prevId": "856ee477-c50f-4273-b60d-983b528d8156",
   "version": "7",
   "dialect": "postgresql",
@@ -544,54 +544,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.profile": {
-      "name": "profile",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "profile_user_id_users_id_fk": {
-          "name": "profile_user_id_users_id_fk",
-          "tableFrom": "profile",
-          "tableTo": "users",
-          "schemaTo": "auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "profile_name_unique": {
-          "name": "profile_name_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": true

@@ -42,13 +42,6 @@ export const users = authSchema.table("users", {
 // authenticated everything, while the API connects as the table owner and is
 // unaffected. Policies live in scripts/supabase-policies.sql; schema.test.ts
 // fails for a table without RLS.
-export const profiles = pgTable("profile", {
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").unique(),
-}).enableRLS();
-
 export const conferences = pgTable("conferences", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),

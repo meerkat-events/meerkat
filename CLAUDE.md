@@ -179,8 +179,9 @@ as `event.conference.features` (`supervotes` turns on supervotes).
     only when they ask or vote, and the presenter view `/e/:uid`, which
     has no auth at all) and **embedders** (`packages/react`):
     `GET /api/v1/events/:uid` (also the layouts' `clientLoader`, for
-    theming), `/api/v1/events/:uid/questions` and its `/stream`, and
-    `GET /api/v1/events` (the Q&A page's session switcher);
+    theming), `/api/v1/events/:uid/questions` and its `/stream`,
+    `GET /api/v1/events` (the Q&A page's session switcher), and
+    `/e/:uid/card`, which redirects old Event Card links to the Q&A page;
   - **signage**: `/stage/:stage`, `/stage/:stage/qa`,
     `GET /api/v1/events/stage/:stage/live` (`useKeepLive`) and
     `GET /api/v1/conferences/:id/live` (printed QR codes; redirects only);

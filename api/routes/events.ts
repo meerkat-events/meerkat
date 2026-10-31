@@ -529,6 +529,13 @@ app.get("/api/v1/conferences/:id/events/live", jwt(), async (c) => {
 
 // Signage, public: the stage screen and printed QR codes open these, and the
 // presenter view polls /api/v1/events/stage/:stage/live (useKeepLive).
+// The Event Card (Zupass attendance PODs) is gone; old links and bookmarks
+// land on the session's Q&A page instead.
+app.get("/e/:uid/card", (c) => {
+  const uid = encodeURIComponent(c.req.param("uid"));
+  return c.redirect(new URL(`/e/${uid}/qa`, env.base), 301);
+});
+
 app.get("/stage/:stage", async (c) => {
   const stage = c.req.param("stage");
   const liveEvent = await getStageLiveEvent(stage);

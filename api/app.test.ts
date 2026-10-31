@@ -28,6 +28,8 @@ const PUBLIC_ROUTES = [
   "GET /api/v1/events/:uid/questions/stream",
   // The Q&A page's session switcher
   "GET /api/v1/events",
+  // Old Event Card links, redirected to the Q&A page
+  "GET /e/:uid/card",
   // Signage and printed QR codes
   "GET /stage/:stage",
   "GET /stage/:stage/qa",
