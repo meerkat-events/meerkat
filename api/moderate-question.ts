@@ -125,8 +125,9 @@ export async function moderateQuestion(
 
 /**
  * One structured line per call to the classifier, written after the question
- * is stored so it carries the question's uid. Holds no question text and no
- * user data; the verdict is also stored on the question.
+ * is stored so it carries the question's uid. The text itself is on the
+ * "Created question" line; a refusal adds the provider's message. The
+ * verdict is also stored on the question.
  */
 export function logModerationCall(
   { questionUid, eventId, conferenceId, moderation, call }: {

@@ -8,5 +8,5 @@ if (env.sentryDSN) {
     environment: env.environment,
   });
 
-  logger.info({ sentryDSN: env.sentryDSN }, "Initialized Sentry");
+  logger.info({ environment: env.environment }, "Initialized Sentry");
 }
