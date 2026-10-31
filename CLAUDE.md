@@ -442,6 +442,9 @@ rendered with `envsubst` from GitHub secrets. Its `release_command` runs
 `api/migrate.ts` once per deploy, before the rollout, and a failed migration
 aborts the deploy; unlike the app, `migrate.ts` prefers `DATABASE_URL` over
 `DATABASE_POOLER_URL`. The health check hits `/api/v1/health` (public; a
-`SELECT 1`, so it fails while the database is unreachable).
+`SELECT 1`, so it fails while the database is unreachable). Server errors
+go only to the logs (pino on stdout, `fly logs`): `main.ts` logs unhandled
+rejections and keeps running, and logs uncaught exceptions and exits. Sentry
+runs in the browser only (`SENTRY_DSN`, served by `/api/v1/config`).
 `.github/workflows/sync.yml` runs a Pretalx sync by hand and needs the
 `MEERKAT_BASE` secret in the chosen environment.

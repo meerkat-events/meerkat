@@ -152,8 +152,8 @@ Optional:
 | `SUPABASE_SECRET_KEY`    | Supabase secret API key (`sb_secret_…`). When set, Devcon handover sign-ins forward the attendee's IP so Supabase rate-limits per attendee rather than per server; also enable IP Address Forwarding in the project. |
 | `DATABASE_POOLER_URL`    | Connection string of a connection pooler, preferred over `DATABASE_URL`.          |
 | `DATABASE_MAX_POOL_SIZE` | Max DB pool size (default: 10).                                                  |
-| `SENTRY_DSN`             | Sentry error tracking DSN.                                                       |
-| `ENVIRONMENT`            | Environment name reported to Sentry (default: `development`).                    |
+| `SENTRY_DSN`             | Sentry DSN for browser error tracking, served to the frontend by `/api/v1/config`. The server logs its errors only. |
+| `ENVIRONMENT`            | Environment name the browser reports to Sentry (default: `development`).         |
 | `OPENROUTER_API_KEY`     | OpenRouter key for automatic question moderation. Unset disables moderation everywhere. |
 
 ## FAQ
