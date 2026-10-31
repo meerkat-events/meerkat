@@ -3,13 +3,23 @@ import type { Bus, RealtimeMessage } from "./bus.ts";
 
 export type HubListener = (message: RealtimeMessage) => void;
 
+const stageKey = (conferenceId: number, stage: string) =>
+  `${conferenceId}:${stage}`;
+
 export type Hub = {
   /** Questions, votes and reactions of one event. Returns the unsubscribe. */
   listenToEvent(eventId: number, listener: HubListener): () => void;
   /** Questions and votes of every event of a conference, no reactions. */
   listenToConference(conferenceId: number, listener: HubListener): () => void;
-  /** Events put live on a stage (stage names are global, like signage). */
-  listenToStage(stage: string, listener: HubListener): () => void;
+  /**
+   * Events put live on a stage of a conference. Stage names alone aren't
+   * unique: two conferences can both have a "main" stage.
+   */
+  listenToStage(
+    conferenceId: number,
+    stage: string,
+    listener: HubListener,
+  ): () => void;
   /** Subscribes to the bus now instead of on the first listener. */
   start(): void;
   /** Number of local listeners, for tests. */
@@ -37,16 +47,22 @@ export function createHub(bus: Bus): Hub {
   function dispatch(message: RealtimeMessage) {
     switch (message.type) {
       case "questions":
-        callAll(eventListeners.get(message.eventId), message);
+        if (message.isPublic) {
+          callAll(eventListeners.get(message.eventId), message);
+        }
         callAll(conferenceListeners.get(message.conferenceId), message);
         break;
       case "reaction":
         callAll(eventListeners.get(message.eventId), message);
         break;
       case "live":
-        callAll(stageListeners.get(message.stage), message);
+        callAll(
+          stageListeners.get(stageKey(message.conferenceId, message.stage)),
+          message,
+        );
         break;
-      // Stage listeners miss nothing worth refetching: signage also polls.
+      // Stage listeners get no resync: there is nothing to refetch, and a
+      // missed `live` is caught up by the stage screens' 10-second poll.
       case "resync":
         for (const listeners of eventListeners.values()) {
           callAll(listeners, message);
@@ -112,8 +128,8 @@ export function createHub(bus: Bus): Hub {
       addListener(eventListeners, eventId, listener),
     listenToConference: (conferenceId, listener) =>
       addListener(conferenceListeners, conferenceId, listener),
-    listenToStage: (stage, listener) =>
-      addListener(stageListeners, stage, listener),
+    listenToStage: (conferenceId, stage, listener) =>
+      addListener(stageListeners, stageKey(conferenceId, stage), listener),
     start,
     listenerCount,
   };

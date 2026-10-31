@@ -5,9 +5,9 @@ import logger from "../logger.ts";
 import {
   type Bus,
   type MessageHandler,
-  parsePublishedMessage,
   type PublishedMessage,
   type RealtimeMessage,
+  toPublishedMessage,
 } from "./bus.ts";
 
 const CHANNEL = "meerkat_realtime";
@@ -31,7 +31,10 @@ export function createPostgresBus(listenConnectionString: string): Bus {
   const handlers = new Set<MessageHandler>();
   let listener: postgres.Sql | undefined;
   let hasConnected = false;
-  let pendingCheck: { id: string; timeout: NodeJS.Timeout } | undefined;
+  // The delivery check in flight; its timeout is set once the NOTIFY is sent.
+  let pendingCheck:
+    | { id: string; timeout: NodeJS.Timeout | undefined }
+    | undefined;
 
   function deliver(message: RealtimeMessage) {
     for (const handler of handlers) {
@@ -40,15 +43,20 @@ export function createPostgresBus(listenConnectionString: string): Bus {
   }
 
   function onNotify(payload: string) {
-    const check = parseDeliveryCheck(payload);
-    if (check) {
-      if (pendingCheck?.id === check.id) {
+    let value: unknown;
+    try {
+      value = JSON.parse(payload);
+    } catch {
+      return;
+    }
+    if (isDeliveryCheck(value)) {
+      if (pendingCheck?.id === value.id) {
         clearTimeout(pendingCheck.timeout);
         pendingCheck = undefined;
       }
       return;
     }
-    const message = parsePublishedMessage(payload);
+    const message = toPublishedMessage(value);
     if (message) {
       deliver(message);
     }
@@ -83,12 +91,29 @@ export function createPostgresBus(listenConnectionString: string): Bus {
     await previous?.end({ timeout: 1 }).catch(() => {});
   }
 
+  // Only a NOTIFY that was sent and never arrived says the listener is dead.
+  // A slow or failing publish says nothing about it (the app's pool may just
+  // be busy), so the timeout starts once the NOTIFY is sent, and a failed
+  // publish skips this check instead of reconnecting: a needless reconnect
+  // makes every client of the instance refetch at once.
   async function checkDelivery() {
     if (pendingCheck) {
       return;
     }
     const id = globalThis.crypto.randomUUID();
-    const timeout = setTimeout(() => {
+    // Set before sending: the NOTIFY can arrive before notify() resolves.
+    pendingCheck = { id, timeout: undefined };
+    try {
+      await notify({ type: "check", id });
+    } catch (err) {
+      logger.error({ err }, "Realtime delivery check failed to publish");
+      pendingCheck = undefined;
+      return;
+    }
+    if (pendingCheck?.id !== id) {
+      return; // Already arrived.
+    }
+    pendingCheck.timeout = setTimeout(() => {
       pendingCheck = undefined;
       logger.error(
         "Realtime listener missed its own NOTIFY, reconnecting. DATABASE_URL " +
@@ -96,12 +121,6 @@ export function createPostgresBus(listenConnectionString: string): Bus {
       );
       void reconnect();
     }, CHECK_TIMEOUT_MS);
-    pendingCheck = { id, timeout };
-    try {
-      await notify({ type: "check", id });
-    } catch (err) {
-      logger.error({ err }, "Realtime delivery check failed to publish");
-    }
   }
 
   function start() {
@@ -132,13 +151,10 @@ async function notify(message: PublishedMessage | DeliveryCheck) {
   );
 }
 
-function parseDeliveryCheck(payload: string): DeliveryCheck | undefined {
-  try {
-    const message = JSON.parse(payload) as Partial<DeliveryCheck>;
-    return message.type === "check" && typeof message.id === "string"
-      ? { type: "check", id: message.id }
-      : undefined;
-  } catch {
-    return undefined;
+function isDeliveryCheck(value: unknown): value is DeliveryCheck {
+  if (typeof value !== "object" || value === null) {
+    return false;
   }
+  const message = value as Record<string, unknown>;
+  return message["type"] === "check" && typeof message["id"] === "string";
 }

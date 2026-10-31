@@ -1,12 +1,11 @@
 import { Button, CloseButton, Dialog, Portal, Text } from "@chakra-ui/react";
 import { Link } from "react-router";
+import type { LiveSession } from "../../lib/event-stream-events.ts";
 import { qa } from "../../routing.ts";
 
 export type LiveSessionPromptProps = {
   /** The session that just went live on this stage, or undefined. */
-  eventUid: string | undefined;
-  /** Its title, once the schedule has it. */
-  title: string | undefined;
+  session: LiveSession | undefined;
   onClose(): void;
 };
 
@@ -14,12 +13,10 @@ export type LiveSessionPromptProps = {
  * Offers to switch when a moderator puts another session of this stage live,
  * so attendees follow the talk on stage without reloading.
  */
-export function LiveSessionPrompt(
-  { eventUid, title, onClose }: LiveSessionPromptProps,
-) {
+export function LiveSessionPrompt({ session, onClose }: LiveSessionPromptProps) {
   return (
     <Dialog.Root
-      open={eventUid !== undefined}
+      open={session !== undefined}
       onOpenChange={(details) => {
         if (!details.open) onClose();
       }}
@@ -34,16 +31,16 @@ export function LiveSessionPrompt(
             </Dialog.Header>
             <Dialog.Body>
               <Text fontWeight="dialogEmphasis" fontSize="lg">
-                {title ?? "The next session"}
+                {session?.title}
               </Text>
             </Dialog.Body>
             <Dialog.Footer>
               <Dialog.ActionTrigger asChild>
                 <Button variant="outline">Stay here</Button>
               </Dialog.ActionTrigger>
-              {eventUid && (
+              {session && (
                 <Button asChild>
-                  <Link to={qa(eventUid)} onClick={onClose}>
+                  <Link to={qa(session.uid)} onClick={onClose}>
                     Go to session
                   </Link>
                 </Button>

@@ -19,10 +19,25 @@ export type PublicReaction = {
 
 /** A message one instance publishes to all instances, itself included. */
 export type PublishedMessage =
-  | { type: "questions"; eventId: number; conferenceId: number }
+  // `isPublic` is false for a question moderation hid on arrival: only the
+  // organizer streams hear about it.
+  | {
+    type: "questions";
+    eventId: number;
+    conferenceId: number;
+    isPublic: boolean;
+  }
   | { type: "reaction"; eventId: number; reaction: PublicReaction }
-  // An event was put live; the stage's screens switch to it.
-  | { type: "live"; eventId: number; eventUid: string; stage: string };
+  // An event was put live; the screens and Q&A pages of its stage, within
+  // its conference, switch to it or offer it.
+  | {
+    type: "live";
+    eventId: number;
+    eventUid: string;
+    title: string;
+    conferenceId: number;
+    stage: string;
+  };
 
 /**
  * What subscribers receive: published messages, plus `resync` when the bus
@@ -39,27 +54,49 @@ export interface Bus {
 }
 
 /**
- * Parses a message received over the wire, or returns undefined for anything
- * that isn't one (a different version's message type, a malformed payload).
+ * Checks a decoded wire message, or returns undefined for anything that isn't
+ * a complete one (another version's message, a malformed payload), so a
+ * stream never sends half a message.
  */
-export function parsePublishedMessage(
-  payload: string,
+export function toPublishedMessage(
+  value: unknown,
 ): PublishedMessage | undefined {
-  let message: unknown;
-  try {
-    message = JSON.parse(payload);
-  } catch {
+  if (typeof value !== "object" || value === null) {
     return undefined;
   }
-  if (typeof message !== "object" || message === null) {
+  const message = value as Record<string, unknown>;
+  if (typeof message["eventId"] !== "number") {
     return undefined;
   }
-  const { type, eventId } = message as { type?: unknown; eventId?: unknown };
-  if (typeof eventId !== "number") {
-    return undefined;
+
+  switch (message["type"]) {
+    case "questions":
+      return typeof message["conferenceId"] === "number" &&
+          typeof message["isPublic"] === "boolean"
+        ? value as PublishedMessage
+        : undefined;
+    case "reaction":
+      return isPublicReaction(message["reaction"])
+        ? value as PublishedMessage
+        : undefined;
+    case "live":
+      return typeof message["eventUid"] === "string" &&
+          typeof message["title"] === "string" &&
+          typeof message["conferenceId"] === "number" &&
+          typeof message["stage"] === "string"
+        ? value as PublishedMessage
+        : undefined;
+    default:
+      return undefined;
   }
-  if (type === "questions" || type === "reaction" || type === "live") {
-    return message as PublishedMessage;
+}
+
+function isPublicReaction(value: unknown): value is PublicReaction {
+  if (typeof value !== "object" || value === null) {
+    return false;
   }
-  return undefined;
+  const reaction = value as Record<string, unknown>;
+  return typeof reaction["uid"] === "string" &&
+    typeof reaction["emoji"] === "string" &&
+    typeof reaction["createdAt"] === "string";
 }

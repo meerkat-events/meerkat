@@ -45,6 +45,7 @@ import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
 import { LiveSessionPrompt } from "../components/QnA/LiveSessionPrompt.tsx";
+import type { LiveSession } from "../lib/event-stream-events.ts";
 import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
 import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
 import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
@@ -162,7 +163,7 @@ export default function QnA() {
 
   // A session just put live on this stage, other than this one, until the
   // attendee answers the prompt.
-  const [liveSessionUid, setLiveSessionUid] = useState<string>();
+  const [liveSession, setLiveSession] = useState<LiveSession>();
   const {
     data: questions,
     mutate: refreshQuestions,
@@ -170,15 +171,13 @@ export default function QnA() {
   } = useEventQuestions(uid, sort, {
     // The user's own reactions come back too; addReaction skips them by uid.
     onReaction: (reaction) => addReaction(reaction),
-    onEventLive: (eventUid) => {
+    onEventLive: (session) => {
       // Live flags changed: this session's banner and the schedule.
       refreshEvent();
       refreshEvents();
-      setLiveSessionUid(eventUid === uid ? undefined : eventUid);
+      setLiveSession(session.uid === uid ? undefined : session);
     },
   });
-  const liveSessionTitle = events?.find((event) => event.uid === liveSessionUid)
-    ?.title;
   const changeSort = (sort: string) => {
     setSearchParams((searchParams) => {
       const vettedSort = parseSort(sort);
@@ -392,9 +391,8 @@ export default function QnA() {
             </Alert.Root>
           )}
           <LiveSessionPrompt
-            eventUid={liveSessionUid}
-            title={liveSessionTitle}
-            onClose={() => setLiveSessionUid(undefined)}
+            session={liveSession}
+            onClose={() => setLiveSession(undefined)}
           />
           {/* Equal side columns keep the conference name centered in the row */}
           <Grid

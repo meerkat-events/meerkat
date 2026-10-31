@@ -349,18 +349,25 @@ own API (`api/realtime/`):
    fields only. `memory-bus.ts` is the in-process bus for tests; another
    transport (Redis) is another `Bus` in `index.ts`.
 2. **Publishing** (`notify.ts`): every question or vote mutation calls
-   `notifyQuestionsChanged(event)` (also for questions moderation hid on
-   arrival, for the organizer pages); the react route calls
-   `notifyReaction`. Failures are logged and never fail the request.
+   `notifyQuestionsChanged(event)`; for a question moderation hid on
+   arrival with `isPublic: false`, which reaches the organizer pages only.
+   The react route calls `notifyReaction` without awaiting it, and going
+   live calls `notifyEventLive`. Failures are logged and never fail the
+   request. `toPublishedMessage` (`bus.ts`) validates every message
+   received.
 3. **Fan-out** (`hub.ts`): one bus subscription per process, delivering to
-   the SSE streams on this instance by event and by conference. `sse.ts`
-   writes the streams (`ping` every 30 s, writes queued per stream).
+   the SSE streams on this instance by event, by conference and by stage
+   (conference id plus stage name, since names repeat across conferences).
+   `sse.ts` writes the streams (`ping` every 30 s, writes queued per
+   stream).
 4. **Event stream** (public): `GET /api/v1/events/:uid/questions/stream`.
    An unnamed `update` means "refetch the questions"; a named `reaction`
-   carries `{ uid, emoji, createdAt }`; a named `live` carries `{ uid }`
-   of an event just put live on the same stage (`POST
-   /api/v1/events/:uid/live` publishes it; the hub keys stages by name,
-   like signage). `@meerkat-events/react` 0.1.0 only handles unnamed
+   carries `{ uid, emoji, createdAt }`; a named `live` carries
+   `{ uid, title }` of an event just put live on the same stage of the same
+   conference (`POST /api/v1/events/:uid/live` publishes it). The Q&A page
+   refreshes its schedule and offers the new session
+   (`LiveSessionPrompt`); a keep-live presenter switches to it.
+   `app/lib/event-stream-events.ts` parses the named events for both. `@meerkat-events/react` 0.1.0 only handles unnamed
    messages, so old embedders keep working without the named ones. Consumed with the package's `useEventSource` (an `events` map
    for named events; refetches after a re-open): by `useQuestions`, by
    `useEventQuestions` on the Q&A page, and by `Presenter` on the stage

@@ -302,9 +302,9 @@ app.post(
       });
     }
 
-    // Also for a question hidden by moderation, which the management pages
-    // review; public lists refetch once and don't change.
-    void notifyQuestionsChanged(event);
+    // A question hidden by moderation still goes to the management pages,
+    // which review it, but not to the public stream.
+    void notifyQuestionsChanged(event, { isPublic: !question.hiddenAt });
     if (question.hiddenAt) {
       logger.info(
         {
@@ -397,7 +397,9 @@ app.post(
       emoji: reaction.emoji,
       createdAt: reaction.createdAt.toISOString(),
     };
-    await notifyReaction(event, publicReaction);
+    // Not awaited: reactions come in bursts, and publishing is best effort
+    // (notify.ts logs failures), so the response doesn't wait for it.
+    void notifyReaction(event, publicReaction);
 
     return c.json({ data: publicReaction });
   },
@@ -630,9 +632,9 @@ const toFullApiEvent = (
 // Public, like the question list it tells clients to refetch (EventSource
 // can't send a token anyway). An unnamed `update` means "refetch the
 // questions" (asked, voted, selected, answered, deleted, restored); a named
-// `reaction` carries one reaction; a named `live` carries `{ uid }` of the
-// event just put live on this event's stage, so a stage screen can switch to
-// it. `@meerkat-events/react` 0.1.0 listens to unnamed messages only, so it
+// `reaction` carries one reaction; a named `live` carries `{ uid, title }` of
+// the event just put live on this event's stage (same conference), so a stage
+// screen can switch to it and the Q&A page can offer it. `@meerkat-events/react` 0.1.0 listens to unnamed messages only, so it
 // keeps working and never sees the named ones.
 app.get(
   "/api/v1/events/:uid/questions/stream",
@@ -648,11 +650,21 @@ app.get(
           send({ data: "update" });
         }
       });
-      const stopStage = hub.listenToStage(event.stage, (message) => {
-        if (message.type === "live") {
-          send({ event: "live", data: JSON.stringify({ uid: message.eventUid }) });
-        }
-      });
+      const stopStage = hub.listenToStage(
+        event.conferenceId,
+        event.stage,
+        (message) => {
+          if (message.type === "live") {
+            send({
+              event: "live",
+              data: JSON.stringify({
+                uid: message.eventUid,
+                title: message.title,
+              }),
+            });
+          }
+        },
+      );
       return () => {
         stopEvent();
         stopStage();

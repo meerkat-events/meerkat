@@ -7,12 +7,19 @@ type EventIds = { id: number; conferenceId: number };
 /**
  * Tells every instance that an event's questions or votes changed, so its
  * Q&A pages, presenter view and the conference's management pages refetch.
+ * With `isPublic: false` (a question moderation hid on arrival) only the
+ * management pages do: public lists don't change, and the public stream
+ * shouldn't reveal when hidden questions arrive.
  */
-export async function notifyQuestionsChanged(event: EventIds) {
+export async function notifyQuestionsChanged(
+  event: EventIds,
+  { isPublic = true }: { isPublic?: boolean } = {},
+) {
   await publish({
     type: "questions",
     eventId: event.id,
     conferenceId: event.conferenceId,
+    isPublic,
   });
 }
 
@@ -24,14 +31,19 @@ export async function notifyReaction(
   await publish({ type: "reaction", eventId: event.id, reaction });
 }
 
-/** Switches the stage's screens (presenter views in keep-live mode). */
+/**
+ * Tells the stage's screens (presenter views in keep-live mode) and Q&A pages,
+ * within the event's conference, that the event is now live.
+ */
 export async function notifyEventLive(
-  event: { id: number; uid: string; stage: string },
+  event: EventIds & { uid: string; title: string; stage: string },
 ) {
   await publish({
     type: "live",
     eventId: event.id,
     eventUid: event.uid,
+    title: event.title,
+    conferenceId: event.conferenceId,
     stage: event.stage,
   });
 }

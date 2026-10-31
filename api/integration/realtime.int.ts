@@ -28,7 +28,12 @@ async function waitUntilListening(sending: Bus, listening: Bus) {
   });
   const deadline = Date.now() + TIMEOUT_MS;
   while (!isListening && Date.now() < deadline) {
-    await sending.publish({ type: "questions", eventId: -1, conferenceId: -1 });
+    await sending.publish({
+      type: "questions",
+      eventId: -1,
+      conferenceId: -1,
+      isPublic: true,
+    });
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   unsubscribe();
@@ -151,7 +156,10 @@ describe("realtime", () => {
     assert.equal(live.status, 200);
     const match = await readUntil(screen, /event: live\ndata: (.*)\n\n/);
     assert.ok(match, "no live message");
-    assert.deepEqual(JSON.parse(match[1]!), { uid: "stage-next-talk" });
+    assert.deepEqual(JSON.parse(match[1]!), {
+      uid: "stage-next-talk",
+      title: "Next talk",
+    });
   });
 
   test("the management stream is for organizers only", async () => {

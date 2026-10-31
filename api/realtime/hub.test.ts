@@ -28,7 +28,7 @@ test("question changes reach the event's and the conference's listeners", async 
   hub.listenToEvent(2, otherEvent.listener);
   hub.listenToConference(10, conference.listener);
 
-  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10 });
+  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10, isPublic: true });
 
   assert.deepEqual(event.received, ["questions"]);
   assert.deepEqual(otherEvent.received, []);
@@ -49,20 +49,49 @@ test("reactions reach the event's listeners only", async () => {
   assert.deepEqual(conference.received, []);
 });
 
-test("an event going live reaches the stage's listeners only", async () => {
+test("a question moderation hid reaches the conference's listeners only", async () => {
+  const bus = createMemoryBus();
+  const hub = createHub(bus);
+  const event = recorder();
+  const conference = recorder();
+  hub.listenToEvent(1, event.listener);
+  hub.listenToConference(10, conference.listener);
+
+  await bus.publish({
+    type: "questions",
+    eventId: 1,
+    conferenceId: 10,
+    isPublic: false,
+  });
+
+  assert.deepEqual(event.received, []);
+  assert.deepEqual(conference.received, ["questions"]);
+});
+
+test("an event going live reaches its own stage of its own conference", async () => {
   const bus = createMemoryBus();
   const hub = createHub(bus);
   const stage = recorder();
   const otherStage = recorder();
+  const sameNameOtherConference = recorder();
   const event = recorder();
-  hub.listenToStage("main", stage.listener);
-  hub.listenToStage("side", otherStage.listener);
+  hub.listenToStage(10, "main", stage.listener);
+  hub.listenToStage(10, "side", otherStage.listener);
+  hub.listenToStage(20, "main", sameNameOtherConference.listener);
   hub.listenToEvent(1, event.listener);
 
-  await bus.publish({ type: "live", eventId: 1, eventUid: "talk", stage: "main" });
+  await bus.publish({
+    type: "live",
+    eventId: 1,
+    eventUid: "talk",
+    title: "Talk",
+    conferenceId: 10,
+    stage: "main",
+  });
 
   assert.deepEqual(stage.received, ["live"]);
   assert.deepEqual(otherStage.received, []);
+  assert.deepEqual(sameNameOtherConference.received, []);
   assert.deepEqual(event.received, []);
 });
 
@@ -89,7 +118,7 @@ test("a failing listener doesn't keep the message from the others", async () => 
   });
   hub.listenToEvent(1, event.listener);
 
-  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10 });
+  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10, isPublic: true });
 
   assert.deepEqual(event.received, ["questions"]);
 });
@@ -105,7 +134,7 @@ test("unsubscribing removes the listener", async () => {
   stopEvent();
   stopConference();
   stopEvent();
-  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10 });
+  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10, isPublic: true });
 
   assert.equal(hub.listenerCount(), 0);
   assert.deepEqual(event.received, []);
@@ -119,7 +148,7 @@ test("the hub subscribes to the bus once", async () => {
   hub.listenToEvent(1, event.listener);
   hub.listenToEvent(1, () => {});
 
-  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10 });
+  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10, isPublic: true });
 
   assert.deepEqual(event.received, ["questions"]);
 });

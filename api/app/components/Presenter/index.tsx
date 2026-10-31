@@ -7,6 +7,10 @@ import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { apiUrl } from "../../lib/api-url.ts";
+import {
+  type EventStreamCallbacks,
+  eventStreamEvents,
+} from "../../lib/event-stream-events.ts";
 import type { Event, Reaction } from "../../types.ts";
 import { REACTION_GLYPHS, type ReactionEmoji } from "../../../reactions.ts";
 import { randomNormal } from "d3-random";
@@ -62,15 +66,12 @@ export default function Presenter(
   // One stream for everything: question changes refetch the event, reactions
   // float up on the screen, and another event going live on the stage
   // switches the screen to it.
-  const onEventLiveRef = useRef(onEventLive);
-  onEventLiveRef.current = onEventLive;
-  const events = useMemo(() => ({
-    reaction: (data: string) => addReaction(JSON.parse(data) as Reaction),
-    live: (data: string) => {
-      const { uid } = JSON.parse(data) as { uid: string };
-      onEventLiveRef.current?.(uid);
-    },
-  }), [addReaction]);
+  const callbacksRef = useRef<EventStreamCallbacks>({});
+  callbacksRef.current = {
+    onReaction: addReaction,
+    onEventLive: (session) => onEventLive?.(session.uid),
+  };
+  const events = useMemo(() => eventStreamEvents(callbacksRef), []);
   useEventSource({
     url: event ? apiUrl(`/api/v1/events/${event.uid}/questions/stream`) : undefined,
     onMessage: onQuestionsChanged,
