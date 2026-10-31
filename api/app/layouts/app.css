@@ -152,34 +152,6 @@ ul {
   min-width: 0;
 }
 
-/*  Collect  Card */
-
-.collect-card-layout {
-  display: grid;
-  height: calc(100dvh - env(safe-area-inset-bottom));
-  grid-template-rows: max-content 1fr;
-  grid-template-columns: 1fr minmax(0, 512px) 1fr;
-  margin: 0;
-  padding: 1.5rem 0;
-}
-
-.collect-card-text {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 3rem;
-}
-
-.collect-card-image {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  & img {
-    max-height: 20rem;
-    border-radius: var(--chakra-radii-lg);
-  }
-}
-
 .card {
   padding: 1rem 0;
   text-align: center;
@@ -380,8 +352,4 @@ ul {
   100% {
     transform: scale(1);
   }
-}
-
-.parcnet-dialog {
-  margin: auto;
 }

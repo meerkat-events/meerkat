@@ -6,8 +6,6 @@ Ethereum Foundation for Devcon, Devconnect, and others.
 Attendees scan a QR code to ask and upvote questions and send reactions.
 Organizers pick the question being answered and mark the current session as
 live. A presenter view runs on the stage screen and follows the live session.
-Optionally, attendees can collect a signed attendance proof (a
-[POD](https://pod.org)) into their [Zupass](https://zupass.org).
 
 ### Repository
 
@@ -132,13 +130,10 @@ Required:
 | Variable                    | Purpose                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`              | Postgres connection string. `DATABASE_POOLER_URL`, if set, takes precedence at runtime.     |
-| `PRIVATE_KEY`               | Signs attendance PODs. Generate with `openssl rand -hex 32`.                                |
 | `SUPABASE_URL`              | Supabase project URL.                                                                       |
 | `SUPABASE_ANON_KEY`         | Supabase anon key, used by the browser for Auth and Realtime.                               |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for broadcasts and Devcon handover sign-ins.    |
 | `DEVCON_VERIFICATION_SECRET` | Shared HS256 secret for verifying Devcon handover tokens (the Devcon app's `VERIFICATION_SECRET`). |
-| `ZUPASS_URL`                | Zupass server URL.                                                                          |
-| `ZUPASS_ZAPP_NAME`          | Name of the Zupass zapp; also namespaces the POD collection.                                |
 
 Optional:
 

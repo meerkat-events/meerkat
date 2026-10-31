@@ -1,4 +1,3 @@
-import type { PODData } from "@parcnet-js/podspec";
 import type { ReactionEmoji } from "../reactions.ts";
 export type Theme = {
   brandColor: string;
@@ -162,13 +161,6 @@ export type Participant = {
 export type PointsScoring = {
   picked: number;
   vote: number;
-};
-
-export type EventPod = {
-  uid: string;
-  event: Event;
-  pod: PODData;
-  createdAt: Date;
 };
 
 export type Reaction = {

@@ -46,7 +46,6 @@ import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { tooManyRequests } from "../utils/too-many-requests.ts";
 import { REACTION_EMOJIS } from "../reactions.ts";
 import { type Feature, getFeatures } from "../models/features.ts";
-import { createAttendancePOD } from "../zupass.ts";
 import { canModerate, getConferenceRolesForConference } from "../models/roles.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
@@ -157,36 +156,6 @@ const toApiQuestion = (
     }
     : undefined,
 });
-
-app.post(
-  "/api/v1/events/:uid/attendance",
-  jwt(),
-  eventMiddleware,
-  async (c) => {
-    const event = c.get("event");
-    const payload = c.get("jwtPayload");
-    const [conference, user] = await Promise.all([
-      getConferenceById(event.conferenceId),
-      getUserById(payload.sub),
-    ]);
-
-    if (!user) {
-      throw new HTTPException(401, { message: "User not found" });
-    }
-    const zupassId = "TODO: Add Zupass ID";
-
-    const pod = createAttendancePOD(conference!, event, zupassId);
-
-    logger.info(
-      { pod, conference, event, zupassId, userId: user.id },
-      "Created attendance pod",
-    );
-
-    return c.json({
-      data: pod.toJSON(),
-    });
-  },
-);
 
 // Public, for guests and embedders (`@meerkat-events/react`). Authentication
 // is optional: with a valid token, the viewer's own hidden questions are
@@ -560,6 +529,13 @@ app.get("/api/v1/conferences/:id/events/live", jwt(), async (c) => {
 
 // Signage, public: the stage screen and printed QR codes open these, and the
 // presenter view polls /api/v1/events/stage/:stage/live (useKeepLive).
+// The Event Card (Zupass attendance PODs) is gone; old links and bookmarks
+// land on the session's Q&A page instead.
+app.get("/e/:uid/card", (c) => {
+  const uid = encodeURIComponent(c.req.param("uid"));
+  return c.redirect(new URL(`/e/${uid}/qa`, env.base), 301);
+});
+
 app.get("/stage/:stage", async (c) => {
   const stage = c.req.param("stage");
   const liveEvent = await getStageLiveEvent(stage);

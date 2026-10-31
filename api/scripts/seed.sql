@@ -1,7 +1,6 @@
 ALTER SEQUENCE conferences_id_seq RESTART WITH 1;
 ALTER SEQUENCE events_id_seq RESTART WITH 1;
 ALTER SEQUENCE questions_id_seq RESTART WITH 1;
-ALTER SEQUENCE conference_tickets_id_seq RESTART WITH 1;
 -- Default theme for seeded conferences (mirrors app/theme/devconnect.ts)
 WITH devconnect_theme AS (
 	SELECT '{
@@ -166,22 +165,6 @@ VALUES -- Past Events
 		'/logo.png',
 		'Dune Team',
 		TRUE
-	) ON CONFLICT DO NOTHING;
-INSERT INTO conference_tickets (
-		conference_id,
-		collection_name,
-		event_id,
-		signer_public_key,
-		product_id,
-		"role"
-	)
-VALUES (
-		1,
-		'Devconnect ARG',
-		'1f36ddce-e538-4c7a-9f31-6a4b2221ecac',
-		'YwahfUdUYehkGMaWh0+q3F8itx2h8mybjPmt8CmTJSs',
-		'bce2e86a-36a3-49d7-929b-b6e659773117',
-		'organizer'
 	) ON CONFLICT DO NOTHING;
 -- Supervotes on for both seeded conferences, so local dev can try them.
 INSERT INTO features (conference_id, name, active)

@@ -17,17 +17,6 @@ export default defineConfig({
     },
   },
   ssr: {
-    // Bundle these packages into the server build so Vite handles CJS→ESM
-    // interop internally. Without this, Node.js tries to load their ESM builds
-    // at runtime, which fails because blakejs (a transitive dep) is CJS-only
-    // and doesn't expose named ESM exports.
-    noExternal: [
-      /@pcd\//,
-      /@parcnet-js\//,
-      /@zk-kit\//,
-      /blakejs/,
-      /@semaphore-protocol\//,
-    ],
     resolve: {
       conditions: ["module", "node", "development|production"],
       externalConditions: ["node"],

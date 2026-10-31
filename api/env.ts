@@ -5,12 +5,6 @@ if (!connectionString) {
   throw new Error("DATABASE_POOLER_URL or DATABASE_URL must be set");
 }
 
-const privateKey = process.env["PRIVATE_KEY"];
-
-if (!privateKey) {
-  throw new Error("PRIVATE_KEY is required");
-}
-
 // Port the HTTP server listens on. Fly sets it explicitly; the desktop app's
 // launch.json uses `autoPort`, so a worktree whose preferred port is taken gets
 // a free one through this variable (process env wins over `--env-file`).
@@ -20,9 +14,7 @@ if (!Number.isInteger(port) || port < 0 || port > 65535) {
   throw new Error(`PORT must be an integer in 0..65535, got "${portRaw}"`);
 }
 
-const zupassUrl = process.env["ZUPASS_URL"] ?? "https://zupass.org";
-const zappName = process.env["ZUPASS_ZAPP_NAME"] ?? "meerkat-local";
-// Public origin of this deployment (used for the POD type's reverse domain).
+// Public origin of this deployment, for absolute links (QR codes, redirects).
 const base = process.env["BASE_URL"] ?? `http://localhost:${port}`;
 const supabaseUrl = process.env["SUPABASE_URL"];
 const supabaseAnonKey = process.env["SUPABASE_ANON_KEY"];
@@ -70,9 +62,6 @@ const env = {
   connectionString,
   port,
   base,
-  privateKey,
-  zupassUrl,
-  zappName,
   supabaseUrl,
   supabaseAnonKey,
   supabaseServiceRoleKey,
@@ -90,7 +79,6 @@ const env = {
 export const redactedEnv = {
   ...env,
   connectionString: "REDACTED",
-  privateKey: "REDACTED",
   devconVerificationSecret: "REDACTED",
   supabaseServiceRoleKey: "REDACTED",
   // Unset stays visible: it tells whether the handover forwards client IPs.
