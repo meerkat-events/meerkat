@@ -4,8 +4,10 @@ import db from "../db.ts";
 import env from "../env.ts";
 import type { Bus, RealtimeMessage } from "../realtime/bus.ts";
 import { bus, hub } from "../realtime/index.ts";
+import { notifyQuestionsChanged } from "../realtime/notify.ts";
 import { createPostgresBus } from "../realtime/postgres-bus.ts";
-import { events, questions } from "../schema.ts";
+import { SUPERVOTES_FEATURE } from "../models/supervotes.ts";
+import { events, questions, supervoteBalances } from "../schema.ts";
 import {
   emailUser,
   grantTestRole,
@@ -206,5 +208,188 @@ describe("realtime", () => {
     );
     assert.equal(restored.status, 200);
     assert.ok(await readUntil(updates, UPDATE), "no update");
+  });
+});
+
+/** Everything a stream sends within `ms`, then closes it. */
+async function readFor(response: Response, ms: number) {
+  const reader = response.body!.pipeThrough(new TextDecoderStream())
+    .getReader();
+  const stop = setTimeout(() => void reader.cancel(), ms);
+  let text = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        return text;
+      }
+      text += value;
+    }
+  } catch {
+    return text;
+  } finally {
+    clearTimeout(stop);
+  }
+}
+
+// The Q&A page (useEventQuestions) and the stage screen (Presenter) both
+// read `/api/v1/events/:uid/questions/stream`, so every attendee and
+// moderator action must reach it. The organizer stream only gets the light
+// checks in the suite above and the hidden-question case below.
+describe("realtime for every action on the Q&A page and the stage screen", () => {
+  type Setup = {
+    eventUid: string;
+    conferenceId: number;
+    questionUid: string;
+    asker: TestUser;
+    voter: TestUser;
+    organizer: TestUser;
+  };
+  let setup: Setup;
+
+  beforeEach(async () => {
+    await resetDb();
+    const { conference, event } = await seedConference({
+      name: "Actions",
+      featureNames: [SUPERVOTES_FEATURE],
+    });
+    const asker = await emailUser("asker@example.com");
+    const voter = await emailUser("voter@example.com");
+    const organizer = await emailUser("organizer@example.com");
+    await grantTestRole(organizer.id, conference.id, "organizer");
+    // One supervote to spend.
+    await db.insert(supervoteBalances).values({ userId: voter.id, balance: 1 });
+
+    const asked = await askQuestion(event.uid, asker);
+    assert.equal(asked.status, 200);
+    const { data } = await asked.json() as { data: { uid: string } };
+    setup = {
+      eventUid: event.uid,
+      conferenceId: conference.id,
+      questionUid: data.uid,
+      asker,
+      voter,
+      organizer,
+    };
+    await waitUntilListening(bus, bus);
+  });
+
+  // `prepare` runs before the streams open, so its own messages don't count.
+  const questionActions: {
+    name: string;
+    prepare?: (setup: Setup) => Promise<void>;
+    // `request` answers like Hono's app.request: a Response or its promise.
+    act: (setup: Setup) => Response | Promise<Response>;
+  }[] = [
+    {
+      name: "asking",
+      act: (s) => askQuestion(s.eventUid, s.voter),
+    },
+    {
+      name: "voting",
+      act: (s) =>
+        request("POST", `/api/v1/questions/${s.questionUid}/upvote`, {
+          token: s.voter.token,
+        }),
+    },
+    {
+      name: "removing a vote",
+      prepare: async (s) => {
+        const voted = await request(
+          "POST",
+          `/api/v1/questions/${s.questionUid}/upvote`,
+          { token: s.voter.token },
+        );
+        assert.equal(voted.status, 200, "first vote");
+      },
+      // The upvote route toggles: voting again removes the vote.
+      act: (s) =>
+        request("POST", `/api/v1/questions/${s.questionUid}/upvote`, {
+          token: s.voter.token,
+        }),
+    },
+    {
+      name: "supervoting",
+      act: (s) =>
+        request("POST", `/api/v1/questions/${s.questionUid}/upvote`, {
+          token: s.voter.token,
+          body: { weight: 3 },
+        }),
+    },
+    {
+      name: "selecting a question for the stage",
+      act: (s) =>
+        request("POST", `/api/v1/questions/${s.questionUid}/select`, {
+          token: s.organizer.token,
+        }),
+    },
+    {
+      name: "marking a question answered",
+      act: (s) =>
+        request("POST", `/api/v1/questions/${s.questionUid}/mark-as-answered`, {
+          token: s.organizer.token,
+        }),
+    },
+    {
+      name: "deleting a question",
+      act: (s) =>
+        request("DELETE", `/api/v1/questions/${s.questionUid}`, {
+          token: s.organizer.token,
+        }),
+    },
+  ];
+
+  for (const { name, prepare, act } of questionActions) {
+    test(`${name} sends an update to the event stream`, async () => {
+      await prepare?.(setup);
+      // Let messages from setup and `prepare` pass before the stream opens.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const stream = await request(
+        "GET",
+        `/api/v1/events/${setup.eventUid}/questions/stream`,
+      );
+      const response = await act(setup);
+
+      assert.equal(response.status, 200, await response.clone().text());
+      assert.ok(await readUntil(stream, UPDATE), "no update");
+    });
+  }
+
+  test("a reaction reaches the event stream with its public fields only", async () => {
+    const stream = await request(
+      "GET",
+      `/api/v1/events/${setup.eventUid}/questions/stream`,
+    );
+    const reacted = await request(
+      "POST",
+      `/api/v1/events/${setup.eventUid}/react`,
+      { token: setup.voter.token, body: { uid: "reaction-2", emoji: "heart" } },
+    );
+    assert.equal(reacted.status, 200);
+
+    const match = await readUntil(stream, REACTION);
+    assert.ok(match, "no reaction");
+    const reaction = JSON.parse(match[1]!) as Record<string, unknown>;
+    assert.deepEqual(Object.keys(reaction).sort(), ["createdAt", "emoji", "uid"]);
+  });
+
+  test("a question moderation hid reaches the organizer stream only", async () => {
+    const eventStream = await request(
+      "GET",
+      `/api/v1/events/${setup.eventUid}/questions/stream`,
+    );
+    const organizerStream = await request(
+      "GET",
+      `/api/v1/conferences/${setup.conferenceId}/questions/stream`,
+      { token: setup.organizer.token },
+    );
+    // What the create route publishes for a question the classifier hid
+    // (moderation itself needs an OpenRouter key the tests don't have).
+    const [event] = await db.select().from(events);
+    await notifyQuestionsChanged(event!, { isPublic: false });
+
+    assert.ok(await readUntil(organizerStream, UPDATE), "organizer stream");
+    assert.doesNotMatch(await readFor(eventStream, 1_000), UPDATE);
   });
 });
