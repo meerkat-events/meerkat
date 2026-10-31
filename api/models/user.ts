@@ -9,6 +9,14 @@ export async function getUserById(id: string) {
   return user.length > 0 ? user[0] : null;
 }
 
+/** Supabase stores emails in lower case, so pass a lower-cased one. */
+export async function getUserByEmail(email: string) {
+  const user = await db.select().from(users).where(eq(users.email, email))
+    .limit(1).execute();
+
+  return user.length > 0 ? user[0] : null;
+}
+
 const BAN_DURATION = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export async function markUserAsBlocked(id: string) {
