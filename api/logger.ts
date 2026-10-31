@@ -1,10 +1,10 @@
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { type LoggerOptions, pino } from "pino";
 
-// Logs carry ids (userId, question uid, eventId, conferenceId), never user
-// rows, question text, email addresses or tokens (see CLAUDE.md). The
-// serializer and the redaction below are a safety net for mistakes, not a
-// replacement for logging only ids.
+// Logs carry ids (userId, question uid, eventId, conferenceId) and may carry
+// question text, but never email addresses, secrets or tokens (see
+// CLAUDE.md). The serializer and the redaction below are a safety net for
+// mistakes, not a replacement for choosing the logged fields.
 
 /**
  * Logs an error as its type, message, code and stack frames only. Pino's
@@ -54,7 +54,6 @@ const SENSITIVE_KEYS = [
   "authorization",
   "password",
   "secret",
-  "question",
 ];
 
 /** Exported for logger.test.ts. */

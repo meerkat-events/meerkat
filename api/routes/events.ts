@@ -305,13 +305,23 @@ app.post(
     // broadcast; its author's page refreshes after posting.
     if (question.hiddenAt) {
       logger.info(
-        { questionUid: question.uid, eventId: event.id, userId: user.id },
+        {
+          questionUid: question.uid,
+          question: question.question,
+          eventId: event.id,
+          userId: user.id,
+        },
         "Created question, hidden by moderation",
       );
     } else {
       await broadcastQuestionsUpdate(event.id);
       logger.info(
-        { questionUid: question.uid, eventId: event.id, userId: user.id },
+        {
+          questionUid: question.uid,
+          question: question.question,
+          eventId: event.id,
+          userId: user.id,
+        },
         "Created question",
       );
     }

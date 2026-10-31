@@ -36,8 +36,9 @@ own installer and switches itself to the version in `packageManager`.
   dumps contain personal data (self-identifying handles, named third
   parties). Never commit them, quoted or paraphrased, not even as test
   cases; describe them instead. Dumps and derived files live in the
-  gitignored `.backups/`. Logs carry ids (`userId`, question `uid`), never
-  user rows, question text, email addresses, tokens or query strings; log
+  gitignored `.backups/`. Logs carry ids (`userId`, question `uid`) and may
+  carry question text, but never email addresses, secrets, tokens or query
+  strings (the Devcon handover token travels in one); log
   errors under `err` (`api/logger.ts` keeps message, code and stack and
   drops query parameters), never in another field.
 - **Platform first.** Use Node and Web built-ins before reaching for a

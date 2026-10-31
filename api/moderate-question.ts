@@ -23,9 +23,7 @@ export type ModerationCall =
     durationMs: number;
     usage: { inputTokens: number; cost: number };
   }
-  // Without the provider's refusal text: the model may restate the question
-  // in it.
-  | { outcome: "refused"; durationMs: number }
+  | { outcome: "refused"; durationMs: number; message: string }
   | { outcome: "error"; durationMs: number; error: string };
 
 export type ModerationResult = {
@@ -100,7 +98,7 @@ export async function moderateQuestion(
     return {
       hiddenAt: new Date(),
       moderation: { refused: true, decision: "hide", model: MODERATION_MODEL },
-      call: { outcome: "refused", durationMs },
+      call: { outcome: "refused", durationMs, message: result.refused },
     };
   }
 
@@ -127,8 +125,9 @@ export async function moderateQuestion(
 
 /**
  * One structured line per call to the classifier, written after the question
- * is stored so it carries the question's uid. Holds no question text and no
- * user data; the verdict is also stored on the question.
+ * is stored so it carries the question's uid. The text itself is on the
+ * "Created question" line; a refusal adds the provider's message. The
+ * verdict is also stored on the question.
  */
 export function logModerationCall(
   { questionUid, eventId, conferenceId, moderation, call }: {
@@ -168,7 +167,7 @@ export function logModerationCall(
     });
   }
   if (call.outcome === "refused") {
-    Object.assign(fields, { decision: "hide" });
+    Object.assign(fields, { decision: "hide", refusal: call.message });
   }
 
   if (call.outcome === "error") {

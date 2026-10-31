@@ -233,7 +233,12 @@ app.post(
     await broadcastQuestionsUpdate(event.id);
 
     logger.info(
-      { questionUid: question.uid, eventId: event.id, userId: user.id },
+      {
+        questionUid: question.uid,
+        question: question.question,
+        eventId: event.id,
+        userId: user.id,
+      },
       "Selected question",
     );
 
@@ -290,7 +295,12 @@ app.post(
     await broadcastQuestionsUpdate(event.id);
 
     logger.info(
-      { questionUid: question.uid, eventId: event.id, userId: user.id },
+      {
+        questionUid: question.uid,
+        question: question.question,
+        eventId: event.id,
+        userId: user.id,
+      },
       "Marked question as answered",
     );
 
@@ -349,7 +359,12 @@ app.delete(
     await broadcastQuestionsUpdate(event.id);
 
     logger.info(
-      { questionUid: question.uid, eventId: event.id, userId: user.id },
+      {
+        questionUid: question.uid,
+        question: question.question,
+        eventId: event.id,
+        userId: user.id,
+      },
       "Deleted question",
     );
 
@@ -411,7 +426,12 @@ app.post(
     await broadcastQuestionsUpdate(event.id);
 
     logger.info(
-      { questionUid: uid, userId: user.id, eventId: event.id },
+      {
+        questionUid: uid,
+        question: result.question,
+        userId: user.id,
+        eventId: event.id,
+      },
       "Restored question hidden by moderation",
     );
 

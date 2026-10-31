@@ -43,13 +43,13 @@ test("database errors are logged without parameters or details", () => {
   assert.equal(logged.err.cause.code, "23505");
 });
 
-test("sensitive keys are redacted at the top level and one level down", () => {
+test("emails, secrets and tokens are redacted at the top level and one level down; question text is kept", () => {
   const { logger, lines } = captureLogs();
 
   logger.info(
     {
       token: "a-handover-token",
-      question: { text: "an invented question" },
+      question: "an invented question",
       user: { email: "attendee@example.com" },
     },
     "Oops",
@@ -57,6 +57,6 @@ test("sensitive keys are redacted at the top level and one level down", () => {
 
   const logged = JSON.parse(lines.join(""));
   assert.equal(logged.token, "[Redacted]");
-  assert.equal(logged.question, "[Redacted]");
+  assert.equal(logged.question, "an invented question");
   assert.equal(logged.user.email, "[Redacted]");
 });
