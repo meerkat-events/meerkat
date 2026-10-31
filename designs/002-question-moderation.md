@@ -24,7 +24,7 @@
 - An eval already exists, untracked: `api/scripts/moderation-eval.ts` and 106 invented cases in `api/scripts/moderation-cases.json` (see Eval below).
 - Question mutation responses in `api/routes/questions.ts` (upvote, select, mark-as-answered, delete) spread the full row minus `id` and `userId`, so new columns would be returned as-is.
 - Hono's `jwk()` middleware and `verifyWithJwks` fetch Supabase's key set on every verification; only mutations pay that today.
-- `api/env.ts` holds all environment variables and logs `redactedEnv` at startup. `api/logger.ts` is plain pino, and the server reports errors only through it (Sentry runs in the browser only).
+- `api/env.ts` holds all environment variables and logs `redactedEnv` at startup. `api/logger.ts` is plain pino, and errors are reported only through it.
 - Migrations run in Fly's `release_command` before rollout, so new columns must be ignorable by the old code for a few minutes.
 
 ## Proposed change

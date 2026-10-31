@@ -8,7 +8,6 @@ import type { Route } from "../../.react-router/types/app/layouts/+types/app.ts"
 import { useMemo } from "react";
 import { SWRConfig } from "swr";
 import { type Config, getConfig } from "../lib/config.ts";
-import { useTools } from "../hooks/use-tools.ts";
 import { Toaster } from "../components/ui/toaster.tsx";
 import { fetcher } from "../hooks/fetcher.ts";
 import { createSystem, meerkat } from "../theme/index.ts";
@@ -48,8 +47,6 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
 
     return undefined;
   }, [config.supabaseUrl, config.supabaseAnonKey]);
-
-  useTools(config);
 
   const systemTheme = event?.conference?.theme?.systemTheme ?? "dark";
 

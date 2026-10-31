@@ -5,7 +5,6 @@ import type { Route } from "../../.react-router/types/app/layouts/+types/app.ts"
 import { useMemo } from "react";
 import { SWRConfig } from "swr";
 import { type Config, getConfig } from "../lib/config.ts";
-import { useTools } from "../hooks/use-tools.ts";
 import { Provider } from "../components/ui/provider.tsx";
 import { meerkat } from "../theme/index.ts";
 import { fetcher } from "../hooks/fetcher.ts";
@@ -42,8 +41,6 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
 
     return undefined;
   }, [config.supabaseUrl, config.supabaseAnonKey]);
-
-  useTools(config);
 
   const systemTheme = event?.conference?.theme?.systemTheme ?? "dark";
 

@@ -45,9 +45,7 @@ jobs:
           APP_NAME: ${{ secrets.APP_NAME }}
           BASE_URL: ${{ secrets.BASE_URL }}
           PRIMARY_REGION: ${{ secrets.PRIMARY_REGION }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           DATABASE_MAX_POOL_SIZE: ${{ secrets.DATABASE_MAX_POOL_SIZE }}
-          ENVIRONMENT: ${{ needs.set-env.outputs.deploy_env }}
           CPUS: ${{ vars.CPUS }}
           CPU_KIND: ${{ vars.CPU_KIND }}
           MEMORY: ${{ vars.MEMORY }}
