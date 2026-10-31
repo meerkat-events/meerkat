@@ -376,11 +376,16 @@ own API (`api/realtime/`):
    live shows the "past or upcoming event" banner, whose "Go to live
    session" button leads to the new one; a keep-live presenter switches to
    it.
-   `app/lib/event-stream-events.ts` parses the named events for both. `@meerkat-events/react` 0.1.0 only handles unnamed
-   messages, so old embedders keep working without the named ones. Consumed with the package's `useEventSource` (an `events` map
-   for named events; refetches after a re-open): by `useQuestions`, by
-   `useEventQuestions` on the Q&A page, and by `Presenter` on the stage
-   screen, one connection per page.
+   `@meerkat-events/react` 0.1.0 only handles unnamed messages, so old
+   embedders keep working without the named ones. All three public
+   consumers use the package's mechanism, one connection per page:
+   `useEventSource` (reconnect, watchdog, refetch after a re-open),
+   `useJitteredRefresh` for refetches (the stage screen with a 1 s maximum)
+   and `eventStreamEvents` for the typed `reaction` and `live` events. They
+   are `useQuestions` (embedders, which also takes `onReaction` and
+   `onEventLive`), `useEventQuestions` on the Q&A page and `Presenter` on
+   the stage screen. The app maps a reaction's emoji with `toReactionEmoji`
+   (`api/reactions.ts`).
 5. **Conference stream** (organizers only): `GET
    /api/v1/conferences/:id/questions/stream`, an `update` for every
    question or vote change in the conference, no reactions. `EventSource`

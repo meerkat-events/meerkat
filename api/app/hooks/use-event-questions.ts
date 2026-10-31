@@ -1,11 +1,12 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback } from "react";
 import useSWR from "swr";
-import { useEventSource, useJitteredRefresh } from "@meerkat-events/react";
-import { apiUrl } from "../lib/api-url.ts";
 import {
   type EventStreamCallbacks,
   eventStreamEvents,
-} from "../lib/event-stream-events.ts";
+  useEventSource,
+  useJitteredRefresh,
+} from "@meerkat-events/react";
+import { apiUrl } from "../lib/api-url.ts";
 import type { Question } from "../types.ts";
 import { fetcher } from "./fetcher.ts";
 import type { HTTPError } from "./http-error.ts";
@@ -45,10 +46,6 @@ export const useEventQuestions = (
     mutate();
   }, [mutate]);
 
-  const callbacksRef = useRef<EventStreamCallbacks>({});
-  callbacksRef.current = { onReaction, onEventLive };
-  const events = useMemo(() => eventStreamEvents(callbacksRef), []);
-
   // Every viewer gets the same SSE update at once: refetch after a random
   // delay, one request at a time.
   const scheduleRefresh = useJitteredRefresh(() => mutate());
@@ -56,7 +53,7 @@ export const useEventQuestions = (
   useEventSource({
     url: uid ? apiUrl(`/api/v1/events/${uid}/questions/stream`) : undefined,
     onMessage: scheduleRefresh,
-    events,
+    events: eventStreamEvents({ onReaction, onEventLive }),
   });
 
   return { data: data?.data, error, isLoading, mutate: refresh };

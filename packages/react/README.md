@@ -70,6 +70,8 @@ at a time, so that all viewers of a talk don't refetch in the same instant.
 | `sessionId` | `string`                | —          | Session identifier (required)                           |
 | `sort`      | `"newest" \| "popular"` | `"newest"` | Sort order                                              |
 | `realtime`  | `boolean`               | `true`     | Enable SSE updates. Auto-reconnects on connection loss and refetches after reconnecting. Refetches after a random delay of up to 500 ms, one at a time (`useJitteredRefresh`). |
+| `onReaction` | `(reaction: StreamReaction) => void` | — | Called for every reaction in the session: `{ uid, emoji, createdAt }` |
+| `onEventLive` | `(session: LiveSession) => void` | — | Called when a session is put live on this session's stage (this one included): `{ uid, title }` |
 
 **Returns:**
 
@@ -101,13 +103,19 @@ another session is put live on the same stage.
 Returns `{ isConnected }`. A watchdog reconnects when the server's 30-second
 `ping` stops arriving.
 
+`eventStreamEvents({ onReaction, onEventLive })` builds the `events` map for
+the session stream, with typed payloads (`StreamReaction`, `LiveSession`).
+A new object on every render is fine: handlers are read when an event
+arrives.
+
 ```tsx
 useEventSource({
   url: `${apiUrl}/api/v1/events/${sessionId}/questions/stream`,
   onMessage: refetchQuestions,
-  events: {
-    reaction: (data) => showReaction(JSON.parse(data)),
-  },
+  events: eventStreamEvents({
+    onReaction: (reaction) => showReaction(reaction.emoji),
+    onEventLive: (session) => showLiveSession(session.title),
+  }),
 });
 ```
 

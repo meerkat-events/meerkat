@@ -1,14 +1,15 @@
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
+import { useJitteredRefresh } from "@meerkat-events/react";
 import { useEvent } from "~/hooks/use-event.ts";
-import throttle from "lodash.throttle";
 import Presenter from "../components/Presenter/index.tsx";
 import { toEvent } from "../lib/event.ts";
 import { useKeepLive } from "../hooks/use-keep-live.ts";
 
-// The stage screen refetches the whole event on an SSE update, at most once
-// per this interval.
-const REFRESH_THROTTLE_MS = 1000;
+// The stage screen refetches the whole event on an SSE update, paced like
+// every other client (useJitteredRefresh: one refetch at a time), within a
+// second.
+const REFRESH_MAX_DELAY_MS = 1000;
 
 export default function EventPage() {
   const { uid } = useParams();
@@ -45,17 +46,16 @@ export default function EventPage() {
     onUpdate: (newEvent) => goToEvent(newEvent.uid),
   });
 
-  const refreshEventRef = useRef(refreshEvent);
-  refreshEventRef.current = refreshEvent;
-  const throttleRefresh = useRef(
-    throttle(() => refreshEventRef.current(), REFRESH_THROTTLE_MS),
-  ).current;
+  const scheduleRefresh = useJitteredRefresh(
+    () => refreshEvent(),
+    REFRESH_MAX_DELAY_MS,
+  );
 
   return (
     <Presenter
       event={event}
       url={event?.url}
-      onQuestionsChanged={throttleRefresh}
+      onQuestionsChanged={scheduleRefresh}
       onEventLive={keepLive ? goToEvent : undefined}
     />
   );

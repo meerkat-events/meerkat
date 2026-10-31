@@ -2,17 +2,17 @@ import QR from "../QR.tsx";
 import { Logo } from "../Logo.tsx";
 import { Heading, Text } from "@chakra-ui/react";
 import TopQuestions from "../TopQuestions.tsx";
-import { useEventSource } from "@meerkat-events/react";
+import { eventStreamEvents, useEventSource } from "@meerkat-events/react";
 import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { apiUrl } from "../../lib/api-url.ts";
+import type { Event } from "../../types.ts";
 import {
-  type EventStreamCallbacks,
-  eventStreamEvents,
-} from "../../lib/event-stream-events.ts";
-import type { Event, Reaction } from "../../types.ts";
-import { REACTION_GLYPHS, type ReactionEmoji } from "../../../reactions.ts";
+  REACTION_GLYPHS,
+  type ReactionEmoji,
+  toReactionEmoji,
+} from "../../../reactions.ts";
 import { randomNormal } from "d3-random";
 
 import "./styles.css";
@@ -51,31 +51,27 @@ export default function Presenter(
 
   const hideQRCode = searchParams.get("hide-qr-code") === "true";
 
-  const addReaction = useCallback((reaction: Reaction) => {
+  const addReaction = (emoji: ReactionEmoji) => {
     const id = globalThis.crypto.randomUUID();
     const x = Math.max(0, Math.min(100, randomX()));
-    const emoji = reaction.emoji ?? "heart";
 
     setReactions((prev) => [...prev, { id, x, emoji }]);
 
     setTimeout(() => {
       setReactions((prev) => prev.filter((reaction) => reaction.id !== id));
     }, 3000);
-  }, []);
+  };
 
   // One stream for everything: question changes refetch the event, reactions
   // float up on the screen, and another event going live on the stage
   // switches the screen to it.
-  const callbacksRef = useRef<EventStreamCallbacks>({});
-  callbacksRef.current = {
-    onReaction: addReaction,
-    onEventLive: (session) => onEventLive?.(session.uid),
-  };
-  const events = useMemo(() => eventStreamEvents(callbacksRef), []);
   useEventSource({
     url: event ? apiUrl(`/api/v1/events/${event.uid}/questions/stream`) : undefined,
     onMessage: onQuestionsChanged,
-    events,
+    events: eventStreamEvents({
+      onReaction: (reaction) => addReaction(toReactionEmoji(reaction.emoji)),
+      onEventLive: (session) => onEventLive?.(session.uid),
+    }),
   });
 
   const allQuestions = event?.questions ?? [];

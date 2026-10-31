@@ -35,7 +35,7 @@ import {
   type ReactionOrigin,
 } from "../components/QnA/ReactButton.tsx";
 import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
-import type { ReactionEmoji } from "../../reactions.ts";
+import { type ReactionEmoji, toReactionEmoji } from "../../reactions.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
 import { uuidv7 } from "uuidv7";
 import { useDocumentTitle } from "@uidotdev/usehooks";
@@ -45,7 +45,7 @@ import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
-import type { LiveSession } from "../lib/event-stream-events.ts";
+import type { LiveSession } from "@meerkat-events/react";
 import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
 import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
 import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
@@ -170,7 +170,8 @@ export default function QnA() {
     isLoading: isQuestionsLoading,
   } = useEventQuestions(uid, sort, {
     // The user's own reactions come back too; addReaction skips them by uid.
-    onReaction: (reaction) => addReaction(reaction),
+    onReaction: (reaction) =>
+      addReaction({ uid: reaction.uid, emoji: toReactionEmoji(reaction.emoji) }),
     onEventLive: (session) => {
       // Live flags changed: this session's banner and the schedule.
       refreshEvent();
