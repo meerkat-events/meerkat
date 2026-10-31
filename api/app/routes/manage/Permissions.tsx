@@ -205,41 +205,41 @@ export default function Permissions() {
                 : ""}
             </span>
           </div>
-          <div className="m-permissions-actions">
-            {attendees > 0 && (
-              <Switch.Root
-                size="sm"
-                colorPalette="brand"
-                checked={showAttendees}
-                onCheckedChange={(e) => setShowAttendees(e.checked)}
-              >
-                <Switch.HiddenInput />
-                <Switch.Control>
-                  <Switch.Thumb />
-                </Switch.Control>
-                <Switch.Label whiteSpace="nowrap">Show attendees</Switch.Label>
-              </Switch.Root>
-            )}
-            <div className="m-search" role="search">
-              <LuSearch size={15} aria-hidden="true" />
-              <input
-                type="search"
-                placeholder="Search emails or roles"
-                aria-label="Search people by email or role"
-                autoComplete="off"
-                value={search}
-                onChange={(ev) => setSearch(ev.currentTarget.value)}
-              />
-            </div>
-            <Button
-              size="xs"
-              colorPalette="brand"
-              whiteSpace="nowrap"
-              onClick={() => setAdding(true)}
-            >
-              Add someone
-            </Button>
+          <Button
+            size="xs"
+            colorPalette="brand"
+            whiteSpace="nowrap"
+            onClick={() => setAdding(true)}
+          >
+            Add someone
+          </Button>
+        </div>
+        <div className="m-permissions-filters">
+          <div className="m-search" role="search">
+            <LuSearch size={15} aria-hidden="true" />
+            <input
+              type="search"
+              placeholder="Search emails or roles"
+              aria-label="Search people by email or role"
+              autoComplete="off"
+              value={search}
+              onChange={(ev) => setSearch(ev.currentTarget.value)}
+            />
           </div>
+          {attendees > 0 && (
+            <Switch.Root
+              size="sm"
+              colorPalette="brand"
+              checked={showAttendees}
+              onCheckedChange={(e) => setShowAttendees(e.checked)}
+            >
+              <Switch.HiddenInput />
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              <Switch.Label whiteSpace="nowrap">Show attendees</Switch.Label>
+            </Switch.Root>
+          )}
         </div>
         {error
           ? <div className="m-empty">Couldn't load who has access. Try reloading the page.</div>
