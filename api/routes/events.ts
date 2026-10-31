@@ -12,6 +12,7 @@ import {
   MAX_REACTIONS_PER_INTERVAL,
 } from "../moderation.ts";
 import env from "../env.ts";
+import { stageScreenSearchParams } from "../stage-screen.ts";
 import {
   type Conference,
   getConferenceById,
@@ -573,7 +574,8 @@ app.get("/stage/:stage", async (c) => {
   }
 
   const url = new URL(`/e/${liveEvent.uid}`, env.base);
-  url.searchParams.append("keep-live", "true");
+  const requestSearchParams = new URL(c.req.url).searchParams;
+  url.search = stageScreenSearchParams(requestSearchParams).toString();
 
   return c.redirect(url);
 });
