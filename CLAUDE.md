@@ -93,11 +93,10 @@ it only through `app/lib/api-url.ts` (`apiUrl()`, `appOrigin()`).
 
 ## Validation
 
-There is no test suite yet. Before calling a code change done, all of this
-must pass, from the repo root:
+Before calling a code change done, all of this must pass, from the repo root:
 
 ```bash
-pnpm --dir api typecheck && pnpm --dir api lint
+pnpm --dir api typecheck && pnpm --dir api lint && pnpm --dir api test
 # Docker image builds and serves HTTP 200. Per-checkout name and a random
 # host port, so parallel worktrees don't collide.
 tag="meerkat-$(basename "$PWD")"
@@ -108,7 +107,9 @@ docker stop "$tag"
 ```
 
 New tests use Node's built-in runner, `node:test` with `node:assert`;
-`node --test` picks up `*.test.ts` files directly.
+`node --test` picks up `*.test.ts` files directly (`pnpm --dir api test`).
+CI (`.github/workflows/ci.yml`) runs the unit and integration tests on every
+pull request and before every deploy, which waits for them to pass.
 
 Integration tests (`api/integration/*.int.ts`, outside `node --test`'s
 default globs) run against the local Supabase CLI stack, never a cloud
