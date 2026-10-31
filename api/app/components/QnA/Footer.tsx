@@ -112,7 +112,8 @@ export function Footer({
                 }
               }}
               disabled={!canParticipate}
-              placeholder="Type a question..."
+              // The conference-app hint takes the placeholder's place
+              placeholder={showDevconPrompt ? "" : "Type a question..."}
               name="question"
               borderRadius="questionInput"
               borderColor="transparent"
@@ -144,22 +145,26 @@ export function Footer({
               <FiSend />
             </IconButton>
           </Box>
-          <span className="signin-name">
-            Signed as{" "}
-            <ChakraLink
-              as="button"
-              onClick={onProfileOpen}
-              position="relative"
-              // The full tap target, shifted down into the padding below so
-              // it stays off the question input just above
-              _before={{
-                ...tapTargetStyles._before,
-                transform: "translate(-50%, calc(-50% + 6px))",
-              }}
-            >
-              {user?.user_metadata["name"] ?? user?.id ?? "Anonymous"}
-            </ChakraLink>
-          </span>
+          {/* Guests have no account yet; one is created only when they
+              join the conversation. */}
+          {isAuthenticated && (
+            <span className="signin-name">
+              Signed as{" "}
+              <ChakraLink
+                as="button"
+                onClick={onProfileOpen}
+                position="relative"
+                // The full tap target, shifted down into the padding below so
+                // it stays off the question input just above
+                _before={{
+                  ...tapTargetStyles._before,
+                  transform: "translate(-50%, calc(-50% + 6px))",
+                }}
+              >
+                {user?.user_metadata["name"] ?? user?.id}
+              </ChakraLink>
+            </span>
+          )}
         </div>
         {/* Attendees-only conferences offer no anonymous sign-in: people
             without a role there are pointed to the conference app instead. */}
@@ -170,15 +175,8 @@ export function Footer({
                 // Positioned, so it paints above the positioned field below
                 // it, like the Join button does
                 position="relative"
-                bg="brand.subtle"
-                borderWidth="1px"
-                borderColor="brand.muted"
-                color="fg"
-                fontWeight="semibold"
+                color="fg.muted"
                 textAlign="center"
-                paddingX="4"
-                paddingY="2"
-                borderRadius="l2"
               >
                 Open this session in the Conference App
               </Text>
