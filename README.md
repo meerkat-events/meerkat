@@ -22,8 +22,7 @@ live. A presenter view runs on the stage screen and follows the live session.
   see [pnpm installation](https://pnpm.io/installation)); pnpm then switches
   itself to the version pinned in `packageManager`. `./scripts/setup.sh` does
   this for you
-- A [Supabase](https://supabase.com) project — it provides Postgres, Auth and
-  Realtime
+- A [Supabase](https://supabase.com) project — it provides Postgres and Auth
 - `psql`, used by the seed script
 - Docker, only if you want to build the production image locally
 
@@ -61,16 +60,10 @@ live. A presenter view runs on the stage screen and follows the live session.
      limits, since a venue's attendees share one Wi-Fi IP. Meerkat runs with
      6000 token verifications per 5 minutes, 3000 token refreshes per 5
      minutes and 3000 anonymous sign-ins per hour.
-   - **Realtime**: after the first migration (which also enables Row Level
-     Security on every table), apply the Supabase-specific setup that Drizzle
-     migrations do not cover (realtime SELECT policies, and the `questions`,
-     `reactions` and `votes` tables in the `supabase_realtime` publication).
-     Reactions on the presenter view and live updates on the management pages
-     subscribe to Postgres changes on these tables. The script is idempotent:
 
-     ```bash
-     psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql
-     ```
+   Live updates don't use Supabase Realtime: the server streams them over SSE
+   and passes them between instances with Postgres LISTEN/NOTIFY on
+   `DATABASE_URL`.
 
 ## Development
 
@@ -129,10 +122,10 @@ Required:
 
 | Variable                    | Purpose                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`              | Postgres connection string. `DATABASE_POOLER_URL`, if set, takes precedence at runtime.     |
+| `DATABASE_URL`              | Postgres connection string, direct or session pooler (never the transaction pooler): the realtime bus LISTENs on it. Queries use `DATABASE_POOLER_URL` instead when set. |
 | `SUPABASE_URL`              | Supabase project URL.                                                                       |
-| `SUPABASE_ANON_KEY`         | Supabase anon key, used by the browser for Auth and Realtime.                               |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for broadcasts and Devcon handover sign-ins.    |
+| `SUPABASE_ANON_KEY`         | Supabase anon key, used by the browser for Auth.                                            |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for Devcon handover sign-ins.                   |
 | `DEVCON_VERIFICATION_SECRET` | Shared HS256 secret for verifying Devcon handover tokens (the Devcon app's `VERIFICATION_SECRET`). |
 
 Optional:

@@ -37,7 +37,6 @@ import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
 import type { ReactionEmoji } from "../../reactions.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
 import { uuidv7 } from "uuidv7";
-import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
@@ -45,6 +44,7 @@ import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
+import { LiveSessionPrompt } from "../components/QnA/LiveSessionPrompt.tsx";
 import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
 import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
 import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
@@ -138,11 +138,47 @@ export default function QnA() {
   // With two modes, the sort control switches straight to the other one.
   const otherSort = sortOptions.find((option) => option.value !== sort);
 
+  const reactButtonRef = useRef<HTMLButtonElement>(null);
+  const [reactions, setReactions] = useState<ReactionItem[]>([]);
+  const addReaction = (
+    reaction: { uid: string; emoji?: ReactionEmoji | undefined },
+    origin?: ReactionOrigin,
+  ) => {
+    // Reactions float up from where they were tapped; other people's float
+    // up from the heart button.
+    const rect = reactButtonRef.current?.getBoundingClientRect();
+    const from = origin ?? (rect
+      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+      : { x: globalThis.innerWidth - 48, y: globalThis.innerHeight - 120 });
+    setReactions((prevReactions) => {
+      const hasReaction = prevReactions.some((r) => r.uid === reaction.uid);
+      return hasReaction ? prevReactions : [...prevReactions, {
+        uid: reaction.uid,
+        emoji: reaction.emoji ?? "heart",
+        ...from,
+      }];
+    });
+  };
+
+  // A session just put live on this stage, other than this one, until the
+  // attendee answers the prompt.
+  const [liveSessionUid, setLiveSessionUid] = useState<string>();
   const {
     data: questions,
     mutate: refreshQuestions,
     isLoading: isQuestionsLoading,
-  } = useEventQuestions(uid, sort);
+  } = useEventQuestions(uid, sort, {
+    // The user's own reactions come back too; addReaction skips them by uid.
+    onReaction: (reaction) => addReaction(reaction),
+    onEventLive: (eventUid) => {
+      // Live flags changed: this session's banner and the schedule.
+      refreshEvent();
+      refreshEvents();
+      setLiveSessionUid(eventUid === uid ? undefined : eventUid);
+    },
+  });
+  const liveSessionTitle = events?.find((event) => event.uid === liveSessionUid)
+    ?.title;
   const changeSort = (sort: string) => {
     setSearchParams((searchParams) => {
       const vettedSort = parseSort(sort);
@@ -179,8 +215,6 @@ export default function QnA() {
     },
   );
 
-  const reactButtonRef = useRef<HTMLButtonElement>(null);
-
   // Toasts sit in line with the heart bubble above the footer (see app.css),
   // so they need the footer's height, which grows with the question input.
   const footerRef = useRef<HTMLElement>(null);
@@ -197,33 +231,6 @@ export default function QnA() {
       root.style.removeProperty("--footer-height");
     };
   }, []);
-  const [reactions, setReactions] = useState<ReactionItem[]>([]);
-  const addReaction = (
-    reaction: { uid: string; emoji?: ReactionEmoji | undefined },
-    origin?: ReactionOrigin,
-  ) => {
-    // Reactions float up from where they were tapped; other people's float
-    // up from the heart button.
-    const rect = reactButtonRef.current?.getBoundingClientRect();
-    const from = origin ?? (rect
-      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-      : { x: globalThis.innerWidth - 48, y: globalThis.innerHeight - 120 });
-    setReactions((prevReactions) => {
-      const hasReaction = prevReactions.some((r) => r.uid === reaction.uid);
-      return hasReaction ? prevReactions : [...prevReactions, {
-        uid: reaction.uid,
-        emoji: reaction.emoji ?? "heart",
-        ...from,
-      }];
-    });
-  };
-
-  useReactionsSubscription(event, {
-    onUpdate: (reaction) => {
-      addReaction(reaction);
-    },
-  });
-
   const { user, isAuthenticated, isLoading } = useAuth();
   const handoverError = parseHandoverError(
     searchParams.get(HANDOVER_ERROR_PARAM),
@@ -384,6 +391,11 @@ export default function QnA() {
               )}
             </Alert.Root>
           )}
+          <LiveSessionPrompt
+            eventUid={liveSessionUid}
+            title={liveSessionTitle}
+            onClose={() => setLiveSessionUid(undefined)}
+          />
           {/* Equal side columns keep the conference name centered in the row */}
           <Grid
             templateColumns="1fr minmax(0, auto) 1fr"

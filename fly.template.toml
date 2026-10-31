@@ -37,6 +37,16 @@ auto_start_machines = true
 min_machines_running = 4
 processes = ['app']
 
+# Every open page (Q&A on phones, stage screens, organizer pages) holds an SSE
+# stream for as long as it is open, and each one counts as a request in
+# flight. Fly's default (connections, soft_limit 20) would call a machine busy
+# after a few dozen viewers. Above soft_limit the proxy prefers other machines
+# and starts stopped ones; at hard_limit it queues new requests.
+[http_service.concurrency]
+type = 'requests'
+soft_limit = 1000
+hard_limit = 1500
+
 [[http_service.checks]]
 grace_period = "10s"
 interval = "30s"

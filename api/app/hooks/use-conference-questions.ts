@@ -1,11 +1,11 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import useSWR from "swr";
-import useSWRSubscription from "swr/subscription";
 import throttle from "lodash.throttle";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
-import { useSupabase } from "../context/supabase.tsx";
+import { apiUrl } from "../lib/api-url.ts";
+import { readEventStream } from "../lib/fetch-event-stream.ts";
 import type { ModeratedQuestion } from "../components/Manage/question-state.ts";
 
 export type ConferenceQuestion = ModeratedQuestion & {
@@ -15,9 +15,10 @@ export type ConferenceQuestion = ModeratedQuestion & {
 /**
  * Questions from every live session of a conference, or from one session
  * (organizers only), including what organizers or moderation hid. Refetches
- * whenever a question or vote changes anywhere (asked, selected, answered,
- * hidden, voted), and every 10 seconds for what Realtime doesn't see, such as
- * blocked users and questions moderation hid on arrival.
+ * whenever the conference's question stream says a question or vote changed
+ * (asked, also when moderation hid it, selected, answered, deleted, restored,
+ * voted), and every 10 seconds for what sends no message, such as blocked
+ * users.
  */
 export function useConferenceQuestions(
   conferenceId: number | undefined,
@@ -47,30 +48,32 @@ export function useConferenceQuestions(
   mutateRef.current = mutate;
   const refresh = useRef(throttle(() => mutateRef.current(), 500)).current;
 
-  const { client: supabase } = useSupabase();
-  // One channel per list, so a feed and a session panel each refresh.
-  const channelName = `conference-questions-${conferenceId}-${filter}`;
-  useSWRSubscription(
-    supabase && conferenceId ? channelName : undefined,
-    () => {
-      const channel = supabase?.channel(channelName)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "questions" },
-          () => refresh(),
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "votes" },
-          () => refresh(),
-        )
-        .subscribe();
+  // The stream reads the latest token on every reconnect, so a token refresh
+  // doesn't restart it.
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+  const hasToken = token !== undefined;
 
-      return () => {
-        channel?.unsubscribe();
-      };
-    },
-  );
+  // One stream per list, so a feed and a session panel each refresh.
+  useEffect(() => {
+    if (!conferenceId || !hasToken) {
+      return;
+    }
+    const controller = new AbortController();
+    void readEventStream({
+      url: apiUrl(`/api/v1/conferences/${conferenceId}/questions/stream`),
+      getToken: () => tokenRef.current,
+      onMessage: (message) => {
+        if (message.data !== "ping") {
+          refresh();
+        }
+      },
+      // Messages sent while the stream was down are lost.
+      onReconnect: refresh,
+      signal: controller.signal,
+    });
+    return () => controller.abort();
+  }, [conferenceId, hasToken, refresh]);
 
   return { data: data?.data, error, isLoading, mutate };
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Integration tests against the local Supabase CLI stack (Docker): starts the
-# stack, applies the Drizzle migrations and supabase-policies.sql, then runs
+# stack, applies the Drizzle migrations, then runs
 # api/integration/*.int.ts with node:test. Never touches a cloud project: the
 # tests get only the variables set here, not api/.env or your shell's.
 #
@@ -49,12 +49,11 @@ run() {
     "$@"
 }
 
-echo "Applying migrations and policies..."
+echo "Applying migrations..."
 (cd api && run node migrate.ts)
-psql "$DB_URL" -q -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql
 
 echo "Running integration tests..."
-# The app keeps its database pool and Realtime client open, so the test
+# The app keeps its database pool and realtime listener open, so the test
 # processes would never exit on their own. One file at a time: every file
 # empties the same database.
 cd api

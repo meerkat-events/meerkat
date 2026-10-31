@@ -1,4 +1,3 @@
-import { useEventSource } from "@meerkat-events/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useMemo, useRef } from "react";
 import { useEvent } from "~/hooks/use-event.ts";
@@ -31,13 +30,19 @@ export default function EventPage() {
     data?.data,
   ]);
 
+  // In keep-live mode the screen follows the stage: right away when a
+  // moderator puts another event live (the stream's `live` message), and
+  // through useKeepLive's 10-second poll when the schedule moves on.
+  const goToEvent = (eventUid: string) => {
+    if (eventUid === event?.uid) return;
+    const searchParams = new URLSearchParams();
+    searchParams.set("keep-live", "true");
+    navigate(`/e/${eventUid}?${searchParams.toString()}`);
+  };
+
   useKeepLive({
     event: keepLive ? event : undefined,
-    onUpdate: (newEvent) => {
-      const searchParams = new URLSearchParams();
-      searchParams.set("keep-live", "true");
-      navigate(`/e/${newEvent.uid}?${searchParams.toString()}`);
-    },
+    onUpdate: (newEvent) => goToEvent(newEvent.uid),
   });
 
   const refreshEventRef = useRef(refreshEvent);
@@ -46,10 +51,12 @@ export default function EventPage() {
     throttle(() => refreshEventRef.current(), REFRESH_THROTTLE_MS),
   ).current;
 
-  useEventSource({
-    url: event ? `/api/v1/events/${event.uid}/questions/stream` : undefined,
-    onMessage: throttleRefresh,
-  });
-
-  return <Presenter event={event} url={event?.url} />;
+  return (
+    <Presenter
+      event={event}
+      url={event?.url}
+      onQuestionsChanged={throttleRefresh}
+      onEventLive={keepLive ? goToEvent : undefined}
+    />
+  );
 }

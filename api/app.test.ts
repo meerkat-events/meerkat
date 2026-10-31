@@ -5,6 +5,7 @@ import { test } from "node:test";
 // go in first. None of them points anywhere real: the requests below are
 // turned away by the auth middleware before any route reaches the database
 // or Supabase.
+process.env["DATABASE_URL"] = "postgres://placeholder@127.0.0.1:1/none";
 process.env["DATABASE_POOLER_URL"] = "postgres://placeholder@127.0.0.1:1/none";
 process.env["DEVCON_VERIFICATION_SECRET"] = "placeholder";
 process.env["SUPABASE_SERVICE_ROLE_KEY"] = "placeholder";

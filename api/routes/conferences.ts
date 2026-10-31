@@ -20,6 +20,8 @@ import {
 } from "../models/conference-activity.ts";
 import { summarizeModeration } from "../moderation-summary.ts";
 import { getParticipantPoints, SCORING } from "../models/points.ts";
+import { hub } from "../realtime/index.ts";
+import { eventStream } from "../realtime/sse.ts";
 
 const app = new Hono();
 
@@ -119,6 +121,25 @@ app.get(
     });
 
     return c.json({ data: questions.map(toApiQuestion) });
+  },
+);
+
+// Tells the organizer pages to refetch the questions above: an unnamed
+// `update` whenever a question or vote of any session changes, including
+// questions moderation hid on arrival. No reactions.
+app.get(
+  "/api/v1/conferences/:id/questions/stream",
+  jwt(),
+  async (c) => {
+    const conference = await requireOrganizer(
+      c.req.param("id"),
+      c.get("jwtPayload").sub,
+    );
+
+    return eventStream(c, (send) =>
+      hub.listenToConference(conference.id, () => {
+        send({ data: "update" });
+      }));
   },
 );
 

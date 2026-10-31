@@ -163,10 +163,10 @@ export type PointsScoring = {
   vote: number;
 };
 
+/** A reaction as the event stream sends it (`event: reaction`). */
 export type Reaction = {
-  created_at: string;
-  event_id: number;
   uid: string;
   emoji?: ReactionEmoji | undefined;
+  createdAt?: string | undefined;
 };
 

@@ -113,7 +113,7 @@ New tests use Node's built-in runner, `node:test` with `node:assert`;
 Integration tests (`api/integration/*.int.ts`, outside `node --test`'s
 default globs) run against the local Supabase CLI stack, never a cloud
 project: `pnpm --dir api test:integration` (`scripts/test-integration.sh`)
-needs Docker, starts the stack, migrates, applies the policies and runs them
+needs Docker, starts the stack, migrates and runs them
 with an environment of its own, not `api/.env`. The stack is shared by every
 worktree, and the tests empty its tables. Run them for changes to auth,
 authorization or rate limits; `integration/helpers.ts` resets the database,
@@ -303,7 +303,7 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   outcome, decision, scores, duration, tokens, cost; no question text). Hidden questions are
   shadow-hidden: only their author sees them (`getQuestions` with `viewerId`, `useEventQuestions` on the Q&A
   page), and organizers on the management pages, which review them; every
-  other query, the Realtime policy and all public responses
+  other query and all public responses
   (`toPublicQuestion`, `toApiConference`) leave them and the moderation
   fields out. Organizers get only a summary of the verdict (decision,
   reasons, relevance; `moderation-summary.ts`), never raw scores, and can
@@ -332,27 +332,53 @@ the DB-free `api/features.ts`, which the loader and the client import too).
 - `auth.users` belongs to Supabase; `schema.ts` declares it only so Drizzle
   can join it and set `banned_until`.
 
-### Real-time (all through Supabase Realtime)
+### Real-time (SSE from our API, Postgres between instances)
 
-1. **SSE question stream**: `GET /api/v1/events/:uid/questions/stream`.
-   Every question mutation calls `broadcastQuestionsUpdate(eventId)`
-   (`utils/broadcast.ts`), which posts to Supabase's REST broadcast API on
-   topic `event-{id}`; each server instance holds one subscription per event
-   and pushes an SSE `update` to its clients (`ping` every 30 s). Consumed
-   with `useQuestions`/`useEventSource` from the react package by embedders
-   and `Event.tsx`; `QnA.tsx` uses `useEventQuestions`, which sends the
-   session token, plus the package's `useEventSource`.
-2. **`postgres_changes` in the browser**: reactions on the presenter view
-   (`use-reactions-subscription`) and question and vote changes on the
-   management pages (`useConferenceQuestions`). Their tables need a SELECT
-   policy and membership in the `supabase_realtime` publication (see
-   Database changes); the questions policy excludes rows hidden by
-   moderation.
-3. **Live-event broadcasts**: `POST /api/v1/events/:uid/live` sends on
-   `conference-{id}` and `stage-{stage}`; `useLiveEventSubscription` and
-   `useKeepLive` listen, and `useKeepLive` also polls
-   `/api/v1/events/stage/:stage/live` every 10 s so signage follows the
-   schedule.
+Browsers never talk to Supabase Realtime. Everything live is SSE from our
+own API (`api/realtime/`):
+
+1. **Bus between instances** (`bus.ts`, `postgres-bus.ts`): one Postgres
+   channel, `meerkat_realtime`. Publishing is `pg_notify` through the app's
+   pool; listening is one dedicated LISTEN connection per process on
+   `DATABASE_URL`, which must be direct or the session pooler (LISTEN gets
+   nothing through a transaction pooler). It opens on first use (`main.ts`
+   calls `hub.start()`), never at import, so tests don't connect. Every
+   minute the bus checks it receives its own NOTIFY and replaces the
+   listener if not; after a reconnect subscribers get `resync` and refetch,
+   since NOTIFY has no replay. Messages carry ids and a reaction's public
+   fields only. `memory-bus.ts` is the in-process bus for tests; another
+   transport (Redis) is another `Bus` in `index.ts`.
+2. **Publishing** (`notify.ts`): every question or vote mutation calls
+   `notifyQuestionsChanged(event)` (also for questions moderation hid on
+   arrival, for the organizer pages); the react route calls
+   `notifyReaction`. Failures are logged and never fail the request.
+3. **Fan-out** (`hub.ts`): one bus subscription per process, delivering to
+   the SSE streams on this instance by event and by conference. `sse.ts`
+   writes the streams (`ping` every 30 s, writes queued per stream).
+4. **Event stream** (public): `GET /api/v1/events/:uid/questions/stream`.
+   An unnamed `update` means "refetch the questions"; a named `reaction`
+   carries `{ uid, emoji, createdAt }`; a named `live` carries `{ uid }`
+   of an event just put live on the same stage (`POST
+   /api/v1/events/:uid/live` publishes it; the hub keys stages by name,
+   like signage). `@meerkat-events/react` 0.1.0 only handles unnamed
+   messages, so old embedders keep working without the named ones. Consumed with the package's `useEventSource` (an `events` map
+   for named events; refetches after a re-open): by `useQuestions`, by
+   `useEventQuestions` on the Q&A page, and by `Presenter` on the stage
+   screen, one connection per page.
+5. **Conference stream** (organizers only): `GET
+   /api/v1/conferences/:id/questions/stream`, an `update` for every
+   question or vote change in the conference, no reactions. `EventSource`
+   can't send a token, so `useConferenceQuestions` reads it with
+   `app/lib/fetch-event-stream.ts` (`fetch` with the bearer token, reconnect
+   with backoff, latest token on every attempt) and keeps a 10 s poll for
+   blocked users, which send no message.
+6. **Signage**: the presenter view with `?keep-live=true` switches to the
+   event in a `live` message right away, and `useKeepLive` polls
+   `/api/v1/events/stage/:stage/live` every 10 s for schedule changes
+   nobody announced.
+
+Fly's proxy counts every open stream as a request in flight, hence the
+explicit `[http_service.concurrency]` in `fly.template.toml`.
 
 ### Runtime constraints
 
@@ -377,12 +403,12 @@ the DB-free `api/features.ts`, which the loader and the client import too).
    `auth.users` DDL** from the new migration.
 3. Run `pnpm migrate` for your local database. Deployments migrate
    themselves (see Deployment).
-4. A table the browser subscribes to (`postgres_changes`) also needs the
-   "Realtime" SELECT policy and the `supabase_realtime` publication, in
-   `api/scripts/supabase-policies.sql`, the Supabase setup Drizzle doesn't
-   manage. The script is idempotent; run it on every new Supabase project
-   after the first migration, and after changing it:
-   `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql`
+
+Tables get no RLS policies: the browser reads nothing from the database
+directly (no Data API, no Realtime subscriptions). Supabase-specific DDL that
+Drizzle doesn't generate goes into a custom migration
+(`pnpm exec drizzle-kit generate --custom --name <name>`), like
+`0014_drop_realtime_policies.sql`.
 
 All worktrees share one Supabase database (`api/.env` is copied, not
 per-worktree), so `pnpm migrate` from one branch changes the schema under

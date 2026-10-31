@@ -69,7 +69,7 @@ at a time, so that all viewers of a talk don't refetch in the same instant.
 | ----------- | ----------------------- | ---------- | ------------------------------------------------------- |
 | `sessionId` | `string`                | —          | Session identifier (required)                           |
 | `sort`      | `"newest" \| "popular"` | `"newest"` | Sort order                                              |
-| `realtime`  | `boolean`               | `true`     | Enable SSE updates. Auto-reconnects on connection loss. |
+| `realtime`  | `boolean`               | `true`     | Enable SSE updates. Auto-reconnects on connection loss and refetches after reconnecting. Refetches at most every 500 ms. |
 
 **Returns:**
 
@@ -81,6 +81,35 @@ at a time, so that all viewers of a talk don't refetch in the same instant.
 | `isConnected`  | `boolean`                                | SSE connection is active                         |
 | `mutate`       | `() => Promise<Question[] \| undefined>` | Manually trigger revalidation                    |
 | `error`        | `Error \| undefined`                     | Fetch error, if any                              |
+
+### `useEventSource(options)`
+
+The SSE connection `useQuestions` uses, for building your own live views. The
+session stream is
+`${apiUrl}/api/v1/events/${sessionId}/questions/stream`: an unnamed `update`
+message whenever questions or votes change (refetch them), a named
+`reaction` event per reaction, whose data is JSON
+`{ uid, emoji, createdAt }`, and a named `live` event with `{ uid }` when
+another session is put live on the same stage.
+
+| Option      | Type                                     | Description                                                                 |
+| ----------- | ---------------------------------------- | --------------------------------------------------------------------------- |
+| `url`       | `string \| undefined`                    | Stream URL; `undefined` stays disconnected                                  |
+| `onMessage` | `() => void`                             | Every unnamed message except `ping`, and once after the connection re-opens |
+| `events`    | `Record<string, (data: string) => void>` | Handlers for named events, e.g. `{ reaction: (data) => … }`                 |
+
+Returns `{ isConnected }`. A watchdog reconnects when the server's 30-second
+`ping` stops arriving.
+
+```tsx
+useEventSource({
+  url: `${apiUrl}/api/v1/events/${sessionId}/questions/stream`,
+  onMessage: refetchQuestions,
+  events: {
+    reaction: (data) => showReaction(JSON.parse(data)),
+  },
+});
+```
 
 ### `useSessionUrl(sessionId)`
 
