@@ -245,8 +245,8 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   voting (also removing a vote) and reacting need a role in the conference
   (`mayParticipate` in `models/roles.ts`; 403 otherwise, checked after the ban check and before
   the rate limits). Reads stay public. The Q&A page offers no anonymous
-  sign-in there and tells people without a role to open the session in the
-  conference app ("Open this session in the Conference App").
+  sign-in there and tells people without a role to open the session from
+  the conference app.
 - Rate limits are constants in `api/moderation.ts`; routes answer 429, with a
   `Retry-After` for limits over a time window (`utils/too-many-requests.ts`),
   and the frontend shows a cooldown modal with the reason and the time left

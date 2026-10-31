@@ -178,7 +178,7 @@ export function Footer({
                 color="fg.muted"
                 textAlign="center"
               >
-                Open this session in the Conference App
+                Open this session from the conference app
               </Text>
             </LoginOverlay>
           )
