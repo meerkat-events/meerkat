@@ -53,6 +53,7 @@ function ExternalLink(
       display="inline-flex"
       alignItems="center"
       gap="1.5"
+      color="inherit"
     >
       {children}
     </Link>
@@ -61,15 +62,28 @@ function ExternalLink(
 
 function MeerkatLinks() {
   return (
-    <Stack gap="3" width="100%" fontSize="sm" color="fg.muted">
+    <Stack
+      gap="3"
+      width="100%"
+      alignItems="center"
+      textAlign="center"
+      fontSize="sm"
+      color="gray.500"
+    >
       <Text>
         Hosting an event yourself? Check out{" "}
-        <Link href={WEBSITE_URL} target="_blank" rel="noopener noreferrer">
+        <Link
+          href={WEBSITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          color="inherit"
+          textDecoration="underline"
+        >
           meerkat.events
         </Link>{" "}
         for your own event.
       </Text>
-      <Flex gap="4">
+      <Flex gap="4" justifyContent="center">
         <ExternalLink href={WEBSITE_URL}>
           <FiGlobe aria-hidden /> Website
         </ExternalLink>
