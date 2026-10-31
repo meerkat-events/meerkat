@@ -39,7 +39,7 @@
 /* Everything clickable shows a pointer. Browsers default <button> to an
    arrow and Chakra does the same for menu items; dialogs and menus are
    portalled out of .manage, so they are listed too. */
-:is(.manage, .m-person, .m-menu)
+:is(.manage, .m-person, .m-add-person, .m-menu)
   :is(button, a[href], select, [role="tab"], [role="menuitem"], [role="menuitemradio"]):not(
     :disabled,
     [aria-disabled="true"],
@@ -50,7 +50,7 @@
 
 /* One visible focus ring for keyboard users, 4.7:1 on every surface here;
    browser defaults vary and some fall below 3:1 on the dark background. */
-:is(.manage, .m-person, .m-menu) :focus-visible {
+:is(.manage, .m-person, .m-add-person, .m-menu) :focus-visible {
   outline: 2px solid var(--chakra-colors-brand-500);
   outline-offset: 2px;
 }
@@ -113,10 +113,6 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   white-space: nowrap;
-
-  & img {
-    border-radius: 7px;
-  }
 }
 
 .manage-pages {
@@ -1686,4 +1682,85 @@
     align-items: flex-start;
     text-align: left;
   }
+}
+
+/* Permissions */
+.m-permissions-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--m-line);
+
+  /* Stays beside the toggle when the page's own search takes a full row. */
+  & .m-search {
+    flex: 1 1 180px;
+    max-width: 340px;
+    margin-bottom: 0;
+  }
+}
+
+/* Only as wide as an email, a role and a button need, so the columns stay
+   close together on wide screens. */
+.m-permissions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+  max-width: 760px;
+  margin-inline: auto;
+
+  & .m-table tbody tr {
+    cursor: default;
+  }
+
+  & .m-table tbody tr:hover {
+    background: none;
+  }
+
+  & .m-table .action {
+    width: 1%;
+    text-align: right;
+  }
+
+  & .m-table th:nth-child(2),
+  & .m-table td:nth-child(2) {
+    width: 1%;
+  }
+}
+
+.m-add-person {
+  --chakra-colors-brand-fg: var(--m-brand-300);
+  --chakra-colors-color-palette-fg: var(--m-brand-300);
+  background: var(--m-surface);
+  border: 1px solid var(--m-line);
+
+  & [data-scope="dialog"][data-part="header"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.m-add-person-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  & .m-hint {
+    margin: 0;
+  }
+}
+
+.m-you {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--m-brand-300);
 }

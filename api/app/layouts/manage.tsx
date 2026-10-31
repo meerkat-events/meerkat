@@ -1,5 +1,6 @@
 import {
   Link,
+  type LinksFunction,
   Navigate,
   NavLink,
   Outlet,
@@ -8,6 +9,7 @@ import {
   useSearchParams,
 } from "react-router";
 import { Flex, Heading, Text } from "@chakra-ui/react";
+import { Logo } from "../components/Logo.tsx";
 import { useAuth } from "../hooks/use-auth.ts";
 import { canModerate, useConferenceRoles } from "../hooks/use-conference-roles.ts";
 import {
@@ -30,6 +32,22 @@ export type ManageContext = {
 };
 
 export const useManage = () => useOutletContext<ManageContext>();
+
+// Declared after the root's icons, so browsers use these on the organizer pages.
+export const links: LinksFunction = () => [
+  {
+    rel: "icon",
+    type: "image/png",
+    sizes: "32x32",
+    href: "/manage-favicon-32x32.png",
+  },
+  {
+    rel: "icon",
+    type: "image/png",
+    sizes: "16x16",
+    href: "/manage-favicon-16x16.png",
+  },
+];
 
 /**
  * Organizer pages: live question feed, schedule and analytics for one
@@ -105,8 +123,8 @@ export default function ManageLayout() {
     <div className="manage">
       <header className="manage-top">
         <Link to="/manage" className="manage-brand">
-          <img src="/logo.png" alt="" width={30} height={30} />
-          <span>Meerkat Management</span>
+          <Logo height="40px" width="auto" />
+          <span>Management</span>
         </Link>
         <div className="manage-event">
           <span className="name">{context.conferenceName}</span>
@@ -118,6 +136,7 @@ export default function ManageLayout() {
           <NavLink to="/manage" end>Live question feed</NavLink>
           <NavLink to="/manage/schedule">Schedule</NavLink>
           <NavLink to="/manage/analytics">Analytics</NavLink>
+          <NavLink to="/manage/permissions">Permissions</NavLink>
         </nav>
         <SessionSearch sessions={sessions ?? []} />
       </div>
@@ -164,7 +183,7 @@ function Gate(
       padding="4"
       textAlign="center"
     >
-      <img src="/logo.png" alt="" width={48} height={48} />
+      <Logo height="72px" width="auto" />
       <Heading size="lg">{title}</Heading>
       {body && <Text color="fg.muted" maxW="40ch">{body}</Text>}
     </Flex>
