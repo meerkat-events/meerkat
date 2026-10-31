@@ -7,6 +7,10 @@ import Presenter from "../components/Presenter/index.tsx";
 import { toEvent } from "../lib/event.ts";
 import { useKeepLive } from "../hooks/use-keep-live.ts";
 
+// The stage screen refetches the whole event on an SSE update, at most once
+// per this interval.
+const REFRESH_THROTTLE_MS = 1000;
+
 export default function EventPage() {
   const { uid } = useParams();
   const [searchParams] = useSearchParams();
@@ -38,8 +42,9 @@ export default function EventPage() {
 
   const refreshEventRef = useRef(refreshEvent);
   refreshEventRef.current = refreshEvent;
-  const throttleRefresh =
-    useRef(throttle(() => refreshEventRef.current(), 300)).current;
+  const throttleRefresh = useRef(
+    throttle(() => refreshEventRef.current(), REFRESH_THROTTLE_MS),
+  ).current;
 
   useEventSource({
     url: event ? `/api/v1/events/${event.uid}/questions/stream` : undefined,

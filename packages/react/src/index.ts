@@ -4,6 +4,7 @@ export type { MeerkatProviderProps } from "./provider.tsx";
 export { useQuestions } from "./use-questions.ts";
 export { useSessionUrl } from "./use-session-url.ts";
 export { useEventSource } from "./use-event-source.ts";
+export { useJitteredRefresh } from "./use-jittered-refresh.ts";
 export { FetchError } from "./fetcher.ts";
 
 export type {

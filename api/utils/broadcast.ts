@@ -1,7 +1,10 @@
 import { supabase } from "../supabase.ts";
 import env from "../env.ts";
+import logger from "../logger.ts";
 
 const BROADCAST_EVENT = "questions";
+
+const BROADCAST_TIMEOUT_MS = 2000;
 
 type Listener = () => void;
 
@@ -13,7 +16,9 @@ const subscriptions = new Map<number, {
 /**
  * Subscribe a local listener to questions updates for an event.
  * Shares a single Supabase channel per event across all SSE connections on
- * this instance. Returns an unsubscribe function.
+ * this instance. Every update reaches every listener; clients decide when to
+ * refetch (`useJitteredRefresh` in `@meerkat-events/react`).
+ * Returns an unsubscribe function.
  */
 export function subscribeToEventQuestions(
   eventId: number,
@@ -22,13 +27,14 @@ export function subscribeToEventQuestions(
   if (!supabase) return () => {};
 
   if (!subscriptions.has(eventId)) {
+    const listeners = new Set<Listener>();
     const channel = supabase
       .channel(`event-${eventId}`)
       .on("broadcast", { event: BROADCAST_EVENT }, () => {
-        subscriptions.get(eventId)?.listeners.forEach((l) => l());
+        for (const notify of listeners) notify();
       })
       .subscribe();
-    subscriptions.set(eventId, { channel, listeners: new Set() });
+    subscriptions.set(eventId, { channel, listeners });
   }
 
   subscriptions.get(eventId)!.listeners.add(listener);
@@ -44,26 +50,56 @@ export function subscribeToEventQuestions(
   };
 }
 
-/** Broadcast a questions-updated signal for an event to all subscribers. */
-export async function broadcastQuestionsUpdate(eventId: number): Promise<void> {
+/**
+ * Broadcast a questions-updated signal for an event to all subscribers.
+ *
+ * Doesn't block the request: the broadcast is sent in the background, and a
+ * failure is only logged.
+ */
+export function broadcastQuestionsUpdate(eventId: number): void {
   if (!supabase || !env.supabaseUrl || !env.supabaseServiceRoleKey) return;
 
-  // Use the REST broadcast API — works without a WebSocket subscription and
-  // supports horizontal scaling (all server instances receive via their own
-  // Supabase channel subscriptions).
-  await fetch(`${env.supabaseUrl}/realtime/v1/api/broadcast`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${env.supabaseServiceRoleKey}`,
-      "apikey": env.supabaseServiceRoleKey,
-    },
-    body: JSON.stringify({
-      messages: [{
-        topic: `event-${eventId}`,
-        event: BROADCAST_EVENT,
-        payload: {},
-      }],
-    }),
-  });
+  void postBroadcast(eventId);
+}
+
+/**
+ * Use the REST broadcast API — works without a WebSocket subscription and
+ * supports horizontal scaling (all server instances receive via their own
+ * Supabase channel subscriptions). Never throws.
+ */
+async function postBroadcast(eventId: number): Promise<void> {
+  try {
+    const response = await fetch(
+      `${env.supabaseUrl}/realtime/v1/api/broadcast`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${env.supabaseServiceRoleKey}`,
+          "apikey": env.supabaseServiceRoleKey,
+        },
+        body: JSON.stringify({
+          messages: [{
+            topic: `event-${eventId}`,
+            event: BROADCAST_EVENT,
+            payload: {},
+          }],
+        }),
+        signal: AbortSignal.timeout(BROADCAST_TIMEOUT_MS),
+      },
+    );
+    // Release the connection; the body carries nothing we need.
+    await response.body?.cancel();
+    if (!response.ok) {
+      logger.warn(
+        { eventId, status: response.status },
+        "Questions broadcast failed",
+      );
+    }
+  } catch (error) {
+    // The error's name only (TimeoutError, TypeError, …): its message and
+    // cause can carry the Supabase host.
+    const reason = error instanceof Error ? error.name : "unknown";
+    logger.warn({ eventId, reason }, "Questions broadcast failed");
+  }
 }
