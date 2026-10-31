@@ -34,13 +34,12 @@ case "$DB_URL" in
 esac
 
 # A clean environment, so nothing from api/.env or the shell (a cloud
-# DATABASE_POOLER_URL, an OpenRouter key) reaches the tests.
+# DATABASE_URL, an OpenRouter key) reaches the tests.
 run() {
   env -i \
     PATH="$PATH" \
     HOME="$HOME" \
     DATABASE_URL="$DB_URL" \
-    DATABASE_POOLER_URL="$DB_URL" \
     SUPABASE_URL="$API_URL" \
     SUPABASE_ANON_KEY="$ANON_KEY" \
     SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \

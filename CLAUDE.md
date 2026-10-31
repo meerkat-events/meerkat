@@ -362,9 +362,11 @@ writes to the SSE streams open on that instance (`sse.ts`).
 
 Rules:
 
-1. **`DATABASE_URL` must be the direct connection or the session pooler**:
-   the bus LISTENs on it, and LISTEN receives nothing through a transaction
-   pooler. The listener opens on first use, never at import; a self-check
+1. **`DATABASE_URL` is the direct connection, for everything** (there is
+   no pooler): the bus LISTENs on it, which a transaction pooler would
+   break. Each server holds `DATABASE_MAX_POOL_SIZE` connections plus one
+   LISTEN, against the project's `max_connections`. The listener opens on
+   first use, never at import; a self-check
    every minute replaces it when its own NOTIFY doesn't arrive, and after a
    reconnect every client resyncs (NOTIFY has no replay).
 2. **Publish after the write, never await it** (`void notify…`): it is best
@@ -481,8 +483,8 @@ Fly.io via `.github/workflows/continous-deployment.yml`: a push to `master`
 deploys `dev`, a GitHub release deploys `prod`. `fly.template.toml` is
 rendered with `envsubst` from GitHub secrets. Its `release_command` runs
 `api/migrate.ts` once per deploy, before the rollout, and a failed migration
-aborts the deploy; unlike the app, `migrate.ts` prefers `DATABASE_URL` over
-`DATABASE_POOLER_URL`. The health check hits `/api/v1/health` (public; a
+aborts the deploy; it uses `DATABASE_URL`, the direct connection, like the
+app. The health check hits `/api/v1/health` (public; a
 `SELECT 1`, so it fails while the database is unreachable).
 `.github/workflows/sync.yml` runs a Pretalx sync by hand and needs the
 `MEERKAT_BASE` secret in the chosen environment.

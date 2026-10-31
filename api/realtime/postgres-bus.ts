@@ -23,11 +23,11 @@ type DeliveryCheck = { type: "check"; id: string };
 
 /**
  * The bus over Postgres LISTEN/NOTIFY. Publishing uses `pg_notify` through the
- * app's pool, which works through a transaction pooler. Listening needs a
- * session, so it gets its own connection on `listenConnectionString` (direct
- * or session pooler), opened on the first `subscribe`, not at import.
+ * app's pool. Listening keeps a dedicated connection on `connectionString`
+ * (direct, since LISTEN needs a session), opened on the first `subscribe`,
+ * not at import.
  */
-export function createPostgresBus(listenConnectionString: string): Bus {
+export function createPostgresBus(connectionString: string): Bus {
   const handlers = new Set<MessageHandler>();
   let listener: postgres.Sql | undefined;
   let hasConnected = false;
@@ -75,8 +75,7 @@ export function createPostgresBus(listenConnectionString: string): Bus {
   }
 
   function connect() {
-    listener = postgres(listenConnectionString, {
-      prepare: false,
+    listener = postgres(connectionString, {
       connect_timeout: 30,
       onnotice: () => {},
     });
@@ -117,7 +116,7 @@ export function createPostgresBus(listenConnectionString: string): Bus {
       pendingCheck = undefined;
       logger.error(
         "Realtime listener missed its own NOTIFY, reconnecting. DATABASE_URL " +
-          "must be a direct or session pooler connection.",
+          "must be the direct connection, not a transaction pooler.",
       );
       void reconnect();
     }, CHECK_TIMEOUT_MS);

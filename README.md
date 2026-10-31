@@ -122,7 +122,7 @@ Required:
 
 | Variable                    | Purpose                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`              | Postgres connection string, direct or session pooler (never the transaction pooler): the realtime bus LISTENs on it. Queries use `DATABASE_POOLER_URL` instead when set. |
+| `DATABASE_URL`              | The direct Postgres connection (`db.<project-ref>.supabase.co:5432`), for queries and the realtime bus, which LISTENs on it. No pooler. |
 | `SUPABASE_URL`              | Supabase project URL.                                                                       |
 | `SUPABASE_ANON_KEY`         | Supabase anon key, used by the browser for Auth.                                            |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for Devcon handover sign-ins.                   |
@@ -138,8 +138,7 @@ Optional:
 | `CORS_ORIGINS`           | Comma-separated origins allowed to call `/api/*` from a browser. Default: `*`.   |
 | `PRETALX_URL`            | Origin of the Pretalx instance whose schedules are synced into conferences. Unset disables the sync endpoint. |
 | `SUPABASE_SECRET_KEY`    | Supabase secret API key (`sb_secret_…`). When set, Devcon handover sign-ins forward the attendee's IP so Supabase rate-limits per attendee rather than per server; also enable IP Address Forwarding in the project. |
-| `DATABASE_POOLER_URL`    | Connection string of a connection pooler, preferred over `DATABASE_URL`.          |
-| `DATABASE_MAX_POOL_SIZE` | Max DB pool size (default: 10).                                                  |
+| `DATABASE_MAX_POOL_SIZE` | Max DB connections per server (default: 10), plus one for the realtime bus. Keep machines × (size + 1) well below the project's `max_connections` (60 on the smallest compute); 8 suits 4–6 machines. |
 | `SENTRY_DSN`             | Sentry error tracking DSN.                                                       |
 | `ENVIRONMENT`            | Environment name reported to Sentry (default: `development`).                    |
 | `OPENROUTER_API_KEY`     | OpenRouter key for automatic question moderation. Unset disables moderation everywhere. |

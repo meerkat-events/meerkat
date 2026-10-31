@@ -1,12 +1,10 @@
-// A direct or session pooler connection, never the transaction pooler: the
-// realtime bus LISTENs on it (realtime/postgres-bus.ts), which needs a
-// session. Queries prefer the pooler when one is set.
-const realtimeConnectionString = process.env["DATABASE_URL"];
-if (!realtimeConnectionString) {
+// The direct connection to Postgres, for queries and for the realtime bus,
+// which LISTENs on it (realtime/postgres-bus.ts). There is no pooler: each
+// machine opens up to DATABASE_MAX_POOL_SIZE connections plus one LISTEN.
+const connectionString = process.env["DATABASE_URL"];
+if (!connectionString) {
   throw new Error("DATABASE_URL is required");
 }
-const connectionString = process.env["DATABASE_POOLER_URL"] ??
-  realtimeConnectionString;
 
 // Port the HTTP server listens on. Fly sets it explicitly; the desktop app's
 // launch.json uses `autoPort`, so a worktree whose preferred port is taken gets
@@ -63,7 +61,6 @@ const openRouterApiKey = process.env["OPENROUTER_API_KEY"]?.trim() ||
 
 const env = {
   connectionString,
-  realtimeConnectionString,
   port,
   base,
   supabaseUrl,
@@ -83,7 +80,6 @@ const env = {
 export const redactedEnv = {
   ...env,
   connectionString: "REDACTED",
-  realtimeConnectionString: "REDACTED",
   devconVerificationSecret: "REDACTED",
   supabaseServiceRoleKey: "REDACTED",
   // Public by design (the browser gets them), but still credentials.

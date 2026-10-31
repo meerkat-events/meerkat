@@ -44,9 +44,10 @@ supabase config diff            # 2. review, then:
 supabase config push
 ```
 
-`DATABASE_URL` must be the direct connection or the session pooler: the
-realtime bus LISTENs on it, and LISTEN receives nothing through the
-transaction pooler.
+`DATABASE_URL` is the direct connection (`db.<project-ref>.supabase.co:5432`,
+IPv6, which Fly machines reach); the app uses no pooler. Every server holds
+up to `DATABASE_MAX_POOL_SIZE` connections plus one for the realtime bus, so
+keep the total below the project's `max_connections`.
 
 Finally, in the dashboard set **Site URL** and **Redirect URLs** (see below),
 enable **IP Address Forwarding** (Authentication → Rate Limits), and create an

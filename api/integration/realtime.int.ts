@@ -84,8 +84,8 @@ describe("realtime", () => {
   });
 
   test("a message published on one instance reaches another", async () => {
-    const instanceA = createPostgresBus(env.realtimeConnectionString);
-    const instanceB = createPostgresBus(env.realtimeConnectionString);
+    const instanceA = createPostgresBus(env.connectionString);
+    const instanceB = createPostgresBus(env.connectionString);
     await waitUntilListening(instanceA, instanceB);
 
     const received: RealtimeMessage[] = [];
