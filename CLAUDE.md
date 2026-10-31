@@ -108,8 +108,9 @@ docker stop "$tag"
 
 New tests use Node's built-in runner, `node:test` with `node:assert`;
 `node --test` picks up `*.test.ts` files directly (`pnpm --dir api test`).
-CI (`.github/workflows/ci.yml`) runs the unit and integration tests on every
-pull request and before every deploy, which waits for them to pass.
+CI (`.github/workflows/ci.yml`) lints, builds, then runs the unit and
+integration tests on every pull request and before every deploy, which waits
+for them to pass.
 
 Integration tests (`api/integration/*.int.ts`, outside `node --test`'s
 default globs) run against the local Supabase CLI stack, never a cloud
