@@ -12,9 +12,14 @@ import env from "./env.ts";
 import logger from "./logger.ts";
 import { HTTPException } from "hono/http-exception";
 import { requestLogger } from "./middlewares/request-logger.ts";
+import { telemetry } from "./middlewares/telemetry.ts";
+import { reportException } from "./posthog.ts";
 
 const app = new Hono();
 
+// First, so the request log line and everything after it is linked to the
+// browser's PostHog session.
+app.use(telemetry());
 app.use(requestLogger());
 // Browser clients on other origins (e.g. `@meerkat-events/react` embedded in
 // the Devcon event app) need CORS headers on every /api response, including
@@ -54,6 +59,7 @@ app.onError((err, c) => {
     { err, method: c.req.method, path: c.req.path },
     "Unhandled error",
   );
+  reportException(err);
   return c.json({ error: "Internal server error" }, 500);
 });
 

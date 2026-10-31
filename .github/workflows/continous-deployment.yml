@@ -53,6 +53,9 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           DEVCON_VERIFICATION_SECRET: ${{ secrets.DEVCON_VERIFICATION_SECRET }}
           PRETALX_URL: ${{ secrets.PRETALX_URL }}
+          ENVIRONMENT: ${{ needs.set-env.outputs.deploy_env }}
+          POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+          POSTHOG_HOST: ${{ secrets.POSTHOG_HOST }}
       - run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

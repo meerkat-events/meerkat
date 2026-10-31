@@ -383,6 +383,38 @@ Rules:
    30 s. Fly counts every open stream as a request in flight, hence
    `[http_service.concurrency]` in `fly.template.toml`.
 
+### Observability (PostHog)
+
+One PostHog project (`POSTHOG_PROJECT_TOKEN`, `POSTHOG_HOST`; unset token
+turns it all off) gets the server's logs, traces and exceptions and the
+browser's exceptions, all linked to the browser session that caused them.
+Every deployment tags them with `ENVIRONMENT`.
+
+- **Server telemetry**: `api/instrumentation.ts` is loaded with
+  `node --import ./instrumentation.ts ./main.ts` (dev, start, Dockerfile,
+  Fly): instrumenting ES modules needs its loader hook before they load.
+  OpenTelemetry sends a span per request (HTTP, named after the Hono route)
+  and per outgoing fetch (undici), and every pino line, over OTLP to
+  `/i/v1/traces` and `/i/v1/logs`. Log lines and spans carry `trace_id`.
+  `url.query` values of credential parameters (`token`, `code`, …) are
+  redacted; extend `REDACTED_QUERY_PARAMS` when a route takes a new one.
+- **Client ↔ server**: posthog-js (`app/lib/posthog.ts`, started in
+  `entry.client.tsx` before hydration from `/api/v1/config`) adds
+  `X-POSTHOG-SESSION-ID`/`X-POSTHOG-DISTINCT-ID` to API requests;
+  `middlewares/telemetry.ts` runs the request in a posthog-node context with
+  them, so its spans, log lines (`posthogDistinctId`, `sessionId`) and
+  exceptions link to the session. The person is the Supabase user id
+  (`identify` in `context/user.tsx`, `reset` on sign-out), never the email.
+- **Errors**: `reportException` (`api/posthog.ts`) from Hono's `onError`, the
+  process handlers in `main.ts` and React Router's `handleError`
+  (`entry.server.tsx`); in the browser, exception autocapture plus the root
+  `ErrorBoundary` (5xx and thrown errors, not 4xx).
+- **Feedback**: "Give feedback" in the navigation drawer captures
+  `feedback_requested`, which opens the PostHog survey "Give feedback" (Open
+  feedback template, event-triggered, shown every time).
+- Check with `posthog-cli api call query-logs …`, and `execute-sql` on
+  `events` (`$exception`) and `posthog.trace_spans`.
+
 ### Runtime constraints
 
 - Node 26 runs `.ts` directly (type stripping): ESM only, explicit `.ts`
@@ -494,9 +526,8 @@ rendered with `envsubst` from GitHub secrets. Its `release_command` runs
 `api/migrate.ts` once per deploy, before the rollout, and a failed migration
 aborts the deploy; it uses `DATABASE_URL`, the direct connection, like the
 app. The health check hits `/api/v1/health` (public; a
-`SELECT 1`, so it fails while the database is unreachable). Errors go
-only to the logs (pino on stdout, `fly logs`); there is no error tracker.
-`main.ts` logs unhandled rejections and keeps running, and logs uncaught
-exceptions and exits.
+`SELECT 1`, so it fails while the database is unreachable).
+`main.ts` logs and reports unhandled rejections and keeps running, and logs
+and reports uncaught exceptions and exits (see Observability).
 `.github/workflows/sync.yml` runs a Pretalx sync by hand and needs the
 `MEERKAT_BASE` secret in the chosen environment.

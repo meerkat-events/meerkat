@@ -28,4 +28,4 @@ RUN pnpm -r build
 
 WORKDIR /workspace/api
 
-CMD ["node", "./main.ts"]
+CMD ["node", "--import", "./instrumentation.ts", "./main.ts"]

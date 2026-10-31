@@ -136,6 +136,9 @@ Optional:
 | `BASE_URL`               | Public origin of the app, used for redirects and QR codes. Default `http://localhost:$PORT`. |
 | `VITE_API_URL`           | API origin compiled into the frontend. Default empty: the frontend calls the origin it was served from. |
 | `CORS_ORIGINS`           | Comma-separated origins allowed to call `/api/*` from a browser. Default: `*`.   |
+| `POSTHOG_PROJECT_TOKEN`  | PostHog project token (`phc_…`): server logs, traces and exceptions over OTLP, and browser error tracking. Unset turns it off; logs then go to stdout only. |
+| `POSTHOG_HOST`           | PostHog ingestion host of the project's region, e.g. `https://eu.i.posthog.com`. Required with the token. |
+| `ENVIRONMENT`            | Deployment name sent with everything to PostHog (default `development`).        |
 | `PRETALX_URL`            | Origin of the Pretalx instance whose schedules are synced into conferences. Unset disables the sync endpoint. |
 | `SUPABASE_SECRET_KEY`    | Supabase secret API key (`sb_secret_…`). When set, Devcon handover sign-ins forward the attendee's IP so Supabase rate-limits per attendee rather than per server; also enable IP Address Forwarding in the project. |
 | `DATABASE_MAX_POOL_SIZE` | Max DB connections per server (default: 10), plus one for the realtime bus. Keep machines × (size + 1) well below the project's `max_connections` (60 on the smallest compute); 8 suits 4–6 machines. |

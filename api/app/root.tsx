@@ -7,6 +7,7 @@ import {
   ScrollRestoration,
 } from "react-router";
 import type React from "react";
+import { useReportRouteError } from "./hooks/use-report-route-error.ts";
 import type { Route } from "../.react-router/types/app/+types/root.ts";
 
 // The default title; pages that need their own export a `meta` too.
@@ -107,6 +108,8 @@ export function HydrateFallback() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  useReportRouteError(error);
+
   let message = "Oops!";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;

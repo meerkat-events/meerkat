@@ -8,6 +8,7 @@ import { type Config, getConfig } from "../lib/config.ts";
 import { Provider } from "../components/ui/provider.tsx";
 import { meerkat } from "../theme/index.ts";
 import { fetcher } from "../hooks/fetcher.ts";
+import { useReportRouteError } from "../hooks/use-report-route-error.ts";
 import { createSystem } from "../theme/index.ts";
 
 export async function clientLoader(args: Route.LoaderArgs) {
@@ -72,6 +73,8 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  useReportRouteError(error);
+
   let message = "Oops!";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;

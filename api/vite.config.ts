@@ -50,6 +50,9 @@ export default defineConfig({
     },
   },
   ssr: {
+    // PostHog's browser packages break when Node loads them unbundled
+    // (https://posthog.com/docs/libraries/react-router).
+    noExternal: ["posthog-js", "@posthog/react"],
     resolve: {
       conditions: ["module", "node", "development|production"],
       externalConditions: ["node"],

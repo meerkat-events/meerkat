@@ -10,6 +10,7 @@ import { SWRConfig } from "swr";
 import { type Config, getConfig } from "../lib/config.ts";
 import { Toaster } from "../components/ui/toaster.tsx";
 import { fetcher } from "../hooks/fetcher.ts";
+import { useReportRouteError } from "../hooks/use-report-route-error.ts";
 import { createSystem, meerkat } from "../theme/index.ts";
 import type { Event } from "../types.ts";
 
@@ -81,6 +82,8 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  useReportRouteError(error);
+
   let message = "Oops!";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;

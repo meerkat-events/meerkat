@@ -18,6 +18,9 @@ SUPABASE_SERVICE_ROLE_KEY = '$SUPABASE_SERVICE_ROLE_KEY'
 SUPABASE_SECRET_KEY = '$SUPABASE_SECRET_KEY'
 DEVCON_VERIFICATION_SECRET = '$DEVCON_VERIFICATION_SECRET'
 PRETALX_URL = '$PRETALX_URL'
+ENVIRONMENT = '$ENVIRONMENT'
+POSTHOG_PROJECT_TOKEN = '$POSTHOG_PROJECT_TOKEN'
+POSTHOG_HOST = '$POSTHOG_HOST'
 
 [deploy]
 # Runs once per deploy in a temporary machine before the rollout; a failure
@@ -25,7 +28,7 @@ PRETALX_URL = '$PRETALX_URL'
 release_command = 'node /workspace/api/migrate.ts'
 
 [processes]
-app = 'node /workspace/api/main.ts'
+app = 'node --import /workspace/api/instrumentation.ts /workspace/api/main.ts'
 
 [http_service]
 internal_port = 8000
