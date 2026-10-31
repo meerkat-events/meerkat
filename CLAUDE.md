@@ -351,18 +351,21 @@ as `event.conference.features` (`collect` shows the Event Card link,
 
 ## Database changes
 
-1. Edit `api/schema.ts`, the single source of truth.
+1. Edit `api/schema.ts`, the single source of truth. **A new table ends in
+   `.enableRLS()`**, so its migration enables Row Level Security
+   (`api/schema.test.ts` fails otherwise): the anon key is public. The
+   Data API (PostgREST) is also off (`[api] enabled = false` in
+   `supabase/config.toml`); nothing uses it, and keeping it off is the
+   second line of defense.
 2. Run `pnpm generate` in `api/` and review the SQL. **Delete any
    `auth.users` DDL** from the new migration.
 3. Run `pnpm migrate` for your local database. Deployments migrate
    themselves (see Deployment).
-4. A new table also goes into `api/scripts/supabase-policies.sql`, which
-   holds the Supabase setup Drizzle doesn't manage. Every table needs Row
-   Level Security there, because the anon key is public and PostgREST
-   exposes the `public` schema. Tables the browser subscribes to also need
-   the "Realtime" SELECT policy and the `supabase_realtime` publication. The
-   script is idempotent; run it on every new Supabase project after the
-   first migration, and after changing it:
+4. A table the browser subscribes to (`postgres_changes`) also needs the
+   "Realtime" SELECT policy and the `supabase_realtime` publication, in
+   `api/scripts/supabase-policies.sql`, the Supabase setup Drizzle doesn't
+   manage. The script is idempotent; run it on every new Supabase project
+   after the first migration, and after changing it:
    `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql`
 
 All worktrees share one Supabase database (`api/.env` is copied, not

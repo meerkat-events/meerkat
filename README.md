@@ -63,12 +63,12 @@ Optionally, attendees can collect a signed attendance proof (a
      limits, since a venue's attendees share one Wi-Fi IP. Meerkat runs with
      6000 token verifications per 5 minutes, 3000 token refreshes per 5
      minutes and 3000 anonymous sign-ins per hour.
-   - **Row Level Security and realtime**: after the first migration, apply the
-     Supabase-specific setup that Drizzle migrations do not cover (RLS on every
-     table, realtime SELECT policies, and the `questions`, `reactions` and
-     `votes` tables in the `supabase_realtime` publication). Reactions on the
-     presenter view and live updates on the management pages subscribe to
-     Postgres changes on these tables. The script is idempotent:
+   - **Realtime**: after the first migration (which also enables Row Level
+     Security on every table), apply the Supabase-specific setup that Drizzle
+     migrations do not cover (realtime SELECT policies, and the `questions`,
+     `reactions` and `votes` tables in the `supabase_realtime` publication).
+     Reactions on the presenter view and live updates on the management pages
+     subscribe to Postgres changes on these tables. The script is idempotent:
 
      ```bash
      psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql

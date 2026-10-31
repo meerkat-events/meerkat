@@ -36,13 +36,19 @@ export const users = authSchema.table("users", {
   bannedUntil: timestamp("banned_until"),
 });
 
+// Every table enables Row Level Security (`.enableRLS()`), so the migration
+// that creates it also locks it. The anon key is public and Supabase's Data
+// API exposes the `public` schema: RLS without a policy denies anon and
+// authenticated everything, while the API connects as the table owner and is
+// unaffected. Policies live in scripts/supabase-policies.sql; schema.test.ts
+// fails for a table without RLS.
 export const profiles = pgTable("profile", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").unique(),
   zupassId: text("zupass_id"),
-});
+}).enableRLS();
 
 export const conferences = pgTable("conferences", {
   id: serial("id").primaryKey(),
@@ -93,7 +99,7 @@ export const conferences = pgTable("conferences", {
   // Automatic question moderation: written context and optional overrides
   // (conferenceModerationSchema in moderation.ts); null = not moderated.
   moderation: jsonb("moderation").$type<ConferenceModeration>(),
-});
+}).enableRLS();
 
 /**
  * A person's role in one conference. Organizers moderate and see the
@@ -118,7 +124,7 @@ export const conferenceTickets = pgTable(
   (
     table,
   ) => [index("conference_tickets_conference_id_idx").on(table.conferenceId)],
-);
+).enableRLS();
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
@@ -151,7 +157,7 @@ export const events = pgTable("events", {
   // start >= now(), ordered by start. Also serves the stage filter of
   // getEvents and setEventLive's update.
   index("events_stage_start_idx").on(table.stage, table.start),
-]);
+]).enableRLS();
 
 export const questions = pgTable(
   "questions",
@@ -182,7 +188,7 @@ export const questions = pgTable(
     index("questions_event_id_idx").on(table.eventId),
     index("questions_user_id_idx").on(table.userId),
   ],
-);
+).enableRLS();
 
 export const votes = pgTable(
   "votes",
@@ -205,7 +211,7 @@ export const votes = pgTable(
     index("votes_user_id_idx").on(table.userId),
     index("votes_question_id_idx").on(table.questionId),
   ],
-);
+).enableRLS();
 
 export const conferenceRole = pgTable(
   "conference_role",
@@ -225,7 +231,7 @@ export const conferenceRole = pgTable(
     primaryKey({ columns: [table.conferenceId, table.userId] }),
     index("conference_role_user_id_idx").on(table.userId),
   ],
-);
+).enableRLS();
 
 export const invitations = pgTable(
   "invitations",
@@ -243,7 +249,7 @@ export const invitations = pgTable(
     index("invitations_email_idx").on(table.email),
     index("invitations_conference_id_idx").on(table.conferenceId),
   ],
-);
+).enableRLS();
 
 // Supervotes a user can spend, across all conferences. Selecting one of their
 // questions adds one; spending one on a vote takes it (models/supervotes.ts).
@@ -258,7 +264,7 @@ export const supervoteBalances = pgTable(
   (table) => [
     check("supervote_balances_balance_not_negative", sql`${table.balance} >= 0`),
   ],
-);
+).enableRLS();
 
 export const features = pgTable("features", {
   conferenceId: integer("conference_id").notNull().references(
@@ -267,7 +273,7 @@ export const features = pgTable("features", {
   ),
   name: text("name").notNull(),
   active: boolean("active").notNull(),
-}, (table) => [primaryKey({ columns: [table.conferenceId, table.name] })]);
+}, (table) => [primaryKey({ columns: [table.conferenceId, table.name] })]).enableRLS();
 
 export const reactions = pgTable(
   "reactions",
@@ -288,7 +294,7 @@ export const reactions = pgTable(
     index("reactions_event_id_idx").on(table.eventId),
     index("reactions_user_id_idx").on(table.userId),
   ],
-);
+).enableRLS();
 
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
@@ -296,7 +302,7 @@ export const apiKeys = pgTable("api_keys", {
   hashedKey: text("hashed_key").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   validUntil: timestamp("valid_until"),
-});
+}).enableRLS();
 
 export function lower(column: AnyPgColumn) {
   return sql`lower(${column})`;

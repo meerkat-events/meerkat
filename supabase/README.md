@@ -8,9 +8,9 @@ config.toml    service settings (auth, api, pooler, rate limits)
 templates/     the two auth emails Meerkat customizes
 ```
 
-The tables come from Drizzle (`api/schema.ts`), and the Supabase-specific DDL
-Drizzle does not emit (RLS, Realtime policies, publication) from
-`api/scripts/supabase-policies.sql`.
+The tables and their Row Level Security come from Drizzle (`api/schema.ts`),
+and the Supabase-specific DDL Drizzle does not emit (Realtime policies,
+publication) from `api/scripts/supabase-policies.sql`.
 
 ## Creating a new project
 
@@ -97,9 +97,15 @@ all carry over to a new project:
 | `auth.rate_limit.token_refresh` | `3000` / 5 min / IP | session refreshes from a venue's shared Wi-Fi IP |
 | `auth.rate_limit.anonymous_users` | `3000` / hour / IP | anonymous joins from a venue's shared Wi-Fi IP |
 
-RLS on all public tables, the `Realtime` SELECT policies on `questions` /
-`reactions` / `votes` and their `supabase_realtime` publication come from
-`api/scripts/supabase-policies.sql`, which is idempotent and safe to re-run.
+RLS on every public table comes from the migrations (each table in
+`api/schema.ts` calls `.enableRLS()`). The `Realtime` SELECT policies on
+`questions` / `reactions` / `votes` and their `supabase_realtime` publication
+come from `api/scripts/supabase-policies.sql`, which is idempotent and safe to
+re-run.
+
+The Data API (`[api] enabled = false`) is off: nothing in Meerkat uses
+PostgREST or GraphQL, so the anon key reaches no table even if one lacked
+RLS. Auth and Realtime don't depend on it.
 
 ## Undeclared on purpose
 
