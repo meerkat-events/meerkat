@@ -13,6 +13,7 @@ import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { CONFIRMATION_DURATION, toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
 import type { User } from "../../hooks/use-auth.ts";
+import { ATTENDEES_ONLY_FEATURE } from "../../../features.ts";
 
 import "./Footer.css";
 
@@ -21,6 +22,13 @@ const MAX_QUESTION_LENGTH = 200;
 export type FooterProps = {
   event: Event | undefined;
   isAuthenticated: boolean;
+  /** Signed in, and allowed to take part in this conference. */
+  canParticipate: boolean;
+  /**
+   * The conference is attendees-only and this visitor has no role there:
+   * the question field points them to the conference app.
+   */
+  showDevconPrompt: boolean;
   isUserLoading: boolean;
   user: User | undefined;
   refresh: () => void;
@@ -31,6 +39,8 @@ export type FooterProps = {
 export function Footer({
   event,
   isAuthenticated,
+  canParticipate,
+  showDevconPrompt,
   isUserLoading,
   user,
   refresh,
@@ -100,8 +110,10 @@ export function Footer({
                   submitQuestion();
                 }
               }}
-              disabled={!isAuthenticated}
-              placeholder="Type a question..."
+              disabled={!canParticipate}
+              placeholder={showDevconPrompt
+                ? "Open this session in the Conference App"
+                : "Type a question..."}
               name="question"
               borderRadius="questionInput"
               borderColor="transparent"
@@ -117,7 +129,7 @@ export function Footer({
             />
             <IconButton
               loading={isMutating}
-              disabled={!isAuthenticated}
+              disabled={!canParticipate}
               size="md"
               onClick={submitQuestion}
               aria-label="Submit question"
@@ -150,7 +162,10 @@ export function Footer({
             </ChakraLink>
           </span>
         </div>
-        {!isAuthenticated && !isUserLoading && (
+        {/* Attendees-only conferences offer no anonymous sign-in; the
+            field's placeholder points to the conference app instead. */}
+        {!isAuthenticated && !isUserLoading && event &&
+          !event.conference.features[ATTENDEES_ONLY_FEATURE] && (
           <LoginOverlay>
             <PrimaryButton
               loadingText="Joining..."

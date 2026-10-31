@@ -45,8 +45,13 @@ import {
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { tooManyRequests } from "../utils/too-many-requests.ts";
 import { REACTION_EMOJIS } from "../reactions.ts";
+import { ATTENDEES_ONLY_MESSAGE } from "../features.ts";
 import { type Feature, getFeatures } from "../models/features.ts";
-import { canModerate, getConferenceRolesForConference } from "../models/roles.ts";
+import {
+  canModerate,
+  getConferenceRolesForConference,
+  mayParticipate,
+} from "../models/roles.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
 import { supabase } from "../supabase.ts";
@@ -239,6 +244,10 @@ app.post(
       throw new HTTPException(403, { message: `User ${uid} is blocked` });
     }
 
+    if (!await mayParticipate(user.id, event.conferenceId)) {
+      throw new HTTPException(403, { message: ATTENDEES_ONLY_MESSAGE });
+    }
+
     const minuteAgo = dateDeductedMinutes(1);
     const lastMinuteActivityPromise = getUserPostTimesAfterDate(
       user.id,
@@ -332,6 +341,10 @@ app.post(
 
     if (user.bannedUntil && user.bannedUntil > new Date()) {
       throw new HTTPException(403, { message: `User is blocked` });
+    }
+
+    if (!await mayParticipate(user.id, event.conferenceId)) {
+      throw new HTTPException(403, { message: ATTENDEES_ONLY_MESSAGE });
     }
 
     const thirtySecondsAgo = dateDeductedMinutes(0.5);

@@ -5,7 +5,8 @@ import { Flex } from "@chakra-ui/react";
 export type QuestionsSectionProps = {
   questions: QuestionType[] | undefined;
   isLoading: boolean;
-  isAuthenticated: boolean;
+  /** Signed in, and allowed to take part in this conference. */
+  canVote: boolean;
   canModerate: boolean;
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
@@ -16,7 +17,7 @@ export type QuestionsSectionProps = {
 export function QuestionsSection(
   {
     questions,
-    isAuthenticated,
+    canVote,
     canModerate,
     refresh,
     isLoading,
@@ -36,7 +37,7 @@ export function QuestionsSection(
                 key={question.uid}
                 question={question}
                 canModerate={canModerate}
-                canVote={isAuthenticated}
+                canVote={canVote}
                 refresh={refresh}
                 voted={!!question.vote}
                 supervotes={supervotes}
