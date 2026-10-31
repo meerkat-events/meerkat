@@ -646,8 +646,8 @@ const toFullApiEvent = (
   };
 };
 
-const MIN_RECONNECT_DELAY_MS = 2000;
-const MAX_RECONNECT_DELAY_MS = 7000;
+const MIN_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 4000;
 
 /** A random SSE `retry:` delay, so reconnects don't all arrive at once. */
 function reconnectDelayMs(): number {

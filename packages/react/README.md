@@ -60,7 +60,7 @@ Configures the API base URL and SWR fetcher for all hooks.
 ### `useQuestions(props)`
 
 Fetches questions for a session. Optionally subscribes to real-time updates via
-SSE. On an update it refetches after a random delay of up to 1.5 s, one request
+SSE. On an update it refetches after a random delay of up to 0.5 s, one request
 at a time, so that all viewers of a talk don't refetch in the same instant.
 
 **Props:**
@@ -89,7 +89,7 @@ Returns the full Meerkat URL for a session as a `string`.
 ### `useJitteredRefresh(refresh, maxDelayMs?)`
 
 Returns a stable function that calls `refresh` (returning a promise) after a
-random delay of up to `maxDelayMs` (default 1500). Calls while it waits are
+random delay of up to `maxDelayMs` (default 500). Calls while it waits are
 covered by that refresh, calls while it runs collapse into one follow-up, and
 two never run at once. `useQuestions` uses it for its SSE updates; use it for
 your own `useEventSource` handlers.

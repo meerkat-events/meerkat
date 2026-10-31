@@ -8,8 +8,8 @@ import { toEvent } from "../lib/event.ts";
 import { useKeepLive } from "../hooks/use-keep-live.ts";
 
 // The stage screen refetches the whole event on an SSE update, at most once
-// per this interval; a few seconds of delay don't matter on a big screen.
-const REFRESH_THROTTLE_MS = 2000;
+// per this interval.
+const REFRESH_THROTTLE_MS = 1000;
 
 export default function EventPage() {
   const { uid } = useParams();

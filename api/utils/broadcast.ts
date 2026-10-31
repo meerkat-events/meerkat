@@ -1,23 +1,8 @@
 import { supabase } from "../supabase.ts";
 import env from "../env.ts";
 import logger from "../logger.ts";
-import { type Coalescer, coalesce } from "./coalesce.ts";
 
 const BROADCAST_EVENT = "questions";
-
-/**
- * Each instance sends its SSE listeners at most one update per event per
- * window. Every update makes every listener refetch the question list, so
- * this caps the refetches a busy talk causes, whatever its vote rate.
- */
-const SSE_UPDATE_WINDOW_MS = 1000;
-
-/**
- * Each instance posts at most one broadcast per event per window. Shorter
- * than the SSE window: it only saves Supabase calls, and the SSE window is
- * what limits the refetches.
- */
-const OUTGOING_BROADCAST_WINDOW_MS = 300;
 
 const BROADCAST_TIMEOUT_MS = 2000;
 
@@ -26,15 +11,13 @@ type Listener = () => void;
 const subscriptions = new Map<number, {
   channel: ReturnType<NonNullable<typeof supabase>["channel"]>;
   listeners: Set<Listener>;
-  notifyListeners: Coalescer;
 }>();
-
-const outgoingBroadcasts = new Map<number, Coalescer>();
 
 /**
  * Subscribe a local listener to questions updates for an event.
  * Shares a single Supabase channel per event across all SSE connections on
- * this instance, and coalesces its updates (`SSE_UPDATE_WINDOW_MS`).
+ * this instance. Every update reaches every listener; clients decide when to
+ * refetch (`useJitteredRefresh` in `@meerkat-events/react`).
  * Returns an unsubscribe function.
  */
 export function subscribeToEventQuestions(
@@ -45,16 +28,13 @@ export function subscribeToEventQuestions(
 
   if (!subscriptions.has(eventId)) {
     const listeners = new Set<Listener>();
-    const notifyListeners = coalesce(() => {
-      for (const notify of listeners) notify();
-    }, SSE_UPDATE_WINDOW_MS);
     const channel = supabase
       .channel(`event-${eventId}`)
       .on("broadcast", { event: BROADCAST_EVENT }, () => {
-        notifyListeners.trigger();
+        for (const notify of listeners) notify();
       })
       .subscribe();
-    subscriptions.set(eventId, { channel, listeners, notifyListeners });
+    subscriptions.set(eventId, { channel, listeners });
   }
 
   subscriptions.get(eventId)!.listeners.add(listener);
@@ -64,7 +44,6 @@ export function subscribeToEventQuestions(
     if (!entry) return;
     entry.listeners.delete(listener);
     if (entry.listeners.size === 0) {
-      entry.notifyListeners.cancel();
       supabase!.removeChannel(entry.channel);
       subscriptions.delete(eventId);
     }
@@ -74,23 +53,13 @@ export function subscribeToEventQuestions(
 /**
  * Broadcast a questions-updated signal for an event to all subscribers.
  *
- * Doesn't block the request: the broadcast is coalesced per event
- * (`OUTGOING_BROADCAST_WINDOW_MS`) and sent in the background, and a failure
- * is only logged.
+ * Doesn't block the request: the broadcast is sent in the background, and a
+ * failure is only logged.
  */
 export function broadcastQuestionsUpdate(eventId: number): void {
   if (!supabase || !env.supabaseUrl || !env.supabaseServiceRoleKey) return;
 
-  let broadcast = outgoingBroadcasts.get(eventId);
-  if (!broadcast) {
-    broadcast = coalesce(
-      () => void postBroadcast(eventId),
-      OUTGOING_BROADCAST_WINDOW_MS,
-      () => outgoingBroadcasts.delete(eventId),
-    );
-    outgoingBroadcasts.set(eventId, broadcast);
-  }
-  broadcast.trigger();
+  void postBroadcast(eventId);
 }
 
 /**

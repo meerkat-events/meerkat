@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createRefreshScheduler } from "./refresh-scheduler.ts";
 
 /** Upper bound of the random wait before refetching on an SSE update. */
-export const UPDATE_JITTER_MS = 1500;
+export const UPDATE_JITTER_MS = 500;
 
 /**
  * Returns a stable function that refreshes after a random delay of up to
