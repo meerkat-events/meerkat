@@ -13,6 +13,13 @@ export const REACTION_EMOJIS = [
 
 export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 
+/** A reaction's emoji from the wire, as one we can render ("heart" if not). */
+export function toReactionEmoji(emoji: string): ReactionEmoji {
+  return (REACTION_EMOJIS as readonly string[]).includes(emoji)
+    ? emoji as ReactionEmoji
+    : "heart";
+}
+
 /** Emoji characters for the non-heart reactions (the heart is a custom SVG). */
 export const REACTION_GLYPHS: Record<Exclude<ReactionEmoji, "heart">, string> =
   {

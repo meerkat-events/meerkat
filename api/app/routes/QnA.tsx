@@ -11,6 +11,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import {
+  Link,
   redirect,
   redirectDocument,
   useParams,
@@ -34,10 +35,9 @@ import {
   type ReactionOrigin,
 } from "../components/QnA/ReactButton.tsx";
 import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
-import type { ReactionEmoji } from "../../reactions.ts";
+import { type ReactionEmoji, toReactionEmoji } from "../../reactions.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
 import { uuidv7 } from "uuidv7";
-import { useReactionsSubscription } from "../hooks/use-reactions-subscription.ts";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
@@ -138,11 +138,43 @@ export default function QnA() {
   // With two modes, the sort control switches straight to the other one.
   const otherSort = sortOptions.find((option) => option.value !== sort);
 
+  const reactButtonRef = useRef<HTMLButtonElement>(null);
+  const [reactions, setReactions] = useState<ReactionItem[]>([]);
+  const addReaction = (
+    reaction: { uid: string; emoji?: ReactionEmoji | undefined },
+    origin?: ReactionOrigin,
+  ) => {
+    // Reactions float up from where they were tapped; other people's float
+    // up from the heart button.
+    const rect = reactButtonRef.current?.getBoundingClientRect();
+    const from = origin ?? (rect
+      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+      : { x: globalThis.innerWidth - 48, y: globalThis.innerHeight - 120 });
+    setReactions((prevReactions) => {
+      const hasReaction = prevReactions.some((r) => r.uid === reaction.uid);
+      return hasReaction ? prevReactions : [...prevReactions, {
+        uid: reaction.uid,
+        emoji: reaction.emoji ?? "heart",
+        ...from,
+      }];
+    });
+  };
+
   const {
     data: questions,
     mutate: refreshQuestions,
     isLoading: isQuestionsLoading,
-  } = useEventQuestions(uid, sort);
+  } = useEventQuestions(uid, sort, {
+    // The user's own reactions come back too; addReaction skips them by uid.
+    onReaction: (reaction) =>
+      addReaction({ uid: reaction.uid, emoji: toReactionEmoji(reaction.emoji) }),
+    // Live flags changed: this session's banner and the schedule, which
+    // offers the new session.
+    onEventLive: () => {
+      refreshEvent();
+      refreshEvents();
+    },
+  });
   const changeSort = (sort: string) => {
     setSearchParams((searchParams) => {
       const vettedSort = parseSort(sort);
@@ -179,8 +211,6 @@ export default function QnA() {
     },
   );
 
-  const reactButtonRef = useRef<HTMLButtonElement>(null);
-
   // Toasts sit in line with the heart bubble above the footer (see app.css),
   // so they need the footer's height, which grows with the question input.
   const footerRef = useRef<HTMLElement>(null);
@@ -197,33 +227,6 @@ export default function QnA() {
       root.style.removeProperty("--footer-height");
     };
   }, []);
-  const [reactions, setReactions] = useState<ReactionItem[]>([]);
-  const addReaction = (
-    reaction: { uid: string; emoji?: ReactionEmoji | undefined },
-    origin?: ReactionOrigin,
-  ) => {
-    // Reactions float up from where they were tapped; other people's float
-    // up from the heart button.
-    const rect = reactButtonRef.current?.getBoundingClientRect();
-    const from = origin ?? (rect
-      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-      : { x: globalThis.innerWidth - 48, y: globalThis.innerHeight - 120 });
-    setReactions((prevReactions) => {
-      const hasReaction = prevReactions.some((r) => r.uid === reaction.uid);
-      return hasReaction ? prevReactions : [...prevReactions, {
-        uid: reaction.uid,
-        emoji: reaction.emoji ?? "heart",
-        ...from,
-      }];
-    });
-  };
-
-  useReactionsSubscription(event, {
-    onUpdate: (reaction) => {
-      addReaction(reaction);
-    },
-  });
-
   const { user, isAuthenticated, isLoading } = useAuth();
   const handoverError = parseHandoverError(
     searchParams.get(HANDOVER_ERROR_PARAM),
@@ -314,6 +317,11 @@ export default function QnA() {
   };
 
   const isntLive = event === undefined ? false : !event.live;
+  // Where the "not live" banner sends attendees: the session live on this
+  // stage now (from the schedule, so not while it shows another day).
+  const otherLiveSession = live.find((session) =>
+    session.live && session.uid !== uid
+  );
 
   const navLinks = useLinks({ event });
 
@@ -379,6 +387,25 @@ export default function QnA() {
                   You're viewing a past or upcoming event.
                 </Alert.Title>
               </Alert.Content>
+              {otherLiveSession && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  flexShrink="0"
+                  // Takes the banner's text color, like LiveDialog's button
+                  color="inherit"
+                  borderColor="currentColor"
+                  _hover={{ bg: "brand.solid/10" }}
+                >
+                  <Link
+                    to={qa(otherLiveSession.uid)}
+                    title={otherLiveSession.title}
+                  >
+                    Go to live session
+                  </Link>
+                </Button>
+              )}
               {event && canModerateHere && (
                 <LiveDialog event={event} onConfirm={onConfirm} />
               )}

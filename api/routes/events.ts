@@ -54,14 +54,15 @@ import {
 } from "../models/roles.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
-import { supabase } from "../supabase.ts";
 import { getStageLiveEvent } from "../models/events.ts";
 import type { Questions } from "../models/questions.ts";
-import { streamSSE } from "hono/streaming";
+import { hub } from "../realtime/index.ts";
 import {
-  broadcastQuestionsUpdate,
-  subscribeToEventQuestions,
-} from "../utils/broadcast.ts";
+  notifyEventLive,
+  notifyQuestionsChanged,
+  notifyReaction,
+} from "../realtime/notify.ts";
+import { eventStream } from "../realtime/sse.ts";
 
 const app = new Hono();
 
@@ -301,8 +302,9 @@ app.post(
       });
     }
 
-    // A hidden question changes no one else's list, so there is nothing to
-    // broadcast; its author's page refreshes after posting.
+    // A question hidden by moderation sends nothing: every stream is public
+    // and must not reveal when hidden questions arrive. Its author's page
+    // refreshes after posting, and the management pages poll.
     if (question.hiddenAt) {
       logger.info(
         {
@@ -314,7 +316,7 @@ app.post(
         "Created question, hidden by moderation",
       );
     } else {
-      broadcastQuestionsUpdate(event.id);
+      void notifyQuestionsChanged(event);
       logger.info(
         {
           questionUid: question.uid,
@@ -391,13 +393,16 @@ app.post(
       "Created reaction",
     );
 
-    return c.json({
-      data: {
-        uid,
-        emoji: reaction.emoji,
-        createdAt: reaction.createdAt,
-      },
-    });
+    const publicReaction = {
+      uid,
+      emoji: reaction.emoji,
+      createdAt: reaction.createdAt.toISOString(),
+    };
+    // Not awaited: reactions come in bursts, and publishing is best effort
+    // (notify.ts logs failures), so the response doesn't wait for it.
+    void notifyReaction(event, publicReaction);
+
+    return c.json({ data: publicReaction });
   },
 );
 
@@ -428,28 +433,7 @@ app.post(
       throw new HTTPException(500, { message: `Failed to set event live` });
     }
 
-    if (supabase) {
-      const channel = supabase.channel(`conference-${event.conferenceId}`);
-
-      await channel.send({
-        "type": "broadcast",
-        "event": "live",
-        "data": {
-          "eventId": event.id,
-          "eventUid": event.uid,
-        },
-      });
-
-      const channelTwo = supabase.channel(`stage-${event.stage}`);
-
-      await channelTwo.send({
-        "type": "broadcast",
-        "event": "live",
-        "data": {
-          "event": event,
-        },
-      });
-    }
+    void notifyEventLive(result);
 
     logger.info(
       {
@@ -646,47 +630,41 @@ const toFullApiEvent = (
   };
 };
 
-const MIN_RECONNECT_DELAY_MS = 1000;
-const MAX_RECONNECT_DELAY_MS = 4000;
-
-/** A random SSE `retry:` delay, so reconnects don't all arrive at once. */
-function reconnectDelayMs(): number {
-  const spread = MAX_RECONNECT_DELAY_MS - MIN_RECONNECT_DELAY_MS;
-  return MIN_RECONNECT_DELAY_MS + Math.floor(Math.random() * spread);
-}
-
 // Public, like the question list it tells clients to refetch (EventSource
-// can't send a token anyway).
+// can't send a token anyway). An unnamed `update` means "refetch the
+// questions" (asked, voted, selected, answered, deleted, restored, or a
+// resync); a named `reaction` carries one reaction; a named `live` carries
+// `{ uid, title }` of the event just put live on this event's stage (same
+// conference), so a stage screen can switch to it and the Q&A page can offer
+// it. `@meerkat-events/react` 0.1.0 listens to unnamed messages only, so it
+// keeps working and never sees the named ones.
 app.get(
   "/api/v1/events/:uid/questions/stream",
   eventMiddleware,
-  async (c) => {
-    if (!supabase) {
-      throw new HTTPException(503, { message: "Realtime unavailable" });
-    }
-
+  (c) => {
     const event = c.get("event");
 
-    return streamSSE(c, async (stream) => {
-      // A "ping" carrying the reconnection delay: clients ignore pings, and
-      // after a restart they come back spread over a few seconds instead of
-      // all in the same one.
-      await stream.writeSSE({ data: "ping", retry: reconnectDelayMs() });
-
-      // writeSSE swallows write errors, so this promise never rejects.
-      const unsubscribe = subscribeToEventQuestions(event.id, () => {
-        void stream.writeSSE({ data: "update" });
-      });
-
-      stream.onAbort(unsubscribe);
-
-      while (!stream.closed) {
-        await stream.sleep(30_000);
-        if (!stream.closed) await stream.writeSSE({ data: "ping" });
-      }
-
-      unsubscribe();
-    });
+    return eventStream(c, (send) =>
+      hub.listenToEventStream(event, (message) => {
+        switch (message.type) {
+          case "reaction":
+            send({ event: "reaction", data: JSON.stringify(message.reaction) });
+            break;
+          case "live":
+            send({
+              event: "live",
+              data: JSON.stringify({
+                uid: message.eventUid,
+                title: message.title,
+              }),
+            });
+            break;
+          case "questions":
+          case "resync":
+            send({ data: "update" });
+            break;
+        }
+      }));
   },
 );
 

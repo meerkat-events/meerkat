@@ -1,8 +1,9 @@
-const connectionString = process.env["DATABASE_POOLER_URL"] ??
-  process.env["DATABASE_URL"];
-
+// The direct connection to Postgres, for queries and for the realtime bus,
+// which LISTENs on it (realtime/postgres-bus.ts). There is no pooler: each
+// machine opens up to DATABASE_MAX_POOL_SIZE connections plus one LISTEN.
+const connectionString = process.env["DATABASE_URL"];
 if (!connectionString) {
-  throw new Error("DATABASE_POOLER_URL or DATABASE_URL must be set");
+  throw new Error("DATABASE_URL is required");
 }
 
 // Port the HTTP server listens on. Fly sets it explicitly; the desktop app's

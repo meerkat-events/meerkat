@@ -1,11 +1,9 @@
-import { useRef } from "react";
 import useSWR from "swr";
-import useSWRSubscription from "swr/subscription";
-import throttle from "lodash.throttle";
+import { useEventSource, useJitteredRefresh } from "@meerkat-events/react";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
-import { useSupabase } from "../context/supabase.tsx";
+import { apiUrl } from "../lib/api-url.ts";
 import type { ModeratedQuestion } from "../components/Manage/question-state.ts";
 
 export type ConferenceQuestion = ModeratedQuestion & {
@@ -15,9 +13,10 @@ export type ConferenceQuestion = ModeratedQuestion & {
 /**
  * Questions from every live session of a conference, or from one session
  * (organizers only), including what organizers or moderation hid. Refetches
- * whenever a question or vote changes anywhere (asked, selected, answered,
- * hidden, voted), and every 10 seconds for what Realtime doesn't see, such as
- * blocked users and questions moderation hid on arrival.
+ * whenever the conference's question stream says a question or vote changed
+ * (asked, selected, answered, deleted, restored, voted, a user blocked), and
+ * every 10 seconds for what sends no message: questions moderation hid on
+ * arrival, which no public stream may reveal.
  */
 export function useConferenceQuestions(
   conferenceId: number | undefined,
@@ -43,34 +42,14 @@ export function useConferenceQuestions(
     { refreshInterval: 10_000 },
   );
 
-  const mutateRef = useRef(mutate);
-  mutateRef.current = mutate;
-  const refresh = useRef(throttle(() => mutateRef.current(), 500)).current;
-
-  const { client: supabase } = useSupabase();
-  // One channel per list, so a feed and a session panel each refresh.
-  const channelName = `conference-questions-${conferenceId}-${filter}`;
-  useSWRSubscription(
-    supabase && conferenceId ? channelName : undefined,
-    () => {
-      const channel = supabase?.channel(channelName)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "questions" },
-          () => refresh(),
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "votes" },
-          () => refresh(),
-        )
-        .subscribe();
-
-      return () => {
-        channel?.unsubscribe();
-      };
-    },
-  );
+  // One stream per list, so a feed and a session panel each refresh.
+  const scheduleRefresh = useJitteredRefresh(() => mutate());
+  useEventSource({
+    url: conferenceId
+      ? apiUrl(`/api/v1/conferences/${conferenceId}/questions/stream`)
+      : undefined,
+    onMessage: scheduleRefresh,
+  });
 
   return { data: data?.data, error, isLoading, mutate };
 }

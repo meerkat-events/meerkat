@@ -113,7 +113,7 @@ New tests use Node's built-in runner, `node:test` with `node:assert`;
 Integration tests (`api/integration/*.int.ts`, outside `node --test`'s
 default globs) run against the local Supabase CLI stack, never a cloud
 project: `pnpm --dir api test:integration` (`scripts/test-integration.sh`)
-needs Docker, starts the stack, migrates, applies the policies and runs them
+needs Docker, starts the stack, migrates and runs them
 with an environment of its own, not `api/.env`. The stack is shared by every
 worktree, and the tests empty its tables. Run them for changes to auth,
 authorization or rate limits; `integration/helpers.ts` resets the database,
@@ -197,7 +197,9 @@ the DB-free `api/features.ts`, which the loader and the client import too).
     has no auth at all) and **embedders** (`packages/react`):
     `GET /api/v1/events/:uid` (also the layouts' `clientLoader`, for
     theming), `/api/v1/events/:uid/questions` and its `/stream`,
-    `GET /api/v1/events` (the Q&A page's session switcher), and
+    `GET /api/v1/events` (the Q&A page's session switcher),
+    `GET /api/v1/conferences/:id/questions/stream` (the organizer pages'
+    live updates, which carry no data), and
     `/e/:uid/card`, which redirects old Event Card links to the Q&A page;
   - **signage**: `/stage/:stage`, `/stage/:stage/qa`,
     `GET /api/v1/events/stage/:stage/live` (`useKeepLive`) and
@@ -303,7 +305,7 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   outcome, decision, scores, duration, tokens, cost; no question text). Hidden questions are
   shadow-hidden: only their author sees them (`getQuestions` with `viewerId`, `useEventQuestions` on the Q&A
   page), and organizers on the management pages, which review them; every
-  other query, the Realtime policy and all public responses
+  other query and all public responses
   (`toPublicQuestion`, `toApiConference`) leave them and the moderation
   fields out. Organizers get only a summary of the verdict (decision,
   reasons, relevance; `moderation-summary.ts`), never raw scores, and can
@@ -332,27 +334,52 @@ the DB-free `api/features.ts`, which the loader and the client import too).
 - `auth.users` belongs to Supabase; `schema.ts` declares it only so Drizzle
   can join it and set `banned_until`.
 
-### Real-time (all through Supabase Realtime)
+### Real-time (SSE from our API, Postgres between instances)
 
-1. **SSE question stream**: `GET /api/v1/events/:uid/questions/stream`.
-   Every question mutation calls `broadcastQuestionsUpdate(eventId)`
-   (`utils/broadcast.ts`), which posts to Supabase's REST broadcast API on
-   topic `event-{id}`; each server instance holds one subscription per event
-   and pushes an SSE `update` to its clients (`ping` every 30 s). Consumed
-   with `useQuestions`/`useEventSource` from the react package by embedders
-   and `Event.tsx`; `QnA.tsx` uses `useEventQuestions`, which sends the
-   session token, plus the package's `useEventSource`.
-2. **`postgres_changes` in the browser**: reactions on the presenter view
-   (`use-reactions-subscription`) and question and vote changes on the
-   management pages (`useConferenceQuestions`). Their tables need a SELECT
-   policy and membership in the `supabase_realtime` publication (see
-   Database changes); the questions policy excludes rows hidden by
-   moderation.
-3. **Live-event broadcasts**: `POST /api/v1/events/:uid/live` sends on
-   `conference-{id}` and `stage-{stage}`; `useLiveEventSubscription` and
-   `useKeepLive` listen, and `useKeepLive` also polls
-   `/api/v1/events/stage/:stage/live` every 10 s so signage follows the
-   schedule.
+Browsers never talk to Supabase Realtime. Routes publish to a bus
+(`api/realtime/notify.ts`), every instance hears it, and its hub (`hub.ts`)
+writes to the SSE streams open on that instance (`sse.ts`).
+
+- **Bus**: Postgres LISTEN/NOTIFY on one channel (`postgres-bus.ts`,
+  behind the `Bus` interface in `bus.ts`; Redis would be another `Bus` in
+  `index.ts`). Messages carry ids and a reaction's public fields only, and
+  are validated on receipt (`toPublishedMessage`).
+- **Streams**, both public (no data beyond "something changed"):
+  - `GET /api/v1/events/:uid/questions/stream`: unnamed `update` (refetch
+    the questions), named `reaction` (`{ uid, emoji, createdAt }`) and
+    `live` (`{ uid, title }` of an event put live on the same stage of the
+    same conference). Read by `useQuestions` (embedders), the Q&A page
+    (`useEventQuestions`) and the stage screen (`Presenter`), all through
+    the package's `useEventSource`, `useJitteredRefresh` and
+    `eventStreamEvents`. React package 0.1.0 handles only unnamed messages.
+  - `GET /api/v1/conferences/:id/questions/stream`: unnamed `update` for
+    every question or vote change in the conference, for the organizer
+    pages (`useConferenceQuestions`), which also poll every 10 s.
+- **Session switch**: going live sends `live`; a `?keep-live=true` stage
+  screen follows it (and `useKeepLive`'s 10 s poll), and the Q&A page
+  refreshes its schedule, whose live session the "past or upcoming event"
+  banner links to.
+
+Rules:
+
+1. **`DATABASE_URL` is the direct connection, for everything** (there is
+   no pooler): the bus LISTENs on it, which a transaction pooler would
+   break. Each server holds `DATABASE_MAX_POOL_SIZE` connections plus one
+   LISTEN, against the project's `max_connections`. The listener opens on
+   first use, never at import; a self-check
+   every minute replaces it when its own NOTIFY doesn't arrive, and after a
+   reconnect every client resyncs (NOTIFY has no replay).
+2. **Publish after the write, never await it** (`void notify…`): it is best
+   effort, logged on failure. Every question or vote mutation calls
+   `notifyQuestionsChanged`, blocking a user too (their questions leave the
+   lists). **Never publish a question moderation hid on arrival**: every
+   stream is public and must not reveal when hidden questions arrive.
+3. **Clients pace refetches, the server doesn't**: every message reaches
+   every listener, and clients refetch with `useJitteredRefresh` (a random
+   delay up to 500 ms, one at a time; 1 s on the stage screen). Streams
+   open with a random `retry:` so reconnects spread out, and ping every
+   30 s. Fly counts every open stream as a request in flight, hence
+   `[http_service.concurrency]` in `fly.template.toml`.
 
 ### Runtime constraints
 
@@ -377,12 +404,12 @@ the DB-free `api/features.ts`, which the loader and the client import too).
    `auth.users` DDL** from the new migration.
 3. Run `pnpm migrate` for your local database. Deployments migrate
    themselves (see Deployment).
-4. A table the browser subscribes to (`postgres_changes`) also needs the
-   "Realtime" SELECT policy and the `supabase_realtime` publication, in
-   `api/scripts/supabase-policies.sql`, the Supabase setup Drizzle doesn't
-   manage. The script is idempotent; run it on every new Supabase project
-   after the first migration, and after changing it:
-   `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql`
+
+Tables get no RLS policies: the browser reads nothing from the database
+directly (no Data API, no Realtime subscriptions). Supabase-specific DDL that
+Drizzle doesn't generate goes into a custom migration
+(`pnpm exec drizzle-kit generate --custom --name <name>`), like
+`0014_drop_realtime_policies.sql`.
 
 All worktrees share one Supabase database (`api/.env` is copied, not
 per-worktree), so `pnpm migrate` from one branch changes the schema under
@@ -456,8 +483,8 @@ Fly.io via `.github/workflows/continous-deployment.yml`: a push to `master`
 deploys `dev`, a GitHub release deploys `prod`. `fly.template.toml` is
 rendered with `envsubst` from GitHub secrets. Its `release_command` runs
 `api/migrate.ts` once per deploy, before the rollout, and a failed migration
-aborts the deploy; unlike the app, `migrate.ts` prefers `DATABASE_URL` over
-`DATABASE_POOLER_URL`. The health check hits `/api/v1/health` (public; a
+aborts the deploy; it uses `DATABASE_URL`, the direct connection, like the
+app. The health check hits `/api/v1/health` (public; a
 `SELECT 1`, so it fails while the database is unreachable).
 `.github/workflows/sync.yml` runs a Pretalx sync by hand and needs the
 `MEERKAT_BASE` secret in the chosen environment.

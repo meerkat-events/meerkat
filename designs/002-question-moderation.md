@@ -1,5 +1,11 @@
 # Automatic question moderation
 
+> **Later change:** browsers no longer use Supabase Realtime. Live updates
+> are SSE from the API (`api/realtime/`), migration
+> `0014_drop_realtime_policies.sql` removed the Realtime policies, and
+> `api/scripts/supabase-policies.sql` is gone. References to them below
+> describe the setup at the time.
+
 - **Target:** `api/` (Hono routes, Drizzle schema, React Router frontend) and `packages/react/`, based on `feat/selected-question-endpoint` at `5172963`.
 - **Goal:** Questions that are harassment, hate speech, discrimination, phishing, scams or obvious shilling, politics with no relation to crypto outside talks about politics, current wars and genocide, threats, doxxing or explicit sexual content never reach the stage screen or other attendees. The author still sees their own question, so there is nothing to argue about or retry. Organizers get the last word later through a separate admin view.
 - **Success criteria:**

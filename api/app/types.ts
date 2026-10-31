@@ -1,4 +1,3 @@
-import type { ReactionEmoji } from "../reactions.ts";
 export type Theme = {
   brandColor: string;
   contrastColor: string;
@@ -161,12 +160,5 @@ export type Participant = {
 export type PointsScoring = {
   picked: number;
   vote: number;
-};
-
-export type Reaction = {
-  created_at: string;
-  event_id: number;
-  uid: string;
-  emoji?: ReactionEmoji | undefined;
 };
 

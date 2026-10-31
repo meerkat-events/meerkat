@@ -11,7 +11,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import { questions, users, votes } from "../schema.ts";
+import { events, questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
 import { addSupervote, refundSupervotes } from "./supervotes.ts";
 import { voteTotal } from "./votes.ts";
@@ -101,6 +101,20 @@ export async function createQuestion(
   const created = result.at(0);
   if (!created) throw new Error("Failed to create question");
   return created;
+}
+
+/**
+ * The events a user has (not deleted) questions in, for telling their lists
+ * when the user is blocked and the questions disappear.
+ */
+export async function getEventsWithQuestionsBy(userId: string) {
+  return await db.selectDistinct({
+    id: events.id,
+    conferenceId: events.conferenceId,
+  })
+    .from(questions)
+    .innerJoin(events, eq(events.id, questions.eventId))
+    .where(and(eq(questions.userId, userId), isNull(questions.deletedAt)));
 }
 
 export async function getQuestionByUID(uid: string) {

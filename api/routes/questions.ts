@@ -28,7 +28,7 @@ import {
 import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { tooManyRequests } from "../utils/too-many-requests.ts";
 import logger from "../logger.ts";
-import { broadcastQuestionsUpdate } from "../utils/broadcast.ts";
+import { notifyQuestionsChanged } from "../realtime/notify.ts";
 import {
   isSupervotesEnabled,
   spendSupervote,
@@ -158,7 +158,7 @@ app.post(
       await createVote(question.id, user.id);
     }
 
-    broadcastQuestionsUpdate(event.id);
+    void notifyQuestionsChanged(event);
 
     logger.info(
       {
@@ -230,7 +230,7 @@ app.post(
       throw new HTTPException(500, { message: `Failed to select question` });
     }
 
-    broadcastQuestionsUpdate(event.id);
+    void notifyQuestionsChanged(event);
 
     logger.info(
       {
@@ -292,7 +292,7 @@ app.post(
       throw new HTTPException(500, { message: `Failed to mark as answered` });
     }
 
-    broadcastQuestionsUpdate(event.id);
+    void notifyQuestionsChanged(event);
 
     logger.info(
       {
@@ -356,7 +356,7 @@ app.delete(
       });
     }
 
-    broadcastQuestionsUpdate(event.id);
+    void notifyQuestionsChanged(event);
 
     logger.info(
       {
@@ -423,7 +423,7 @@ app.post(
       });
     }
 
-    broadcastQuestionsUpdate(event.id);
+    void notifyQuestionsChanged(event);
 
     logger.info(
       {

@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import useSWR from "swr";
 import { useMeerkatContext } from "./context.ts";
 import { parseQuestions } from "./fetcher.ts";
+import { eventStreamEvents } from "./event-stream-events.ts";
 import { useEventSource } from "./use-event-source.ts";
 import { useJitteredRefresh } from "./use-jittered-refresh.ts";
 import type {
@@ -14,6 +15,8 @@ export function useQuestions({
   sessionId,
   sort = "newest",
   realtime = true,
+  onReaction,
+  onEventLive,
 }: UseQuestionsProps): UseQuestionsReturn {
   const { apiUrl } = useMeerkatContext();
   const endpoint = `/api/v1/events/${sessionId}/questions?sort=${sort}`;
@@ -45,6 +48,7 @@ export function useQuestions({
   const { isConnected } = useEventSource({
     url: sseUrl,
     onMessage: scheduleRefresh,
+    events: eventStreamEvents({ onReaction, onEventLive }),
   });
 
   const boundMutate = useCallback(async () => {

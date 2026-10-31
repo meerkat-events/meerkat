@@ -1,3 +1,5 @@
+import type { LiveSession, StreamReaction } from "./event-stream-events.ts";
+
 export type Question = {
   id: number;
   sessionId: string;
@@ -29,6 +31,13 @@ export interface UseQuestionsProps {
    * @default true
    */
   realtime?: boolean;
+  /** Called for every reaction sent in the session (needs `realtime`). */
+  onReaction?: ((reaction: StreamReaction) => void) | undefined;
+  /**
+   * Called when a session is put live on this session's stage, this one
+   * included (needs `realtime`).
+   */
+  onEventLive?: ((session: LiveSession) => void) | undefined;
 }
 
 export interface UseQuestionsReturn {

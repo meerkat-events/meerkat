@@ -5,7 +5,7 @@ import { test } from "node:test";
 // go in first. None of them points anywhere real: the requests below are
 // turned away by the auth middleware before any route reaches the database
 // or Supabase.
-process.env["DATABASE_POOLER_URL"] = "postgres://placeholder@127.0.0.1:1/none";
+process.env["DATABASE_URL"] = "postgres://placeholder@127.0.0.1:1/none";
 process.env["DEVCON_VERIFICATION_SECRET"] = "placeholder";
 process.env["SUPABASE_SERVICE_ROLE_KEY"] = "placeholder";
 delete process.env["SUPABASE_URL"];
@@ -26,6 +26,8 @@ const PUBLIC_ROUTES = [
   "GET /api/v1/events/:uid",
   "GET /api/v1/events/:uid/questions",
   "GET /api/v1/events/:uid/questions/stream",
+  // The organizer pages' live updates: carries no data, only "refetch"
+  "GET /api/v1/conferences/:id/questions/stream",
   // The Q&A page's session switcher
   "GET /api/v1/events",
   // Old Event Card links, redirected to the Q&A page

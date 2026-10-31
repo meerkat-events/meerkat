@@ -5,11 +5,17 @@ import { createRequestHandler, type ServerBuild } from "react-router";
 import app from "./app.ts";
 import env, { redactedEnv } from "./env.ts";
 import logger from "./logger.ts";
+import { hub } from "./realtime/index.ts";
 
 logger.info({ env: redactedEnv }, "Parsed environment variables");
 if (!env.openRouterApiKey) {
   logger.info("OPENROUTER_API_KEY not set, moderation disabled");
 }
+
+// LISTEN right away rather than on the first stream, so the realtime
+// self-check in the logs tells after a deploy whether instances hear each
+// other.
+hub.start();
 
 // @ts-expect-error - generated React Router build output has no TypeScript declarations
 const build = (await import("./build/server/index.js")) as unknown as ServerBuild;

@@ -8,9 +8,10 @@ config.toml    service settings (auth, api, pooler, rate limits)
 templates/     the two auth emails Meerkat customizes
 ```
 
-The tables and their Row Level Security come from Drizzle (`api/schema.ts`),
-and the Supabase-specific DDL Drizzle does not emit (Realtime policies,
-publication) from `api/scripts/supabase-policies.sql`.
+The tables and their Row Level Security come from Drizzle (`api/schema.ts`
+and the migrations in `api/drizzle/`). Meerkat doesn't use Supabase
+Realtime; live updates are SSE from the API, with Postgres LISTEN/NOTIFY
+between instances.
 
 ## Creating a new project
 
@@ -34,17 +35,19 @@ The org is on the **Free plan**, so do not pass `--size`.
 Put `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
 `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_SECRET_KEY` (the `default` secret key)
 into `api/.env` (unquoted, see `api/.env.example`). Then apply schema and
-settings **in this order**. Drizzle owns the tables, so it has to run before the
-policies script can ALTER them:
+settings:
 
 ```bash
-cd api && pnpm migrate          # 1. tables (api/schema.ts -> api/drizzle/)
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
-  -f scripts/supabase-policies.sql   # 2. RLS, realtime policies, publication
+cd api && pnpm migrate          # 1. tables and RLS (api/schema.ts -> api/drizzle/)
 cd .. && supabase link --project-ref <new-ref>
-supabase config diff            # 3. review, then:
+supabase config diff            # 2. review, then:
 supabase config push
 ```
+
+`DATABASE_URL` is the direct connection (`db.<project-ref>.supabase.co:5432`,
+IPv6, which Fly machines reach); the app uses no pooler. Every server holds
+up to `DATABASE_MAX_POOL_SIZE` connections plus one for the realtime bus, so
+keep the total below the project's `max_connections`.
 
 Finally, in the dashboard set **Site URL** and **Redirect URLs** (see below),
 enable **IP Address Forwarding** (Authentication → Rate Limits), and create an
@@ -98,14 +101,14 @@ all carry over to a new project:
 | `auth.rate_limit.anonymous_users` | `3000` / hour / IP | anonymous joins from a venue's shared Wi-Fi IP |
 
 RLS on every public table comes from the migrations (each table in
-`api/schema.ts` calls `.enableRLS()`). The `Realtime` SELECT policies on
-`questions` / `reactions` / `votes` and their `supabase_realtime` publication
-come from `api/scripts/supabase-policies.sql`, which is idempotent and safe to
-re-run.
+`api/schema.ts` calls `.enableRLS()`), with no policies: the anon and
+authenticated roles read nothing. Migration `0014_drop_realtime_policies.sql`
+removed the earlier `Realtime` SELECT policies and the tables'
+`supabase_realtime` publication membership.
 
 The Data API (`[api] enabled = false`) is off: nothing in Meerkat uses
 PostgREST or GraphQL, so the anon key reaches no table even if one lacked
-RLS. Auth and Realtime don't depend on it.
+RLS. Auth doesn't depend on it.
 
 ## Undeclared on purpose
 

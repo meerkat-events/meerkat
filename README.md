@@ -22,8 +22,7 @@ live. A presenter view runs on the stage screen and follows the live session.
   see [pnpm installation](https://pnpm.io/installation)); pnpm then switches
   itself to the version pinned in `packageManager`. `./scripts/setup.sh` does
   this for you
-- A [Supabase](https://supabase.com) project — it provides Postgres, Auth and
-  Realtime
+- A [Supabase](https://supabase.com) project — it provides Postgres and Auth
 - `psql`, used by the seed script
 - Docker, only if you want to build the production image locally
 
@@ -61,16 +60,10 @@ live. A presenter view runs on the stage screen and follows the live session.
      limits, since a venue's attendees share one Wi-Fi IP. Meerkat runs with
      6000 token verifications per 5 minutes, 3000 token refreshes per 5
      minutes and 3000 anonymous sign-ins per hour.
-   - **Realtime**: after the first migration (which also enables Row Level
-     Security on every table), apply the Supabase-specific setup that Drizzle
-     migrations do not cover (realtime SELECT policies, and the `questions`,
-     `reactions` and `votes` tables in the `supabase_realtime` publication).
-     Reactions on the presenter view and live updates on the management pages
-     subscribe to Postgres changes on these tables. The script is idempotent:
 
-     ```bash
-     psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/scripts/supabase-policies.sql
-     ```
+   Live updates don't use Supabase Realtime: the server streams them over SSE
+   and passes them between instances with Postgres LISTEN/NOTIFY on
+   `DATABASE_URL`.
 
 ## Development
 
@@ -129,10 +122,10 @@ Required:
 
 | Variable                    | Purpose                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`              | Postgres connection string. `DATABASE_POOLER_URL`, if set, takes precedence at runtime.     |
+| `DATABASE_URL`              | The direct Postgres connection (`db.<project-ref>.supabase.co:5432`), for queries and the realtime bus, which LISTENs on it. No pooler. |
 | `SUPABASE_URL`              | Supabase project URL.                                                                       |
-| `SUPABASE_ANON_KEY`         | Supabase anon key, used by the browser for Auth and Realtime.                               |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for broadcasts and Devcon handover sign-ins.    |
+| `SUPABASE_ANON_KEY`         | Supabase anon key, used by the browser for Auth.                                            |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for Devcon handover sign-ins.                   |
 | `DEVCON_VERIFICATION_SECRET` | Shared HS256 secret for verifying Devcon handover tokens (the Devcon app's `VERIFICATION_SECRET`). |
 
 Optional:
@@ -145,8 +138,7 @@ Optional:
 | `CORS_ORIGINS`           | Comma-separated origins allowed to call `/api/*` from a browser. Default: `*`.   |
 | `PRETALX_URL`            | Origin of the Pretalx instance whose schedules are synced into conferences. Unset disables the sync endpoint. |
 | `SUPABASE_SECRET_KEY`    | Supabase secret API key (`sb_secret_…`). When set, Devcon handover sign-ins forward the attendee's IP so Supabase rate-limits per attendee rather than per server; also enable IP Address Forwarding in the project. |
-| `DATABASE_POOLER_URL`    | Connection string of a connection pooler, preferred over `DATABASE_URL`.          |
-| `DATABASE_MAX_POOL_SIZE` | Max DB pool size (default: 10).                                                  |
+| `DATABASE_MAX_POOL_SIZE` | Max DB connections per server (default: 10), plus one for the realtime bus. Keep machines × (size + 1) well below the project's `max_connections` (60 on the smallest compute); 8 suits 4–6 machines. |
 | `SENTRY_DSN`             | Sentry error tracking DSN.                                                       |
 | `ENVIRONMENT`            | Environment name reported to Sentry (default: `development`).                    |
 | `OPENROUTER_API_KEY`     | OpenRouter key for automatic question moderation. Unset disables moderation everywhere. |

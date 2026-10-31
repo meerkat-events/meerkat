@@ -20,6 +20,8 @@ import {
 } from "../models/conference-activity.ts";
 import { summarizeModeration } from "../moderation-summary.ts";
 import { getParticipantPoints, SCORING } from "../models/points.ts";
+import { hub } from "../realtime/index.ts";
+import { eventStream } from "../realtime/sse.ts";
 
 const app = new Hono();
 
@@ -121,6 +123,26 @@ app.get(
     return c.json({ data: questions.map(toApiQuestion) });
   },
 );
+
+// Tells the organizer pages to refetch the questions above: an unnamed
+// `update` whenever a question or vote of any session changes. No reactions.
+// Public: it carries no data, only that something changed, which the public
+// event streams tell anyone anyway (questions moderation hid send nothing).
+// The questions themselves still need an organizer's token.
+app.get("/api/v1/conferences/:id/questions/stream", async (c) => {
+  const conferenceId = Number(c.req.param("id"));
+  const conference = Number.isInteger(conferenceId)
+    ? await getConferenceById(conferenceId)
+    : undefined;
+  if (!conference) {
+    throw new HTTPException(404, { message: "Conference not found" });
+  }
+
+  return eventStream(c, (send) =>
+    hub.listenToConference(conference.id, () => {
+      send({ data: "update" });
+    }));
+});
 
 // Activity totals for the organizer dashboard: the whole conference and each
 // session (questions, votes, reactions, participants).

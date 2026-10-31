@@ -5,6 +5,12 @@ export { useQuestions } from "./use-questions.ts";
 export { useSessionUrl } from "./use-session-url.ts";
 export { useEventSource } from "./use-event-source.ts";
 export { useJitteredRefresh } from "./use-jittered-refresh.ts";
+export { eventStreamEvents } from "./event-stream-events.ts";
+export type {
+  EventStreamCallbacks,
+  LiveSession,
+  StreamReaction,
+} from "./event-stream-events.ts";
 export { FetchError } from "./fetcher.ts";
 
 export type {

@@ -40,8 +40,9 @@ export const users = authSchema.table("users", {
 // that creates it also locks it. The anon key is public and Supabase's Data
 // API exposes the `public` schema: RLS without a policy denies anon and
 // authenticated everything, while the API connects as the table owner and is
-// unaffected. Policies live in scripts/supabase-policies.sql; schema.test.ts
-// fails for a table without RLS.
+// unaffected. No table has a policy: the browser reads nothing from the
+// database directly (live updates are SSE from the API, api/realtime/).
+// schema.test.ts fails for a table without RLS.
 export const conferences = pgTable("conferences", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
