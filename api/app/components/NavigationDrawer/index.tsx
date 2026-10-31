@@ -7,8 +7,11 @@ import {
   Link,
   List,
   Portal,
+  Stack,
+  Text,
 } from "@chakra-ui/react";
-import { FiMenu } from "react-icons/fi";
+import { FiGlobe, FiMenu } from "react-icons/fi";
+import { FaXTwitter } from "react-icons/fa6";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { Link as ReactRouterLink } from "react-router";
 import { Logo } from "../Logo.tsx";
@@ -33,6 +36,48 @@ function NavLink({ label, href, active: _active }: NavLinkProps) {
         </ReactRouterLink>
       </Link>
     </List.Item>
+  );
+}
+
+const WEBSITE_URL = "https://meerkat.events";
+const X_URL = "https://x.com/meerkat_events";
+
+function ExternalLink(
+  { href, children }: { href: string; children: React.ReactNode },
+) {
+  return (
+    <Link
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      display="inline-flex"
+      alignItems="center"
+      gap="1.5"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function MeerkatLinks() {
+  return (
+    <Stack gap="3" width="100%" fontSize="sm" color="fg.muted">
+      <Text>
+        Hosting an event yourself? Check out{" "}
+        <Link href={WEBSITE_URL} target="_blank" rel="noopener noreferrer">
+          meerkat.events
+        </Link>{" "}
+        for your own event.
+      </Text>
+      <Flex gap="4">
+        <ExternalLink href={WEBSITE_URL}>
+          <FiGlobe aria-hidden /> Website
+        </ExternalLink>
+        <ExternalLink href={X_URL}>
+          <FaXTwitter aria-hidden /> @meerkat_events
+        </ExternalLink>
+      </Flex>
+    </Stack>
   );
 }
 
@@ -79,6 +124,9 @@ export function NavigationDrawer({ navLinks }: NavigationDrawerProps) {
                 </List.Root>
               </Box>
             </Drawer.Body>
+            <Drawer.Footer>
+              <MeerkatLinks />
+            </Drawer.Footer>
             <Drawer.CloseTrigger asChild>
               <CloseButton size="sm" />
             </Drawer.CloseTrigger>
