@@ -450,6 +450,13 @@ values such as `site_url` and the redirect URLs stay commented. Always run
 - Several worktrees work on this repo in parallel. Never use bare
   `git stash` / `git stash pop`; prefer a WIP commit, or
   `git stash push -m "<tag>"` and apply by SHA.
+- **Start every task in a new worktree on the latest `origin/master`.** Run
+  `git fetch origin` first and branch from `origin/master`, not from the
+  local `master` or whatever branch the main checkout has checked out, which
+  may be stale or unrelated. A worktree that already exists is rebased with
+  `git fetch origin && git rebase origin/master` before any work. The one
+  exception is a stacked change (below), which starts from the layer it
+  builds on.
 - Stack dependent changes with [`gh stack`](https://gh.io/stacks)
   (`gh extension install github/gh-stack`): when a change builds on another
   unmerged one, add it as a layer instead of branching from `master`, so each
