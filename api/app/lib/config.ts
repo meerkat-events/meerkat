@@ -1,8 +1,6 @@
 import { apiUrl } from "./api-url.ts";
 
 export type Config = {
-  zupassUrl: string;
-  zappName: string;
   environment: string;
   supabaseUrl: string | undefined;
   supabaseAnonKey: string | undefined;

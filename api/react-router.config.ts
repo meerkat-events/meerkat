@@ -3,9 +3,7 @@ import type { Config } from "@react-router/dev/config";
 export default {
   // Server-side render by default, to enable SPA mode set this to `false`
   ssr: true,
-  // Prerendering "/" fails at build time because @pcd/pod (via @zk-kit/eddsa-poseidon)
-  // imports blakejs, a CJS-only package with no named ESM exports. This crashes
-  // Node.js when the prerender step tries to instantiate the SSR bundle.
+  // Layouts load their data in `clientLoader`; nothing is worth prerendering.
   prerender: false,
   // React Router v8 enables middleware, split route modules, the Vite
   // Environment API, pass-through requests and trailing-slash-aware data

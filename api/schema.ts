@@ -47,7 +47,6 @@ export const profiles = pgTable("profile", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").unique(),
-  zupassId: text("zupass_id"),
 }).enableRLS();
 
 export const conferences = pgTable("conferences", {
@@ -107,24 +106,6 @@ export const conferences = pgTable("conferences", {
  * live, block) without them; attendees take part.
  */
 export const roleEnum = pgEnum("role", ["attendee", "organizer", "moderator"]);
-
-export const conferenceTickets = pgTable(
-  "conference_tickets",
-  {
-    id: serial("id").primaryKey(),
-    conferenceId: integer("conference_id")
-      .notNull()
-      .references(() => conferences.id, { onDelete: "cascade" }),
-    collectionName: text("collection_name").notNull(),
-    eventId: text("event_id").notNull(),
-    signerPublicKey: text("signer_public_key").notNull(),
-    productId: text("product_id"),
-    role: roleEnum("role").default("attendee").notNull(),
-  },
-  (
-    table,
-  ) => [index("conference_tickets_conference_id_idx").on(table.conferenceId)],
-).enableRLS();
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),

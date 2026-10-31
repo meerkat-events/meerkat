@@ -1,6 +1,5 @@
 import { isRouteErrorResponse, Outlet } from "react-router";
 import { Provider } from "../components/ui/provider.tsx";
-import { ZAPIProvider } from "../zapi/context.tsx";
 import { UserProvider } from "../context/user.tsx";
 import { SupabaseProvider } from "../context/supabase.tsx";
 import { MeerkatProvider } from "@meerkat-events/react";
@@ -57,23 +56,18 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const content = (
     <MeerkatProvider apiUrl="">
       <SWRConfig>
-        <ZAPIProvider
-          zappName={config.zappName}
-          zupassUrl={config.zupassUrl}
-        >
-          <UserProvider>
-            <Provider
-              colorMode={{
-                defaultTheme: systemTheme,
-                forcedTheme: systemTheme,
-              }}
-              value={system}
-            >
-              <Outlet />
-              <Toaster />
-            </Provider>
-          </UserProvider>
-        </ZAPIProvider>
+        <UserProvider>
+          <Provider
+            colorMode={{
+              defaultTheme: systemTheme,
+              forcedTheme: systemTheme,
+            }}
+            value={system}
+          >
+            <Outlet />
+            <Toaster />
+          </Provider>
+        </UserProvider>
       </SWRConfig>
     </MeerkatProvider>
   );

@@ -46,7 +46,6 @@ import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { tooManyRequests } from "../utils/too-many-requests.ts";
 import { REACTION_EMOJIS } from "../reactions.ts";
 import { type Feature, getFeatures } from "../models/features.ts";
-import { createAttendancePOD } from "../zupass.ts";
 import { canModerate, getConferenceRolesForConference } from "../models/roles.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
@@ -157,36 +156,6 @@ const toApiQuestion = (
     }
     : undefined,
 });
-
-app.post(
-  "/api/v1/events/:uid/attendance",
-  jwt(),
-  eventMiddleware,
-  async (c) => {
-    const event = c.get("event");
-    const payload = c.get("jwtPayload");
-    const [conference, user] = await Promise.all([
-      getConferenceById(event.conferenceId),
-      getUserById(payload.sub),
-    ]);
-
-    if (!user) {
-      throw new HTTPException(401, { message: "User not found" });
-    }
-    const zupassId = "TODO: Add Zupass ID";
-
-    const pod = createAttendancePOD(conference!, event, zupassId);
-
-    logger.info(
-      { pod, conference, event, zupassId, userId: user.id },
-      "Created attendance pod",
-    );
-
-    return c.json({
-      data: pod.toJSON(),
-    });
-  },
-);
 
 // Public, for guests and embedders (`@meerkat-events/react`). Authentication
 // is optional: with a valid token, the viewer's own hidden questions are

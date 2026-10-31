@@ -5,9 +5,7 @@
 Audience-engagement (Q&A) tool for conferences, used by the Ethereum
 Foundation for Devcon/Devconnect. Attendees open `/e/:uid/qa` on their phones
 to ask, upvote and react; organizers select/answer/delete questions and put an
-event "live"; a presenter view at `/e/:uid` runs on the stage screen. An
-optional "collect" feature lets attendees store a signed attendance POD in
-their Zupass.
+event "live"; a presenter view at `/e/:uid` runs on the stage screen.
 
 ## Repository layout
 
@@ -25,7 +23,7 @@ own installer and switches itself to the version in `packageManager`.
 ## Ground rules
 
 - **This repository is public.** Never commit secrets (keys, JWTs,
-  `PRIVATE_KEY` values, passwords, connection strings) or infrastructure
+  passwords, connection strings) or infrastructure
   identifiers (Supabase project refs, org IDs, Fly app or org names); docs
   use placeholders such as `<project-ref>`. Real values belong in `api/.env`
   (gitignored) and GitHub/Fly secrets. Stage files by path, not with
@@ -137,8 +135,7 @@ handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
 
 - `layouts/page.tsx` — bare presenter view (`/e/:uid`), no auth.
 - `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
-  package, `apiUrl=""`), Supabase client, `UserProvider`, Zupass
-  `ZAPIProvider`, Chakra system.
+  package, `apiUrl=""`), Supabase client, `UserProvider`, Chakra system.
 
 Server-only code for loaders lives in `.server.ts` modules (the build fails if
 client code imports one). Whatever such a module imports from outside `app/`
@@ -150,8 +147,7 @@ effects.
 Theming is per conference: `conferences.theme` (JSONB) becomes a Chakra
 system in `app/theme/index.ts`; the layouts' `clientLoader` fetches the event
 to pick it. Rows in the `features` table are per-conference flags, surfaced
-as `event.conference.features` (`collect` shows the Event Card link,
-`supervotes` turns on supervotes).
+as `event.conference.features` (`supervotes` turns on supervotes).
 
 ### Auth and roles
 
@@ -218,9 +214,6 @@ as `event.conference.features` (`collect` shows the Event Card link,
   `api_keys` (`middlewares/api-key.ts`); no endpoint creates keys. Admin
   routes create conferences and batch-upsert events by `uid`, for importing
   schedules.
-- **Zupass is not auth.** It only serves the collect flow: the server signs an
-  attendance POD with `PRIVATE_KEY` (`api/zupass.ts`) and the client adds it
-  to a Zupass collection (`app/zapi/`).
 
 ### Domain rules
 
@@ -343,10 +336,6 @@ as `event.conference.features` (`collect` shows the Event Card link,
 - `tsconfig.json` extends `@tsconfig/strictest`, including
   `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess` and
   `noPropertyAccessFromIndexSignature` (hence `process.env["X"]`).
-- `@pcd/pod` and friends pull in CJS-only dependencies: server code imports
-  them through the `createRequire` shim in `api/lib/pod.ts`, and
-  `vite.config.ts` bundles them via `ssr.noExternal`. This is also why
-  `prerender` is off.
 - `~/` aliases `api/app/`.
 
 ## Database changes
@@ -396,7 +385,7 @@ values such as `site_url` and the redirect URLs stay commented. Always run
   returning `{ data, isLoading, error }` (plus `mutate` when callers need
   it). Mutations use `swr/mutation` with `poster` or `deleter`, passing
   `session?.access_token`.
-- Internal URLs come from `qa(uid)` / `card(uid)` in `app/routing.ts`.
+- Internal URLs come from `qa(uid)` in `app/routing.ts`.
 - ESLint: `no-explicit-any` is an error; prefix intentionally unused
   identifiers with `_`.
 
