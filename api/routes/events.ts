@@ -302,9 +302,9 @@ app.post(
       });
     }
 
-    // A question hidden by moderation still goes to the management pages,
-    // which review it, but not to the public stream.
-    void notifyQuestionsChanged(event, { isPublic: !question.hiddenAt });
+    // A question hidden by moderation sends nothing: every stream is public
+    // and must not reveal when hidden questions arrive. Its author's page
+    // refreshes after posting, and the management pages poll.
     if (question.hiddenAt) {
       logger.info(
         {
@@ -316,6 +316,7 @@ app.post(
         "Created question, hidden by moderation",
       );
     } else {
+      void notifyQuestionsChanged(event);
       logger.info(
         {
           questionUid: question.uid,
@@ -631,10 +632,11 @@ const toFullApiEvent = (
 
 // Public, like the question list it tells clients to refetch (EventSource
 // can't send a token anyway). An unnamed `update` means "refetch the
-// questions" (asked, voted, selected, answered, deleted, restored); a named
-// `reaction` carries one reaction; a named `live` carries `{ uid, title }` of
-// the event just put live on this event's stage (same conference), so a stage
-// screen can switch to it and the Q&A page can offer it. `@meerkat-events/react` 0.1.0 listens to unnamed messages only, so it
+// questions" (asked, voted, selected, answered, deleted, restored, or a
+// resync); a named `reaction` carries one reaction; a named `live` carries
+// `{ uid, title }` of the event just put live on this event's stage (same
+// conference), so a stage screen can switch to it and the Q&A page can offer
+// it. `@meerkat-events/react` 0.1.0 listens to unnamed messages only, so it
 // keeps working and never sees the named ones.
 app.get(
   "/api/v1/events/:uid/questions/stream",
@@ -642,19 +644,13 @@ app.get(
   (c) => {
     const event = c.get("event");
 
-    return eventStream(c, (send) => {
-      const stopEvent = hub.listenToEvent(event.id, (message) => {
-        if (message.type === "reaction") {
-          send({ event: "reaction", data: JSON.stringify(message.reaction) });
-        } else {
-          send({ data: "update" });
-        }
-      });
-      const stopStage = hub.listenToStage(
-        event.conferenceId,
-        event.stage,
-        (message) => {
-          if (message.type === "live") {
+    return eventStream(c, (send) =>
+      hub.listenToEventStream(event, (message) => {
+        switch (message.type) {
+          case "reaction":
+            send({ event: "reaction", data: JSON.stringify(message.reaction) });
+            break;
+          case "live":
             send({
               event: "live",
               data: JSON.stringify({
@@ -662,14 +658,13 @@ app.get(
                 title: message.title,
               }),
             });
-          }
-        },
-      );
-      return () => {
-        stopEvent();
-        stopStage();
-      };
-    });
+            break;
+          case "questions":
+          case "resync":
+            send({ data: "update" });
+            break;
+        }
+      }));
   },
 );
 

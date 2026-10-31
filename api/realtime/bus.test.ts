@@ -4,7 +4,7 @@ import { toPublishedMessage } from "./bus.ts";
 
 test("accepts complete messages of every type", () => {
   const messages = [
-    { type: "questions", eventId: 1, conferenceId: 2, isPublic: true },
+    { type: "questions", eventId: 1, conferenceId: 2 },
     {
       type: "reaction",
       eventId: 1,
@@ -28,12 +28,12 @@ test("rejects incomplete or unknown messages", () => {
   const messages: unknown[] = [
     null,
     "questions",
-    { type: "questions", eventId: 1, conferenceId: 2 },
+    { type: "questions", eventId: 1 },
     { type: "reaction", eventId: 1 },
     { type: "reaction", eventId: 1, reaction: { uid: "r" } },
     { type: "live", eventId: 1, eventUid: "talk", conferenceId: 2 },
     { type: "check", id: "abc" },
-    { type: "questions", eventId: "1", conferenceId: 2, isPublic: true },
+    { type: "questions", eventId: "1", conferenceId: 2 },
   ];
   for (const message of messages) {
     assert.equal(toPublishedMessage(message), undefined, JSON.stringify(message));

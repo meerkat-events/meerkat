@@ -10,6 +10,10 @@ const reaction = {
   createdAt: "2026-10-31T12:00:00.000Z",
 };
 
+// Event 1 and 2 are on stage "main" of conference 10.
+const event1 = { id: 1, conferenceId: 10, stage: "main" };
+const event2 = { id: 2, conferenceId: 10, stage: "main" };
+
 function recorder() {
   const received: RealtimeMessage["type"][] = [];
   const listener = (message: RealtimeMessage) => {
@@ -18,137 +22,121 @@ function recorder() {
   return { received, listener };
 }
 
-test("question changes reach the event's and the conference's listeners", async () => {
+test("question changes reach the event's stream and its conference", async () => {
   const bus = createMemoryBus();
   const hub = createHub(bus);
-  const event = recorder();
-  const otherEvent = recorder();
+  const stream = recorder();
+  const otherStream = recorder();
   const conference = recorder();
-  hub.listenToEvent(1, event.listener);
-  hub.listenToEvent(2, otherEvent.listener);
+  hub.listenToEventStream(event1, stream.listener);
+  hub.listenToEventStream(event2, otherStream.listener);
   hub.listenToConference(10, conference.listener);
 
-  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10, isPublic: true });
+  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10 });
 
-  assert.deepEqual(event.received, ["questions"]);
-  assert.deepEqual(otherEvent.received, []);
+  assert.deepEqual(stream.received, ["questions"]);
+  assert.deepEqual(otherStream.received, []);
   assert.deepEqual(conference.received, ["questions"]);
 });
 
-test("reactions reach the event's listeners only", async () => {
+test("reactions reach the event's stream only", async () => {
   const bus = createMemoryBus();
   const hub = createHub(bus);
-  const event = recorder();
+  const stream = recorder();
   const conference = recorder();
-  hub.listenToEvent(1, event.listener);
+  hub.listenToEventStream(event1, stream.listener);
   hub.listenToConference(10, conference.listener);
 
   await bus.publish({ type: "reaction", eventId: 1, reaction });
 
-  assert.deepEqual(event.received, ["reaction"]);
+  assert.deepEqual(stream.received, ["reaction"]);
   assert.deepEqual(conference.received, []);
 });
 
-test("a question moderation hid reaches the conference's listeners only", async () => {
+test("an event going live reaches the streams of its stage in its conference", async () => {
   const bus = createMemoryBus();
   const hub = createHub(bus);
-  const event = recorder();
-  const conference = recorder();
-  hub.listenToEvent(1, event.listener);
-  hub.listenToConference(10, conference.listener);
-
-  await bus.publish({
-    type: "questions",
-    eventId: 1,
-    conferenceId: 10,
-    isPublic: false,
-  });
-
-  assert.deepEqual(event.received, []);
-  assert.deepEqual(conference.received, ["questions"]);
-});
-
-test("an event going live reaches its own stage of its own conference", async () => {
-  const bus = createMemoryBus();
-  const hub = createHub(bus);
-  const stage = recorder();
+  const sameStage = recorder();
   const otherStage = recorder();
   const sameNameOtherConference = recorder();
-  const event = recorder();
-  hub.listenToStage(10, "main", stage.listener);
-  hub.listenToStage(10, "side", otherStage.listener);
-  hub.listenToStage(20, "main", sameNameOtherConference.listener);
-  hub.listenToEvent(1, event.listener);
+  hub.listenToEventStream(event1, sameStage.listener);
+  hub.listenToEventStream(
+    { id: 3, conferenceId: 10, stage: "side" },
+    otherStage.listener,
+  );
+  hub.listenToEventStream(
+    { id: 4, conferenceId: 20, stage: "main" },
+    sameNameOtherConference.listener,
+  );
 
   await bus.publish({
     type: "live",
-    eventId: 1,
-    eventUid: "talk",
-    title: "Talk",
+    eventId: 2,
+    eventUid: "talk-2",
+    title: "Talk 2",
     conferenceId: 10,
     stage: "main",
   });
 
-  assert.deepEqual(stage.received, ["live"]);
+  assert.deepEqual(sameStage.received, ["live"]);
   assert.deepEqual(otherStage.received, []);
   assert.deepEqual(sameNameOtherConference.received, []);
-  assert.deepEqual(event.received, []);
 });
 
-test("resync reaches every listener", () => {
+test("resync reaches every listener once", () => {
   const bus = createMemoryBus();
   const hub = createHub(bus);
-  const event = recorder();
+  const stream = recorder();
   const conference = recorder();
-  hub.listenToEvent(1, event.listener);
+  hub.listenToEventStream(event1, stream.listener);
   hub.listenToConference(10, conference.listener);
 
   bus.resync();
 
-  assert.deepEqual(event.received, ["resync"]);
+  assert.deepEqual(stream.received, ["resync"]);
   assert.deepEqual(conference.received, ["resync"]);
 });
 
 test("a failing listener doesn't keep the message from the others", async () => {
   const bus = createMemoryBus();
   const hub = createHub(bus);
-  const event = recorder();
-  hub.listenToEvent(1, () => {
+  const stream = recorder();
+  hub.listenToEventStream(event1, () => {
     throw new Error("client gone");
   });
-  hub.listenToEvent(1, event.listener);
+  hub.listenToEventStream(event1, stream.listener);
 
-  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10, isPublic: true });
+  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10 });
 
-  assert.deepEqual(event.received, ["questions"]);
+  assert.deepEqual(stream.received, ["questions"]);
 });
 
 test("unsubscribing removes the listener", async () => {
   const bus = createMemoryBus();
   const hub = createHub(bus);
-  const event = recorder();
-  const stopEvent = hub.listenToEvent(1, event.listener);
+  const stream = recorder();
+  const stopStream = hub.listenToEventStream(event1, stream.listener);
   const stopConference = hub.listenToConference(10, () => {});
   assert.equal(hub.listenerCount(), 2);
 
-  stopEvent();
+  stopStream();
   stopConference();
-  stopEvent();
-  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10, isPublic: true });
+  stopStream();
+  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10 });
 
   assert.equal(hub.listenerCount(), 0);
-  assert.deepEqual(event.received, []);
+  assert.deepEqual(stream.received, []);
 });
 
 test("the hub subscribes to the bus once", async () => {
   const bus = createMemoryBus();
   const hub = createHub(bus);
-  const event = recorder();
+  const stream = recorder();
   hub.start();
-  hub.listenToEvent(1, event.listener);
-  hub.listenToEvent(1, () => {});
+  hub.listenToEventStream(event1, stream.listener);
+  hub.listenToEventStream(event1, () => {});
 
-  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10, isPublic: true });
+  await bus.publish({ type: "questions", eventId: 1, conferenceId: 10 });
 
-  assert.deepEqual(event.received, ["questions"]);
+  assert.deepEqual(stream.received, ["questions"]);
 });

@@ -45,7 +45,6 @@ import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
-import type { LiveSession } from "@meerkat-events/react";
 import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
 import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
 import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
@@ -161,9 +160,6 @@ export default function QnA() {
     });
   };
 
-  // The session last put live on this stage, from the stream. It wins over
-  // the schedule, which may be filtered to another day.
-  const [liveSession, setLiveSession] = useState<LiveSession>();
   const {
     data: questions,
     mutate: refreshQuestions,
@@ -172,11 +168,11 @@ export default function QnA() {
     // The user's own reactions come back too; addReaction skips them by uid.
     onReaction: (reaction) =>
       addReaction({ uid: reaction.uid, emoji: toReactionEmoji(reaction.emoji) }),
-    onEventLive: (session) => {
-      // Live flags changed: this session's banner and the schedule.
+    // Live flags changed: this session's banner and the schedule, which
+    // offers the new session.
+    onEventLive: () => {
       refreshEvent();
       refreshEvents();
-      setLiveSession(session);
     },
   });
   const changeSort = (sort: string) => {
@@ -322,11 +318,10 @@ export default function QnA() {
 
   const isntLive = event === undefined ? false : !event.live;
   // Where the "not live" banner sends attendees: the session live on this
-  // stage now, if it's another one.
-  const currentSession = liveSession ?? live.find((session) => session.live);
-  const otherLiveSession = currentSession?.uid === uid
-    ? undefined
-    : currentSession;
+  // stage now (from the schedule, so not while it shows another day).
+  const otherLiveSession = live.find((session) =>
+    session.live && session.uid !== uid
+  );
 
   const navLinks = useLinks({ event });
 

@@ -27,6 +27,8 @@ const PUBLIC_ROUTES = [
   "GET /api/v1/events/:uid",
   "GET /api/v1/events/:uid/questions",
   "GET /api/v1/events/:uid/questions/stream",
+  // The organizer pages' live updates: carries no data, only "refetch"
+  "GET /api/v1/conferences/:id/questions/stream",
   // The Q&A page's session switcher
   "GET /api/v1/events",
   // Old Event Card links, redirected to the Q&A page

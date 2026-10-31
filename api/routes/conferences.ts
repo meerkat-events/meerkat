@@ -125,23 +125,24 @@ app.get(
 );
 
 // Tells the organizer pages to refetch the questions above: an unnamed
-// `update` whenever a question or vote of any session changes, including
-// questions moderation hid on arrival. No reactions.
-app.get(
-  "/api/v1/conferences/:id/questions/stream",
-  jwt(),
-  async (c) => {
-    const conference = await requireOrganizer(
-      c.req.param("id"),
-      c.get("jwtPayload").sub,
-    );
+// `update` whenever a question or vote of any session changes. No reactions.
+// Public: it carries no data, only that something changed, which the public
+// event streams tell anyone anyway (questions moderation hid send nothing).
+// The questions themselves still need an organizer's token.
+app.get("/api/v1/conferences/:id/questions/stream", async (c) => {
+  const conferenceId = Number(c.req.param("id"));
+  const conference = Number.isInteger(conferenceId)
+    ? await getConferenceById(conferenceId)
+    : undefined;
+  if (!conference) {
+    throw new HTTPException(404, { message: "Conference not found" });
+  }
 
-    return eventStream(c, (send) =>
-      hub.listenToConference(conference.id, () => {
-        send({ data: "update" });
-      }));
-  },
-);
+  return eventStream(c, (send) =>
+    hub.listenToConference(conference.id, () => {
+      send({ data: "update" });
+    }));
+});
 
 // Activity totals for the organizer dashboard: the whole conference and each
 // session (questions, votes, reactions, participants).

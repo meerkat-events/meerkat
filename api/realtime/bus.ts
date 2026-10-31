@@ -19,14 +19,7 @@ export type PublicReaction = {
 
 /** A message one instance publishes to all instances, itself included. */
 export type PublishedMessage =
-  // `isPublic` is false for a question moderation hid on arrival: only the
-  // organizer streams hear about it.
-  | {
-    type: "questions";
-    eventId: number;
-    conferenceId: number;
-    isPublic: boolean;
-  }
+  | { type: "questions"; eventId: number; conferenceId: number }
   | { type: "reaction"; eventId: number; reaction: PublicReaction }
   // An event was put live; the screens and Q&A pages of its stage, within
   // its conference, switch to it or offer it.
@@ -71,8 +64,7 @@ export function toPublishedMessage(
 
   switch (message["type"]) {
     case "questions":
-      return typeof message["conferenceId"] === "number" &&
-          typeof message["isPublic"] === "boolean"
+      return typeof message["conferenceId"] === "number"
         ? value as PublishedMessage
         : undefined;
     case "reaction":

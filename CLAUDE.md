@@ -197,7 +197,9 @@ the DB-free `api/features.ts`, which the loader and the client import too).
     has no auth at all) and **embedders** (`packages/react`):
     `GET /api/v1/events/:uid` (also the layouts' `clientLoader`, for
     theming), `/api/v1/events/:uid/questions` and its `/stream`,
-    `GET /api/v1/events` (the Q&A page's session switcher), and
+    `GET /api/v1/events` (the Q&A page's session switcher),
+    `GET /api/v1/conferences/:id/questions/stream` (the organizer pages'
+    live updates, which carry no data), and
     `/e/:uid/card`, which redirects old Event Card links to the Q&A page;
   - **signage**: `/stage/:stage`, `/stage/:stage/qa`,
     `GET /api/v1/events/stage/:stage/live` (`useKeepLive`) and
@@ -334,72 +336,48 @@ the DB-free `api/features.ts`, which the loader and the client import too).
 
 ### Real-time (SSE from our API, Postgres between instances)
 
-Browsers never talk to Supabase Realtime. Everything live is SSE from our
-own API (`api/realtime/`):
+Browsers never talk to Supabase Realtime. Routes publish to a bus
+(`api/realtime/notify.ts`), every instance hears it, and its hub (`hub.ts`)
+writes to the SSE streams open on that instance (`sse.ts`).
 
-1. **Bus between instances** (`bus.ts`, `postgres-bus.ts`): one Postgres
-   channel, `meerkat_realtime`. Publishing is `pg_notify` through the app's
-   pool; listening is one dedicated LISTEN connection per process on
-   `DATABASE_URL`, which must be direct or the session pooler (LISTEN gets
-   nothing through a transaction pooler). It opens on first use (`main.ts`
-   calls `hub.start()`), never at import, so tests don't connect. Every
-   minute the bus checks it receives its own NOTIFY and replaces the
-   listener if not; after a reconnect subscribers get `resync` and refetch,
-   since NOTIFY has no replay. Messages carry ids and a reaction's public
-   fields only. `memory-bus.ts` is the in-process bus for tests; another
-   transport (Redis) is another `Bus` in `index.ts`.
-2. **Publishing** (`notify.ts`): every question or vote mutation calls
-   `notifyQuestionsChanged(event)`; for a question moderation hid on
-   arrival with `isPublic: false`, which reaches the organizer pages only.
-   Blocking a user notifies every event they asked in, since the lists
-   then leave their questions out.
-   The react route calls `notifyReaction` and going live calls
-   `notifyEventLive`. Routes don't await any of them (`void notify…`):
-   publishing is best effort, failures are logged and never fail or slow
-   the request. `toPublishedMessage` (`bus.ts`) validates every message
-   received.
-3. **Fan-out** (`hub.ts`): one bus subscription per process, delivering to
-   the SSE streams on this instance by event, by conference and by stage
-   (conference id plus stage name, since names repeat across conferences).
-   Every message reaches every listener; clients pace their refetches
-   (`useJitteredRefresh` in `@meerkat-events/react`: a random delay of up
-   to 500 ms, one refetch at a time; the stage screen at most once per
-   second). `sse.ts` writes the streams: it opens with a `ping` carrying a
-   random `retry:` of 1–4 s, so clients reconnect spread out after a
-   restart, then sends `ping` every 30 s; writes are queued per stream.
-4. **Event stream** (public): `GET /api/v1/events/:uid/questions/stream`.
-   An unnamed `update` means "refetch the questions"; a named `reaction`
-   carries `{ uid, emoji, createdAt }`; a named `live` carries
-   `{ uid, title }` of an event just put live on the same stage of the same
-   conference (`POST /api/v1/events/:uid/live` publishes it). The Q&A page
-   refreshes the event and its schedule, so a session that is no longer
-   live shows the "past or upcoming event" banner, whose "Go to live
-   session" button leads to the new one; a keep-live presenter switches to
-   it.
-   `@meerkat-events/react` 0.1.0 only handles unnamed messages, so old
-   embedders keep working without the named ones. All three public
-   consumers use the package's mechanism, one connection per page:
-   `useEventSource` (reconnect, watchdog, refetch after a re-open),
-   `useJitteredRefresh` for refetches (the stage screen with a 1 s maximum)
-   and `eventStreamEvents` for the typed `reaction` and `live` events. They
-   are `useQuestions` (embedders, which also takes `onReaction` and
-   `onEventLive`), `useEventQuestions` on the Q&A page and `Presenter` on
-   the stage screen. The app maps a reaction's emoji with `toReactionEmoji`
-   (`api/reactions.ts`).
-5. **Conference stream** (organizers only): `GET
-   /api/v1/conferences/:id/questions/stream`, an `update` for every
-   question or vote change in the conference, no reactions. `EventSource`
-   can't send a token, so `useConferenceQuestions` reads it with
-   `app/lib/fetch-event-stream.ts` (`fetch` with the bearer token, reconnect
-   with backoff, latest token on every attempt) and keeps a 10 s poll for
-   blocked users, which send no message.
-6. **Signage**: the presenter view with `?keep-live=true` switches to the
-   event in a `live` message right away, and `useKeepLive` polls
-   `/api/v1/events/stage/:stage/live` every 10 s for schedule changes
-   nobody announced.
+- **Bus**: Postgres LISTEN/NOTIFY on one channel (`postgres-bus.ts`,
+  behind the `Bus` interface in `bus.ts`; Redis would be another `Bus` in
+  `index.ts`). Messages carry ids and a reaction's public fields only, and
+  are validated on receipt (`toPublishedMessage`).
+- **Streams**, both public (no data beyond "something changed"):
+  - `GET /api/v1/events/:uid/questions/stream`: unnamed `update` (refetch
+    the questions), named `reaction` (`{ uid, emoji, createdAt }`) and
+    `live` (`{ uid, title }` of an event put live on the same stage of the
+    same conference). Read by `useQuestions` (embedders), the Q&A page
+    (`useEventQuestions`) and the stage screen (`Presenter`), all through
+    the package's `useEventSource`, `useJitteredRefresh` and
+    `eventStreamEvents`. React package 0.1.0 handles only unnamed messages.
+  - `GET /api/v1/conferences/:id/questions/stream`: unnamed `update` for
+    every question or vote change in the conference, for the organizer
+    pages (`useConferenceQuestions`), which also poll every 10 s.
+- **Session switch**: going live sends `live`; a `?keep-live=true` stage
+  screen follows it (and `useKeepLive`'s 10 s poll), and the Q&A page
+  refreshes its schedule, whose live session the "past or upcoming event"
+  banner links to.
 
-Fly's proxy counts every open stream as a request in flight, hence the
-explicit `[http_service.concurrency]` in `fly.template.toml`.
+Rules:
+
+1. **`DATABASE_URL` must be the direct connection or the session pooler**:
+   the bus LISTENs on it, and LISTEN receives nothing through a transaction
+   pooler. The listener opens on first use, never at import; a self-check
+   every minute replaces it when its own NOTIFY doesn't arrive, and after a
+   reconnect every client resyncs (NOTIFY has no replay).
+2. **Publish after the write, never await it** (`void notify…`): it is best
+   effort, logged on failure. Every question or vote mutation calls
+   `notifyQuestionsChanged`, blocking a user too (their questions leave the
+   lists). **Never publish a question moderation hid on arrival**: every
+   stream is public and must not reveal when hidden questions arrive.
+3. **Clients pace refetches, the server doesn't**: every message reaches
+   every listener, and clients refetch with `useJitteredRefresh` (a random
+   delay up to 500 ms, one at a time; 1 s on the stage screen). Streams
+   open with a random `retry:` so reconnects spread out, and ping every
+   30 s. Fly counts every open stream as a request in flight, hence
+   `[http_service.concurrency]` in `fly.template.toml`.
 
 ### Runtime constraints
 

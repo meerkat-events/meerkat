@@ -1,11 +1,9 @@
-import { useEffect, useRef } from "react";
 import useSWR from "swr";
-import throttle from "lodash.throttle";
+import { useEventSource, useJitteredRefresh } from "@meerkat-events/react";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
 import { apiUrl } from "../lib/api-url.ts";
-import { readEventStream } from "../lib/fetch-event-stream.ts";
 import type { ModeratedQuestion } from "../components/Manage/question-state.ts";
 
 export type ConferenceQuestion = ModeratedQuestion & {
@@ -16,9 +14,9 @@ export type ConferenceQuestion = ModeratedQuestion & {
  * Questions from every live session of a conference, or from one session
  * (organizers only), including what organizers or moderation hid. Refetches
  * whenever the conference's question stream says a question or vote changed
- * (asked, also when moderation hid it, selected, answered, deleted, restored,
- * voted), and every 10 seconds for what sends no message, such as blocked
- * users.
+ * (asked, selected, answered, deleted, restored, voted, a user blocked), and
+ * every 10 seconds for what sends no message: questions moderation hid on
+ * arrival, which no public stream may reveal.
  */
 export function useConferenceQuestions(
   conferenceId: number | undefined,
@@ -44,36 +42,14 @@ export function useConferenceQuestions(
     { refreshInterval: 10_000 },
   );
 
-  const mutateRef = useRef(mutate);
-  mutateRef.current = mutate;
-  const refresh = useRef(throttle(() => mutateRef.current(), 500)).current;
-
-  // The stream reads the latest token on every reconnect, so a token refresh
-  // doesn't restart it.
-  const tokenRef = useRef(token);
-  tokenRef.current = token;
-  const hasToken = token !== undefined;
-
   // One stream per list, so a feed and a session panel each refresh.
-  useEffect(() => {
-    if (!conferenceId || !hasToken) {
-      return;
-    }
-    const controller = new AbortController();
-    void readEventStream({
-      url: apiUrl(`/api/v1/conferences/${conferenceId}/questions/stream`),
-      getToken: () => tokenRef.current,
-      onMessage: (message) => {
-        if (message.data !== "ping") {
-          refresh();
-        }
-      },
-      // Messages sent while the stream was down are lost.
-      onReconnect: refresh,
-      signal: controller.signal,
-    });
-    return () => controller.abort();
-  }, [conferenceId, hasToken, refresh]);
+  const scheduleRefresh = useJitteredRefresh(() => mutate());
+  useEventSource({
+    url: conferenceId
+      ? apiUrl(`/api/v1/conferences/${conferenceId}/questions/stream`)
+      : undefined,
+    onMessage: scheduleRefresh,
+  });
 
   return { data: data?.data, error, isLoading, mutate };
 }
