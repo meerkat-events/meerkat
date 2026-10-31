@@ -1,0 +1,36 @@
+name: CI
+
+# Lint, build and test: unit tests (api/*.test.ts), then integration tests
+# (api/integration/*.int.ts, against the local Supabase CLI stack). Runs on
+# pull requests, and before every deploy: continous-deployment.yml calls it and
+# deploys only if it passes.
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Lint, build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
+      # api/ imports @meerkat-events/react from its dist/.
+      - run: pnpm --dir packages/react build
+      - run: pnpm --dir api lint
+      # react-router typegen + production build + tsc --noEmit
+      - run: pnpm --dir api typecheck
+      - run: pnpm --dir api test
+      - run: pnpm --dir api test:integration
