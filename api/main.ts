@@ -1,4 +1,3 @@
-import "./instrumentation.ts";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { createRequestHandler, type ServerBuild } from "react-router";
