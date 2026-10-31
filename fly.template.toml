@@ -25,6 +25,10 @@ PRETALX_URL = '$PRETALX_URL'
 # Runs once per deploy in a temporary machine before the rollout; a failure
 # aborts the deploy and the running version keeps serving.
 release_command = 'node /workspace/api/migrate.ts'
+# One new Machine first: it must pass the machine check and health check below
+# before the others are replaced. Not bluegreen: flyctl skips machine checks
+# there.
+strategy = 'canary'
 
 [processes]
 app = 'node /workspace/api/main.ts'
@@ -43,6 +47,12 @@ interval = "30s"
 method = "GET"
 timeout = "5s"
 path = "/api/v1/health"
+
+# Runs api/scripts/smoke-test.ts in a throwaway Machine (same image) against
+# each new Machine before it gets traffic; a failure stops the deploy.
+[[http_service.machine_checks]]
+command = ["node", "/workspace/api/scripts/smoke-test.ts"]
+kill_timeout = "60s"
 
 [[vm]]
 cpus = $CPUS

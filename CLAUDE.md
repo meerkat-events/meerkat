@@ -455,6 +455,14 @@ rendered with `envsubst` from GitHub secrets. Its `release_command` runs
 `api/migrate.ts` once per deploy, before the rollout, and a failed migration
 aborts the deploy; unlike the app, `migrate.ts` prefers `DATABASE_URL` over
 `DATABASE_POOLER_URL`. The health check hits `/api/v1/health` (public; a
-`SELECT 1`, so it fails while the database is unreachable).
+`SELECT 1`, so it fails while the database is unreachable). The strategy is
+`canary`: one new Machine must pass the machine check
+(`api/scripts/smoke-test.ts`, which reaches it over IPv6, hence `main.ts`
+binds `::`) and the health check before the rest roll. Not bluegreen: flyctl
+skips machine checks there. `envsubst` renders every `$VAR` in the template,
+so the template can't hold literal `$` for Fly. **Migrations must work
+with the code already deployed** (it keeps serving during and after a failed
+rollout, and a rollback doesn't undo them): add rather than break, and drop or
+rename in a later release; see the README's migration FAQ.
 `.github/workflows/sync.yml` runs a Pretalx sync by hand and needs the
 `MEERKAT_BASE` secret in the chosen environment.

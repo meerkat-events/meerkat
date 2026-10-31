@@ -121,6 +121,12 @@ Deploys go to [Fly.io](https://fly.io) through GitHub Actions
 `dev` environment, creating a GitHub release deploys `prod`. `fly.template.toml`
 is rendered with the repository secrets at deploy time.
 
+Each deploy migrates the database first, then boots one canary Machine that
+must pass a smoke test (`api/scripts/smoke-test.ts`) and the health check
+before the others are replaced; a failure stops the deploy. To roll back,
+redeploy a previous image: `fly releases --image`, then
+`fly deploy --image <image>`. Neither undoes a migration.
+
 ## Environment variables
 
 Set in `api/.env` (see `api/.env.example`).
@@ -165,6 +171,15 @@ pnpm migrate    # applies pending migrations
 
 Review the generated SQL before applying it: the `auth.users` table is managed
 by Supabase, so remove any statements the generator emits for it.
+
+Migrations run before the new code is deployed, and the old code keeps serving
+until the rollout finishes (or for good, if it fails). So a migration must work
+with the code currently deployed:
+
+- Add, don't break: new tables, nullable columns or columns with a default.
+- Drop or rename in two releases: first stop using the column, then remove it
+  in a later deploy.
+- Backfill large tables in batches, not in one locking statement.
 
 ### How do I add conferences and events?
 

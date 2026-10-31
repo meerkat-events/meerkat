@@ -31,6 +31,8 @@ app.get(
 
 app.get("*", (c) => handler(c.req.raw));
 
-serve({ fetch: app.fetch, hostname: "0.0.0.0", port: env.port }, (info) => {
+// "::" accepts IPv4 and IPv6; the deploy smoke test reaches the app over Fly's
+// private IPv6 network.
+serve({ fetch: app.fetch, hostname: "::", port: env.port }, (info) => {
   logger.info({ address: info.address, port: info.port }, "Server running");
 });
