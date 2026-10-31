@@ -69,7 +69,7 @@ at a time, so that all viewers of a talk don't refetch in the same instant.
 | ----------- | ----------------------- | ---------- | ------------------------------------------------------- |
 | `sessionId` | `string`                | —          | Session identifier (required)                           |
 | `sort`      | `"newest" \| "popular"` | `"newest"` | Sort order                                              |
-| `realtime`  | `boolean`               | `true`     | Enable SSE updates. Auto-reconnects on connection loss and refetches after reconnecting. Refetches at most every 500 ms. |
+| `realtime`  | `boolean`               | `true`     | Enable SSE updates. Auto-reconnects on connection loss and refetches after reconnecting. Refetches after a random delay of up to 500 ms, one at a time (`useJitteredRefresh`). |
 
 **Returns:**
 
@@ -89,7 +89,7 @@ session stream is
 `${apiUrl}/api/v1/events/${sessionId}/questions/stream`: an unnamed `update`
 message whenever questions or votes change (refetch them), a named
 `reaction` event per reaction, whose data is JSON
-`{ uid, emoji, createdAt }`, and a named `live` event with `{ uid }` when
+`{ uid, emoji, createdAt }`, and a named `live` event with `{ uid, title }` when
 another session is put live on the same stage.
 
 | Option      | Type                                     | Description                                                                 |

@@ -353,15 +353,20 @@ own API (`api/realtime/`):
    arrival with `isPublic: false`, which reaches the organizer pages only.
    Blocking a user notifies every event they asked in, since the lists
    then leave their questions out.
-   The react route calls `notifyReaction` without awaiting it, and going
-   live calls `notifyEventLive`. Failures are logged and never fail the
-   request. `toPublishedMessage` (`bus.ts`) validates every message
+   The react route calls `notifyReaction` and going live calls
+   `notifyEventLive`. Routes don't await any of them (`void notify…`):
+   publishing is best effort, failures are logged and never fail or slow
+   the request. `toPublishedMessage` (`bus.ts`) validates every message
    received.
 3. **Fan-out** (`hub.ts`): one bus subscription per process, delivering to
    the SSE streams on this instance by event, by conference and by stage
    (conference id plus stage name, since names repeat across conferences).
-   `sse.ts` writes the streams (`ping` every 30 s, writes queued per
-   stream).
+   Every message reaches every listener; clients pace their refetches
+   (`useJitteredRefresh` in `@meerkat-events/react`: a random delay of up
+   to 500 ms, one refetch at a time; the stage screen at most once per
+   second). `sse.ts` writes the streams: it opens with a `ping` carrying a
+   random `retry:` of 1–4 s, so clients reconnect spread out after a
+   restart, then sends `ping` every 30 s; writes are queued per stream.
 4. **Event stream** (public): `GET /api/v1/events/:uid/questions/stream`.
    An unnamed `update` means "refetch the questions"; a named `reaction`
    carries `{ uid, emoji, createdAt }`; a named `live` carries

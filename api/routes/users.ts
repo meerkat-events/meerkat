@@ -82,7 +82,7 @@ app.post(
     // organizer pages.
     const affectedEvents = await getEventsWithQuestionsBy(blockedUser.id);
     for (const event of affectedEvents) {
-      await notifyQuestionsChanged(event);
+      void notifyQuestionsChanged(event);
     }
 
     logger.info(

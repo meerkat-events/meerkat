@@ -432,7 +432,7 @@ app.post(
       throw new HTTPException(500, { message: `Failed to set event live` });
     }
 
-    await notifyEventLive(result);
+    void notifyEventLive(result);
 
     logger.info(
       {
