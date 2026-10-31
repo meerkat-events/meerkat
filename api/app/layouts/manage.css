@@ -1692,6 +1692,13 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+
+  /* Stays beside the buttons when the page's own search takes a full row. */
+  & .m-search {
+    flex: 1 1 180px;
+    max-width: 340px;
+    margin-bottom: 0;
+  }
 }
 
 /* Only as wide as an email, a role and a button need, so the columns stay
@@ -1701,6 +1708,7 @@
   flex-direction: column;
   gap: 14px;
   width: 100%;
+  min-width: 0;
   max-width: 760px;
   margin-inline: auto;
 

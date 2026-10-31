@@ -7,6 +7,7 @@ import {
   Input,
   NativeSelect,
   Portal,
+  Switch,
 } from "@chakra-ui/react";
 import { useManage } from "../../layouts/manage.tsx";
 import { useAuth } from "../../hooks/use-auth.ts";
@@ -155,6 +156,7 @@ export default function Permissions() {
   } = useConferencePermissions(conferenceId);
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
+  const [showAttendees, setShowAttendees] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
   const run = async (action: () => Promise<unknown>, success: string) => {
@@ -174,9 +176,14 @@ export default function Permissions() {
   const query = search.trim().toLowerCase();
   const matches = (person: { email: string | null; role: GrantableRole }) =>
     Boolean(person.email?.toLowerCase().includes(query)) || person.role.includes(query);
-  const members = data?.members.filter(matches);
-  const invited = data?.invitations.filter(matches);
+  // A search looks through everyone, hidden attendees included.
+  const isVisible = (person: { email: string | null; role: GrantableRole }) =>
+    query ? matches(person) : showAttendees || person.role !== "attendee";
+  const members = data?.members.filter(isVisible);
+  const invited = data?.invitations.filter(isVisible);
   const shown = (members?.length ?? 0) + (invited?.length ?? 0);
+  const attendees = [...(data?.members ?? []), ...(data?.invitations ?? [])]
+    .filter((person) => person.role === "attendee").length;
 
   return (
     <div className="m-permissions">
@@ -188,13 +195,31 @@ export default function Permissions() {
               {data
                 ? query
                   ? `${shown} of ${total} ${total === 1 ? "person" : "people"}`
-                  : `${total} ${total === 1 ? "person" : "people"} at ${conferenceName}`
+                  : `${shown} ${shown === 1 ? "person" : "people"} at ${conferenceName}${
+                    !showAttendees && attendees > 0
+                      ? ` · ${attendees} ${attendees === 1 ? "attendee" : "attendees"} hidden`
+                      : ""
+                  }`
                 : isLoading
                 ? "Loading…"
                 : ""}
             </span>
           </div>
           <div className="m-permissions-actions">
+            {attendees > 0 && (
+              <Switch.Root
+                size="sm"
+                colorPalette="brand"
+                checked={showAttendees}
+                onCheckedChange={(e) => setShowAttendees(e.checked)}
+              >
+                <Switch.HiddenInput />
+                <Switch.Control>
+                  <Switch.Thumb />
+                </Switch.Control>
+                <Switch.Label whiteSpace="nowrap">Show attendees</Switch.Label>
+              </Switch.Root>
+            )}
             <div className="m-search" role="search">
               <LuSearch size={15} aria-hidden="true" />
               <input
