@@ -11,6 +11,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import {
+  Link,
   redirect,
   redirectDocument,
   useParams,
@@ -44,7 +45,6 @@ import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
-import { LiveSessionPrompt } from "../components/QnA/LiveSessionPrompt.tsx";
 import type { LiveSession } from "../lib/event-stream-events.ts";
 import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
 import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
@@ -161,8 +161,8 @@ export default function QnA() {
     });
   };
 
-  // A session just put live on this stage, other than this one, until the
-  // attendee answers the prompt.
+  // The session last put live on this stage, from the stream. It wins over
+  // the schedule, which may be filtered to another day.
   const [liveSession, setLiveSession] = useState<LiveSession>();
   const {
     data: questions,
@@ -175,7 +175,7 @@ export default function QnA() {
       // Live flags changed: this session's banner and the schedule.
       refreshEvent();
       refreshEvents();
-      setLiveSession(session.uid === uid ? undefined : session);
+      setLiveSession(session);
     },
   });
   const changeSort = (sort: string) => {
@@ -320,6 +320,12 @@ export default function QnA() {
   };
 
   const isntLive = event === undefined ? false : !event.live;
+  // Where the "not live" banner sends attendees: the session live on this
+  // stage now, if it's another one.
+  const currentSession = liveSession ?? live.find((session) => session.live);
+  const otherLiveSession = currentSession?.uid === uid
+    ? undefined
+    : currentSession;
 
   const navLinks = useLinks({ event });
 
@@ -385,15 +391,30 @@ export default function QnA() {
                   You're viewing a past or upcoming event.
                 </Alert.Title>
               </Alert.Content>
+              {otherLiveSession && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  flexShrink="0"
+                  // Takes the banner's text color, like LiveDialog's button
+                  color="inherit"
+                  borderColor="currentColor"
+                  _hover={{ bg: "brand.solid/10" }}
+                >
+                  <Link
+                    to={qa(otherLiveSession.uid)}
+                    title={otherLiveSession.title}
+                  >
+                    Go to live session
+                  </Link>
+                </Button>
+              )}
               {event && canModerateHere && (
                 <LiveDialog event={event} onConfirm={onConfirm} />
               )}
             </Alert.Root>
           )}
-          <LiveSessionPrompt
-            session={liveSession}
-            onClose={() => setLiveSession(undefined)}
-          />
           {/* Equal side columns keep the conference name centered in the row */}
           <Grid
             templateColumns="1fr minmax(0, auto) 1fr"

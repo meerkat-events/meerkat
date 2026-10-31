@@ -365,8 +365,10 @@ own API (`api/realtime/`):
    carries `{ uid, emoji, createdAt }`; a named `live` carries
    `{ uid, title }` of an event just put live on the same stage of the same
    conference (`POST /api/v1/events/:uid/live` publishes it). The Q&A page
-   refreshes its schedule and offers the new session
-   (`LiveSessionPrompt`); a keep-live presenter switches to it.
+   refreshes the event and its schedule, so a session that is no longer
+   live shows the "past or upcoming event" banner, whose "Go to live
+   session" button leads to the new one; a keep-live presenter switches to
+   it.
    `app/lib/event-stream-events.ts` parses the named events for both. `@meerkat-events/react` 0.1.0 only handles unnamed
    messages, so old embedders keep working without the named ones. Consumed with the package's `useEventSource` (an `events` map
    for named events; refetches after a re-open): by `useQuestions`, by
