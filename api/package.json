@@ -23,8 +23,6 @@
     "@hono/zod-validator": "^0.9.1",
     "@meerkat-events/react": "workspace:*",
     "@react-router/node": "^8.3.1",
-    "@sentry/node": "^10.74.0",
-    "@sentry/react": "^10.74.0",
     "@supabase/supabase-js": "^2.116.0",
     "@uidotdev/usehooks": "^2.4.1",
     "argon2": "^0.45.1",

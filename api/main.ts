@@ -1,4 +1,3 @@
-import "./instrumentation.ts";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { createRequestHandler, type ServerBuild } from "react-router";
@@ -6,6 +5,19 @@ import app from "./app.ts";
 import env, { redactedEnv } from "./env.ts";
 import logger from "./logger.ts";
 import { hub } from "./realtime/index.ts";
+
+// A stray rejection from background work (Realtime cleanup, an SSE write to a
+// closed connection) is logged and the server keeps running, rather than
+// dropping every request and stream on the instance. An uncaught exception
+// leaves the process in an unknown state, so it is logged and the server
+// exits; Fly restarts it.
+process.on("unhandledRejection", (reason) => {
+  logger.error({ err: reason }, "Unhandled promise rejection");
+});
+process.on("uncaughtException", (error) => {
+  logger.fatal({ err: error }, "Uncaught exception, exiting");
+  process.exit(1);
+});
 
 logger.info({ env: redactedEnv }, "Parsed environment variables");
 if (!env.openRouterApiKey) {

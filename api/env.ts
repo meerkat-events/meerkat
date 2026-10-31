@@ -33,9 +33,7 @@ if (!supabaseServiceRoleKey) {
 // forwards the attendee's IP to Supabase Auth so its per-IP rate limits apply
 // to the attendee rather than to our servers (app/lib/handover.server.ts).
 const supabaseSecretKey = process.env["SUPABASE_SECRET_KEY"] || undefined;
-const sentryDSN = process.env["SENTRY_DSN"];
 const maxPoolSize = process.env["DATABASE_MAX_POOL_SIZE"];
-const environment = process.env["ENVIRONMENT"] ?? "development";
 
 // Origins allowed to call /api/* from a browser (comma-separated), e.g. the
 // Devcon event app embedding `@meerkat-events/react`. Defaults to "*": the API
@@ -67,9 +65,7 @@ const env = {
   supabaseAnonKey,
   supabaseServiceRoleKey,
   supabaseSecretKey,
-  sentryDSN,
   maxPoolSize,
-  environment,
   devconVerificationSecret,
   corsOrigins,
   pretalxUrl,
@@ -84,7 +80,6 @@ export const redactedEnv = {
   supabaseServiceRoleKey: "REDACTED",
   // Public by design (the browser gets them), but still credentials.
   supabaseAnonKey: env.supabaseAnonKey ? "REDACTED" : undefined,
-  sentryDSN: env.sentryDSN ? "REDACTED" : undefined,
   // Unset stays visible: it tells whether the handover forwards client IPs.
   supabaseSecretKey: env.supabaseSecretKey ? "REDACTED" : undefined,
   // Unset stays visible: it tells whether questions are moderated.

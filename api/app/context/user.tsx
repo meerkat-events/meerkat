@@ -1,6 +1,5 @@
 import { createContext, useEffect, useState } from "react";
 import { useSupabase } from "./supabase.tsx";
-import * as Sentry from "@sentry/react";
 import type { Session, User } from "@supabase/supabase-js";
 import type { HTTPError } from "../hooks/http-error.ts";
 
@@ -76,16 +75,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     fetchUser();
 
     const subscription = client?.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        Sentry.setUser({
-          id: session.user.id,
-          ...(session.user.user_metadata?.["name"]
-            ? { username: session.user.user_metadata["name"] as string }
-            : {}),
-        });
-      } else {
-        Sentry.setUser(null);
-      }
       setSession(session ?? undefined);
       setUser(session?.user ?? undefined);
     });

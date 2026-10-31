@@ -44,7 +44,6 @@ run() {
     SUPABASE_ANON_KEY="$ANON_KEY" \
     SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
     DEVCON_VERIFICATION_SECRET=integration-test-secret \
-    ENVIRONMENT=test \
     "$@"
 }
 

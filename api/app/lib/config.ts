@@ -1,10 +1,8 @@
 import { apiUrl } from "./api-url.ts";
 
 export type Config = {
-  environment: string;
   supabaseUrl: string | undefined;
   supabaseAnonKey: string | undefined;
-  sentryDSN: string | undefined;
 };
 
 export async function getConfig() {
