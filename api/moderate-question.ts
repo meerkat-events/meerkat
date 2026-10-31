@@ -3,7 +3,6 @@
  * (designs/002-question-moderation.md). Fails open: without configuration,
  * without an API key, or when the classifier fails, the question is shown.
  */
-import * as Sentry from "@sentry/node";
 import { classifyQuestion } from "./classifier.ts";
 import env from "./env.ts";
 import logger from "./logger.ts";
@@ -39,19 +38,6 @@ const MODERATION_OFF: ModerationResult = {
   call: null,
 };
 
-// A dead key or an empty balance fails every question; report it to Sentry at
-// most this often. Every failure is still logged by logModerationCall.
-const SENTRY_REPORT_INTERVAL_MS = 5 * 60 * 1000;
-let lastSentryReportAt = 0;
-
-function reportToSentry(error: string) {
-  const now = Date.now();
-  if (now - lastSentryReportAt >= SENTRY_REPORT_INTERVAL_MS) {
-    lastSentryReportAt = now;
-    Sentry.captureException(new Error(`Question moderation failed: ${error}`));
-  }
-}
-
 export async function moderateQuestion(
   { question, talk, conference }: {
     question: string;
@@ -84,7 +70,6 @@ export async function moderateQuestion(
   const durationMs = performance.now() - started;
 
   if ("error" in result) {
-    reportToSentry(result.error);
     return {
       hiddenAt: null,
       moderation: null,
