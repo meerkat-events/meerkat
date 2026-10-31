@@ -1685,15 +1685,16 @@
 }
 
 /* Permissions */
-.m-permissions-actions {
+.m-permissions-filters {
   display: flex;
-  flex: 1 1 auto;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--m-line);
 
-  /* Stays beside the buttons when the page's own search takes a full row. */
+  /* Stays beside the toggle when the page's own search takes a full row. */
   & .m-search {
     flex: 1 1 180px;
     max-width: 340px;
