@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
-import { beforeEach, describe, test } from "node:test";
+import { afterEach, beforeEach, describe, test } from "node:test";
+import { eq, sql } from "drizzle-orm";
 import db from "../db.ts";
 import env from "../env.ts";
 import type { Bus, RealtimeMessage } from "../realtime/bus.ts";
 import { bus, hub } from "../realtime/index.ts";
-import { notifyQuestionsChanged } from "../realtime/notify.ts";
 import { createPostgresBus } from "../realtime/postgres-bus.ts";
 import { SUPERVOTES_FEATURE } from "../models/supervotes.ts";
-import { events, questions, supervoteBalances } from "../schema.ts";
+import {
+  conferences,
+  events,
+  questions,
+  supervoteBalances,
+} from "../schema.ts";
 import {
   emailUser,
   grantTestRole,
@@ -274,16 +279,50 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     await waitUntilListening(bus, bus);
   });
 
-  // `prepare` runs before the streams open, so its own messages don't count.
+  type ListedQuestion = {
+    uid: string;
+    question: string;
+    votes: number;
+    selectedAt: string | null;
+    answeredAt: string | null;
+    vote: { weight: number } | null;
+  };
+
+  // What the Q&A page refetches after an `update`, as the voter sees it.
+  async function refetchQuestions(s: Setup) {
+    const response = await request(
+      "GET",
+      `/api/v1/events/${s.eventUid}/questions`,
+      { token: s.voter.token },
+    );
+    assert.equal(response.status, 200);
+    const { data } = await response.json() as { data: ListedQuestion[] };
+    return data;
+  }
+
+  // `prepare` runs before the stream opens, so its own messages don't count.
+  // `expect` checks what a refetch returns as soon as the `update` arrives,
+  // so an update sent before the change is written fails.
   const questionActions: {
     name: string;
     prepare?: (setup: Setup) => Promise<void>;
     // `request` answers like Hono's app.request: a Response or its promise.
     act: (setup: Setup) => Response | Promise<Response>;
+    expect: (listed: ListedQuestion[], setup: Setup) => void;
   }[] = [
     {
       name: "asking",
-      act: (s) => askQuestion(s.eventUid, s.voter),
+      act: (s) =>
+        request("POST", `/api/v1/events/${s.eventUid}/questions`, {
+          token: s.voter.token,
+          body: { question: "And what about privacy?" },
+        }),
+      expect: (listed) => {
+        assert.ok(
+          listed.some((q) => q.question === "And what about privacy?"),
+          "the new question is listed",
+        );
+      },
     },
     {
       name: "voting",
@@ -291,6 +330,11 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
         request("POST", `/api/v1/questions/${s.questionUid}/upvote`, {
           token: s.voter.token,
         }),
+      expect: (listed, s) => {
+        const question = listed.find((q) => q.uid === s.questionUid);
+        assert.equal(question?.votes, 1);
+        assert.deepEqual(question?.vote, { weight: 1 });
+      },
     },
     {
       name: "removing a vote",
@@ -307,6 +351,11 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
         request("POST", `/api/v1/questions/${s.questionUid}/upvote`, {
           token: s.voter.token,
         }),
+      expect: (listed, s) => {
+        const question = listed.find((q) => q.uid === s.questionUid);
+        assert.equal(question?.votes, 0);
+        assert.equal(question?.vote, null);
+      },
     },
     {
       name: "supervoting",
@@ -315,6 +364,11 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
           token: s.voter.token,
           body: { weight: 3 },
         }),
+      expect: (listed, s) => {
+        const question = listed.find((q) => q.uid === s.questionUid);
+        assert.equal(question?.votes, 3);
+        assert.deepEqual(question?.vote, { weight: 3 });
+      },
     },
     {
       name: "selecting a question for the stage",
@@ -322,6 +376,10 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
         request("POST", `/api/v1/questions/${s.questionUid}/select`, {
           token: s.organizer.token,
         }),
+      expect: (listed, s) => {
+        const question = listed.find((q) => q.uid === s.questionUid);
+        assert.ok(question?.selectedAt, "selectedAt is set");
+      },
     },
     {
       name: "marking a question answered",
@@ -329,6 +387,10 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
         request("POST", `/api/v1/questions/${s.questionUid}/mark-as-answered`, {
           token: s.organizer.token,
         }),
+      expect: (listed, s) => {
+        const question = listed.find((q) => q.uid === s.questionUid);
+        assert.ok(question?.answeredAt, "answeredAt is set");
+      },
     },
     {
       name: "deleting a question",
@@ -336,10 +398,46 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
         request("DELETE", `/api/v1/questions/${s.questionUid}`, {
           token: s.organizer.token,
         }),
+      expect: (listed, s) => {
+        assert.ok(
+          !listed.some((q) => q.uid === s.questionUid),
+          "the question is gone",
+        );
+      },
+    },
+    {
+      name: "blocking the asker",
+      act: (s) =>
+        request("POST", `/api/v1/users/${s.asker.id}/block`, {
+          token: s.organizer.token,
+        }),
+      expect: (listed, s) => {
+        assert.ok(
+          !listed.some((q) => q.uid === s.questionUid),
+          "the blocked user's question is gone",
+        );
+      },
+    },
+    {
+      name: "restoring a question moderation hid",
+      prepare: async (s) => {
+        await db.update(questions).set({ hiddenAt: new Date() })
+          .where(eq(questions.uid, s.questionUid));
+      },
+      act: (s) =>
+        request("POST", `/api/v1/questions/${s.questionUid}/restore`, {
+          token: s.organizer.token,
+        }),
+      expect: (listed, s) => {
+        assert.ok(
+          listed.some((q) => q.uid === s.questionUid),
+          "the restored question is listed",
+        );
+      },
     },
   ];
 
-  for (const { name, prepare, act } of questionActions) {
+  for (const { name, prepare, act, expect } of questionActions) {
     test(`${name} sends an update to the event stream`, async () => {
       await prepare?.(setup);
       // Let messages from setup and `prepare` pass before the stream opens.
@@ -353,6 +451,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
 
       assert.equal(response.status, 200, await response.clone().text());
       assert.ok(await readUntil(stream, UPDATE), "no update");
+      expect(await refetchQuestions(setup), setup);
     });
   }
 
@@ -374,22 +473,78 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     assert.deepEqual(Object.keys(reaction).sort(), ["createdAt", "emoji", "uid"]);
   });
 
-  test("a question moderation hid reaches the organizer stream only", async () => {
-    const eventStream = await request(
+  describe("with moderation on", () => {
+    const realFetch = globalThis.fetch;
+    const realKey = env.openRouterApiKey;
+
+    beforeEach(async () => {
+      // The classifier's provider refuses, which hides the question (see
+      // classifier.ts readRefusal); every other request goes through.
+      env.openRouterApiKey = "test-key";
+      globalThis.fetch = async (input, init) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url.startsWith("https://openrouter.ai/")) {
+          return Response.json(
+            { error: { message: "OpenAI refused to answer question" } },
+            { status: 502 },
+          );
+        }
+        return await realFetch(input, init);
+      };
+      await db.update(conferences)
+        .set({ moderation: { context: "A test conference." } })
+        .where(eq(conferences.id, setup.conferenceId));
+    });
+
+    afterEach(() => {
+      globalThis.fetch = realFetch;
+      env.openRouterApiKey = realKey;
+    });
+
+    test("a question moderation hid reaches the organizer stream only", async () => {
+      const eventStream = await request(
+        "GET",
+        `/api/v1/events/${setup.eventUid}/questions/stream`,
+      );
+      const organizerStream = await request(
+        "GET",
+        `/api/v1/conferences/${setup.conferenceId}/questions/stream`,
+        { token: setup.organizer.token },
+      );
+
+      const asked = await askQuestion(setup.eventUid, setup.voter);
+      assert.equal(asked.status, 200);
+      const [hidden] = await db.select({ hiddenAt: questions.hiddenAt })
+        .from(questions)
+        .where(eq(questions.userId, setup.voter.id));
+      assert.ok(hidden?.hiddenAt, "the classifier stub hid the question");
+
+      assert.ok(await readUntil(organizerStream, UPDATE), "organizer stream");
+      assert.doesNotMatch(await readFor(eventStream, 1_000), UPDATE);
+    });
+  });
+
+  test("clients resync after the LISTEN connection drops", async () => {
+    const stream = await request(
       "GET",
       `/api/v1/events/${setup.eventUid}/questions/stream`,
     );
-    const organizerStream = await request(
-      "GET",
-      `/api/v1/conferences/${setup.conferenceId}/questions/stream`,
-      { token: setup.organizer.token },
-    );
-    // What the create route publishes for a question the classifier hid
-    // (moderation itself needs an OpenRouter key the tests don't have).
-    const [event] = await db.select().from(events);
-    await notifyQuestionsChanged(event!, { isPublic: false });
+    // Kill this process's LISTEN connection, as a database restart would.
+    const killed = await db.execute<{ pg_terminate_backend: boolean }>(sql`
+      SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+      WHERE query ILIKE 'listen %meerkat_realtime%'
+    `);
+    assert.ok(killed.length > 0, "found the LISTEN connection");
 
-    assert.ok(await readUntil(organizerStream, UPDATE), "organizer stream");
-    assert.doesNotMatch(await readFor(eventStream, 1_000), UPDATE);
+    // postgres.js reconnects and the bus delivers `resync`: an `update`.
+    assert.ok(await readUntil(stream, UPDATE), "no resync update");
+
+    // Messages flow again after the reconnect.
+    const next = await request(
+      "GET",
+      `/api/v1/events/${setup.eventUid}/questions/stream`,
+    );
+    assert.equal((await askQuestion(setup.eventUid, setup.voter)).status, 200);
+    assert.ok(await readUntil(next, UPDATE), "no update after reconnect");
   });
 });

@@ -7,6 +7,8 @@ import {
   SUPERVOTE_WEIGHT,
 } from "../models/supervotes.ts";
 import { markUserAsBlocked } from "../models/user.ts";
+import { getEventsWithQuestionsBy } from "../models/questions.ts";
+import { notifyQuestionsChanged } from "../realtime/notify.ts";
 import { canModerate, getConferenceRoles } from "../models/roles.ts";
 import logger from "../logger.ts";
 
@@ -74,6 +76,14 @@ app.post(
     }
 
     await markUserAsBlocked(blockedUser.id);
+
+    // The question lists leave a blocked user's questions out, so every list
+    // they asked in refetches: the Q&A pages, the stage screen and the
+    // organizer pages.
+    const affectedEvents = await getEventsWithQuestionsBy(blockedUser.id);
+    for (const event of affectedEvents) {
+      await notifyQuestionsChanged(event);
+    }
 
     logger.info(
       { userId: user.id, blockedUserId: blockedUser.id },

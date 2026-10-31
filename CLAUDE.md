@@ -351,6 +351,8 @@ own API (`api/realtime/`):
 2. **Publishing** (`notify.ts`): every question or vote mutation calls
    `notifyQuestionsChanged(event)`; for a question moderation hid on
    arrival with `isPublic: false`, which reaches the organizer pages only.
+   Blocking a user notifies every event they asked in, since the lists
+   then leave their questions out.
    The react route calls `notifyReaction` without awaiting it, and going
    live calls `notifyEventLive`. Failures are logged and never fail the
    request. `toPublishedMessage` (`bus.ts`) validates every message
