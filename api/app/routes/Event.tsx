@@ -5,6 +5,7 @@ import { useEvent } from "~/hooks/use-event.ts";
 import Presenter from "../components/Presenter/index.tsx";
 import { toEvent } from "../lib/event.ts";
 import { useKeepLive } from "../hooks/use-keep-live.ts";
+import { stageScreenSearchParams } from "../../stage-screen.ts";
 
 // The stage screen refetches the whole event on an SSE update, paced like
 // every other client (useJitteredRefresh: one refetch at a time), within a
@@ -36,9 +37,8 @@ export default function EventPage() {
   // through useKeepLive's 10-second poll when the schedule moves on.
   const goToEvent = (eventUid: string) => {
     if (eventUid === event?.uid) return;
-    const searchParams = new URLSearchParams();
-    searchParams.set("keep-live", "true");
-    navigate(`/e/${eventUid}?${searchParams.toString()}`);
+    const nextSearchParams = stageScreenSearchParams(searchParams);
+    navigate(`/e/${eventUid}?${nextSearchParams.toString()}`);
   };
 
   useKeepLive({
