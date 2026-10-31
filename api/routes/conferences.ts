@@ -10,8 +10,17 @@ import {
 import { HTTPException } from "hono/http-exception";
 import { getLiveEvent } from "../models/events.ts";
 import { jwt } from "../middlewares/jwt.ts";
-import { getUserById } from "../models/user.ts";
-import { getConferenceRolesForConference } from "../models/roles.ts";
+import { getUserByEmail, getUserById } from "../models/user.ts";
+import {
+  getConferenceRolesForConference,
+  grantRole,
+} from "../models/roles.ts";
+import {
+  getConferencePermissions,
+  removeInvitation,
+  removeMember,
+  upsertInvitation,
+} from "../models/permissions.ts";
 import {
   type ConferenceQuestions,
   getConferenceQuestions,
@@ -158,6 +167,98 @@ app.get("/api/v1/conferences/:id/users/:userId/activity", jwt(), async (c) => {
 
   return c.json({ data: activity });
 });
+
+// Who has access to the conference and with which role. Emails only ever
+// reach organizers, through these routes. Nobody can change or remove their
+// own role, so a conference always keeps an organizer.
+app.get("/api/v1/conferences/:id/permissions", jwt(), async (c) => {
+  const conference = await requireOrganizer(
+    c.req.param("id"),
+    c.get("jwtPayload").sub,
+  );
+
+  return c.json({ data: await getConferencePermissions(conference.id) });
+});
+
+const permissionBody = zod.object({
+  email: zod.string().trim().toLowerCase().pipe(zod.email()),
+  role: zod.enum(["organizer", "moderator", "attendee"]),
+});
+
+// Adds an email or changes its role. An email without an account is invited:
+// it gets the role when it first signs up (handle_new_user).
+app.post(
+  "/api/v1/conferences/:id/permissions",
+  jwt(),
+  zValidator("json", permissionBody),
+  async (c) => {
+    const actorId = c.get("jwtPayload").sub;
+    const conference = await requireOrganizer(c.req.param("id"), actorId);
+    const { email, role } = c.req.valid("json");
+
+    const user = await getUserByEmail(email);
+    if (user?.id === actorId) {
+      throw new HTTPException(400, {
+        message: "You can't change your own role",
+      });
+    }
+
+    if (user) {
+      await grantRole(user.id, conference.id, role);
+    } else {
+      await upsertInvitation(conference.id, email, role);
+    }
+
+    return c.json({ data: { status: user ? "member" : "invited" } });
+  },
+);
+
+const memberParams = zod.object({ userId: zod.uuid() });
+
+app.delete(
+  "/api/v1/conferences/:id/permissions/members/:userId",
+  jwt(),
+  zValidator("param", memberParams),
+  async (c) => {
+    const actorId = c.get("jwtPayload").sub;
+    const conference = await requireOrganizer(c.req.param("id"), actorId);
+    const { userId } = c.req.valid("param");
+
+    if (userId === actorId) {
+      throw new HTTPException(400, {
+        message: "You can't remove your own access",
+      });
+    }
+    if (!await removeMember(conference.id, userId)) {
+      throw new HTTPException(404, { message: "Member not found" });
+    }
+
+    return c.body(null, 204);
+  },
+);
+
+const invitationParams = zod.object({
+  invitationId: zod.coerce.number().int(),
+});
+
+app.delete(
+  "/api/v1/conferences/:id/permissions/invitations/:invitationId",
+  jwt(),
+  zValidator("param", invitationParams),
+  async (c) => {
+    const conference = await requireOrganizer(
+      c.req.param("id"),
+      c.get("jwtPayload").sub,
+    );
+    const { invitationId } = c.req.valid("param");
+
+    if (!await removeInvitation(conference.id, invitationId)) {
+      throw new HTTPException(404, { message: "Invitation not found" });
+    }
+
+    return c.body(null, 204);
+  },
+);
 
 const participantParams = zod.object({
   id: zod.coerce.number().int(),
