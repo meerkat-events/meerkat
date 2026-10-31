@@ -42,6 +42,19 @@ const REDACTED_QUERY_PARAMS = [
   "X-Amz-Security-Token",
 ];
 
+/**
+ * Span attributes for an outgoing fetch that leave out its query string.
+ * The undici instrumentation records `url.full` and `url.query` as they are
+ * and has no list of parameters to redact.
+ */
+function withoutQuery(request: { origin: string; path: string }) {
+  const url = new URL(request.path, request.origin);
+  if (!url.search) {
+    return {};
+  }
+  return { "url.full": `${url.origin}${url.pathname}`, "url.query": "REDACTED" };
+}
+
 function startTelemetry(token: string, host: string) {
   register("@opentelemetry/instrumentation/hook.mjs", import.meta.url);
 
@@ -77,6 +90,7 @@ function startTelemetry(token: string, host: string) {
       new UndiciInstrumentation({
         // posthog-node's own requests to PostHog.
         ignoreRequestHook: (request) => request.origin === host,
+        startSpanHook: withoutQuery,
       }),
       new PinoInstrumentation({
         // Log lines written during a request carry the browser's PostHog ids

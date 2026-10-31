@@ -1,5 +1,6 @@
 import { createContext, useEffect, useState } from "react";
 import { usePostHog } from "@posthog/react";
+import { isPostHogEnabled } from "../lib/posthog.ts";
 import { useSupabase } from "./supabase.tsx";
 import type { Session, User } from "@supabase/supabase-js";
 import type { HTTPError } from "../hooks/http-error.ts";
@@ -64,7 +65,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const posthog = usePostHog();
   const userId = user?.id;
   useEffect(() => {
-    if (userId) {
+    if (userId && isPostHogEnabled()) {
       posthog?.identify(userId);
     }
   }, [posthog, userId]);
@@ -87,7 +88,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     fetchUser();
 
     const subscription = client?.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
+      if (event === "SIGNED_OUT" && isPostHogEnabled()) {
         posthog?.reset();
       }
       setSession(session ?? undefined);

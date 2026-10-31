@@ -397,7 +397,8 @@ Every deployment tags them with `ENVIRONMENT`.
   and per outgoing fetch (undici), and every pino line, over OTLP to
   `/i/v1/traces` and `/i/v1/logs`. Log lines and spans carry `trace_id`.
   `url.query` values of credential parameters (`token`, `code`, …) are
-  redacted; extend `REDACTED_QUERY_PARAMS` when a route takes a new one.
+  redacted on incoming requests; extend `REDACTED_QUERY_PARAMS` when a route
+  takes a new one. Outgoing fetch spans leave the query string out entirely.
 - **Client ↔ server**: posthog-js (`app/lib/posthog.ts`, started in
   `entry.client.tsx` before hydration from `/api/v1/config`) adds
   `X-POSTHOG-SESSION-ID`/`X-POSTHOG-DISTINCT-ID` to API requests;
@@ -407,8 +408,12 @@ Every deployment tags them with `ENVIRONMENT`.
   (`identify` in `context/user.tsx`, `reset` on sign-out), never the email.
 - **Errors**: `reportException` (`api/posthog.ts`) from Hono's `onError`, the
   process handlers in `main.ts` and React Router's `handleError`
-  (`entry.server.tsx`); in the browser, exception autocapture plus the root
-  `ErrorBoundary` (5xx and thrown errors, not 4xx).
+  (`entry.server.tsx`), with a failed query's SQL and parameters left out
+  (`withoutQueryDetails` in `logger.ts`); in the browser, exception
+  autocapture plus the route ErrorBoundaries (`useReportRouteError`: not 4xx,
+  and not server errors, which the server reported). posthog-js `defaults`
+  must stay ≥ `2026-06-25`: older defaults record URL fragments, where the
+  handover and sign-in links put session tokens.
 - **Feedback**: "Give feedback" in the navigation drawer captures
   `feedback_requested`, which opens the PostHog survey "Give feedback" (Open
   feedback template, event-triggered, shown every time).

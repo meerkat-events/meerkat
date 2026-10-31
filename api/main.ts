@@ -6,7 +6,7 @@ import env, { redactedEnv } from "./env.ts";
 import logger from "./logger.ts";
 import { hub } from "./realtime/index.ts";
 import { shutdownTelemetry } from "./instrumentation.ts";
-import { reportException, reportExceptionNow } from "./posthog.ts";
+import { reportException } from "./posthog.ts";
 
 // A stray rejection from background work (Realtime cleanup, an SSE write to a
 // closed connection) is logged and the server keeps running, rather than
@@ -19,7 +19,8 @@ process.on("unhandledRejection", (reason) => {
 });
 process.on("uncaughtException", async (error) => {
   logger.fatal({ err: error }, "Uncaught exception, exiting");
-  await reportExceptionNow(error);
+  reportException(error);
+  // Sends the exception, giving up after a few seconds.
   await shutdownTelemetry();
   process.exit(1);
 });

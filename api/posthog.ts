@@ -1,5 +1,6 @@
 import { PostHog } from "posthog-node";
 import env from "./env.ts";
+import { withoutQueryDetails } from "./logger.ts";
 
 /**
  * The server's PostHog client, for exception tracking and the request context
@@ -19,19 +20,12 @@ export const posthog = env.posthogToken && env.posthogHost
   : undefined;
 
 /**
- * Sends an exception to PostHog error tracking. Inside a request it is linked
- * to the browser's session and person through the request context
+ * Queues an exception for PostHog error tracking. Inside a request it is
+ * linked to the browser's session and person through the request context
  * (middlewares/telemetry.ts).
  */
 export function reportException(error: unknown) {
-  posthog?.captureException(error, undefined, {
-    environment: env.environment,
-  });
-}
-
-/** Like `reportException`, but resolves once the exception is sent. */
-export async function reportExceptionNow(error: unknown) {
-  await posthog?.captureExceptionImmediate(error, undefined, {
+  posthog?.captureException(withoutQueryDetails(error), undefined, {
     environment: env.environment,
   });
 }

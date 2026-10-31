@@ -11,7 +11,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { FiGlobe, FiMenu, FiMessageSquare } from "react-icons/fi";
-import { requestFeedback } from "../../lib/posthog.ts";
+import { isPostHogEnabled, requestFeedback } from "../../lib/posthog.ts";
 import { FaXTwitter } from "react-icons/fa6";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { Link as ReactRouterLink } from "react-router";
@@ -158,7 +158,7 @@ export function NavigationDrawer({ navLinks }: NavigationDrawerProps) {
                       {...link}
                     />
                   ))}
-                  <GiveFeedback />
+                  {isPostHogEnabled() && <GiveFeedback />}
                 </List.Root>
               </Box>
             </Drawer.Body>

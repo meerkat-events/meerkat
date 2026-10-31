@@ -30,9 +30,11 @@ export const telemetry = () =>
     }
 
     // "GET /api/v1/events/:uid" rather than the HTTP instrumentation's bare
-    // "GET". Pages (the "*" catch-all) keep it: their paths are unbounded.
+    // "GET". A request no route matched ends in a wildcard (the pages'
+    // catch-all, or the "/api/*" CORS middleware for an unknown API path)
+    // and keeps the bare name.
     const route = c.req.routePath;
-    if (route !== "*" && route !== "/*") {
+    if (!route.endsWith("*")) {
       const span = trace.getActiveSpan();
       span?.updateName(`${c.req.method} ${route}`);
       span?.setAttribute("http.route", route);
