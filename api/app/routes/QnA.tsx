@@ -118,7 +118,7 @@ const sortOptions = [
 ];
 
 /**
- * Switching sessions (the session switcher, "Go to live session") is a
+ * Switching sessions (the session switcher, "Jump to Live") is a
  * client-side navigation, which keeps this route mounted. Keying the page by
  * event remounts it instead, so the page's own state starts fresh, as it did
  * with a document load: open dialogs, the question draft, celebrations,
@@ -403,7 +403,9 @@ function QnAPage() {
                   You're viewing a past or upcoming event.
                 </Alert.Title>
               </Alert.Content>
-              {otherLiveSession && (
+              {/* Moderators get Go Live instead: two live buttons side by side
+                  read alike */}
+              {otherLiveSession && !canModerateHere && (
                 <Button
                   asChild
                   variant="outline"
@@ -418,7 +420,7 @@ function QnAPage() {
                     to={qa(otherLiveSession.uid)}
                     title={otherLiveSession.title}
                   >
-                    Go to live session
+                    Jump to Live
                   </Link>
                 </Button>
               )}
