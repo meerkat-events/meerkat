@@ -114,6 +114,11 @@ Deploys go to [Fly.io](https://fly.io) through GitHub Actions
 `dev` environment, creating a GitHub release deploys `prod`. `fly.template.toml`
 is rendered with the repository secrets at deploy time.
 
+A release also publishes [`@meerkat-events/react`](packages/react/README.md)
+to npm, after the prod deploy, when the `version` in
+`packages/react/package.json` isn't published yet. To release a new version of
+the package, bump that version and create a release.
+
 ## Environment variables
 
 Set in `api/.env` (see `api/.env.example`).
