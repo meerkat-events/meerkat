@@ -1721,6 +1721,10 @@
     background: none;
   }
 
+  & .m-table .m-load-more {
+    text-align: center;
+  }
+
   & .m-table .action {
     width: 1%;
     text-align: right;

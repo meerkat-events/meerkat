@@ -1,4 +1,4 @@
-import { type FormEvent, type RefObject, useRef, useState } from "react";
+import { type FormEvent, type RefObject, useEffect, useRef, useState } from "react";
 import {
   Button,
   CloseButton,
@@ -12,9 +12,11 @@ import {
 import { useManage } from "../../layouts/manage.tsx";
 import { useAuth } from "../../hooks/use-auth.ts";
 import {
+  type ConferenceMember,
   type GrantableRole,
   useConferencePermissions,
 } from "../../hooks/use-conference-permissions.ts";
+import { useConferenceAttendees } from "../../hooks/use-conference-attendees.ts";
 import { toaster } from "../../components/ui/toaster.tsx";
 import { LuSearch } from "react-icons/lu";
 import type { Route } from "./+types/Permissions.ts";
@@ -142,6 +144,50 @@ function AddPersonForm(
   );
 }
 
+function MemberRow(
+  { member, isYou, onRoleChange, onRemove }: {
+    member: ConferenceMember;
+    isYou: boolean;
+    onRoleChange: (email: string, role: GrantableRole) => void;
+    onRemove: (userId: string) => void;
+  },
+) {
+  const address = member.email ?? "No email on this account";
+  return (
+    <tr>
+      <td>
+        <div className="title">
+          {address}
+          {isYou && <span className="m-you">You</span>}
+        </div>
+      </td>
+      <td>
+        <RoleSelect
+          label={`Role of ${address}`}
+          value={member.role}
+          disabled={isYou || !member.email}
+          onChange={(next) => member.email && onRoleChange(member.email, next)}
+        />
+      </td>
+      <td className="action">
+        {!isYou && (
+          <Button
+            size="xs"
+            variant="outline"
+            whiteSpace="nowrap"
+            onClick={() => onRemove(member.userId)}
+          >
+            Remove
+          </Button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+// Attendees are searched on the server, so wait for typing to pause.
+const SEARCH_DELAY_MS = 300;
+
 /** Everyone with access to the event, their roles, and who to add. */
 export default function Permissions() {
   const { conferenceId, conferenceName } = useManage();
@@ -159,6 +205,31 @@ export default function Permissions() {
   const [showAttendees, setShowAttendees] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
+  const query = search.trim().toLowerCase();
+  const [attendeeSearch, setAttendeeSearch] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setAttendeeSearch(query), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // A search looks through everyone, hidden attendees included.
+  const attendeesShown = showAttendees || query !== "";
+  const attendeeList = useConferenceAttendees(conferenceId, {
+    enabled: attendeesShown,
+    search: attendeeSearch,
+  });
+
+  // A role change can move someone between the two lists.
+  const changeRole = async (email: string, role: GrantableRole) => {
+    const status = await setRole(email, role);
+    await attendeeList.mutate();
+    return status;
+  };
+  const removeAccess = async (userId: string) => {
+    await removeMember(userId);
+    await attendeeList.mutate();
+  };
+
   const run = async (action: () => Promise<unknown>, success: string) => {
     try {
       await action();
@@ -171,19 +242,27 @@ export default function Permissions() {
       });
     }
   };
+  const onRoleChange = (email: string, role: GrantableRole) =>
+    run(() => changeRole(email, role), "Role changed");
+  const onRemove = (userId: string) => run(() => removeAccess(userId), "Access removed");
 
-  const total = (data?.members.length ?? 0) + (data?.invitations.length ?? 0);
-  const query = search.trim().toLowerCase();
+  const attendeeCount = data?.attendeeCount ?? 0;
+  const total = (data?.members.length ?? 0) + (data?.invitations.length ?? 0) + attendeeCount;
   const matches = (person: { email: string | null; role: GrantableRole }) =>
     Boolean(person.email?.toLowerCase().includes(query)) || person.role.includes(query);
-  // A search looks through everyone, hidden attendees included.
   const isVisible = (person: { email: string | null; role: GrantableRole }) =>
     query ? matches(person) : showAttendees || person.role !== "attendee";
   const members = data?.members.filter(isVisible);
   const invited = data?.invitations.filter(isVisible);
-  const shown = (members?.length ?? 0) + (invited?.length ?? 0);
-  const attendees = [...(data?.members ?? []), ...(data?.invitations ?? [])]
-    .filter((person) => person.role === "attendee").length;
+  const attendees = attendeesShown ? attendeeList.attendees : [];
+  const invitedAttendees = data?.invitations
+    .filter((invitation) => invitation.role === "attendee").length ?? 0;
+  const hiddenAttendees = attendeeCount + invitedAttendees;
+  const shown = (members?.length ?? 0) + (invited?.length ?? 0) +
+    (query ? attendees.length : showAttendees ? attendeeCount : 0);
+  // Only part of the matching attendees may be loaded yet.
+  const shownLabel = `${shown}${query && attendeeList.hasMore ? "+" : ""}`;
+  const searchingAttendees = attendeeList.isLoading || attendeeSearch !== query;
 
   return (
     <div className="m-permissions">
@@ -194,10 +273,10 @@ export default function Permissions() {
             <span className="m-hint">
               {data
                 ? query
-                  ? `${shown} of ${total} ${total === 1 ? "person" : "people"}`
+                  ? `${shownLabel} of ${total} ${total === 1 ? "person" : "people"}`
                   : `${shown} ${shown === 1 ? "person" : "people"} at ${conferenceName}${
-                    !showAttendees && attendees > 0
-                      ? ` · ${attendees} ${attendees === 1 ? "attendee" : "attendees"} hidden`
+                    !showAttendees && hiddenAttendees > 0
+                      ? ` · ${hiddenAttendees} ${hiddenAttendees === 1 ? "attendee" : "attendees"} hidden`
                       : ""
                   }`
                 : isLoading
@@ -226,7 +305,7 @@ export default function Permissions() {
               onChange={(ev) => setSearch(ev.currentTarget.value)}
             />
           </div>
-          {attendees > 0 && (
+          {(hiddenAttendees > 0 || showAttendees) && (
             <Switch.Root
               size="sm"
               colorPalette="brand"
@@ -254,42 +333,15 @@ export default function Permissions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {members?.map((member) => {
-                    const isYou = member.userId === session?.user.id;
-                    const address = member.email ?? "No email on this account";
-                    return (
-                      <tr key={member.userId}>
-                        <td>
-                          <div className="title">
-                            {address}
-                            {isYou && <span className="m-you">You</span>}
-                          </div>
-                        </td>
-                        <td>
-                          <RoleSelect
-                            label={`Role of ${address}`}
-                            value={member.role}
-                            disabled={isYou || !member.email}
-                            onChange={(next) =>
-                              run(() => setRole(member.email!, next), "Role changed")}
-                          />
-                        </td>
-                        <td className="action">
-                          {!isYou && (
-                            <Button
-                              size="xs"
-                              variant="outline"
-                              whiteSpace="nowrap"
-                              onClick={() =>
-                                run(() => removeMember(member.userId), "Access removed")}
-                            >
-                              Remove
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {members?.map((member) => (
+                    <MemberRow
+                      key={member.userId}
+                      member={member}
+                      isYou={member.userId === session?.user.id}
+                      onRoleChange={onRoleChange}
+                      onRemove={onRemove}
+                    />
+                  ))}
                   {invited?.map((invitation) => (
                     <tr key={invitation.id}>
                       <td>
@@ -300,8 +352,7 @@ export default function Permissions() {
                         <RoleSelect
                           label={`Role of ${invitation.email}`}
                           value={invitation.role}
-                          onChange={(next) =>
-                            run(() => setRole(invitation.email, next), "Role changed")}
+                          onChange={(next) => onRoleChange(invitation.email, next)}
                         />
                       </td>
                       <td className="action">
@@ -317,7 +368,38 @@ export default function Permissions() {
                       </td>
                     </tr>
                   ))}
-                  {data && query && shown === 0 && (
+                  {attendees.map((attendee) => (
+                    <MemberRow
+                      key={attendee.userId}
+                      member={attendee}
+                      isYou={attendee.userId === session?.user.id}
+                      onRoleChange={onRoleChange}
+                      onRemove={onRemove}
+                    />
+                  ))}
+                  {attendeesShown && attendeeList.error && (
+                    <tr>
+                      <td colSpan={3} className="m-empty">
+                        Couldn't load the attendees. Try reloading the page.
+                      </td>
+                    </tr>
+                  )}
+                  {attendeesShown && attendeeList.hasMore && (
+                    <tr>
+                      <td colSpan={3} className="m-load-more">
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          whiteSpace="nowrap"
+                          loading={attendeeList.isLoadingMore}
+                          onClick={() => attendeeList.loadMore()}
+                        >
+                          Load more attendees
+                        </Button>
+                      </td>
+                    </tr>
+                  )}
+                  {data && query && shown === 0 && !searchingAttendees && (
                     <tr>
                       <td colSpan={3} className="m-empty">No one matches “{search.trim()}”.</td>
                     </tr>
@@ -348,7 +430,7 @@ export default function Permissions() {
               </Dialog.Header>
               <AddPersonForm
                 emailRef={emailRef}
-                onAdd={setRole}
+                onAdd={changeRole}
                 onClose={() => setAdding(false)}
               />
             </Dialog.Content>

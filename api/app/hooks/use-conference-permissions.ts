@@ -18,11 +18,17 @@ export type ConferenceInvitation = {
 };
 
 export type ConferencePermissions = {
+  /** Organizers and moderators; attendees come from `useConferenceAttendees`. */
   members: ConferenceMember[];
+  /** Every pending invitation, attendees' included. */
   invitations: ConferenceInvitation[];
+  attendeeCount: number;
 };
 
-/** Who has access to a conference, and the changes to it (organizers only). */
+/**
+ * Who has access to a conference besides its attendees, and the changes to
+ * it (organizers only).
+ */
 export function useConferencePermissions(conferenceId: number | undefined) {
   const { session } = useAuth();
   const token = session?.access_token;
