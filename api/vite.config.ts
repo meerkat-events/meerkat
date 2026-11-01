@@ -1,5 +1,5 @@
 import { reactRouter } from "@react-router/dev/vite";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -21,7 +21,35 @@ function isServerSourceModule(id: string) {
     id.endsWith(".ts");
 }
 
-export default defineConfig({
+/**
+ * The operator named on the legal page (app/routes/Legal.tsx), compiled in as
+ * `__LEGAL_OPERATOR__`. LEGAL_OPERATOR is JSON, `{"name":"…","email":"…"}`,
+ * from the environment (a Docker build arg on Fly, from a GitHub secret) or
+ * api/.env. Unset gives null; anything else that isn't that shape fails the
+ * build rather than publishing a broken page.
+ */
+function legalOperator(mode: string) {
+  const raw = loadEnv(mode, __dirname, "")["LEGAL_OPERATOR"]?.trim();
+  if (!raw) {
+    return null;
+  }
+  const operator: unknown = JSON.parse(raw);
+  if (
+    typeof operator !== "object" || operator === null ||
+    !("name" in operator) || typeof operator.name !== "string" ||
+    !("email" in operator) || typeof operator.email !== "string"
+  ) {
+    throw new Error(
+      'LEGAL_OPERATOR must be JSON like {"name":"…","email":"…"}',
+    );
+  }
+  return { name: operator.name, email: operator.email };
+}
+
+export default defineConfig(({ mode }) => ({
+  define: {
+    __LEGAL_OPERATOR__: JSON.stringify(legalOperator(mode)),
+  },
   environments: {
     // Source maps for PostHog error tracking, without a sourceMappingURL in
     // the bundles. scripts/upload-sourcemaps.sh uploads and then deletes
@@ -66,4 +94,4 @@ export default defineConfig({
       externalConditions: ["node"],
     },
   },
-});
+}));

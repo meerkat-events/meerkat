@@ -42,6 +42,7 @@ jobs:
       - run: envsubst < fly.template.toml > fly.toml
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          LEGAL_OPERATOR: ${{ secrets.LEGAL_OPERATOR }}
           APP_NAME: ${{ secrets.APP_NAME }}
           BASE_URL: ${{ secrets.BASE_URL }}
           PRIMARY_REGION: ${{ secrets.PRIMARY_REGION }}

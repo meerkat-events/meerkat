@@ -13,6 +13,7 @@ export default [
   layout("layouts/app.tsx", [
     route("/login", "routes/Login.tsx"),
     route("/account", "routes/Account.tsx"),
+    route("/legal", "routes/Legal.tsx"),
     route("/e/:uid/qa", "routes/QnA.tsx"),
     layout("layouts/manage.tsx", [
       route("/manage", "routes/manage/Feed.tsx"),
