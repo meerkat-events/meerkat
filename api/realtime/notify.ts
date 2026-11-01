@@ -1,4 +1,5 @@
 import logger from "../logger.ts";
+import { guestQuestionLists } from "../question-lists.ts";
 import type { PublicReaction, PublishedMessage } from "./bus.ts";
 import { bus } from "./index.ts";
 
@@ -11,6 +12,7 @@ type EventIds = { id: number; conferenceId: number };
  * arrival: it would reveal when hidden questions arrive.
  */
 export async function notifyQuestionsChanged(event: EventIds) {
+  guestQuestionLists.forget(event.id);
   await publish({
     type: "questions",
     eventId: event.id,

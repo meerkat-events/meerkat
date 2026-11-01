@@ -396,6 +396,16 @@ Rules:
    every open stream as a request in flight, hence
    `[http_service.concurrency]` in `fly.template.toml`; each instance logs
    how many it holds once a minute (`Open SSE streams`, `openStreams`).
+4. **Each instance loads an event's guest question list once per burst**
+   (`question-list-cache.ts`, instance in `question-lists.ts`): the
+   questions route shares it until a `questions` or `resync` message, or
+   for at most 1 s, and adds a signed-in viewer's votes with two small
+   queries (the full per-viewer query only when they have a hidden
+   question). `notifyQuestionsChanged` drops the event's lists locally
+   before publishing, so a change that doesn't publish (moderation hiding
+   a question on arrival) must not change what guests see. The hot queries
+   (`getEventByUID`, `getQuestions` without `answered`) are prepared once
+   with Drizzle's `.prepare()`.
 
 ### Observability (PostHog)
 

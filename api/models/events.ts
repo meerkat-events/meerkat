@@ -170,10 +170,13 @@ export async function getEvents(options: {
   return results;
 }
 
+// Prepared once: every questions refetch and stream opens look up its event.
+const eventByLowerUid = db.select().from(events).where(
+  eq(lower(events.uid), sql.placeholder("uid")),
+).limit(1).prepare("event_by_lower_uid");
+
 export async function getEventByUID(uid: string) {
-  const results = await db.select().from(events).where(
-    eq(lower(events.uid), uid.toLowerCase()),
-  ).limit(1).execute();
+  const results = await eventByLowerUid.execute({ uid: uid.toLowerCase() });
 
   const event = results.length === 1 ? results[0] : null;
   return event ? { ...event, cover: event.cover ?? DEFAULT_COVER } : null;

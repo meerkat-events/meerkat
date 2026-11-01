@@ -23,18 +23,18 @@ export type Sort = (typeof Sorts)[number];
 export type Questions = Awaited<ReturnType<typeof getQuestions>>;
 
 /**
- * Visible questions of an event. Questions hidden by automatic moderation are
- * left out, except for their author: pass the viewer's user id so their own
- * hidden questions appear among the rest, as if nothing had happened. With a
- * viewer, each question also carries the weight of the viewer's vote on it
- * (`viewerVoteWeight`, null when they haven't voted).
+ * The query behind `getQuestions`, with the event id (and the viewer's id,
+ * with `hasViewer`) left as placeholders, so the common variants can be
+ * prepared once.
  */
-export function getQuestions(
-  eventId: number,
-  sort: Sort = "popular",
+function questionListQuery(
+  sort: Sort,
+  hasViewer: boolean,
   answered?: boolean,
-  viewerId?: string,
 ) {
+  const eventId = sql.placeholder("eventId");
+  const viewerId = sql.placeholder("viewerId");
+
   const orderBy = sort === "popular"
     ? [
       sql`${questions.answeredAt} DESC NULLs FIRST`,
@@ -43,13 +43,13 @@ export function getQuestions(
     ]
     : [desc(questions.createdAt)];
 
-  const visibleToViewer = viewerId
+  const visibleToViewer = hasViewer
     ? or(isNull(questions.hiddenAt), eq(questions.userId, viewerId))
     : isNull(questions.hiddenAt);
 
   const conditions = [
     eq(questions.eventId, eventId),
-    or(isNull(users.bannedUntil), lte(users.bannedUntil, new Date())),
+    or(isNull(users.bannedUntil), lte(users.bannedUntil, sql`now()`)),
     isNull(questions.deletedAt),
     visibleToViewer,
   ];
@@ -62,9 +62,9 @@ export function getQuestions(
 
   const where = and(...conditions);
 
-  const viewerVoteWeight = viewerId
+  const viewerVoteWeight = hasViewer
     ? sql<number | null>`MAX(${votes.weight}) FILTER (WHERE ${votes.userId} = ${viewerId})`
-    : sql<null>`NULL`;
+    : sql<number | null>`NULL`;
 
   return db
     .select({
@@ -86,8 +86,71 @@ export function getQuestions(
     .leftJoin(users, eq(questions.userId, users.id))
     .where(where)
     .groupBy(questions.id, users.id)
-    .orderBy(...orderBy)
-    .execute();
+    .orderBy(...orderBy);
+}
+
+// Prepared once: the Q&A pages, stage screens and embedders refetch these
+// on every change, without `answered`.
+const preparedQuestionLists = {
+  popular: {
+    guest: questionListQuery("popular", false).prepare("questions_popular"),
+    viewer: questionListQuery("popular", true)
+      .prepare("questions_popular_viewer"),
+  },
+  newest: {
+    guest: questionListQuery("newest", false).prepare("questions_newest"),
+    viewer: questionListQuery("newest", true)
+      .prepare("questions_newest_viewer"),
+  },
+};
+
+/**
+ * Visible questions of an event. Questions hidden by automatic moderation are
+ * left out, except for their author: pass the viewer's user id so their own
+ * hidden questions appear among the rest, as if nothing had happened. With a
+ * viewer, each question also carries the weight of the viewer's vote on it
+ * (`viewerVoteWeight`, null when they haven't voted).
+ */
+export function getQuestions(
+  eventId: number,
+  sort: Sort = "popular",
+  answered?: boolean,
+  viewerId?: string,
+) {
+  const values = { eventId, viewerId };
+
+  if (answered !== undefined) {
+    return questionListQuery(sort, viewerId !== undefined, answered)
+      .execute(values);
+  }
+
+  const prepared = preparedQuestionLists[sort];
+  return viewerId === undefined
+    ? prepared.guest.execute(values)
+    : prepared.viewer.execute(values);
+}
+
+const hiddenQuestionOfUser = db
+  .select({ id: questions.id })
+  .from(questions)
+  .where(
+    and(
+      eq(questions.eventId, sql.placeholder("eventId")),
+      eq(questions.userId, sql.placeholder("userId")),
+      isNull(questions.deletedAt),
+      isNotNull(questions.hiddenAt),
+    ),
+  )
+  .limit(1)
+  .prepare("hidden_question_of_user");
+
+/**
+ * Whether the user has a question in the event that automatic moderation
+ * hid, which only they see in the list.
+ */
+export async function hasHiddenQuestions(eventId: number, userId: string) {
+  const results = await hiddenQuestionOfUser.execute({ eventId, userId });
+  return results.length > 0;
 }
 
 export async function createQuestion(

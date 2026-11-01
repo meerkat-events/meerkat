@@ -76,6 +76,32 @@ export async function getVotesByQuestionIdAndUserId(
   return results;
 }
 
+const voteWeightsOfUserInEvent = db
+  .select({ questionId: votes.questionId, weight: votes.weight })
+  .from(votes)
+  .innerJoin(questions, eq(votes.questionId, questions.id))
+  .where(
+    and(
+      eq(votes.userId, sql.placeholder("userId")),
+      eq(questions.eventId, sql.placeholder("eventId")),
+    ),
+  )
+  .prepare("vote_weights_of_user_in_event");
+
+/** The weight of the user's vote on each question of the event they voted on. */
+export async function getVoteWeightsOfUser(
+  eventId: number,
+  userId: string,
+): Promise<Map<number, number>> {
+  const results = await voteWeightsOfUserInEvent.execute({ eventId, userId });
+
+  const weights = new Map<number, number>();
+  for (const { questionId, weight } of results) {
+    weights.set(questionId, weight);
+  }
+  return weights;
+}
+
 /**
  * When the user cast each vote on the event's questions since `date`, oldest
  * first. A rate limit over that window frees up as they leave it.
