@@ -217,8 +217,9 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   - **login**: none; sign-in goes straight to Supabase Auth with the URL
     and anon key that every page carries, and the Devcon handover is a page
     loader, not an API route;
-  - **infrastructure**: `GET /api/v1/health` (Fly's health check) and
-    `POST /api/v1/pretalx/:event/sync` (see Pretalx sync).
+  - **infrastructure**: `GET /api/v1/health` (Fly's health check),
+    `POST /api/v1/pretalx/:event/sync` (see Pretalx sync) and the PostHog
+    proxy `GET|POST /relay/*` (see Observability).
 
   Admin routes use an API key instead (below). Public responses never
   carry hidden questions, moderation fields or emails (`toPublicQuestion`,
@@ -408,6 +409,15 @@ Every deployment tags them with `ENVIRONMENT`.
   `url.query` values of credential parameters (`token`, `code`, …) are
   redacted on incoming requests; extend `REDACTED_QUERY_PARAMS` when a route
   takes a new one. Outgoing fetch spans leave the query string out entirely.
+- **Proxy**: blockers drop requests to PostHog, so posthog-js sends to our
+  own origin under `/relay` (`POSTHOG_PROXY_PATH` in `posthog-hosts.ts`, a
+  name that says nothing about PostHog), and `routes/posthog-proxy.ts`
+  streams them on: `/static/*` and `/array/*` to the region's assets host,
+  the rest to `POSTHOG_HOST`. It drops cookies and any credentials except
+  the `phc_` project token, and forwards `Fly-Client-IP` as
+  `X-Forwarded-For` for geolocation. Mounted before the request log and
+  telemetry middlewares and left out of traces: PostHog's own traffic
+  doesn't belong in our logs.
 - **Client ↔ server**: posthog-js (`app/lib/posthog.ts`, started in
   `entry.client.tsx` before hydration, with the config in the page) adds
   `X-POSTHOG-SESSION-ID`/`X-POSTHOG-DISTINCT-ID` to API requests;

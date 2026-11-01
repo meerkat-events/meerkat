@@ -61,7 +61,7 @@ const openRouterApiKey = process.env["OPENROUTER_API_KEY"]?.trim() ||
 // (https://eu.i.posthog.com or https://us.i.posthog.com). The server sends its
 // logs, traces and exceptions there (instrumentation.ts, posthog.ts), and the
 // browser gets both in every page (app/lib/public-config.server.ts) for its
-// error tracking. Unset token turns all of it off; logs then go to stdout
+// error tracking, which it sends through our proxy (routes/posthog-proxy.ts). Unset token turns all of it off; logs then go to stdout
 // only.
 const posthogToken = process.env["POSTHOG_PROJECT_TOKEN"]?.trim() || undefined;
 const posthogHost = process.env["POSTHOG_HOST"]?.trim().replace(/\/+$/, "") ||
