@@ -169,3 +169,21 @@ test("forgetting an event drops its lists without a message", async () => {
 
   assert.equal(loads.length, 3);
 });
+
+test("past the limit, the oldest list is dropped", async () => {
+  const { loads, load } = counter();
+  const cache = createQuestionListCache({
+    bus: createMemoryBus(),
+    load,
+    maxEntries: 2,
+  });
+  await cache.get(1, "popular");
+  await cache.get(2, "popular");
+  await cache.get(3, "popular");
+
+  await cache.get(3, "popular");
+  await cache.get(2, "popular");
+  await cache.get(1, "popular");
+
+  assert.equal(loads.length, 4);
+});
