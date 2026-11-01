@@ -5,14 +5,12 @@ import { useConferenceEvents } from "../../hooks/use-conference-events.ts";
 import { useConferenceStats } from "../../hooks/use-conference-stats.ts";
 import { Timeline } from "../../components/Manage/Timeline.tsx";
 import { SessionPanel } from "../../components/Manage/SessionPanel.tsx";
-import { dayKey, fmtDay, useNow } from "../../components/Manage/time.ts";
+import { dayKey, endOfDay, fmtDay, startOfDay, useNow } from "../../components/Manage/time.ts";
 import type { Route } from "./+types/Schedule.ts";
 
 export const meta: Route.MetaFunction = () => [
   { title: "Schedule · Meerkat Management" },
 ];
-
-const DAY = 86_400_000;
 
 /**
  * The open session (?session=) and what its dialog shows: tab, filter, sort
@@ -55,9 +53,10 @@ export default function Schedule() {
     (selected ? dayKey(selected.start) : undefined) ??
     // Today, else the next day with sessions, else the last one.
     (days.includes(today) ? today : days.find((d) => d > today) ?? days.at(-1));
-  const dayStart = day ? new Date(`${day}T00:00:00Z`) : undefined;
-  const daySessions = dayStart
-    ? sessions.filter((s) => s.start.getTime() < dayStart.getTime() + DAY && s.end > dayStart)
+  const dayStart = day ? startOfDay(day) : undefined;
+  const dayEnd = day ? endOfDay(day) : undefined;
+  const daySessions = dayStart && dayEnd
+    ? sessions.filter((s) => s.start < dayEnd && s.end > dayStart)
     : [];
 
   const setDay = (d: string) =>
@@ -92,7 +91,7 @@ export default function Schedule() {
         <nav className="m-days" aria-label="Event days">
           {days.map((d) => (
             <button key={d} type="button" aria-current={d === day} onClick={() => setDay(d)}>
-              {fmtDay(new Date(`${d}T00:00:00Z`))}
+              {fmtDay(startOfDay(d))}
               {d === today && <small>Today</small>}
             </button>
           ))}
