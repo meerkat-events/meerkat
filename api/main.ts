@@ -61,8 +61,10 @@ app.get(
   "*",
   serveStatic({
     root: "./build/client",
-    onFound(path, c) {
-      if (path.startsWith("/assets/")) {
+    // The first argument is the file's path on disk (build/client/…), so
+    // match the URL path instead.
+    onFound(_filePath, c) {
+      if (c.req.path.startsWith("/assets/")) {
         c.header("Cache-Control", "public, max-age=31536000, immutable");
       } else {
         c.header("Cache-Control", "public, max-age=600");
