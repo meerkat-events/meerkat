@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { pino } from "pino";
-import { loggerOptions, withoutQueryDetails } from "./logger.ts";
+import { loggerOptions } from "./logger.ts";
+import { withoutQueryDetails } from "./query-errors.ts";
 
 /** A logger with the app's options that writes into the returned array. */
 function captureLogs() {

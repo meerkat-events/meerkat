@@ -2,7 +2,9 @@
 // it makes) and every pino log line go to PostHog over OTLP. Loaded before
 // main.ts with `node --import ./instrumentation.ts ./main.ts`: instrumenting
 // ES modules (node:http, pino, undici) needs the loader hook registered below
-// before they are imported.
+// before they are imported. Imports run before this module's body, so nothing
+// imported here may load them, logger.ts in particular, or their spans and
+// log lines are lost (instrumentation.test.ts).
 import { register } from "node:module";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { resourceFromAttributes } from "@opentelemetry/resources";

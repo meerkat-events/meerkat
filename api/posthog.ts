@@ -1,6 +1,6 @@
 import { PostHog } from "posthog-node";
 import env from "./env.ts";
-import { withoutQueryDetails } from "./logger.ts";
+import { withoutQueryDetails } from "./query-errors.ts";
 
 /**
  * The server's PostHog client, for exception tracking and the request context
