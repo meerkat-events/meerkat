@@ -30,20 +30,27 @@ app = 'node /workspace/api/main.ts'
 [http_service]
 internal_port = 8000
 force_https = true
-auto_stop_machines = true
+# Never stop machines on their own: stopping one drops every SSE stream it
+# holds (a few thousand at event scale) and they all reconnect at once. The
+# machine count is set with `fly scale count`; deploys keep it.
+auto_stop_machines = "off"
 auto_start_machines = true
-min_machines_running = 4
+min_machines_running = 6
 processes = ['app']
 
 # Every open page (Q&A on phones, stage screens, organizer pages) holds an SSE
 # stream for as long as it is open, and each one counts as a request in
 # flight. Fly's default (connections, soft_limit 20) would call a machine busy
-# after a few dozen viewers. Above soft_limit the proxy prefers other machines
-# and starts stopped ones; at hard_limit it queues new requests.
+# after a few dozen viewers. Above soft_limit the proxy prefers other machines;
+# at hard_limit it queues new requests.
+#
+# Sized for 15,000 open pages on 6 machines (performance-2x, 4 GB): 2,500
+# streams each at soft_limit, and with one machine down 15,000 / 5 = 3,000,
+# still under hard_limit.
 [http_service.concurrency]
 type = 'requests'
-soft_limit = 1000
-hard_limit = 1500
+soft_limit = 2500
+hard_limit = 4000
 
 [[http_service.checks]]
 grace_period = "10s"

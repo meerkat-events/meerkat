@@ -218,14 +218,15 @@ minimum_password_length = 6
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 # sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
-anonymous_users = 3000
+# Raised for event venues, where thousands of phones share one NAT address.
+anonymous_users = 10000
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
-token_refresh = 3000
+token_refresh = 15000
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
 # sign_in_sign_ups = 30
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
 # Covers every Devcon handover, which verifies a one-time token server-side.
-token_verifications = 6000
+token_verifications = 10000
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 # web3 = 30
 
