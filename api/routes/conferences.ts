@@ -16,6 +16,7 @@ import {
   grantRole,
 } from "../models/roles.ts";
 import {
+  getConferenceAttendees,
   getConferencePermissions,
   removeInvitation,
   removeMember,
@@ -201,6 +202,52 @@ app.get("/api/v1/conferences/:id/permissions", jwt(), async (c) => {
 
   return c.json({ data: await getConferencePermissions(conference.id) });
 });
+
+// A cursor is where the previous page ended: `<grantedAt ISO>_<userId>`, as
+// returned in `next`. It carries no email, unlike `search`, which
+// instrumentation.ts redacts from traces.
+const attendeeCursor = zod.string().transform((cursor, context) => {
+  const [grantedAtText, userIdText] = cursor.split("_");
+  const grantedAt = new Date(grantedAtText ?? "");
+  const userId = zod.uuid().safeParse(userIdText);
+  if (Number.isNaN(grantedAt.getTime()) || !userId.success) {
+    context.addIssue({ code: "custom", message: "Invalid cursor" });
+    return zod.NEVER;
+  }
+  return { grantedAt, userId: userId.data };
+});
+
+const attendeesQuery = zod.object({
+  limit: zod.coerce.number().int().min(1).max(200).default(50),
+  after: attendeeCursor.optional(),
+  search: zod.string().trim().min(1).max(200).optional(),
+});
+
+app.get(
+  "/api/v1/conferences/:id/permissions/attendees",
+  jwt(),
+  zValidator("query", attendeesQuery),
+  async (c) => {
+    const conference = await requireOrganizer(
+      c.req.param("id"),
+      c.get("jwtPayload").sub,
+    );
+    const { limit, after, search } = c.req.valid("query");
+
+    const { attendees, next } = await getConferenceAttendees(conference.id, {
+      limit,
+      ...(after ? { after } : {}),
+      ...(search ? { search } : {}),
+    });
+
+    return c.json({
+      data: {
+        attendees,
+        next: next ? `${next.grantedAt.toISOString()}_${next.userId}` : null,
+      },
+    });
+  },
+);
 
 const permissionBody = zod.object({
   email: zod.string().trim().toLowerCase().pipe(zod.email()),

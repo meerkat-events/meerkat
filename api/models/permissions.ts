@@ -1,4 +1,15 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  isNull,
+  ne,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import db from "../db.ts";
 import { conferenceRole, invitations, users } from "../schema.ts";
 
@@ -9,11 +20,14 @@ const byAccess = (role: typeof conferenceRole.role | typeof invitations.role) =>
   sql`case ${role} when 'organizer' then 0 when 'moderator' then 1 else 2 end`;
 
 /**
- * Everyone given a role in a conference, and the emails invited that haven't
- * signed up yet. People who only attend have no row, so aren't listed.
+ * The organizers and moderators of a conference, every email invited that
+ * hasn't signed up yet, and how many attendees it has. Attendees can be
+ * thousands, so they are listed page by page by `getConferenceAttendees`;
+ * invitations are added one at a time by organizers, so stay few. People who
+ * take part without a role have no row, so aren't counted.
  */
 export async function getConferencePermissions(conferenceId: number) {
-  const [members, invited] = await Promise.all([
+  const [members, invited, [attendees]] = await Promise.all([
     db
       .select({
         userId: conferenceRole.userId,
@@ -23,7 +37,12 @@ export async function getConferencePermissions(conferenceId: number) {
       })
       .from(conferenceRole)
       .innerJoin(users, eq(conferenceRole.userId, users.id))
-      .where(eq(conferenceRole.conferenceId, conferenceId))
+      .where(
+        and(
+          eq(conferenceRole.conferenceId, conferenceId),
+          ne(conferenceRole.role, "attendee"),
+        ),
+      )
       .orderBy(byAccess(conferenceRole.role), asc(users.email))
       .execute(),
     db
@@ -42,9 +61,85 @@ export async function getConferencePermissions(conferenceId: number) {
       )
       .orderBy(byAccess(invitations.role), asc(invitations.email))
       .execute(),
+    db
+      .select({ count: count() })
+      .from(conferenceRole)
+      .where(
+        and(
+          eq(conferenceRole.conferenceId, conferenceId),
+          eq(conferenceRole.role, "attendee"),
+        ),
+      )
+      .execute(),
   ]);
 
-  return { members, invitations: invited };
+  return {
+    members,
+    invitations: invited,
+    attendeeCount: attendees?.count ?? 0,
+  };
+}
+
+/** Where a page of attendees ends; the next page starts after it. */
+export type AttendeeCursor = { grantedAt: Date; userId: string };
+
+// Postgres keeps microseconds and a JavaScript Date only milliseconds, so
+// attendees are ordered and compared by the millisecond a cursor can carry.
+const grantedAtMillisecond = sql`date_trunc('milliseconds', ${conferenceRole.grantedAt})`;
+
+/**
+ * One page of a conference's attendees, the most recently added first,
+ * optionally only those whose email contains `search`. Returns `next` when
+ * there are more.
+ */
+export async function getConferenceAttendees(
+  conferenceId: number,
+  options: { limit: number; after?: AttendeeCursor; search?: string },
+) {
+  const conditions: SQL[] = [
+    eq(conferenceRole.conferenceId, conferenceId),
+    eq(conferenceRole.role, "attendee"),
+  ];
+  if (options.search) {
+    conditions.push(ilike(users.email, `%${escapeLike(options.search)}%`));
+  }
+  if (options.after) {
+    // `timestamp` columns are UTC without a zone, hence the cast.
+    const grantedAt = options.after.grantedAt.toISOString();
+    conditions.push(
+      sql`(${grantedAtMillisecond}, ${conferenceRole.userId}) < (${grantedAt}::timestamp, ${options.after.userId}::uuid)`,
+    );
+  }
+
+  // One row more than asked for tells whether there is another page.
+  const rows = await db
+    .select({
+      userId: conferenceRole.userId,
+      email: users.email,
+      role: conferenceRole.role,
+      grantedAt: sql<Date>`${grantedAtMillisecond}`.mapWith(
+        conferenceRole.grantedAt,
+      ),
+    })
+    .from(conferenceRole)
+    .innerJoin(users, eq(conferenceRole.userId, users.id))
+    .where(and(...conditions))
+    .orderBy(desc(grantedAtMillisecond), desc(conferenceRole.userId))
+    .limit(options.limit + 1)
+    .execute();
+
+  const attendees = rows.slice(0, options.limit);
+  const last = attendees.at(-1);
+  const next: AttendeeCursor | null = rows.length > options.limit && last
+    ? { grantedAt: last.grantedAt, userId: last.userId }
+    : null;
+
+  return { attendees, next };
+}
+
+/** Makes `%`, `_` and `\` in a search match themselves in `ilike`. */
+function escapeLike(text: string) {
+  return text.replace(/[\\%_]/g, (character) => `\\${character}`);
 }
 
 /**
