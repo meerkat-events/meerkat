@@ -8,7 +8,7 @@ import {
 } from "react";
 import type { Session } from "../../hooks/use-conference-events.ts";
 import type { SessionCounts } from "../../hooks/use-conference-stats.ts";
-import { dayKey, fmtDay, fmtRange, fmtTime, sessionStatus, zoneName } from "./time.ts";
+import { dayKey, endOfDay, fmtDay, fmtRange, fmtTime, sessionStatus, zoneName } from "./time.ts";
 
 const LABEL = 172; // stage column width
 const PPM = 2.2; // pixels per minute
@@ -35,16 +35,18 @@ export function Timeline(
   const [nowOffScreen, setNowOffScreen] = useState<"left" | "right" | null>(null);
   const dayStart = day.getTime();
   const isToday = dayKey(now) === dayKey(day);
+  // 23 or 25 on the day the clocks change.
+  const hoursInDay = (endOfDay(dayKey(day)).getTime() - dayStart) / HOUR;
 
   // 08:00–20:00 at least, widened to fit the day's sessions.
   const { v0, v1 } = useMemo(() => {
     let from = 8, to = 20;
     for (const s of sessions) {
       from = Math.min(from, Math.max(0, Math.floor((+s.start - dayStart) / HOUR)));
-      to = Math.max(to, Math.min(24, Math.ceil((+s.end - dayStart) / HOUR)));
+      to = Math.max(to, Math.min(hoursInDay, Math.ceil((+s.end - dayStart) / HOUR)));
     }
     return { v0: dayStart + from * HOUR, v1: dayStart + to * HOUR };
-  }, [sessions, dayStart]);
+  }, [sessions, dayStart, hoursInDay]);
 
   const x = (ms: number) => ((Math.min(Math.max(ms, v0), v1) - v0) / MINUTE) * PPM;
   const width = x(v1);

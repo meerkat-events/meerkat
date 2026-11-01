@@ -1,3 +1,5 @@
+const PERCENT = new Intl.NumberFormat("en-GB", { style: "percent" });
+
 /**
  * A single-series horizontal bar chart as a labelled list: one row per item,
  * its bar scaled to the largest value and the count at the bar's end. The
@@ -20,9 +22,9 @@ export function BarList(
       <figcaption>{title}</figcaption>
       <ul>
         {items.map((item) => {
-          const share = total > 0 ? Math.round((item.value / total) * 100) : 0;
+          const share = PERCENT.format(total > 0 ? item.value / total : 0);
           return (
-            <li key={item.label} title={`${item.label}: ${item.value} ${unit} (${share}%)`}>
+            <li key={item.label} title={`${item.label}: ${item.value} ${unit} (${share})`}>
               <span className="label">{item.label}</span>
               <span className="track" aria-hidden="true">
                 <span className="bar" style={{ width: `${(item.value / max) * 100}%` }} />
