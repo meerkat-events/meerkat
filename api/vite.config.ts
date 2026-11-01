@@ -23,6 +23,14 @@ function isServerSourceModule(id: string) {
 
 export default defineConfig({
   environments: {
+    // Source maps for PostHog error tracking, without a sourceMappingURL in
+    // the bundles. scripts/upload-sourcemaps.sh uploads and then deletes
+    // them, so they are never served.
+    client: {
+      build: {
+        sourcemap: "hidden",
+      },
+    },
     ssr: {
       build: {
         rollupOptions: {
@@ -50,6 +58,9 @@ export default defineConfig({
     },
   },
   ssr: {
+    // PostHog's browser packages break when Node loads them unbundled
+    // (https://posthog.com/docs/libraries/react-router).
+    noExternal: ["posthog-js", "@posthog/react"],
     resolve: {
       conditions: ["module", "node", "development|production"],
       externalConditions: ["node"],

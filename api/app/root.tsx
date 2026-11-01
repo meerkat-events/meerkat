@@ -5,9 +5,23 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useRouteLoaderData,
 } from "react-router";
 import type React from "react";
+import { useReportRouteError } from "./hooks/use-report-route-error.ts";
+import { CONFIG_ELEMENT_ID, serializeConfig } from "./lib/config.ts";
+import { publicConfig } from "./lib/public-config.server.ts";
 import type { Route } from "../.react-router/types/app/+types/root.ts";
+
+// The browser's settings from the server's environment, written into every
+// page by Layout (lib/config.ts). Only document requests need them.
+export function loader() {
+  return { config: publicConfig() };
+}
+
+export function shouldRevalidate() {
+  return false;
+}
 
 // The default title; pages that need their own export a `meta` too.
 export const meta: Route.MetaFunction = () => [
@@ -29,12 +43,6 @@ export const links: Route.LinksFunction = () => [
     href: "/favicon-16x16.png",
   },
   { rel: "manifest", href: "/site.webmanifest" },
-  {
-    rel: "preload",
-    href: "/api/v1/config",
-    as: "fetch",
-    crossOrigin: "anonymous",
-  },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
@@ -49,6 +57,7 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const data = useRouteLoaderData<typeof loader>("root");
   return (
     <html lang="en">
       <head>
@@ -56,6 +65,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        {data && (
+          <script
+            id={CONFIG_ELEMENT_ID}
+            type="application/json"
+            // Before the module scripts, so entry.client.tsx can read it.
+            dangerouslySetInnerHTML={{ __html: serializeConfig(data.config) }}
+          />
+        )}
       </head>
       <body>
         {children}
@@ -107,6 +124,8 @@ export function HydrateFallback() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  useReportRouteError(error);
+
   let message = "Oops!";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;

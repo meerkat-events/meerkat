@@ -57,6 +57,23 @@ const pretalxUrl = process.env["PRETALX_URL"]?.trim().replace(/\/+$/, "") ||
 const openRouterApiKey = process.env["OPENROUTER_API_KEY"]?.trim() ||
   undefined;
 
+// PostHog project token (`phc_…`) and ingestion host
+// (https://eu.i.posthog.com or https://us.i.posthog.com). The server sends its
+// logs, traces and exceptions there (instrumentation.ts, posthog.ts), and the
+// browser gets both in every page (app/lib/public-config.server.ts) for its
+// error tracking. Unset token turns all of it off; logs then go to stdout
+// only.
+const posthogToken = process.env["POSTHOG_PROJECT_TOKEN"]?.trim() || undefined;
+const posthogHost = process.env["POSTHOG_HOST"]?.trim().replace(/\/+$/, "") ||
+  undefined;
+if (posthogToken && !posthogHost) {
+  throw new Error("POSTHOG_HOST is required when POSTHOG_PROJECT_TOKEN is set");
+}
+
+// Deployment name (development, dev, prod) attached to everything sent to
+// PostHog, so one project can tell the deployments apart.
+const environment = process.env["ENVIRONMENT"]?.trim() || "development";
+
 const env = {
   connectionString,
   port,
@@ -70,6 +87,9 @@ const env = {
   corsOrigins,
   pretalxUrl,
   openRouterApiKey,
+  posthogToken,
+  posthogHost,
+  environment,
 };
 
 /** `env` with secrets masked, for startup logging (see `main.ts`). */
@@ -84,6 +104,9 @@ export const redactedEnv = {
   supabaseSecretKey: env.supabaseSecretKey ? "REDACTED" : undefined,
   // Unset stays visible: it tells whether questions are moderated.
   openRouterApiKey: env.openRouterApiKey ? "REDACTED" : undefined,
+  // Public by design (the browser gets it). Unset stays visible: it tells
+  // whether logs, traces and exceptions reach PostHog.
+  posthogToken: env.posthogToken ? "REDACTED" : undefined,
 };
 
 export default env;

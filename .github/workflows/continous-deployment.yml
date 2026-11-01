@@ -53,6 +53,15 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           DEVCON_VERIFICATION_SECRET: ${{ secrets.DEVCON_VERIFICATION_SECRET }}
           PRETALX_URL: ${{ secrets.PRETALX_URL }}
-      - run: flyctl deploy --remote-only
+          ENVIRONMENT: ${{ needs.set-env.outputs.deploy_env }}
+          POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+          POSTHOG_HOST: ${{ secrets.POSTHOG_HOST }}
+          POSTHOG_CLI_HOST: ${{ secrets.POSTHOG_CLI_HOST }}
+          POSTHOG_CLI_PROJECT_ID: ${{ secrets.POSTHOG_CLI_PROJECT_ID }}
+          RELEASE_VERSION: ${{ github.sha }}
+      # The PostHog key uploads the browser source maps during the image
+      # build (Dockerfile); as a build secret it stays out of the image.
+      - run: flyctl deploy --remote-only --build-secret "POSTHOG_CLI_API_KEY=$POSTHOG_CLI_API_KEY"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}

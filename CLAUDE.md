@@ -91,6 +91,13 @@ default) and the frontend calls the origin that served it, so one build works
 on any port; set it only when frontend and API are on different origins. Read
 it only through `app/lib/api-url.ts` (`apiUrl()`, `appOrigin()`).
 
+The browser's other settings stay runtime configuration: the root route's
+server `loader` returns `publicConfig()` (`app/lib/public-config.server.ts`:
+Supabase URL and anon key, PostHog token and host, `ENVIRONMENT`) and
+`Layout` writes it into every page as a JSON `<script>`, which `getConfig()`
+in `app/lib/config.ts` reads in the browser. No request, no rebuild. Only
+public values belong in `publicConfig()`: it reaches every visitor.
+
 ## Validation
 
 Before calling a code change done, all of this must pass, from the repo root:
@@ -144,8 +151,9 @@ variables and throws at import when a required one is missing; it and
 
 React Router 8 in SSR mode with `prerender: false`, Chakra UI v3, SWR. Layouts
 load data in `clientLoader` and pages fetch with SWR, so the server renders
-only the shell and `HydrateFallback`. The one server `loader` is the Devcon
-handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
+only the shell and `HydrateFallback`. The server `loader`s are the root's
+(the browser's config, document requests only: `shouldRevalidate` is false)
+and the Devcon handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
 
 - `layouts/page.tsx` — bare presenter view (`/e/:uid`), no auth.
 - `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
@@ -206,9 +214,9 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   - **signage**: `/stage/:stage`, `/stage/:stage/qa`,
     `GET /api/v1/events/stage/:stage/live` (`useKeepLive`) and
     `GET /api/v1/conferences/:id/live` (printed QR codes; redirects only);
-  - **login**: `GET /api/v1/config` (the Supabase URL and anon key); sign-in
-    itself goes straight to Supabase Auth, and the Devcon handover is a
-    page loader, not an API route;
+  - **login**: none; sign-in goes straight to Supabase Auth with the URL
+    and anon key that every page carries, and the Devcon handover is a page
+    loader, not an API route;
   - **infrastructure**: `GET /api/v1/health` (Fly's health check) and
     `POST /api/v1/pretalx/:event/sync` (see Pretalx sync).
 
@@ -384,6 +392,50 @@ Rules:
    `[http_service.concurrency]` in `fly.template.toml`; each instance logs
    how many it holds once a minute (`Open SSE streams`, `openStreams`).
 
+### Observability (PostHog)
+
+One PostHog project (`POSTHOG_PROJECT_TOKEN`, `POSTHOG_HOST`; unset token
+turns it all off) gets the server's logs, traces and exceptions and the
+browser's exceptions, all linked to the browser session that caused them.
+Every deployment tags them with `ENVIRONMENT`.
+
+- **Server telemetry**: `api/instrumentation.ts` is loaded with
+  `node --import ./instrumentation.ts ./main.ts` (dev, start, Dockerfile,
+  Fly): instrumenting ES modules needs its loader hook before they load.
+  OpenTelemetry sends a span per request (HTTP, named after the Hono route)
+  and per outgoing fetch (undici), and every pino line, over OTLP to
+  `/i/v1/traces` and `/i/v1/logs`. Log lines and spans carry `trace_id`.
+  `url.query` values of credential parameters (`token`, `code`, …) are
+  redacted on incoming requests; extend `REDACTED_QUERY_PARAMS` when a route
+  takes a new one. Outgoing fetch spans leave the query string out entirely.
+- **Client ↔ server**: posthog-js (`app/lib/posthog.ts`, started in
+  `entry.client.tsx` before hydration, with the config in the page) adds
+  `X-POSTHOG-SESSION-ID`/`X-POSTHOG-DISTINCT-ID` to API requests;
+  `middlewares/telemetry.ts` runs the request in a posthog-node context with
+  them, so its spans, log lines (`posthogDistinctId`, `sessionId`) and
+  exceptions link to the session. The person is the Supabase user id
+  (`identify` in `context/user.tsx`, `reset` on sign-out), never the email.
+- **Errors**: `reportException` (`api/posthog.ts`) from Hono's `onError`, the
+  process handlers in `main.ts` and React Router's `handleError`
+  (`entry.server.tsx`), with a failed query's SQL and parameters left out
+  (`withoutQueryDetails` in `logger.ts`); in the browser, exception
+  autocapture plus the route ErrorBoundaries (`useReportRouteError`: not 4xx,
+  and not server errors, which the server reported). posthog-js `defaults`
+  must stay ≥ `2026-06-25`: older defaults record URL fragments, where the
+  handover and sign-in links put session tokens.
+- **Source maps**: the client build emits hidden source maps;
+  `api/scripts/upload-sourcemaps.sh` (in the Dockerfile, after the build)
+  uploads them with posthog-cli under release `meerkat`/`<git sha>` and
+  deletes them, so they are never served. The key is a Fly build secret
+  (`POSTHOG_CLI_API_KEY`, a personal API key with "error tracking write"
+  and "organization read"); `POSTHOG_CLI_HOST`, `POSTHOG_CLI_PROJECT_ID` and
+  `RELEASE_VERSION` are build args. A failed upload only warns.
+- **Feedback**: "Give feedback" in the navigation drawer captures
+  `feedback_requested`, which opens the PostHog survey "Give feedback" (Open
+  feedback template, event-triggered, shown every time).
+- Check with `posthog-cli api call query-logs …`, and `execute-sql` on
+  `events` (`$exception`) and `posthog.trace_spans`.
+
 ### Runtime constraints
 
 - Node 26 runs `.ts` directly (type stripping): ESM only, explicit `.ts`
@@ -451,6 +503,13 @@ values such as `site_url` and the redirect URLs stay commented. Always run
 - Several worktrees work on this repo in parallel. Never use bare
   `git stash` / `git stash pop`; prefer a WIP commit, or
   `git stash push -m "<tag>"` and apply by SHA.
+- **Start every task in a new worktree on the latest `origin/master`.** Run
+  `git fetch origin` first and branch from `origin/master`, not from the
+  local `master` or whatever branch the main checkout has checked out, which
+  may be stale or unrelated. A worktree that already exists is rebased with
+  `git fetch origin && git rebase origin/master` before any work. The one
+  exception is a stacked change (below), which starts from the layer it
+  builds on.
 - Stack dependent changes with [`gh stack`](https://gh.io/stacks)
   (`gh extension install github/gh-stack`): when a change builds on another
   unmerged one, add it as a layer instead of branching from `master`, so each
@@ -488,9 +547,8 @@ rendered with `envsubst` from GitHub secrets. Its `release_command` runs
 `api/migrate.ts` once per deploy, before the rollout, and a failed migration
 aborts the deploy; it uses `DATABASE_URL`, the direct connection, like the
 app. The health check hits `/api/v1/health` (public; a
-`SELECT 1`, so it fails while the database is unreachable). Errors go
-only to the logs (pino on stdout, `fly logs`); there is no error tracker.
-`main.ts` logs unhandled rejections and keeps running, and logs uncaught
-exceptions and exits.
+`SELECT 1`, so it fails while the database is unreachable).
+`main.ts` logs and reports unhandled rejections and keeps running, and logs
+and reports uncaught exceptions and exits (see Observability).
 `.github/workflows/sync.yml` runs a Pretalx sync by hand and needs the
 `MEERKAT_BASE` secret in the chosen environment.

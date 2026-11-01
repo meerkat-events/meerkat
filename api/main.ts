@@ -5,6 +5,8 @@ import app from "./app.ts";
 import env, { redactedEnv } from "./env.ts";
 import logger from "./logger.ts";
 import { hub } from "./realtime/index.ts";
+import { shutdownTelemetry } from "./instrumentation.ts";
+import { reportException } from "./posthog.ts";
 
 // A stray rejection from background work (Realtime cleanup, an SSE write to a
 // closed connection) is logged and the server keeps running, rather than
@@ -13,11 +15,25 @@ import { hub } from "./realtime/index.ts";
 // exits; Fly restarts it.
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "Unhandled promise rejection");
+  reportException(reason);
 });
-process.on("uncaughtException", (error) => {
+process.on("uncaughtException", async (error) => {
   logger.fatal({ err: error }, "Uncaught exception, exiting");
+  reportException(error);
+  // Sends the exception, giving up after a few seconds.
+  await shutdownTelemetry();
   process.exit(1);
 });
+
+// Fly stops a machine with SIGINT (SIGTERM elsewhere, and from `node
+// --watch`). Send the buffered log lines, spans and exceptions first.
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, async () => {
+    logger.info({ signal }, "Shutting down");
+    await shutdownTelemetry();
+    process.exit(0);
+  });
+}
 
 logger.info({ env: redactedEnv }, "Parsed environment variables");
 if (!env.openRouterApiKey) {

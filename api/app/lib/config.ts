@@ -1,14 +1,35 @@
-import { apiUrl } from "./api-url.ts";
-
+/**
+ * The browser's settings. The server writes them into every page it renders
+ * (the root route's loader, `public-config.server.ts`), so they come from its
+ * environment at runtime and the browser needs no request for them.
+ */
 export type Config = {
-  supabaseUrl: string | undefined;
-  supabaseAnonKey: string | undefined;
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
+  posthogToken?: string;
+  posthogHost?: string;
+  environment: string;
 };
 
-export async function getConfig() {
-  const response = await fetch(apiUrl("/api/v1/config"));
+/** Id of the `<script type="application/json">` the root layout renders. */
+export const CONFIG_ELEMENT_ID = "meerkat-config";
 
-  const config = await response.json() as Config;
+/**
+ * The config from the page. Browser only; a page rendered without it (the
+ * root ErrorBoundary) gets no Supabase or PostHog.
+ */
+export function getConfig(): Config {
+  const element = globalThis.document?.getElementById(CONFIG_ELEMENT_ID);
+  if (!element?.textContent) {
+    return { environment: "development" };
+  }
+  return JSON.parse(element.textContent) as Config;
+}
 
-  return config;
+/**
+ * The config as the content of the inline script: JSON with `<` escaped, so
+ * no value can close the script tag.
+ */
+export function serializeConfig(config: Config) {
+  return JSON.stringify(config).replaceAll("<", "\\u003c");
 }

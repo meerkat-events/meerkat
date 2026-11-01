@@ -8,6 +8,9 @@ primary_region = '$PRIMARY_REGION'
 
 [build.args]
 VITE_API_URL = '$VITE_API_URL'
+POSTHOG_CLI_HOST = '$POSTHOG_CLI_HOST'
+POSTHOG_CLI_PROJECT_ID = '$POSTHOG_CLI_PROJECT_ID'
+RELEASE_VERSION = '$RELEASE_VERSION'
 
 [env]
 PORT = '8000'
@@ -18,6 +21,9 @@ SUPABASE_SERVICE_ROLE_KEY = '$SUPABASE_SERVICE_ROLE_KEY'
 SUPABASE_SECRET_KEY = '$SUPABASE_SECRET_KEY'
 DEVCON_VERIFICATION_SECRET = '$DEVCON_VERIFICATION_SECRET'
 PRETALX_URL = '$PRETALX_URL'
+ENVIRONMENT = '$ENVIRONMENT'
+POSTHOG_PROJECT_TOKEN = '$POSTHOG_PROJECT_TOKEN'
+POSTHOG_HOST = '$POSTHOG_HOST'
 
 [deploy]
 # Runs once per deploy in a temporary machine before the rollout; a failure
@@ -25,7 +31,7 @@ PRETALX_URL = '$PRETALX_URL'
 release_command = 'node /workspace/api/migrate.ts'
 
 [processes]
-app = 'node /workspace/api/main.ts'
+app = 'node --import /workspace/api/instrumentation.ts /workspace/api/main.ts'
 
 [http_service]
 internal_port = 8000

@@ -6,15 +6,19 @@ import events from "./routes/events.ts";
 import questions from "./routes/questions.ts";
 import admin from "./routes/admin.ts";
 import pretalx from "./routes/pretalx.ts";
-import { config } from "./models/config.ts";
 import { pingDatabase } from "./models/health.ts";
 import env from "./env.ts";
 import logger from "./logger.ts";
 import { HTTPException } from "hono/http-exception";
 import { requestLogger } from "./middlewares/request-logger.ts";
+import { telemetry } from "./middlewares/telemetry.ts";
+import { reportException } from "./posthog.ts";
 
 const app = new Hono();
 
+// First, so the request log line and everything after it is linked to the
+// browser's PostHog session.
+app.use(telemetry());
 app.use(requestLogger());
 // Browser clients on other origins (e.g. `@meerkat-events/react` embedded in
 // the Devcon event app) need CORS headers on every /api response, including
@@ -35,10 +39,6 @@ app.route("/", questions);
 app.route("/", admin);
 app.route("/", pretalx);
 
-// Public: every page reads it before a session exists, for the Supabase URL
-// and anon key it signs in with.
-app.get("/api/v1/config", (c) => c.json(config));
-
 // Fly's health check (fly.template.toml): public, cheap, and failing while
 // the database is unreachable.
 app.get("/api/v1/health", async (c) => {
@@ -54,6 +54,7 @@ app.onError((err, c) => {
     { err, method: c.req.method, path: c.req.path },
     "Unhandled error",
   );
+  reportException(err);
   return c.json({ error: "Internal server error" }, 500);
 });
 

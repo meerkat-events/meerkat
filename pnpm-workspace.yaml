@@ -4,5 +4,8 @@ packages:
 
 # Packages allowed to run install/build scripts (pnpm >= 10.26 syntax).
 allowBuilds:
+  '@posthog/cli': true
   argon2: true
+  core-js: false
   esbuild: true
+  protobufjs: false

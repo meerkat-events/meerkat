@@ -1,4 +1,6 @@
 import { createContext, useEffect, useState } from "react";
+import { usePostHog } from "@posthog/react";
+import { isPostHogEnabled } from "../lib/posthog.ts";
 import { useSupabase } from "./supabase.tsx";
 import type { Session, User } from "@supabase/supabase-js";
 import type { HTTPError } from "../hooks/http-error.ts";
@@ -57,6 +59,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [cooldown, setCooldown] = useState<Cooldown | undefined>(undefined);
   const [isValidated, setIsValidated] = useState<boolean>(false);
 
+  // PostHog's person is the Supabase user id (never the email), so errors,
+  // logs and traces of one person link up across devices. Signing out starts
+  // a new anonymous person.
+  const posthog = usePostHog();
+  const userId = user?.id;
+  useEffect(() => {
+    if (userId && isPostHogEnabled()) {
+      posthog?.identify(userId);
+    }
+  }, [posthog, userId]);
+
   useEffect(() => {
     if (!client) return;
 
@@ -74,7 +87,10 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     };
     fetchUser();
 
-    const subscription = client?.auth.onAuthStateChange((_event, session) => {
+    const subscription = client?.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" && isPostHogEnabled()) {
+        posthog?.reset();
+      }
       setSession(session ?? undefined);
       setUser(session?.user ?? undefined);
     });
@@ -82,7 +98,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription?.data?.subscription?.unsubscribe();
     };
-  }, [client]);
+  }, [client, posthog]);
 
   return (
     <UserContext.Provider

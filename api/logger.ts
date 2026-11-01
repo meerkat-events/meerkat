@@ -37,6 +37,24 @@ function serializeError(error: unknown): Record<string, unknown> {
   };
 }
 
+/**
+ * The error without the SQL and parameters of a failed query, for sending it
+ * elsewhere (PostHog error tracking, posthog.ts) by the same rule as
+ * `serializeError`: only "Failed query", its stack frames and the underlying
+ * database error are kept.
+ */
+export function withoutQueryDetails(error: unknown): unknown {
+  if (!(error instanceof DrizzleQueryError)) {
+    return error;
+  }
+  const sanitized = new Error("Failed query", {
+    cause: withoutQueryDetails(error.cause),
+  });
+  sanitized.name = "DrizzleQueryError";
+  sanitized.stack = `DrizzleQueryError: Failed query\n${stackFrames(error)}`;
+  return sanitized;
+}
+
 /** The "at ..." lines of a stack, without the message it starts with. */
 function stackFrames(error: Error) {
   const stack = error.stack ?? "";
