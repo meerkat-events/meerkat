@@ -5,13 +5,10 @@ import { useLocation } from "react-router";
 import { Logo } from "../components/Logo.tsx";
 import type { Route } from "./+types/Legal.ts";
 
-// TODO before publishing: the operator's details. They appear in the privacy
-// policy (controller, contact, Grievance Officer for India) and the terms.
-const OPERATOR_NAME = "[Operator name]";
-const OPERATOR_ADDRESS = "[Postal address]";
-const CONTACT_EMAIL = "[contact email]";
-const GRIEVANCE_OFFICER = "[Grievance Officer name]";
-const GRIEVANCE_EMAIL = "[grievance email]";
+// The operator, who is also the contact for privacy requests and the
+// Grievance Officer for users in India.
+const OPERATOR_NAME = "Florian Dreschner";
+const CONTACT_EMAIL = "code@dreschner.eu";
 
 const LAST_UPDATED = "1 November 2026";
 
@@ -83,12 +80,12 @@ function PrivacyPolicy() {
 
       <Section title="Who is responsible">
         <Paragraph>
-          {OPERATOR_NAME}, {OPERATOR_ADDRESS} ("we") operates Meerkat. Contact
+          {OPERATOR_NAME} ("we") operates Meerkat. Contact
           us about privacy at {CONTACT_EMAIL}.
         </Paragraph>
         <Paragraph>
-          Grievance Officer for users in India: {GRIEVANCE_OFFICER},{" "}
-          {GRIEVANCE_EMAIL}.
+          Grievance Officer for users in India: {OPERATOR_NAME},{" "}
+          {CONTACT_EMAIL}.
         </Paragraph>
       </Section>
 
@@ -212,7 +209,7 @@ function PrivacyPolicy() {
         <Paragraph>
           Users in India can access, correct and erase their data, nominate
           someone to exercise these rights for them, and raise a grievance with
-          our Grievance Officer ({GRIEVANCE_EMAIL}). If it is not resolved, you
+          our Grievance Officer ({CONTACT_EMAIL}). If it is not resolved, you
           can complain to the Data Protection Board of India.
         </Paragraph>
       </Section>
@@ -290,7 +287,7 @@ function Terms() {
       <Section title="Complaints and removal requests">
         <Paragraph>
           To report content or raise a complaint, write to our Grievance
-          Officer, {GRIEVANCE_OFFICER}, at {GRIEVANCE_EMAIL}. We acknowledge
+          Officer, {OPERATOR_NAME}, at {CONTACT_EMAIL}. We acknowledge
           complaints within 24 hours and resolve them within 15 days.
         </Paragraph>
       </Section>
@@ -313,7 +310,7 @@ function Terms() {
 
       <Section title="Contact">
         <Paragraph>
-          {OPERATOR_NAME}, {OPERATOR_ADDRESS}, {CONTACT_EMAIL}.
+          {OPERATOR_NAME}, {CONTACT_EMAIL}.
         </Paragraph>
       </Section>
     </Box>
