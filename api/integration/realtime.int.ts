@@ -381,7 +381,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     const reacted = await request(
       "POST",
       `/api/v1/events/${setup.eventUid}/react`,
-      { token: setup.voter.token, body: { uid: "reaction-2", emoji: "heart" } },
+      { token: setup.voter.token, body: { uid: crypto.randomUUID(), emoji: "heart" } },
     );
     assert.equal(reacted.status, 200);
 

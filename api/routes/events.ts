@@ -36,6 +36,8 @@ import {
 } from "../models/questions.ts";
 import {
   createReaction,
+  getReactionByUid,
+  type Reaction,
   getUserReactionTimesAfterDate,
 } from "../models/reactions.ts";
 import {
@@ -335,10 +337,42 @@ app.post(
   },
 );
 
+// The client picks the uid, a fresh UUID per tap (`useReact`); it is the
+// primary key, so it doubles as an idempotency key for resends.
 const reactionScheme = zod.object({
-  uid: zod.string(),
+  uid: zod.uuid(),
   emoji: zod.enum(REACTION_EMOJIS).default("heart"),
 });
+
+/** The fields of a reaction that responses and the event stream carry. */
+function toPublicReaction(reaction: Reaction) {
+  return {
+    uid: reaction.uid,
+    emoji: reaction.emoji,
+    createdAt: reaction.createdAt.toISOString(),
+  };
+}
+
+/**
+ * What to answer a request whose uid is already stored. The same user
+ * reacting in the same event is a resend (the first response got lost on the
+ * way), so it gets the stored reaction, which was already counted and
+ * published. Any other request reusing the uid is a conflict.
+ */
+function resentReaction(
+  existing: Reaction,
+  { userId, eventId }: { userId: string; eventId: number },
+) {
+  const isResend = existing.userId === userId && existing.eventId === eventId;
+  logger.info(
+    { reactionUid: existing.uid, eventId, userId, isResend },
+    "Reaction uid already exists",
+  );
+  if (!isResend) {
+    throw new HTTPException(409, { message: "Reaction already exists" });
+  }
+  return toPublicReaction(existing);
+}
 
 app.post(
   "/api/v1/events/:uid/react",
@@ -363,6 +397,15 @@ app.post(
       throw new HTTPException(403, { message: ATTENDEES_ONLY_MESSAGE });
     }
 
+    const reactionContext = { userId: user.id, eventId: event.id };
+
+    // Before the rate limit, which counts the stored original: a resend
+    // must not end up with a 429 for a reaction that went through.
+    const existing = await getReactionByUid(uid);
+    if (existing) {
+      return c.json({ data: resentReaction(existing, reactionContext) });
+    }
+
     const thirtySecondsAgo = dateDeductedMinutes(0.5);
     const thirtySecondsActivity = await getUserReactionTimesAfterDate(
       user.id,
@@ -384,10 +427,14 @@ app.post(
       emoji,
     });
 
-    // The client generates the uid per tap, so a second request with it is a
-    // resend, not a new reaction: don't store, count or publish it again.
+    // A request with the same uid was inserted between the check above and
+    // this insert (a resend while the original was still in flight).
     if (!reaction) {
-      throw new HTTPException(409, { message: "Reaction already exists" });
+      const winner = await getReactionByUid(uid);
+      if (!winner) {
+        throw new HTTPException(409, { message: "Reaction already exists" });
+      }
+      return c.json({ data: resentReaction(winner, reactionContext) });
     }
 
     logger.info(
@@ -400,11 +447,7 @@ app.post(
       "Created reaction",
     );
 
-    const publicReaction = {
-      uid,
-      emoji: reaction.emoji,
-      createdAt: reaction.createdAt.toISOString(),
-    };
+    const publicReaction = toPublicReaction(reaction);
     // Not awaited: reactions come in bursts, and publishing is best effort
     // (notify.ts logs failures), so the response doesn't wait for it.
     void notifyReaction(event, publicReaction);

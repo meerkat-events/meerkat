@@ -5,8 +5,8 @@ import type { ReactionEmoji } from "../reactions.ts";
 
 /**
  * Inserts the reaction, or returns null when a reaction with this `uid`
- * already exists (whoever sent it). The client picks the `uid`, so a resend
- * of the same request must not fail on the primary key.
+ * already exists (whoever sent it). The client picks the `uid`, so two
+ * requests racing with the same one must not fail on the primary key.
  */
 export async function createReaction(
   { eventId, userId, uid, emoji }: {
@@ -27,6 +27,15 @@ export async function createReaction(
     .execute();
 
   return newReaction ?? null;
+}
+
+export async function getReactionByUid(
+  uid: string,
+): Promise<Reaction | undefined> {
+  const [reaction] = await db.select().from(reactions)
+    .where(eq(reactions.uid, uid))
+    .execute();
+  return reaction;
 }
 
 /**
