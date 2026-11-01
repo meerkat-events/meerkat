@@ -95,8 +95,14 @@ export async function grantTestRole(
   userId: string,
   conferenceId: number,
   role: Role,
+  grantedAt = new Date(),
 ) {
-  await db.insert(conferenceRole).values({ userId, conferenceId, role });
+  await db.insert(conferenceRole).values({
+    userId,
+    conferenceId,
+    role,
+    grantedAt,
+  });
 }
 
 /** An invitation, claimed by the sign-up trigger when the email signs up. */

@@ -61,17 +61,36 @@ app.get(
   "*",
   serveStatic({
     root: "./build/client",
-    onFound(path, c) {
-      if (path.startsWith("/assets/")) {
+    // The first argument is the file's path on disk (build/client/…), so
+    // match the URL path instead.
+    onFound(_filePath, c) {
+      if (c.req.path.startsWith("/assets/")) {
         c.header("Cache-Control", "public, max-age=31536000, immutable");
       } else {
-        c.header("Cache-Control", "public, max-age=600");
+        c.header("Cache-Control", "public, max-age=60");
       }
     },
   }),
 );
 
-app.get("*", (c) => handler(c.req.raw));
+// A missing build asset is a plain 404, not a page: during a rolling deploy a
+// browser with the other build's HTML asks for chunks this build doesn't
+// have, and React Router would report each one as a route error.
+app.get("/assets/*", (c) => c.notFound());
+
+// Pages and their .data requests name the current build's assets, and the
+// Devcon handover redirect carries a session in its Location, so neither a
+// browser nor a proxy may store them. Copied into a new Response because a
+// redirect's headers are immutable.
+app.get("*", async (c) => {
+  const response = await handler(c.req.raw);
+  if (response.headers.has("Cache-Control")) {
+    return response;
+  }
+  const uncached = new Response(response.body, response);
+  uncached.headers.set("Cache-Control", "no-store");
+  return uncached;
+});
 
 serve({ fetch: app.fetch, hostname: "0.0.0.0", port: env.port }, (info) => {
   logger.info({ address: info.address, port: info.port }, "Server running");

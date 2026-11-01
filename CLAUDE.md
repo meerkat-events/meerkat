@@ -149,11 +149,16 @@ variables and throws at import when a required one is missing; it and
 
 ### Frontend (`api/app/`)
 
-React Router 8 in SSR mode with `prerender: false`, Chakra UI v3, SWR. Layouts
-load data in `clientLoader` and pages fetch with SWR, so the server renders
-only the shell and `HydrateFallback`. The server `loader`s are the root's
-(the browser's config, document requests only: `shouldRevalidate` is false)
-and the Devcon handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
+React Router 8 in SSR mode with `prerender: false`, Chakra UI v3, SWR. The
+server renders every page, in its conference's theme; pages fetch their data
+with SWR in the browser, so the server renders their loading state. Render
+must therefore match on server and client: read browser-only state
+(`localStorage`, the Supabase session) in effects, not during render. No
+loader calls the API: the server `loader`s query the database. They are the
+root's (the browser's config, document requests only: `shouldRevalidate` is
+false), the layouts' (the conference theme, `lib/event-theme.server.ts`,
+reloaded only when `:uid` changes) and the Devcon handover in
+`routes/QnA.tsx`. Two layouts in `app/routes.ts`:
 
 - `layouts/page.tsx` — bare presenter view (`/e/:uid`), no auth.
 - `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
@@ -167,8 +172,8 @@ keeps them external, so the built loaders import the same source files
 Loaders may therefore call `models/` directly.
 
 Theming is per conference: `conferences.theme` (JSONB) becomes a Chakra
-system in `app/theme/index.ts`; the layouts' `clientLoader` fetches the event
-to pick it. Rows in the `features` table are per-conference flags, surfaced
+system in `app/theme/index.ts`; the layouts' `loader` reads it for the event
+in the URL. Rows in the `features` table are per-conference flags, surfaced
 as `event.conference.features` (`supervotes` turns on supervotes,
 `attendees_only` limits taking part to people with a role; its name lives in
 the DB-free `api/features.ts`, which the loader and the client import too).
@@ -205,8 +210,8 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   - **guests** (the Q&A page before signing in, which signs in anonymously
     only when they ask or vote, and the presenter view `/e/:uid`, which
     has no auth at all) and **embedders** (`packages/react`):
-    `GET /api/v1/events/:uid` (also the layouts' `clientLoader`, for
-    theming), `/api/v1/events/:uid/questions` and its `/stream`,
+    `GET /api/v1/events/:uid`, `/api/v1/events/:uid/questions` and its
+    `/stream`,
     `GET /api/v1/events` (the Q&A page's session switcher),
     `GET /api/v1/conferences/:id/questions/stream` (the organizer pages'
     live updates, which carry no data), and
@@ -217,8 +222,9 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   - **login**: none; sign-in goes straight to Supabase Auth with the URL
     and anon key that every page carries, and the Devcon handover is a page
     loader, not an API route;
-  - **infrastructure**: `GET /api/v1/health` (Fly's health check) and
-    `POST /api/v1/pretalx/:event/sync` (see Pretalx sync).
+  - **infrastructure**: `GET /api/v1/health` (Fly's health check),
+    `POST /api/v1/pretalx/:event/sync` (see Pretalx sync) and the PostHog
+    proxy `GET|POST /relay/*` (see Observability).
 
   Admin routes use an API key instead (below). Public responses never
   carry hidden questions, moderation fields or emails (`toPublicQuestion`,
@@ -413,6 +419,15 @@ Every deployment tags them with `ENVIRONMENT`.
   `url.query` values of credential parameters (`token`, `code`, …) are
   redacted on incoming requests; extend `REDACTED_QUERY_PARAMS` when a route
   takes a new one. Outgoing fetch spans leave the query string out entirely.
+- **Proxy**: blockers drop requests to PostHog, so posthog-js sends to our
+  own origin under `/relay` (`POSTHOG_PROXY_PATH` in `posthog-hosts.ts`, a
+  name that says nothing about PostHog), and `routes/posthog-proxy.ts`
+  streams them on: `/static/*` and `/array/*` to the region's assets host,
+  the rest to `POSTHOG_HOST`. It drops cookies and any credentials except
+  the `phc_` project token, and forwards `Fly-Client-IP` as
+  `X-Forwarded-For` for geolocation. Mounted before the request log and
+  telemetry middlewares and left out of traces: PostHog's own traffic
+  doesn't belong in our logs.
 - **Client ↔ server**: posthog-js (`app/lib/posthog.ts`, started in
   `entry.client.tsx` before hydration, with the config in the page) adds
   `X-POSTHOG-SESSION-ID`/`X-POSTHOG-DISTINCT-ID` to API requests;

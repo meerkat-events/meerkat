@@ -6,6 +6,7 @@ import events from "./routes/events.ts";
 import questions from "./routes/questions.ts";
 import admin from "./routes/admin.ts";
 import pretalx from "./routes/pretalx.ts";
+import posthogProxy from "./routes/posthog-proxy.ts";
 import { pingDatabase } from "./models/health.ts";
 import env from "./env.ts";
 import logger from "./logger.ts";
@@ -16,6 +17,10 @@ import { reportException } from "./posthog.ts";
 
 const app = new Hono();
 
+// Before the middlewares below, which it skips: it answers without calling
+// them, and the browser's PostHog requests don't belong in our own logs and
+// traces.
+app.route("/", posthogProxy);
 // First, so the request log line and everything after it is linked to the
 // browser's PostHog session.
 app.use(telemetry());

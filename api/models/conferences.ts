@@ -1,5 +1,5 @@
 import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
-import { conferences } from "../schema.ts";
+import { conferences, events, lower } from "../schema.ts";
 import db from "../db.ts";
 
 export type Conference = typeof conferences.$inferSelect;
@@ -20,6 +20,23 @@ export async function getConferenceById(
   const results = await db.select().from(conferences).where(
     eq(conferences.id, id),
   ).limit(1);
+
+  return results.at(0) ?? null;
+}
+
+/**
+ * The theme of the conference an event belongs to, in one query. Null when
+ * there is no event with that uid; `theme` is null when the conference has
+ * none.
+ */
+export async function getConferenceThemeByEventUID(
+  uid: string,
+): Promise<{ theme: Conference["theme"] } | null> {
+  const results = await db.select({ theme: conferences.theme })
+    .from(events)
+    .innerJoin(conferences, eq(conferences.id, events.conferenceId))
+    .where(eq(lower(events.uid), uid.toLowerCase()))
+    .limit(1);
 
   return results.at(0) ?? null;
 }

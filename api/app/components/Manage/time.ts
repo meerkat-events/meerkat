@@ -33,6 +33,10 @@ export const fmtWhen = (session: { start: Date; end: Date }) =>
 
 export const fmtDuration = (ms: number) => {
   const m = Math.max(0, Math.round(ms / MINUTE));
+  if (m > 24 * 60) {
+    const hours = Math.floor(m / 60) % 24;
+    return `${Math.floor(m / (24 * 60))}d${hours ? ` ${hours}h` : ""}`;
+  }
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}`;
 };
 

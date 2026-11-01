@@ -16,18 +16,25 @@ import { PinoInstrumentation } from "@opentelemetry/instrumentation-pino";
 import { PostHogContextSpanProcessor } from "posthog-node/otel";
 import env from "./env.ts";
 import { posthog } from "./posthog.ts";
+import { POSTHOG_PROXY_PATH, posthogAssetsHost } from "./posthog-hosts.ts";
 
 // Requests that would only add noise: Fly's health check every 30 s per
-// machine, and static files.
+// machine, static files, and the browser's PostHog requests through our
+// proxy (routes/posthog-proxy.ts).
 function isIgnoredPath(path: string) {
-  return path === "/api/v1/health" || path.startsWith("/assets/");
+  return path === "/api/v1/health" ||
+    path.startsWith("/assets/") ||
+    path.startsWith(`${POSTHOG_PROXY_PATH}/`);
 }
 
 // Spans record the query string (`url.query`). These parameters carry
 // credentials: the Devcon handover token (`/e/:uid/qa?token=<jwt>`), Supabase
 // Auth's sign-in links, and the instrumentation's own defaults (signed cloud
-// storage URLs). The list replaces the defaults, so it repeats them.
+// storage URLs), and `search`, which can hold part of an email (the
+// permissions page's attendee search). The list replaces the defaults, so it
+// repeats them.
 const REDACTED_QUERY_PARAMS = [
+  "search",
   "token",
   "token_hash",
   "code",
@@ -88,8 +95,9 @@ function startTelemetry(token: string, host: string) {
           isIgnoredPath(new URL(request.url ?? "/", "http://localhost").pathname),
       }),
       new UndiciInstrumentation({
-        // posthog-node's own requests to PostHog.
-        ignoreRequestHook: (request) => request.origin === host,
+        // posthog-node's own requests to PostHog, and the proxy's.
+        ignoreRequestHook: (request) =>
+          request.origin === host || request.origin === posthogAssetsHost(host),
         startSpanHook: withoutQuery,
       }),
       new PinoInstrumentation({
