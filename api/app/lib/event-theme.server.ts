@@ -1,6 +1,5 @@
 import { data } from "react-router";
-import { getConferenceById } from "../../models/conferences.ts";
-import { getEventByUID } from "../../models/events.ts";
+import { getConferenceThemeByEventUID } from "../../models/conferences.ts";
 import type { Theme } from "../types.ts";
 
 /**
@@ -9,11 +8,9 @@ import type { Theme } from "../types.ts";
  * for an unknown event, which the layout's ErrorBoundary shows.
  */
 export async function getEventTheme(uid: string): Promise<Theme | null> {
-  const event = await getEventByUID(uid);
-  if (!event) {
+  const result = await getConferenceThemeByEventUID(uid);
+  if (!result) {
     throw data(null, { status: 404 });
   }
-
-  const conference = await getConferenceById(event.conferenceId);
-  return conference?.theme ?? null;
+  return result.theme;
 }

@@ -20,13 +20,6 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { theme: uid ? await getEventTheme(uid) : null };
 }
 
-// Keeps the layout client-rendered (the server sends root's HydrateFallback).
-// On hydration serverLoader() returns the data already in the page.
-export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
-  return await serverLoader();
-}
-clientLoader.hydrate = true as const;
-
 // The theme depends on the event only: changing the stage screen's options
 // doesn't reload it.
 export function shouldRevalidate(

@@ -149,14 +149,16 @@ variables and throws at import when a required one is missing; it and
 
 ### Frontend (`api/app/`)
 
-React Router 8 in SSR mode with `prerender: false`, Chakra UI v3, SWR. Pages
-fetch with SWR and the server renders only the shell and `HydrateFallback`.
-No loader calls the API: the server `loader`s query the database. They are
-the root's (the browser's config, document requests only: `shouldRevalidate`
-is false), the layouts' (the conference theme, `lib/event-theme.server.ts`,
-reloaded only when `:uid` changes; their `clientLoader` with `hydrate = true`
-just returns `serverLoader()`, which keeps them client-rendered) and the
-Devcon handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
+React Router 8 in SSR mode with `prerender: false`, Chakra UI v3, SWR. The
+server renders every page, in its conference's theme; pages fetch their data
+with SWR in the browser, so the server renders their loading state. Render
+must therefore match on server and client: read browser-only state
+(`localStorage`, the Supabase session) in effects, not during render. No
+loader calls the API: the server `loader`s query the database. They are the
+root's (the browser's config, document requests only: `shouldRevalidate` is
+false), the layouts' (the conference theme, `lib/event-theme.server.ts`,
+reloaded only when `:uid` changes) and the Devcon handover in
+`routes/QnA.tsx`. Two layouts in `app/routes.ts`:
 
 - `layouts/page.tsx` — bare presenter view (`/e/:uid`), no auth.
 - `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
