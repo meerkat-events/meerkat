@@ -30,6 +30,7 @@ import {
   fmtWhen,
   sessionStatus,
   useNow,
+  zoneName,
 } from "./time.ts";
 
 const qaUrl = (session: Session) => new URL(`/e/${session.uid}/qa`, appOrigin());
@@ -137,7 +138,7 @@ export function SessionPanel(
                       <div className="m-meta">
                         <span>{session.speaker ?? "No speaker"}</span>
                         <span>
-                          {fmtWhen(session)} UTC
+                          {fmtWhen(session)} {zoneName(session.start)}
                         </span>
                       </div>
                     </div>
@@ -215,7 +216,7 @@ function SessionQuestions(
       <div className="m-sec">
         <p style={{ fontWeight: 600, margin: "0 0 4px" }}>Q&A opens when this session goes live</p>
         <p className="m-hint" style={{ margin: 0 }}>
-          Starts {fmtDay(session.start, true)} at {fmtTime(session.start)} UTC. Going live switches the{" "}
+          Starts {fmtDay(session.start, true)} at {fmtTime(session.start)} {zoneName(session.start)}. Going live switches the{" "}
           {session.stage} stage screen to this session.
         </p>
       </div>
@@ -270,9 +271,9 @@ function SessionDetails({ session }: { session: Session }) {
         <dt>Stage</dt>
         <dd>{session.stage}</dd>
         <dt>Starts</dt>
-        <dd>{fmtDay(session.start, true)}, {fmtTime(session.start)} UTC</dd>
+        <dd>{fmtDay(session.start, true)}, {fmtTime(session.start)} {zoneName(session.start)}</dd>
         <dt>Ends</dt>
-        <dd>{fmtDay(session.end, true)}, {fmtTime(session.end)} UTC</dd>
+        <dd>{fmtDay(session.end, true)}, {fmtTime(session.end)} {zoneName(session.end)}</dd>
         <dt>Link ID</dt>
         <dd style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{session.uid}</dd>
         <dt>Description</dt>

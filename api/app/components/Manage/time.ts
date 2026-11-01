@@ -1,23 +1,43 @@
 import { useEffect, useState } from "react";
 import type { Session } from "../../hooks/use-conference-events.ts";
 
-// Session times are stored in UTC and there's no venue time zone yet, so the
-// management pages show UTC throughout.
+// Session times are stored in UTC; the management pages show them in the
+// browser's time zone. The pages render only in the browser (clientLoader), so
+// the server's time zone never shows.
 const pad = (n: number) => String(n).padStart(2, "0");
 const MINUTE = 60_000;
 
 export const fmtTime = (d: Date) =>
-  `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "Mon 14", or "Mon 14 Sep" when `long`. */
 export const fmtDay = (d: Date, long = false) =>
-  `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()}${long ? ` ${MONTHS[d.getUTCMonth()]}` : ""}`;
+  `${WEEKDAYS[d.getDay()]} ${d.getDate()}${long ? ` ${MONTHS[d.getMonth()]}` : ""}`;
 
-/** UTC calendar day, e.g. "2026-09-14". */
-export const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+/** Local calendar day, e.g. "2026-09-14". */
+export const dayKey = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+/** Local midnight at the start of a `dayKey` day. */
+export const startOfDay = (key: string) => {
+  const [year = 0, month = 1, day = 1] = key.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+
+/** Local midnight at the end of a `dayKey` day: 23 or 25 hours later on a DST change. */
+export const endOfDay = (key: string) => {
+  const start = startOfDay(key);
+  return new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
+};
+
+/** The browser's time zone at `d`, e.g. "PST", "GMT+2" or "GMT+5:30". */
+export const zoneName = (d: Date) =>
+  new Intl.DateTimeFormat("en-US", { timeZoneName: "short" })
+    .formatToParts(d)
+    .find((part) => part.type === "timeZoneName")?.value ?? "";
 
 /** "14:00–15:30", or "Mon 14, 18:55 – Wed 16, 18:55" when it crosses midnight. */
 export const fmtRange = ({ start, end }: { start: Date; end: Date }) =>
@@ -49,7 +69,7 @@ export const askedAt = (d: Date, now: Date) => {
 };
 
 export const askedTitle = (d: Date) =>
-  `Asked ${fmtDay(d, true)}, ${fmtTime(d)}:${pad(d.getUTCSeconds())} UTC`;
+  `Asked ${fmtDay(d, true)}, ${fmtTime(d)}:${pad(d.getSeconds())} ${zoneName(d)}`;
 
 /** The current time, re-rendering every `intervalMs`. */
 export function useNow(intervalMs = 30_000) {

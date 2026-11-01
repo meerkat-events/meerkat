@@ -8,7 +8,7 @@ import {
 } from "react";
 import type { Session } from "../../hooks/use-conference-events.ts";
 import type { SessionCounts } from "../../hooks/use-conference-stats.ts";
-import { dayKey, fmtDay, fmtRange, fmtTime, sessionStatus } from "./time.ts";
+import { dayKey, fmtDay, fmtRange, fmtTime, sessionStatus, zoneName } from "./time.ts";
 
 const LABEL = 172; // stage column width
 const PPM = 2.2; // pixels per minute
@@ -21,7 +21,7 @@ const MINUTE = 60_000;
  */
 export function Timeline(
   { day, sessions, stages, now, counts, selectedUid, onSelect }: {
-    day: Date; // 00:00 UTC
+    day: Date; // local midnight
     sessions: Session[]; // sessions that overlap `day`
     stages: string[];
     now: Date;
@@ -123,7 +123,7 @@ export function Timeline(
           style={{ width: LABEL + width, "--m-label": `${LABEL}px` } as CSSProperties}
         >
           <div className="m-tl-axis">
-            <div className="m-tl-corner" style={{ width: LABEL }}>Stage · UTC</div>
+            <div className="m-tl-corner" style={{ width: LABEL }}>Stage · {zoneName(day)}</div>
             <div className="m-tl-hours">
               {halfHours.filter((t) => (t - v0) % HOUR === 0).map((t) => (
                 <span key={t} style={{ left: x(t) }}>{fmtTime(new Date(t))}</span>
