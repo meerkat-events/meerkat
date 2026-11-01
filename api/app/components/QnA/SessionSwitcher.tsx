@@ -9,9 +9,11 @@ import {
   Heading,
   Icon,
   Portal,
+  Spinner,
   Text,
   VisuallyHidden,
 } from "@chakra-ui/react";
+import { Link, useNavigation } from "react-router";
 import { qa } from "../../routing.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 
@@ -146,6 +148,11 @@ function SessionGroup(
 }
 
 function SessionRow({ session }: { session: SessionItem }) {
+  // A switch waits for the layout's loader (the theme) before it shows the
+  // new session; until then the tapped row shows that it's on its way.
+  const navigation = useNavigation();
+  const isSwitchingHere = navigation.location?.pathname === qa(session.uid);
+
   const content = (
     <>
       <Text
@@ -186,6 +193,9 @@ function SessionRow({ session }: { session: SessionItem }) {
           Live
         </Text>
       )}
+      {isSwitchingHere && (
+        <Spinner size="xs" color="brand.fg" flexShrink="0" />
+      )}
       {session.selected && (
         <Icon
           as={LuCheck}
@@ -215,14 +225,16 @@ function SessionRow({ session }: { session: SessionItem }) {
       </chakra.div>
     )
     : (
+      // A client-side navigation: the page resets itself for the new
+      // session (see routes/QnA.tsx) without reloading the document.
       <chakra.a
+        asChild
         {...rowStyles}
-        href={qa(session.uid)}
         color="fg"
         _hover={{ bg: "highlight.hover" }}
         focusVisibleRing="inside"
       >
-        {content}
+        <Link to={qa(session.uid)}>{content}</Link>
       </chakra.a>
     );
 }
