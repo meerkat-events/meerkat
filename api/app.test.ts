@@ -35,6 +35,9 @@ const PUBLIC_ROUTES = [
   "GET /stage/:stage/qa",
   "GET /api/v1/events/stage/:stage/live",
   "GET /api/v1/conferences/:id/live",
+  // posthog-js in every browser, through our proxy to PostHog
+  "GET /relay/*",
+  "POST /relay/*",
   // The Devcon team's webhook; it only re-pulls a public schedule
   "POST /api/v1/pretalx/:event/sync",
 ];

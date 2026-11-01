@@ -1,5 +1,6 @@
 import posthog from "posthog-js";
-import { API_BASE } from "./api-url.ts";
+import { POSTHOG_PROXY_PATH, posthogUiHost } from "../../posthog-hosts.ts";
+import { API_BASE, appOrigin } from "./api-url.ts";
 import { getConfig } from "./config.ts";
 
 /** Whether this deployment has PostHog (POSTHOG_PROJECT_TOKEN). */
@@ -15,6 +16,8 @@ export function isPostHogEnabled() {
  *
  * - Exception autocapture reports uncaught errors and unhandled rejections;
  *   the route ErrorBoundaries report what React Router catches.
+ * - Requests go to our own origin, which forwards them to PostHog
+ *   (api/routes/posthog-proxy.ts): blockers drop requests to PostHog's.
  * - `tracing_headers` adds the session and distinct id to requests to our
  *   API, which links its traces, logs and exceptions to this session
  *   (api/middlewares/telemetry.ts).
@@ -25,8 +28,10 @@ export function initPostHog() {
     return;
   }
 
+  const uiHost = posthogUiHost(config.posthogHost);
   posthog.init(config.posthogToken, {
-    api_host: config.posthogHost,
+    api_host: `${appOrigin()}${POSTHOG_PROXY_PATH}`,
+    ...(uiHost ? { ui_host: uiHost } : {}),
     // Keep this at 2026-06-25 or later: those defaults leave URL fragments
     // out of every event, and the Devcon handover and sign-in links put the
     // Supabase session tokens into the fragment.
