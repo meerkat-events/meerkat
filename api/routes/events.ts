@@ -384,6 +384,12 @@ app.post(
       emoji,
     });
 
+    // The client generates the uid per tap, so a second request with it is a
+    // resend, not a new reaction: don't store, count or publish it again.
+    if (!reaction) {
+      throw new HTTPException(409, { message: "Reaction already exists" });
+    }
+
     logger.info(
       {
         reactionUid: reaction.uid,
