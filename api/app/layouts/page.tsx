@@ -1,36 +1,44 @@
-import { isRouteErrorResponse, Outlet } from "react-router";
+import {
+  isRouteErrorResponse,
+  Outlet,
+  type ShouldRevalidateFunctionArgs,
+} from "react-router";
 import { SupabaseProvider } from "../context/supabase.tsx";
 import { createClient } from "@supabase/supabase-js";
-import type { Route } from "../../.react-router/types/app/layouts/+types/app.ts";
+import type { Route } from "./+types/page.ts";
 import { useMemo } from "react";
-import { SWRConfig } from "swr";
 import { getConfig } from "../lib/config.ts";
+import { getEventTheme } from "../lib/event-theme.server.ts";
 import { Provider } from "../components/ui/provider.tsx";
 import { meerkat } from "../theme/index.ts";
-import { fetcher } from "../hooks/fetcher.ts";
 import { useReportRouteError } from "../hooks/use-report-route-error.ts";
 import { createSystem } from "../theme/index.ts";
 
-export async function clientLoader(args: Route.LoaderArgs) {
-  const hasUid = args.params["uid"];
-  const result: { data: Event } | undefined = hasUid
-    ? await fetcher(`/api/v1/events/${args.params["uid"]}`)
-    : undefined;
+// The theme of the event's conference, straight from the database.
+export async function loader({ params }: Route.LoaderArgs) {
+  const uid = params["uid"];
+  return { theme: uid ? await getEventTheme(uid) : null };
+}
 
-  return {
-    event: result?.data,
-  };
+// Keeps the layout client-rendered (the server sends root's HydrateFallback).
+// On hydration serverLoader() returns the data already in the page.
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+  return await serverLoader();
+}
+clientLoader.hydrate = true as const;
+
+// The theme depends on the event only: changing the stage screen's options
+// doesn't reload it.
+export function shouldRevalidate(
+  { currentParams, nextParams }: ShouldRevalidateFunctionArgs,
+) {
+  return currentParams["uid"] !== nextParams["uid"];
 }
 
 export default function PageLayout({ loaderData }: Route.ComponentProps) {
-  const { event } = loaderData;
+  const { theme } = loaderData;
 
-  const system = useMemo(() => {
-    if (event?.conference?.theme) {
-      return createSystem(event.conference.theme);
-    }
-    return createSystem(meerkat);
-  }, [event]);
+  const system = useMemo(() => createSystem(theme ?? meerkat), [theme]);
 
   const supabase = useMemo(() => {
     const config = getConfig();
@@ -41,22 +49,18 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
     return undefined;
   }, []);
 
-  const systemTheme = event?.conference?.theme?.systemTheme ?? "dark";
+  const systemTheme = theme?.systemTheme ?? "dark";
 
   const content = (
-    <SWRConfig
-      value={{ fallback: { [`/api/v1/events/${event?.["uid"]}`]: event } }}
+    <Provider
+      colorMode={{
+        defaultTheme: systemTheme,
+        forcedTheme: systemTheme,
+      }}
+      value={system}
     >
-      <Provider
-        colorMode={{
-          defaultTheme: systemTheme,
-          forcedTheme: systemTheme,
-        }}
-        value={system}
-      >
-        <Outlet />
-      </Provider>
-    </SWRConfig>
+      <Outlet />
+    </Provider>
   );
 
   if (supabase) {

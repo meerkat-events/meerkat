@@ -1,41 +1,50 @@
-import { isRouteErrorResponse, Outlet } from "react-router";
+import {
+  isRouteErrorResponse,
+  Outlet,
+  type ShouldRevalidateFunctionArgs,
+} from "react-router";
 import { Provider } from "../components/ui/provider.tsx";
 import { UserProvider } from "../context/user.tsx";
 import { SupabaseProvider } from "../context/supabase.tsx";
 import { MeerkatProvider } from "@meerkat-events/react";
 import { createClient } from "@supabase/supabase-js";
-import type { Route } from "../../.react-router/types/app/layouts/+types/app.ts";
+import type { Route } from "./+types/app.ts";
 import { useMemo } from "react";
 import { SWRConfig } from "swr";
 import { getConfig } from "../lib/config.ts";
+import { getEventTheme } from "../lib/event-theme.server.ts";
 import { Toaster } from "../components/ui/toaster.tsx";
-import { fetcher } from "../hooks/fetcher.ts";
 import { useReportRouteError } from "../hooks/use-report-route-error.ts";
 import { createSystem, meerkat } from "../theme/index.ts";
-import type { Event } from "../types.ts";
 
 import "./app.css";
 
-export async function clientLoader(args: Route.LoaderArgs) {
-  const eventResult: { data: Event | undefined } | undefined =
-    args.params?.["uid"]
-      ? await fetcher(`/api/v1/events/${args.params["uid"]}`)
-      : undefined;
+// The theme of the event's conference, straight from the database; pages
+// without an event use the default theme.
+export async function loader({ params }: Route.LoaderArgs) {
+  const uid = params["uid"];
+  return { theme: uid ? await getEventTheme(uid) : null };
+}
 
-  return {
-    event: eventResult?.data,
-  };
+// Keeps the layout client-rendered (the server sends root's HydrateFallback).
+// On hydration serverLoader() returns the data already in the page.
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+  return await serverLoader();
+}
+clientLoader.hydrate = true as const;
+
+// The theme depends on the event only: changing the Q&A page's sort or date
+// doesn't reload it.
+export function shouldRevalidate(
+  { currentParams, nextParams }: ShouldRevalidateFunctionArgs,
+) {
+  return currentParams["uid"] !== nextParams["uid"];
 }
 
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
-  const { event } = loaderData;
+  const { theme } = loaderData;
 
-  const system = useMemo(() => {
-    if (event?.conference?.theme) {
-      return createSystem(event.conference.theme);
-    }
-    return createSystem(meerkat);
-  }, [event]);
+  const system = useMemo(() => createSystem(theme ?? meerkat), [theme]);
 
   const supabase = useMemo(() => {
     const config = getConfig();
@@ -46,7 +55,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
     return undefined;
   }, []);
 
-  const systemTheme = event?.conference?.theme?.systemTheme ?? "dark";
+  const systemTheme = theme?.systemTheme ?? "dark";
 
   const content = (
     <MeerkatProvider apiUrl="">

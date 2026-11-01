@@ -88,8 +88,8 @@ const eventMiddleware = createMiddleware<Env>(async (c, next) => {
   await next();
 });
 
-// Public: the layouts load it for theming, and guests (the Q&A page before
-// signing in, the presenter view) read the event and its questions from it.
+// Public: guests (the Q&A page before signing in, the presenter view) and
+// embedders read the event and its questions from it.
 app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
   const event = c.get("event");
 
