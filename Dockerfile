@@ -25,6 +25,10 @@ COPY api/ ./api/
 
 ENV NODE_ENV=production
 
+# Operator JSON for the legal page, compiled into the bundle
+# (`legalOperator` in api/vite.config.ts).
+ARG LEGAL_OPERATOR
+
 RUN pnpm -r build
 
 # Upload the browser bundle's source maps to PostHog error tracking and delete

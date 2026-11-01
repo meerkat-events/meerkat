@@ -6,9 +6,12 @@ import { Logo } from "../components/Logo.tsx";
 import type { Route } from "./+types/Legal.ts";
 
 // The operator, who is also the contact for privacy requests and the
-// Grievance Officer for users in India.
-const OPERATOR_NAME = "Florian Dreschner";
-const CONTACT_EMAIL = "code@dreschner.eu";
+// Grievance Officer for users in India. Compiled in from LEGAL_OPERATOR at
+// build time (`legalOperator` in vite.config.ts).
+declare const __LEGAL_OPERATOR__: { name: string; email: string } | null;
+const NOT_CONFIGURED = "[operator not configured]";
+const OPERATOR_NAME = __LEGAL_OPERATOR__?.name ?? NOT_CONFIGURED;
+const CONTACT_EMAIL = __LEGAL_OPERATOR__?.email ?? NOT_CONFIGURED;
 
 const LAST_UPDATED = "1 November 2026";
 

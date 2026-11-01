@@ -91,6 +91,12 @@ default) and the frontend calls the origin that served it, so one build works
 on any port; set it only when frontend and API are on different origins. Read
 it only through `app/lib/api-url.ts` (`apiUrl()`, `appOrigin()`).
 
+`LEGAL_OPERATOR` (JSON, `{"name":"…","email":"…"}`) is compiled in too: the
+operator named on `/legal` (`legalOperator` in `vite.config.ts`). It comes
+from the `LEGAL_OPERATOR` GitHub secret as a Fly build arg, or from
+`api/.env` locally; unset shows "[operator not configured]", and a malformed
+value fails the build.
+
 The browser's other settings stay runtime configuration: the root route's
 server `loader` returns `publicConfig()` (`app/lib/public-config.server.ts`:
 Supabase URL and anon key, PostHog token and host, `ENVIRONMENT`) and
