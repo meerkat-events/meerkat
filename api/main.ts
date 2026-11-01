@@ -71,6 +71,11 @@ app.get(
   }),
 );
 
+// A missing build asset is a plain 404, not a page: during a rolling deploy a
+// browser with the other build's HTML asks for chunks this build doesn't
+// have, and React Router would report each one as a route error.
+app.get("/assets/*", (c) => c.notFound());
+
 app.get("*", (c) => handler(c.req.raw));
 
 serve({ fetch: app.fetch, hostname: "0.0.0.0", port: env.port }, (info) => {
