@@ -29,6 +29,14 @@ if (!env.openRouterApiKey) {
 // other.
 hub.start();
 
+// How many SSE streams this instance holds, once a minute: during an event
+// the logs show whether clients are connected and how they spread across
+// machines (Fly queues requests at hard_limit, and every stream counts).
+const STREAM_COUNT_INTERVAL_MS = 60_000;
+setInterval(() => {
+  logger.info({ openStreams: hub.listenerCount() }, "Open SSE streams");
+}, STREAM_COUNT_INTERVAL_MS).unref();
+
 // @ts-expect-error - generated React Router build output has no TypeScript declarations
 const build = (await import("./build/server/index.js")) as unknown as ServerBuild;
 const handler = createRequestHandler(build, "production");
