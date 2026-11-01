@@ -130,29 +130,6 @@ export function getQuestions(
     : prepared.viewer.execute(values);
 }
 
-const hiddenQuestionOfUser = db
-  .select({ id: questions.id })
-  .from(questions)
-  .where(
-    and(
-      eq(questions.eventId, sql.placeholder("eventId")),
-      eq(questions.userId, sql.placeholder("userId")),
-      isNull(questions.deletedAt),
-      isNotNull(questions.hiddenAt),
-    ),
-  )
-  .limit(1)
-  .prepare("hidden_question_of_user");
-
-/**
- * Whether the user has a question in the event that automatic moderation
- * hid, which only they see in the list.
- */
-export async function hasHiddenQuestions(eventId: number, userId: string) {
-  const results = await hiddenQuestionOfUser.execute({ eventId, userId });
-  return results.length > 0;
-}
-
 export async function createQuestion(
   question: Omit<typeof questions.$inferInsert, "uid">,
 ) {

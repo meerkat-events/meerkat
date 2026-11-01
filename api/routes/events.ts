@@ -30,7 +30,6 @@ import {
   createQuestion,
   getQuestions,
   getSelectedQuestion,
-  hasHiddenQuestions,
   type Sort,
   Sorts,
   toPublicQuestion,
@@ -58,8 +57,6 @@ import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
 import { getStageLiveEvent } from "../models/events.ts";
 import type { Questions } from "../models/questions.ts";
-import { getVoteWeightsOfUser } from "../models/votes.ts";
-import { guestQuestionLists } from "../question-lists.ts";
 import { hub } from "../realtime/index.ts";
 import {
   notifyEventLive,
@@ -167,40 +164,6 @@ const toApiQuestion = (
     : undefined,
 });
 
-/**
- * `getQuestions` for the questions route, which every open page refetches on
- * each change. Without `answered`, the guest list is loaded once per burst
- * and shared (`guestQuestionLists`); a viewer gets it with their votes added,
- * unless they have a hidden question, which only their own list shows.
- */
-async function getQuestionList(
-  eventId: number,
-  sort: Sort,
-  answered: boolean | undefined,
-  viewerId: string | undefined,
-): Promise<Questions> {
-  if (answered !== undefined) {
-    return getQuestions(eventId, sort, answered, viewerId);
-  }
-  if (viewerId === undefined) {
-    return guestQuestionLists.get(eventId, sort);
-  }
-
-  const [questions, voteWeights, hasHidden] = await Promise.all([
-    guestQuestionLists.get(eventId, sort),
-    getVoteWeightsOfUser(eventId, viewerId),
-    hasHiddenQuestions(eventId, viewerId),
-  ]);
-  if (hasHidden) {
-    return getQuestions(eventId, sort, undefined, viewerId);
-  }
-
-  return questions.map((question) => ({
-    ...question,
-    viewerVoteWeight: voteWeights.get(question.id) ?? null,
-  }));
-}
-
 // Public, for guests and embedders (`@meerkat-events/react`). Authentication
 // is optional: with a valid token, the viewer's own hidden questions are
 // included (automatic moderation hides them from everyone else) and each
@@ -223,7 +186,7 @@ app.get(
 
     const payloadSub = c.get("jwtPayload")?.sub;
     const viewerId = typeof payloadSub === "string" ? payloadSub : undefined;
-    const questions = await getQuestionList(
+    const questions = await getQuestions(
       event.id,
       sort as Sort,
       answered,

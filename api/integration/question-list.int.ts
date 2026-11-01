@@ -74,7 +74,6 @@ describe("question list", () => {
     const author = await anonymousUser();
     const voter = await anonymousUser();
     const uid = await ask(event.uid, author, "Will this count?");
-    // Fills the shared list before the vote.
     assert.equal((await list(event.uid))[0]?.votes, 0);
 
     const vote = await request("POST", `/api/v1/questions/${uid}/upvote`, {
