@@ -114,6 +114,9 @@ function MeerkatLinks() {
           <FaXTwitter aria-hidden /> @meerkat_events
         </ExternalLink>
       </Flex>
+      <Link asChild color="inherit" textDecoration="underline">
+        <ReactRouterLink to="/legal">Privacy policy and terms</ReactRouterLink>
+      </Link>
     </Stack>
   );
 }
