@@ -18,8 +18,6 @@ const { default: app } = await import("./app.ts");
  * "Auth and roles"). Every other route must answer 401 without credentials.
  */
 const PUBLIC_ROUTES = [
-  // Every page, before a session exists: the Supabase URL and anon key
-  "GET /api/v1/config",
   // Fly's health check
   "GET /api/v1/health",
   // Guests and embedders: an event, its questions and their live updates

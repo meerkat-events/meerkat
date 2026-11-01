@@ -91,6 +91,13 @@ default) and the frontend calls the origin that served it, so one build works
 on any port; set it only when frontend and API are on different origins. Read
 it only through `app/lib/api-url.ts` (`apiUrl()`, `appOrigin()`).
 
+The browser's other settings stay runtime configuration: the root route's
+server `loader` returns `publicConfig()` (`app/lib/public-config.server.ts`:
+Supabase URL and anon key, PostHog token and host, `ENVIRONMENT`) and
+`Layout` writes it into every page as a JSON `<script>`, which `getConfig()`
+in `app/lib/config.ts` reads in the browser. No request, no rebuild. Only
+public values belong in `publicConfig()`: it reaches every visitor.
+
 ## Validation
 
 Before calling a code change done, all of this must pass, from the repo root:
@@ -144,8 +151,9 @@ variables and throws at import when a required one is missing; it and
 
 React Router 8 in SSR mode with `prerender: false`, Chakra UI v3, SWR. Layouts
 load data in `clientLoader` and pages fetch with SWR, so the server renders
-only the shell and `HydrateFallback`. The one server `loader` is the Devcon
-handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
+only the shell and `HydrateFallback`. The server `loader`s are the root's
+(the browser's config, document requests only: `shouldRevalidate` is false)
+and the Devcon handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
 
 - `layouts/page.tsx` — bare presenter view (`/e/:uid`), no auth.
 - `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
@@ -206,9 +214,9 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   - **signage**: `/stage/:stage`, `/stage/:stage/qa`,
     `GET /api/v1/events/stage/:stage/live` (`useKeepLive`) and
     `GET /api/v1/conferences/:id/live` (printed QR codes; redirects only);
-  - **login**: `GET /api/v1/config` (the Supabase URL and anon key); sign-in
-    itself goes straight to Supabase Auth, and the Devcon handover is a
-    page loader, not an API route;
+  - **login**: none; sign-in goes straight to Supabase Auth with the URL
+    and anon key that every page carries, and the Devcon handover is a page
+    loader, not an API route;
   - **infrastructure**: `GET /api/v1/health` (Fly's health check) and
     `POST /api/v1/pretalx/:event/sync` (see Pretalx sync).
 
@@ -400,7 +408,7 @@ Every deployment tags them with `ENVIRONMENT`.
   redacted on incoming requests; extend `REDACTED_QUERY_PARAMS` when a route
   takes a new one. Outgoing fetch spans leave the query string out entirely.
 - **Client ↔ server**: posthog-js (`app/lib/posthog.ts`, started in
-  `entry.client.tsx` before hydration from `/api/v1/config`) adds
+  `entry.client.tsx` before hydration, with the config in the page) adds
   `X-POSTHOG-SESSION-ID`/`X-POSTHOG-DISTINCT-ID` to API requests;
   `middlewares/telemetry.ts` runs the request in a posthog-node context with
   them, so its spans, log lines (`posthogDistinctId`, `sessionId`) and
