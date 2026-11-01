@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import type { Session } from "../../hooks/use-conference-events.ts";
 
 // Session times are stored in UTC; the management pages show them in the
-// browser's time zone. The pages render only in the browser (clientLoader), so
-// the server's time zone never shows. Organizers use current Chrome or
+// browser's time zone. The server renders only the layout's loading gate (the
+// sign-in is resolved in the browser), so the server's time zone never shows. Organizers use current Chrome or
 // Firefox, so these pages rely on Temporal (not shipped in Safari) without a
 // polyfill; attendee pages must not.
 const MINUTE = 60_000;
