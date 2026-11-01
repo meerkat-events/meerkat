@@ -12,6 +12,7 @@ import {
   Text,
   VisuallyHidden,
 } from "@chakra-ui/react";
+import { Link } from "react-router";
 import { qa } from "../../routing.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 
@@ -215,14 +216,16 @@ function SessionRow({ session }: { session: SessionItem }) {
       </chakra.div>
     )
     : (
+      // A client-side navigation: the page resets itself for the new
+      // session (see routes/QnA.tsx) without reloading the document.
       <chakra.a
+        asChild
         {...rowStyles}
-        href={qa(session.uid)}
         color="fg"
         _hover={{ bg: "highlight.hover" }}
         focusVisibleRing="inside"
       >
-        {content}
+        <Link to={qa(session.uid)}>{content}</Link>
       </chakra.a>
     );
 }

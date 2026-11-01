@@ -117,7 +117,19 @@ const sortOptions = [
   { label: "Newest", value: "newest" },
 ];
 
+/**
+ * Switching sessions (the session switcher, "Go to live session") is a
+ * client-side navigation, which keeps this route mounted. Keying the page by
+ * event remounts it instead, so nothing of the previous session carries over:
+ * open dialogs, the question draft, celebrations, reactions in flight and the
+ * scroll position all start fresh, as they did with a document load.
+ */
 export default function QnA() {
+  const { uid } = useParams();
+  return <QnAPage key={uid} />;
+}
+
+function QnAPage() {
   const { uid } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data, mutate: refreshEvent } = useEvent(uid);
