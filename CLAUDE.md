@@ -388,7 +388,12 @@ Rules:
    every listener, and clients refetch with `useJitteredRefresh` (a random
    delay up to 500 ms, one at a time; 1 s on the stage screen). Streams
    open with a random `retry:` so reconnects spread out, and ping every
-   30 s. Fly counts every open stream as a request in flight, hence
+   15 s. `useEventSource` calls `onMessage` (a refetch) on every re-open,
+   and reconnects with jittered backoff when the browser gives up (an error
+   response), after 40 s without a message and when back online; a page
+   becoming visible without an open stream reconnects at once. Hidden pages
+   keep their stream: a captured stage screen counts as hidden. Fly counts
+   every open stream as a request in flight, hence
    `[http_service.concurrency]` in `fly.template.toml`; each instance logs
    how many it holds once a minute (`Open SSE streams`, `openStreams`).
 

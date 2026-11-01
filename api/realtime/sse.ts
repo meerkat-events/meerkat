@@ -2,8 +2,9 @@ import type { Context } from "hono";
 import { type SSEMessage, streamSSE } from "hono/streaming";
 
 // Clients reset a watchdog on every message (packages/react's
-// useEventSource), and proxies keep a connection open that carries data.
-const PING_INTERVAL_MS = 30_000;
+// useEventSource, 40 s), and proxies keep a connection open that carries
+// data. Well below the 60 s idle timeout proxies commonly use.
+const PING_INTERVAL_MS = 15_000;
 
 const MIN_RECONNECT_DELAY_MS = 1000;
 const MAX_RECONNECT_DELAY_MS = 4000;
@@ -21,13 +22,13 @@ export type SendMessage = (message: SSEMessage) => void;
  * messages and returns its unsubscribe, which runs when the client goes away.
  * Opens with a `ping` carrying a random `retry:`, so after a restart clients
  * come back spread over a few seconds instead of all in the same one, and
- * sends `ping` every 30 seconds after that.
+ * sends `ping` every 15 seconds after that.
  */
 export function eventStream(
   c: Context,
   listen: (send: SendMessage) => () => void,
 ) {
-  return streamSSE(c, async (stream) => {
+  const response = streamSSE(c, async (stream) => {
     // Writes are chained, so they keep their order, and `send` returns at
     // once: the hub never waits for a slow client. A failed write means the
     // client is gone, which `onAbort` cleans up.
@@ -47,4 +48,10 @@ export function eventStream(
     }
     unsubscribe();
   });
+
+  // streamSSE sets its own `Cache-Control`, so these go on its response: no
+  // proxy may transform (compress) or buffer the stream.
+  response.headers.set("Cache-Control", "no-cache, no-transform");
+  response.headers.set("X-Accel-Buffering", "no");
+  return response;
 }
