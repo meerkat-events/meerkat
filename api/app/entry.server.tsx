@@ -6,7 +6,7 @@ import type {
   RouterContextProvider,
 } from "react-router";
 import { createReadableStreamFromReadable } from "@react-router/node";
-import { ServerRouter } from "react-router";
+import { isRouteErrorResponse, ServerRouter } from "react-router";
 import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
@@ -16,9 +16,10 @@ import { reportException } from "../posthog.ts";
 export const streamTimeout = 5_000;
 
 // Errors in server loaders and rendering. Aborted requests (the browser went
-// away) are not errors.
+// away) are not errors, and neither are 4xx responses such as "No route
+// matches URL" for a stale asset or a probed path.
 export const handleError: HandleErrorFunction = (error, { request }) => {
-  if (!request.signal.aborted) {
+  if (!request.signal.aborted && !isClientError(error)) {
     logger.error(
       { err: error, path: new URL(request.url).pathname },
       "Route error",
@@ -26,6 +27,11 @@ export const handleError: HandleErrorFunction = (error, { request }) => {
     reportException(error);
   }
 };
+
+function isClientError(error: unknown) {
+  return isRouteErrorResponse(error) && error.status >= 400 &&
+    error.status < 500;
+}
 
 export default function handleRequest(
   request: Request,
