@@ -26,8 +26,11 @@ function isIgnoredPath(path: string) {
 // Spans record the query string (`url.query`). These parameters carry
 // credentials: the Devcon handover token (`/e/:uid/qa?token=<jwt>`), Supabase
 // Auth's sign-in links, and the instrumentation's own defaults (signed cloud
-// storage URLs). The list replaces the defaults, so it repeats them.
+// storage URLs), and `search`, which can hold part of an email (the
+// permissions page's attendee search). The list replaces the defaults, so it
+// repeats them.
 const REDACTED_QUERY_PARAMS = [
+  "search",
   "token",
   "token_hash",
   "code",
