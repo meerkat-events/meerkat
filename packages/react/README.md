@@ -97,14 +97,14 @@ another session is put live on the same stage.
 | Option      | Type                                     | Description                                                                 |
 | ----------- | ---------------------------------------- | --------------------------------------------------------------------------- |
 | `url`       | `string \| undefined`                    | Stream URL; `undefined` stays disconnected                                  |
-| `onMessage` | `() => void`                             | Every unnamed message except `ping`, and every time the connection opens    |
+| `onMessage` | `() => void`                             | Every unnamed message except `ping`, and once after the connection re-opens |
 | `events`    | `Record<string, (data: string) => void>` | Handlers for named events, e.g. `{ reaction: (data) => … }`                 |
 
 Returns `{ isConnected }`. A watchdog reconnects when the server's 15-second
 `ping` stops arriving for 40 seconds, and the hook reconnects with backoff (1 s
-doubling up to 30 s, randomized) when the browser gives up on the stream. The
-stream closes while the page is hidden and reopens when it is visible again or
-back online; every open calls `onMessage`, so the caller refetches.
+doubling up to 30 s, randomized) when the browser gives up on the stream. It
+also reconnects when the device is back online, and when the page becomes
+visible without an open stream.
 
 `eventStreamEvents({ onReaction, onEventLive })` builds the `events` map for
 the session stream, with typed payloads (`StreamReaction`, `LiveSession`).

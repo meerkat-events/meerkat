@@ -49,9 +49,12 @@ export function eventStream(
     unsubscribe();
   });
 
-  // streamSSE sets its own `Cache-Control`, so these go on its response: no
-  // proxy may transform (compress) or buffer the stream.
-  response.headers.set("Cache-Control", "no-cache, no-transform");
-  response.headers.set("X-Accel-Buffering", "no");
-  return response;
+  // No proxy may transform (compress) or buffer the stream. streamSSE sets
+  // `Cache-Control: no-cache` on the context, and Hono copies the context's
+  // headers over a returned response (cors() on /api/* makes it), so these
+  // are set on the context after it merged them.
+  c.res = response;
+  c.header("Cache-Control", "no-cache, no-transform");
+  c.header("X-Accel-Buffering", "no");
+  return c.res;
 }
