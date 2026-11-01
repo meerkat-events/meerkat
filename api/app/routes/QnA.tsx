@@ -120,9 +120,10 @@ const sortOptions = [
 /**
  * Switching sessions (the session switcher, "Go to live session") is a
  * client-side navigation, which keeps this route mounted. Keying the page by
- * event remounts it instead, so nothing of the previous session carries over:
- * open dialogs, the question draft, celebrations, reactions in flight and the
- * scroll position all start fresh, as they did with a document load.
+ * event remounts it instead, so the page's own state starts fresh, as it did
+ * with a document load: open dialogs, the question draft, celebrations,
+ * floating reactions and the scroll position. What lives in the layout stays:
+ * the session, the SWR cache and toasts.
  */
 export default function QnA() {
   const { uid } = useParams();
@@ -209,6 +210,9 @@ function QnAPage() {
     refreshQuestionsRef.current();
     refreshSupervotesRef.current();
   }, 500)).current;
+  // A pending trailing refresh belongs to this session: drop it when
+  // switching to another one.
+  useEffect(() => () => refresh.cancel(), [refresh]);
 
   const { trigger } = useReact(
     event?.uid ?? "",

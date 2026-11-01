@@ -9,10 +9,11 @@ import {
   Heading,
   Icon,
   Portal,
+  Spinner,
   Text,
   VisuallyHidden,
 } from "@chakra-ui/react";
-import { Link } from "react-router";
+import { Link, useNavigation } from "react-router";
 import { qa } from "../../routing.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 
@@ -147,6 +148,11 @@ function SessionGroup(
 }
 
 function SessionRow({ session }: { session: SessionItem }) {
+  // A switch waits for the layout's loader (the theme) before it shows the
+  // new session; until then the tapped row shows that it's on its way.
+  const navigation = useNavigation();
+  const isSwitchingHere = navigation.location?.pathname === qa(session.uid);
+
   const content = (
     <>
       <Text
@@ -186,6 +192,9 @@ function SessionRow({ session }: { session: SessionItem }) {
         >
           Live
         </Text>
+      )}
+      {isSwitchingHere && (
+        <Spinner size="xs" color="brand.fg" flexShrink="0" />
       )}
       {session.selected && (
         <Icon
