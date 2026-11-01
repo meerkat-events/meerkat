@@ -1,6 +1,6 @@
 name: CI
 
-# Lint, build and test: unit tests (api/*.test.ts), then integration tests
+# Lint, build and test: unit tests (api/ and packages/react/), then integration tests
 # (api/integration/*.int.ts, against the local Supabase CLI stack). Runs on
 # pull requests, and before every deploy: continous-deployment.yml calls it and
 # deploys only if it passes.
@@ -32,5 +32,6 @@ jobs:
       - run: pnpm --dir api lint
       # react-router typegen + production build + tsc --noEmit
       - run: pnpm --dir api typecheck
+      - run: pnpm --dir packages/react test
       - run: pnpm --dir api test
       - run: pnpm --dir api test:integration
