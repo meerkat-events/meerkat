@@ -578,3 +578,13 @@ app. The health check hits `/api/v1/health` (public; a
 and reports uncaught exceptions and exits (see Observability).
 `.github/workflows/sync.yml` runs a Pretalx sync by hand and needs the
 `MEERKAT_BASE` secret in the chosen environment.
+
+**`@meerkat-events/react` is published by the same release**, in the
+`publish-npm` job after the prod deploy, but only when the `version` in
+`packages/react/package.json` isn't on npm yet; otherwise the job skips. To
+release the package, bump that version (semver: the package is public API
+for embedders) in a PR, then create a GitHub release. It authenticates with
+npm trusted publishing (OIDC, GitHub environment `npm`), so there is no npm
+token; the trusted publisher on npmjs.com names this repository,
+`continous-deployment.yml` and the `npm` environment, so renaming either
+breaks publishing until it is updated there.
