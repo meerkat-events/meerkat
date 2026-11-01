@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:26-bookworm-slim
 
 ARG VITE_API_URL
@@ -25,6 +26,22 @@ COPY api/ ./api/
 ENV NODE_ENV=production
 
 RUN pnpm -r build
+
+# Upload the browser bundle's source maps to PostHog error tracking and delete
+# them (api/scripts/upload-sourcemaps.sh). The API key is a build secret
+# (`fly deploy --build-secret POSTHOG_CLI_API_KEY=...`), so it never ends up
+# in a layer; without it the maps are only deleted.
+#
+# posthog-cli verifies TLS against the system's CA certificates, which the
+# slim image doesn't ship.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+ARG POSTHOG_CLI_HOST
+ARG POSTHOG_CLI_PROJECT_ID
+ARG RELEASE_VERSION
+RUN --mount=type=secret,id=POSTHOG_CLI_API_KEY,env=POSTHOG_CLI_API_KEY \
+  ./api/scripts/upload-sourcemaps.sh
 
 WORKDIR /workspace/api
 

@@ -414,6 +414,13 @@ Every deployment tags them with `ENVIRONMENT`.
   and not server errors, which the server reported). posthog-js `defaults`
   must stay ≥ `2026-06-25`: older defaults record URL fragments, where the
   handover and sign-in links put session tokens.
+- **Source maps**: the client build emits hidden source maps;
+  `api/scripts/upload-sourcemaps.sh` (in the Dockerfile, after the build)
+  uploads them with posthog-cli under release `meerkat`/`<git sha>` and
+  deletes them, so they are never served. The key is a Fly build secret
+  (`POSTHOG_CLI_API_KEY`, a personal API key with "error tracking write"
+  and "organization read"); `POSTHOG_CLI_HOST`, `POSTHOG_CLI_PROJECT_ID` and
+  `RELEASE_VERSION` are build args. A failed upload only warns.
 - **Feedback**: "Give feedback" in the navigation drawer captures
   `feedback_requested`, which opens the PostHog survey "Give feedback" (Open
   feedback template, event-triggered, shown every time).

@@ -23,6 +23,14 @@ function isServerSourceModule(id: string) {
 
 export default defineConfig({
   environments: {
+    // Source maps for PostHog error tracking, without a sourceMappingURL in
+    // the bundles. scripts/upload-sourcemaps.sh uploads and then deletes
+    // them, so they are never served.
+    client: {
+      build: {
+        sourcemap: "hidden",
+      },
+    },
     ssr: {
       build: {
         rollupOptions: {
