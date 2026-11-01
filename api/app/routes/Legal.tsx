@@ -1,8 +1,9 @@
 import { Box, Flex, Link, List, Text } from "@chakra-ui/react";
 import type React from "react";
 import { useEffect } from "react";
-import { Link as ReactRouterLink, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import { Logo } from "../components/Logo.tsx";
+import type { Route } from "./+types/Legal.ts";
 
 // TODO before publishing: the operator's details. They appear in the privacy
 // policy (controller, contact, Grievance Officer for India) and the terms.
@@ -14,9 +15,9 @@ const GRIEVANCE_EMAIL = "[grievance email]";
 
 const LAST_UPDATED = "1 November 2026";
 
-export function meta() {
-  return [{ title: "Privacy policy and terms | Meerkat" }];
-}
+export const meta: Route.MetaFunction = () => [
+  { title: "Privacy policy and terms · Meerkat" },
+];
 
 /**
  * The privacy policy and the terms and conditions, on one page with an anchor
@@ -28,7 +29,8 @@ export default function Legal() {
   const { hash } = useLocation();
   useEffect(() => {
     if (hash) {
-      document.getElementById(hash.slice(1))?.scrollIntoView();
+      document.getElementById(decodeURIComponent(hash.slice(1)))
+        ?.scrollIntoView();
     }
   }, [hash]);
 
@@ -36,15 +38,13 @@ export default function Legal() {
     <div className="layout">
       <header className="header">
         <Flex justifyContent="center" padding="1.5rem 1rem 0.5rem">
-          <ReactRouterLink to="/" aria-label="Meerkat home">
-            <Logo height="40px" width="auto" />
-          </ReactRouterLink>
+          <Logo height="40px" width="auto" />
         </Flex>
       </header>
       <main className="content">
         <Flex flexDirection="column" gap="10" paddingBlock="6">
           <Flex flexDirection="column" gap="2">
-            <Text fontSize="2xl" fontWeight="bold">
+            <Text as="h1" fontSize="2xl" fontWeight="bold">
               Privacy policy and terms
             </Text>
             <Text color="gray.400" fontSize="sm">
@@ -70,7 +70,7 @@ export default function Legal() {
 function PrivacyPolicy() {
   return (
     <Box as="section" id="privacy" display="flex" flexDirection="column" gap="6">
-      <Text as="h1" fontSize="xl" fontWeight="bold">
+      <Text as="h2" fontSize="xl" fontWeight="bold">
         Privacy policy
       </Text>
       <Paragraph>
@@ -100,7 +100,8 @@ function PrivacyPolicy() {
               your IP address, browser and device type, the pages you view and
               what you tap, and errors that occur. Our analytics stores a
               pseudonymous identifier on your device to recognise repeat
-              visits.
+              visits. Once you join a conversation, analytics, logs and error
+              reports are linked to your user id.
             </>,
             <>
               <b>When you join a conversation:</b>{" "}
@@ -114,7 +115,7 @@ function PrivacyPolicy() {
               your questions, votes, supervotes and reactions, when you posted
               them, and whether a question was selected, answered, hidden or
               deleted. From your activity we calculate points and a tier for
-              each conference.
+              each conference. If your account is blocked, we store until when.
             </>,
             <>
               <b>Organizers and moderators:</b>{" "}
@@ -144,9 +145,9 @@ function PrivacyPolicy() {
           An organizer can turn on automatic moderation for a conference. Each
           new question is then checked by an AI model, together with the talk's
           title, speakers and description, before it is shown. A question
-          judged off-topic or harmful (for example threats, explicit content,
-          or politics unrelated to the conference) is shown only to its author
-          and the organizers, who can restore it. No user id or email address
+          judged harmful (for example threats, explicit content, or politics
+          unrelated to the conference) is shown only to its author and the
+          organizers, who can restore it. No user id or email address
           is sent to the model.
         </Paragraph>
       </Section>
@@ -155,8 +156,9 @@ function PrivacyPolicy() {
         <Paragraph>
           Your questions, display name and vote counts are public: anyone with
           the link to a session can see them, and they may appear on the stage
-          screen and in conference apps that embed Meerkat. Signed-in attendees
-          can see your points tier by tapping your name. Your email address is
+          screen and in conference apps that embed Meerkat. By tapping your
+          name, signed-in attendees can see your points, how many of your
+          questions were picked, how many votes you received, and your tier. Your email address is
           never shown to other attendees.
         </Paragraph>
       </Section>
@@ -235,7 +237,7 @@ function PrivacyPolicy() {
 function Terms() {
   return (
     <Box as="section" id="terms" display="flex" flexDirection="column" gap="6">
-      <Text as="h1" fontSize="xl" fontWeight="bold">
+      <Text as="h2" fontSize="xl" fontWeight="bold">
         Terms and conditions
       </Text>
       <Paragraph>
@@ -279,8 +281,8 @@ function Terms() {
       <Section title="Moderation">
         <Paragraph>
           Organizers, moderators and automatic moderation can hide or delete
-          questions, and moderators can block an account for 30 days, without
-          notice. Points, tiers and supervotes have no monetary value and can
+          questions, and organizers and moderators can block an account from
+          all conferences for 30 days, without notice. Points, tiers and supervotes have no monetary value and can
           change or end at any time.
         </Paragraph>
       </Section>
@@ -323,7 +325,7 @@ function Section(
 ) {
   return (
     <Flex as="section" flexDirection="column" gap="3">
-      <Text as="h2" fontSize="md" fontWeight="semibold">
+      <Text as="h3" fontSize="md" fontWeight="semibold">
         {title}
       </Text>
       {children}
