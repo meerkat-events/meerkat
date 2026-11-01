@@ -16,7 +16,7 @@ export type Hub = {
   listenToConference(conferenceId: number, listener: HubListener): () => void;
   /** Subscribes to the bus now instead of on the first listener. */
   start(): void;
-  /** Number of local listeners, for tests. */
+  /** Number of local listeners, one per open stream. */
   listenerCount(): number;
 };
 
