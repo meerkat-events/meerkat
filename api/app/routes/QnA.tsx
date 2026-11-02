@@ -494,7 +494,7 @@ function QnAPage() {
             </Flex>
           </Flex>
         </header>
-        <main className="content flex">
+        <main className="content question-content">
           <QuestionsSection
             questions={questions}
             canModerate={canModerateHere}

@@ -61,10 +61,28 @@ ul {
   }
 }
 
+/* On the Q&A page only the list scrolls, so the question being answered stays
+   above it and the list cuts off at that question's bottom edge. */
+.question-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The top padding leaves room for the card's status badge. */
+.question-pinned {
+  flex-shrink: 0;
+  padding-top: 1rem;
+}
+
 .question-list {
   /* Extra bottom space so the last question scrolls clear of the heart bubble */
-  padding: 1rem 0 4.5rem 0;
+  padding: 1rem 1rem 4.5rem;
+  /* Reach the page edge so the scrollbar stays where it was. */
+  margin-inline: -1rem;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--chakra-spacing-question-gap); /* theme questionGap */

@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { isAnswering } from "../../lib/questions.ts";
 import type { Question as QuestionType } from "../../types.ts";
 import { Question, type QuestionSupervotes } from "./Question.tsx";
 import { Flex } from "@chakra-ui/react";
@@ -25,33 +27,47 @@ export function QuestionsSection(
     onAuthorSelect,
   }: QuestionsSectionProps,
 ) {
-  const hasQuestions = !!questions?.length;
+  const answering = useMemo(
+    () => questions?.filter(isAnswering) ?? [],
+    [questions],
+  );
+  const others = useMemo(
+    () => questions?.filter((question) => !isAnswering(question)) ?? [],
+    [questions],
+  );
+
+  const renderQuestion = (question: QuestionType) => (
+    <Question
+      key={question.uid}
+      question={question}
+      canModerate={canModerate}
+      canVote={canVote}
+      refresh={refresh}
+      voted={!!question.vote}
+      supervotes={supervotes}
+      supervoted={!!question.vote && question.vote.weight > 1}
+      onAuthorSelect={question.user && onAuthorSelect
+        ? () =>
+          onAuthorSelect({
+            id: question.user!.id,
+            name: question.user!.name ?? question.user!.id,
+          })
+        : undefined}
+    />
+  );
 
   return (
     <>
-      {hasQuestions
+      {questions?.length
         ? (
-          <ol className="question-list">
-            {questions.map((question) => (
-              <Question
-                key={question.uid}
-                question={question}
-                canModerate={canModerate}
-                canVote={canVote}
-                refresh={refresh}
-                voted={!!question.vote}
-                supervotes={supervotes}
-                supervoted={!!question.vote && question.vote.weight > 1}
-                onAuthorSelect={question.user && onAuthorSelect
-                  ? () =>
-                    onAuthorSelect({
-                      id: question.user!.id,
-                      name: question.user!.name ?? question.user!.id,
-                    })
-                  : undefined}
-              />
-            ))}
-          </ol>
+          <>
+            {answering.length > 0 && (
+              <ol className="question-pinned">
+                {answering.map(renderQuestion)}
+              </ol>
+            )}
+            <ol className="question-list">{others.map(renderQuestion)}</ol>
+          </>
         )
         : isLoading
         ? (
