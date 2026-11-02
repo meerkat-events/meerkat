@@ -262,7 +262,7 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   routes check `canModerate` (`models/roles.ts`) on the roles from
   `getConferenceRolesForConference`. Only organizers see the management
   pages (`/manage`, `requireOrganizer` in `routes/conferences.ts`) and can
-  restore moderation-hidden questions. `/login` is the one sign-in page:
+  restore hidden questions. `/login` is the one sign-in page:
   after `?next=`, organizers land on `/manage` and everyone else on
   `/account`, where moderators pick a talk (`homeFor`).
 - **Admin API**: `x-api-key` header checked against argon2 hashes in
@@ -352,6 +352,12 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   keeps the verdict, so "hide" without `hidden_at` reads as restored); one
   can't be selected for the stage while hidden. Counts of session activity
   leave hidden questions out; Analytics adds moderation totals and relevance.
+  A moderator's "Hide Question" (`POST /api/v1/questions/:uid/hide`) sets
+  `hidden_at` the same way, so its author keeps seeing the question and an
+  organizer can restore it; the management pages call a hidden question
+  "Auto-hidden" when its verdict is "hide" and "Hidden" otherwise. It
+  refunds no supervotes, unlike `DELETE /api/v1/questions/:uid` (soft
+  delete, gone for everyone), which the UI no longer calls.
   The react package never sees hidden questions, because embedders don't
   ask questions.
 - **The moderation eval is the gate.** Any change to `MODERATION_MODEL`,

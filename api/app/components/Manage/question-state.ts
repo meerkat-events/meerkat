@@ -24,8 +24,9 @@ export type Moderation = {
 };
 
 /**
- * A question as organizers get it: hidden by an organizer (`deletedAt`) or by
- * automatic moderation (`hiddenAt`), and the verdict when it was classified.
+ * A question as organizers get it: deleted (`deletedAt`, before moderators hid
+ * questions instead), hidden by a moderator or automatic moderation
+ * (`hiddenAt`), and the verdict when it was classified.
  */
 export type ModeratedQuestion = Question & {
   deletedAt?: string | Date | null;
@@ -79,14 +80,16 @@ export function reasonText(moderation: Moderation | null | undefined) {
 }
 
 /**
- * Hidden questions (by an organizer or by moderation) are not on the Q&A;
- * every other question is open, on stage or answered, and may be marked for
- * review on top.
+ * Hidden questions (by a moderator or by automatic moderation) and deleted
+ * ones are not on the Q&A; every other question is open, on stage or
+ * answered, and may be marked for review on top. A hidden question whose
+ * verdict is "hide" is automatic moderation's; any other was a moderator's.
  */
 export function questionStates(q: ModeratedQuestion): QuestionState[] {
   const states: QuestionState[] = [];
-  if (q.deletedAt) states.push("hidden");
-  if (q.hiddenAt) states.push("autoHidden");
+  const hiddenByModeration = !!q.hiddenAt && q.moderation?.decision === "hide";
+  if (hiddenByModeration) states.push("autoHidden");
+  else if (q.deletedAt || q.hiddenAt) states.push("hidden");
   if (!q.deletedAt && !q.hiddenAt) {
     if (q.answeredAt) states.push("answered");
     else if (q.selectedAt) states.push("answering");

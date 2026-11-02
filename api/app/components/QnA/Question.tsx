@@ -17,7 +17,7 @@ import { useBlockUser } from "../../hooks/use-block-user.ts";
 import type { Question as QuestionType } from "../../types.ts";
 import { useMarkAsAnswered } from "../../hooks/use-mark-as-answered.ts";
 import { UpVoteButton } from "../Buttons/UpVoteButton.tsx";
-import { useDeleteQuestion } from "../../hooks/use-delete-question.ts";
+import { useHideQuestion } from "../../hooks/use-hide-question.ts";
 import { FiRadio } from "react-icons/fi";
 import { RxCursorArrow } from "react-icons/rx";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
@@ -115,7 +115,7 @@ export function Question(
 
   const { trigger: block } = useBlockUser(question.user?.id ?? "");
   const { trigger: markAsAnswered } = useMarkAsAnswered(question.uid);
-  const { trigger: deleteQuestion } = useDeleteQuestion(question.uid);
+  const { trigger: hideQuestion } = useHideQuestion(question.uid);
   const { trigger: selectQuestion } = useSelectQuestion(question.uid);
 
   const handleBlock = async () => {
@@ -145,11 +145,11 @@ export function Question(
     });
   };
 
-  const handleDelete = async () => {
-    await deleteQuestion();
+  const handleHide = async () => {
+    await hideQuestion();
     refresh();
     toaster.create({
-      title: "Question deleted",
+      title: "Question hidden",
       type: "success",
       duration: CONFIRMATION_DURATION,
     });
@@ -244,7 +244,7 @@ export function Question(
                       <Icon as={CheckCircleIcon} mr="2" color="accent.menuIcon" />
                       <Box as="span">Mark as Answered</Box>
                     </Menu.Item>
-                    <Menu.Item value="delete" onClick={handleDelete}>
+                    <Menu.Item value="hide" onClick={handleHide}>
                       <Icon as={DeleteIcon} mr="2" color="accent.menuIcon" />
                       <Box as="span">Hide Question</Box>
                     </Menu.Item>

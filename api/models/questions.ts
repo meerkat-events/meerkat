@@ -23,8 +23,8 @@ export type Sort = (typeof Sorts)[number];
 export type Questions = Awaited<ReturnType<typeof getQuestions>>;
 
 /**
- * Visible questions of an event. Questions hidden by automatic moderation are
- * left out, except for their author: pass the viewer's user id so their own
+ * Visible questions of an event. Hidden questions (by automatic moderation or
+ * a moderator) are left out, except for their author: pass the viewer's user id so their own
  * hidden questions appear among the rest, as if nothing had happened. With a
  * viewer, each question also carries the weight of the viewer's vote on it
  * (`viewerVoteWeight`, null when they haven't voted).
@@ -223,8 +223,31 @@ export function deleteQuestion(id: number) {
 }
 
 /**
- * Shows a question automatic moderation hid. Its verdict stays in
- * `moderation`, so a hide decision without `hiddenAt` reads as restored.
+ * Hides a question for a moderator the way automatic moderation does: only
+ * its author still sees it, and an organizer can restore it. Hiding an
+ * already hidden question keeps the time it was first hidden.
+ */
+export async function hideQuestion(id: number) {
+  const [hidden] = await db.update(questions).set({
+    hiddenAt: new Date(),
+  }).where(
+    and(eq(questions.id, id), isNull(questions.hiddenAt)),
+  ).returning().execute();
+
+  if (hidden) {
+    return hidden;
+  }
+
+  const [existing] = await db.select().from(questions)
+    .where(eq(questions.id, id))
+    .execute();
+  return existing ?? null;
+}
+
+/**
+ * Shows a question that automatic moderation or a moderator hid. Its verdict
+ * stays in `moderation`, so a hide decision without `hiddenAt` reads as
+ * restored.
  */
 export async function restoreQuestion(id: number) {
   const results = await db.update(questions).set({

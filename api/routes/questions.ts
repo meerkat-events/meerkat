@@ -8,6 +8,7 @@ import { getEventById } from "../models/events.ts";
 import {
   deleteQuestion,
   getQuestionByUID,
+  hideQuestion,
   markAsAnswered,
   restoreQuestion,
   selectQuestion,
@@ -372,7 +373,75 @@ app.delete(
   },
 );
 
-// Shows a question automatic moderation hid, after an organizer reviewed it.
+// Hides a question like automatic moderation does: its author still sees it,
+// nobody else does, and an organizer can restore it.
+app.post(
+  "/api/v1/questions/:uid/hide",
+  jwt(),
+  async (c) => {
+    const uid = c.req.param("uid");
+    const payload = c.get("jwtPayload");
+
+    const [user, question] = await Promise.all([
+      getUserById(payload.sub),
+      getQuestionByUID(uid),
+    ]);
+
+    if (!user) {
+      throw new HTTPException(401, {
+        message: `User ${payload.sub} not found`,
+      });
+    }
+
+    if (!question) {
+      throw new HTTPException(404, {
+        message: `Question ${uid} not found`,
+      });
+    }
+
+    const event = await getEventById(question.eventId);
+
+    if (!event) {
+      throw new HTTPException(404, {
+        message: `Event ${question.eventId} not found`,
+      });
+    }
+
+    const roles = await getConferenceRolesForConference(
+      user.id,
+      event.conferenceId,
+    );
+    if (!canModerate(roles)) {
+      throw new HTTPException(403, { message: `User is not a moderator` });
+    }
+
+    const result = await hideQuestion(question.id);
+
+    if (!result) {
+      throw new HTTPException(500, {
+        message: `Failed to hide question ${uid}`,
+      });
+    }
+
+    // Attendees saw it until now, so this tells nobody more than they knew.
+    void notifyQuestionsChanged(event);
+
+    logger.info(
+      {
+        questionUid: question.uid,
+        question: question.question,
+        eventId: event.id,
+        userId: user.id,
+      },
+      "Hid question",
+    );
+
+    return c.json({ data: toPublicQuestion(result) });
+  },
+);
+
+// Shows a hidden question (by automatic moderation or a moderator), after an
+// organizer reviewed it.
 app.post(
   "/api/v1/questions/:uid/restore",
   jwt(),

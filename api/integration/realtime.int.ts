@@ -324,6 +324,28 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
       },
     },
     {
+      name: "hiding a question",
+      // Even an attendee who voted on it no longer sees it.
+      prepare: async (s) => {
+        const voted = await request(
+          "POST",
+          `/api/v1/questions/${s.questionUid}/upvote`,
+          { token: s.voter.token },
+        );
+        assert.equal(voted.status, 200);
+      },
+      act: (s) =>
+        request("POST", `/api/v1/questions/${s.questionUid}/hide`, {
+          token: s.organizer.token,
+        }),
+      expect: (listed, s) => {
+        assert.ok(
+          !listed.some((q) => q.uid === s.questionUid),
+          "the hidden question is gone for others",
+        );
+      },
+    },
+    {
       name: "blocking the asker",
       act: (s) =>
         request("POST", `/api/v1/users/${s.asker.id}/block`, {
