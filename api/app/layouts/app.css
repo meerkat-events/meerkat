@@ -103,6 +103,8 @@ ul {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* The questions' offsetParent, for useListAnimation */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--chakra-spacing-question-gap); /* theme questionGap */

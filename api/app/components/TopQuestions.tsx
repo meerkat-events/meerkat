@@ -23,7 +23,10 @@ interface TopQuestionsProps {
 const TopQuestions = ({ questions, answering }: TopQuestionsProps) => {
   // Questions slide to their new place when the order changes (the answering
   // one to the top) and fade in when they enter the top five.
-  const listRef = useListAnimation<HTMLOListElement>("fade");
+  const listRef = useListAnimation<HTMLOListElement>(
+    "fade",
+    questions.map((question) => question.uid).join(),
+  );
   return (
     <ol ref={listRef}>
       {questions.length === 0 && (

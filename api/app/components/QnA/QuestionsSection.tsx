@@ -47,9 +47,12 @@ export function QuestionsSection(
     [questions],
   );
   // Questions slide to their new place when the order changes, and new ones
-  // (or one that's been answered and leaves the pinned spot) slide in from
-  // the top. The pinned question fades in through CSS (.question-pinned).
-  const listRef = useListAnimation<HTMLOListElement>("slide-from-top");
+  // (or one that's been answered and leaves the pinned spot) slide down into
+  // theirs. The pinned question fades in through CSS (.question-pinned).
+  const listRef = useListAnimation<HTMLOListElement>(
+    "slide-in",
+    others.map((question) => question.uid).join(),
+  );
 
   const renderQuestion = (question: QuestionType) => (
     <Question
