@@ -5,7 +5,8 @@
 Audience-engagement (Q&A) tool for conferences, used by the Ethereum
 Foundation for Devcon/Devconnect. Attendees open `/e/:uid/qa` on their phones
 to ask, upvote and react; organizers select/answer/delete questions and put an
-event "live"; a presenter view at `/e/:uid` runs on the stage screen.
+event "live"; a presenter view at `/e/:uid` or `/stage/:stage` runs on the
+stage screen.
 
 ## Repository layout
 
@@ -141,9 +142,9 @@ seeds conferences and signs users in with real local tokens.
 `api/main.ts` serves, in order:
 
 1. **API routes** (`api/routes/*.ts`, mounted in `app.ts`). Each file declares
-   its own full paths, mostly `/api/v1/...`. The signage redirects
-   `/stage/:stage` and `/stage/:stage/qa` (to the live or next event on a
-   stage) live here too. CORS (`CORS_ORIGINS`, default `*`) applies to
+   its own full paths, mostly `/api/v1/...`. The signage redirect
+   `/stage/:stage/qa` (to the stage's current event, see "Domain rules")
+   lives here too; the stage screen `/stage/:stage` is a page. CORS (`CORS_ORIGINS`, default `*`) applies to
    `/api/*` only.
 2. **Static files** from `build/client/` (`/assets/*` cached immutable).
 3. **React Router SSR** for everything else.
@@ -163,10 +164,12 @@ must therefore match on server and client: read browser-only state
 loader calls the API: the server `loader`s query the database. They are the
 root's (the browser's config, document requests only: `shouldRevalidate` is
 false), the layouts' (the conference theme, `lib/event-theme.server.ts`,
-reloaded only when `:uid` changes) and the Devcon handover in
+reloaded only when `:uid` or `:stage` changes) and the Devcon handover in
 `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
 
-- `layouts/page.tsx` — bare presenter view (`/e/:uid`), no auth.
+- `layouts/page.tsx` — bare presenter view (`/e/:uid`, and the stage
+  screen `/stage/:stage`, which shows the stage's current event and reloads
+  itself, on the same URL, when the stage moves on to another), no auth.
 - `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
   package, `apiUrl=""`), Supabase client, `UserProvider`, Chakra system.
 
@@ -222,8 +225,9 @@ the DB-free `api/features.ts`, which the loader and the client import too).
     `GET /api/v1/conferences/:id/questions/stream` (the organizer pages'
     live updates, which carry no data), and
     `/e/:uid/card`, which redirects old Event Card links to the Q&A page;
-  - **signage**: `/stage/:stage`, `/stage/:stage/qa`,
-    `GET /api/v1/events/stage/:stage/live` (`useKeepLive`) and
+  - **signage**: `/stage/:stage/qa`,
+    `GET /api/v1/events/stage/:stage/live` (`useStageLiveEvent`, the stage
+    screen's poll) and
     `GET /api/v1/conferences/:id/live` (printed QR codes; redirects only);
   - **login**: none; sign-in goes straight to Supabase Auth with the URL
     and anon key that every page carries, and the Devcon handover is a page
@@ -268,6 +272,13 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   deleted.
 - One live event per stage: `setEventLive` turns the others off in a
   transaction. Event upserts never overwrite `live`.
+- **Current event** (`getCurrentEvent` in `models/events.ts`): what a stage
+  (`getStageLiveEvent`: the stage screen, `/stage/:stage/qa`) or a
+  conference (`getLiveEvent`: its QR code) shows, in one query, is the live
+  event (even one that is over: live is the strongest signal); else one
+  running (`start <= now < end`, earliest start); else the next to start;
+  else the one that ended last. 404 only without any events. Stage names
+  aren't scoped by conference.
 - **Attendees-only conferences** (`attendees_only` feature, Devcon 8): asking,
   voting (also removing a vote) and reacting need a role in the conference
   (`mayParticipate` in `models/roles.ts`; 403 otherwise, checked after the ban check and before
@@ -377,8 +388,12 @@ writes to the SSE streams open on that instance (`sse.ts`).
   - `GET /api/v1/conferences/:id/questions/stream`: unnamed `update` for
     every question or vote change in the conference, for the organizer
     pages (`useConferenceQuestions`), which also poll every 10 s.
-- **Session switch**: going live sends `live`; a `?keep-live=true` stage
-  screen follows it (and `useKeepLive`'s 10 s poll), and the Q&A page
+- **Session switch**: going live sends `live`; the stage screen
+  (`/stage/:stage`, or `/e/:uid?keep-live=true`) follows it, and its 30 s
+  poll of the stage's current event (`useStageLiveEvent`, also while
+  hidden) catches the rest. `/stage/:stage` then reloads the page (a fresh
+  start: the new conference's theme, stream and state), `keep-live`
+  navigates client-side; the Q&A page
   refreshes its schedule, whose live session the "past or upcoming event"
   banner links to.
 

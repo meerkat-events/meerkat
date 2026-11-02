@@ -2,15 +2,17 @@ import {
   and,
   asc,
   between,
-  desc,
   eq,
   getTableColumns,
+  gt,
   gte,
   inArray,
+  lte,
   ne,
   not,
   notInArray,
   sql,
+  type SQL,
 } from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import db from "../db.ts";
@@ -213,36 +215,59 @@ export async function countParticipants(eventId: number) {
   return results.at(0)?.count ?? 0;
 }
 
+/**
+ * The event a conference's printed QR code opens: see getCurrentEvent. Its
+ * `live` flag tells whether it is really live.
+ */
 export async function getLiveEvent(conferenceId: number) {
-  const result = await db.select().from(events).where(
-    and(
-      eq(events.conferenceId, conferenceId),
-      eq(events.live, true),
-    ),
-  ).limit(1).execute();
-  return result.at(0);
+  return await getCurrentEvent(eq(events.conferenceId, conferenceId));
 }
 
+/**
+ * The event a stage's signage shows: see getCurrentEvent. Stage names aren't
+ * scoped by conference, like setEventLive.
+ */
 export async function getStageLiveEvent(stage: string) {
-  let result = await db.select().from(events).where(
-    and(
-      eq(events.stage, stage),
-      eq(events.live, true),
-    ),
-  ).orderBy(desc(events.start)).limit(1).execute();
+  return await getCurrentEvent(eq(events.stage, stage));
+}
 
-  if (result.length < 1) {
-    result = await db.select().from(events).where(
-      and(
-        eq(events.stage, stage),
-        gte(
-          events.start,
-          new Date(),
-        ),
-      ),
-    ).orderBy(asc(events.start)).limit(1).execute();
-  }
+/**
+ * The event to show for a stage or a conference, in one query (one snapshot):
+ * the live one, even when it is over (live is the strongest signal); else one
+ * running (start <= now < end, earliest start first); else the next to
+ * start; else the one that ended last. Null when the scope has no events.
+ *
+ * The first sort key is that tier. Rows are only compared on the later keys
+ * within a tier, where the keys of the other tiers are all NULL and tie.
+ */
+async function getCurrentEvent(scope: SQL) {
+  const now = new Date();
+  const running = and(lte(events.start, now), gt(events.end, now));
+  const upcoming = gt(events.start, now);
+  const notEnded = gt(events.end, now);
 
+  const tier = sql`CASE
+    WHEN ${events.live} THEN 0
+    WHEN ${running} THEN 1
+    WHEN ${upcoming} THEN 2
+    ELSE 3
+  END`;
+  const liveByLatestStart = sql`CASE WHEN ${events.live}
+    THEN ${events.start} END DESC`;
+  const runningOrUpcomingByEarliestStart = sql`CASE
+    WHEN NOT ${events.live} AND ${notEnded} THEN ${events.start} END`;
+  const endedByLatestEnd = sql`CASE
+    WHEN NOT ${events.live} AND NOT ${notEnded} THEN ${events.end} END DESC`;
+
+  const result = await db.select().from(events).where(scope)
+    .orderBy(
+      tier,
+      liveByLatestStart,
+      runningOrUpcomingByEarliestStart,
+      endedByLatestEnd,
+      asc(events.id),
+    )
+    .limit(1).execute();
   return result.at(0) ?? null;
 }
 

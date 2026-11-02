@@ -41,6 +41,17 @@ export async function getConferenceThemeByEventUID(
   return results.at(0) ?? null;
 }
 
+export async function getConferenceThemeById(
+  id: number,
+): Promise<{ theme: Conference["theme"] } | null> {
+  const results = await db.select({ theme: conferences.theme })
+    .from(conferences)
+    .where(eq(conferences.id, id))
+    .limit(1);
+
+  return results.at(0) ?? null;
+}
+
 export function getConferences(): Promise<Conference[]> {
   return db.select().from(conferences).execute();
 }
