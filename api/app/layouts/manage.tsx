@@ -91,6 +91,17 @@ export default function ManageLayout() {
   if (authLoading || (isAuthenticated && rolesLoading)) {
     return <Gate title="Loading…" />;
   }
+  // The dates on these pages need Temporal, which Safari doesn't ship. The
+  // server and the first render in the browser are still loading above, so
+  // this check runs only in the browser and before anything calls Temporal.
+  if (!("Temporal" in globalThis)) {
+    return (
+      <Gate
+        title="Safari isn't supported"
+        body="The management pages need a browser with Temporal. Open them in the latest Chrome or Firefox."
+      />
+    );
+  }
   // One login page for everyone; it sends organizers back here.
   if (!isAuthenticated) {
     return <Navigate to="/login?next=/manage" replace />;
