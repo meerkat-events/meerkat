@@ -34,10 +34,12 @@ import {
 } from "./time.ts";
 
 const qaUrl = (session: Session) => new URL(`/e/${session.uid}/qa`, appOrigin());
-// The presenter view the stage screen shows.
-const presenterUrl = (session: Session) => new URL(`/e/${session.uid}`, appOrigin());
+// The stage screen: the presenter view of the event the stage shows (live,
+// else running, else next), following the stage from one session to the next.
+const stageScreenUrl = (session: Session) =>
+  new URL(`/stage/${encodeURIComponent(session.stage)}`, appOrigin());
 // Redirects to whatever is live on the stage (or next up), so it can be printed once.
-const stageUrl = (session: Session) =>
+const stageQaUrl = (session: Session) =>
   new URL(`/stage/${encodeURIComponent(session.stage)}/qa`, appOrigin());
 
 const SESSION_TABS = ["questions", "details", "qr"] as const;
@@ -148,7 +150,7 @@ export function SessionPanel(
                           ? [{ label: "Go live", onSelect: onGoLive }]
                           : []),
                         { label: "Open Q&A", href: qaUrl(session).toString() },
-                        { label: "Open stage screen", href: presenterUrl(session).toString() },
+                        { label: "Open stage screen", href: stageScreenUrl(session).toString() },
                         {
                           label: "Copy Q&A link",
                           onSelect: () => copy(qaUrl(session).toString(), "Q&A link copied"),
@@ -293,7 +295,7 @@ function QRBlock(
   const [size, setSize] = useState("1024");
   // Stable per target so the QR component doesn't regenerate on every render.
   const url = useMemo(
-    () => (target === "stage" ? stageUrl(session) : qaUrl(session)),
+    () => (target === "stage" ? stageQaUrl(session) : qaUrl(session)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [target, session.uid, session.stage],
   );
