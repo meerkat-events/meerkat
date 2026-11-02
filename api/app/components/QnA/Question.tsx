@@ -28,7 +28,6 @@ import {
 import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useRef, useState } from "react";
-import { isAnswering } from "../../lib/questions.ts";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
 
 export type QuestionSupervotes = {
@@ -45,6 +44,8 @@ interface QuestionProps {
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
   supervoted?: boolean;
+  /** The question on stage right now (see splitAnswering). */
+  answering: boolean;
   /** Opens the author's points from their name. */
   onAuthorSelect?: (() => void) | undefined;
 }
@@ -58,6 +59,7 @@ export function Question(
     refresh,
     supervotes,
     supervoted,
+    answering,
     onAuthorSelect,
   }: QuestionProps,
 ) {
@@ -167,7 +169,7 @@ export function Question(
   };
 
   const isAnswered = !!question.answeredAt;
-  const isSelected = isAnswering(question);
+  const isSelected = answering;
 
   const classNames = [
     "question-card",

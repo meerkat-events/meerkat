@@ -22,8 +22,12 @@ const PINNED_FADE = 15;
 /** Grows the fade as the list scrolls, so the first question starts out whole. */
 function growPinnedFade(event: UIEvent<HTMLElement>) {
   const list = event.currentTarget;
-  const fade = Math.min(Math.max(list.scrollTop, 0), PINNED_FADE);
-  list.style.setProperty("--pinned-fade", `${fade}px`);
+  const fade = `${Math.min(Math.max(list.scrollTop, 0), PINNED_FADE)}px`;
+  // Custom properties inherit, so each write restyles every card; skip the
+  // writes once the fade is full.
+  if (list.style.getPropertyValue("--pinned-fade") !== fade) {
+    list.style.setProperty("--pinned-fade", fade);
+  }
 }
 
 export function QuestionsSection(
@@ -52,6 +56,7 @@ export function QuestionsSection(
       voted={!!question.vote}
       supervotes={supervotes}
       supervoted={!!question.vote && question.vote.weight > 1}
+      answering={question === answering}
       onAuthorSelect={question.user && onAuthorSelect
         ? () =>
           onAuthorSelect({

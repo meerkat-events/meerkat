@@ -15,9 +15,11 @@ type QuestionWithVotes = {
 
 interface TopQuestionsProps {
   questions: QuestionWithVotes[];
+  /** The question on stage right now (see splitAnswering). */
+  answering?: QuestionWithVotes | undefined;
 }
 
-const TopQuestions = ({ questions }: TopQuestionsProps) => {
+const TopQuestions = ({ questions, answering }: TopQuestionsProps) => {
   return (
     <ol>
       {questions.length === 0 && (
@@ -27,14 +29,20 @@ const TopQuestions = ({ questions }: TopQuestionsProps) => {
         </Text>
       )}
       {questions.map((question) => (
-        <Question key={question.uid} question={question} />
+        <Question
+          key={question.uid}
+          question={question}
+          answering={question === answering}
+        />
       ))}
     </ol>
   );
 };
 
-function Question({ question }: { question: QuestionWithVotes }) {
-  const isSelected = !!question.selectedAt;
+function Question(
+  { question, answering }: { question: QuestionWithVotes; answering: boolean },
+) {
+  const isSelected = answering;
   const classNames = ["bubble", isSelected ? "selected" : ""];
   return (
     <li key={question.uid} className={classNames.join(" ")}>

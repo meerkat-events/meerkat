@@ -97,7 +97,7 @@ export default function Presenter(
         </div>
       </header>
       <main>
-        <TopQuestions questions={shownQuestions} />
+        <TopQuestions questions={shownQuestions} answering={answering} />
       </main>
       <footer>
         <span className="footer-logo">

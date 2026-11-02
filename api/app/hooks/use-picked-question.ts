@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { isAnswering } from "../lib/questions.ts";
+import { splitAnswering } from "../lib/questions.ts";
 import type { Question } from "../types.ts";
 
 const STORAGE_KEY = "meerkat:celebrated-questions";
@@ -40,11 +40,11 @@ export function usePickedQuestion(
     if (!userId) {
       return undefined;
     }
-    return questions?.find((question) =>
-      question.user?.id === userId &&
-      isAnswering(question) &&
-      !celebrated.has(question.uid)
-    );
+    const { answering } = splitAnswering(questions ?? []);
+    if (answering?.user?.id !== userId || celebrated.has(answering.uid)) {
+      return undefined;
+    }
+    return answering;
   }, [questions, userId, celebrated]);
 
   const dismiss = useCallback(() => {
