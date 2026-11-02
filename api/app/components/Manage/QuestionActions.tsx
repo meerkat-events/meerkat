@@ -1,6 +1,6 @@
 import {
   FiCheckCircle as CheckCircleIcon,
-  FiEyeOff as DeleteIcon,
+  FiEyeOff as HideIcon,
   FiMoreHorizontal,
   FiRotateCcw as RestoreIcon,
   FiStopCircle as NotAllowedIcon,
@@ -8,7 +8,7 @@ import {
 import { RxCursorArrow } from "react-icons/rx";
 import { Box, Icon, IconButton, Menu, Portal } from "@chakra-ui/react";
 import { useMarkAsAnswered } from "../../hooks/use-mark-as-answered.ts";
-import { useDeleteQuestion } from "../../hooks/use-delete-question.ts";
+import { useHideQuestion } from "../../hooks/use-hide-question.ts";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import { useRestoreQuestion } from "../../hooks/use-restore-question.ts";
 import { toaster } from "../ui/toaster.tsx";
@@ -27,10 +27,10 @@ export function QuestionActions(
   },
 ) {
   const { trigger: markAsAnswered } = useMarkAsAnswered(question.uid);
-  const { trigger: deleteQuestion } = useDeleteQuestion(question.uid);
+  const { trigger: hideQuestion } = useHideQuestion(question.uid);
   const { trigger: selectQuestion } = useSelectQuestion(question.uid);
   const { trigger: restoreQuestion } = useRestoreQuestion(question.uid);
-  const autoHidden = !!question.hiddenAt;
+  const hidden = !!question.hiddenAt;
 
   const run = async (action: () => Promise<unknown>, title: string) => {
     try {
@@ -62,7 +62,7 @@ export function QuestionActions(
       <Portal>
         <Menu.Positioner>
           <Menu.Content className="m-menu">
-            {autoHidden
+            {hidden
               ? (
                 // Only its author sees it: an organizer can show it again, but
                 // not put it on stage while it is hidden.
@@ -94,11 +94,11 @@ export function QuestionActions(
                     <Box as="span">Mark as Answered</Box>
                   </Menu.Item>
                   <Menu.Item
-                    value="delete"
+                    value="hide"
                     onClick={() =>
-                      run(() => deleteQuestion(), "Question deleted 🗑️")}
+                      run(() => hideQuestion(), "Question hidden, only its author sees it")}
                   >
-                    <Icon as={DeleteIcon} mr="2" />
+                    <Icon as={HideIcon} mr="2" />
                     <Box as="span">Hide Question</Box>
                   </Menu.Item>
                 </>
