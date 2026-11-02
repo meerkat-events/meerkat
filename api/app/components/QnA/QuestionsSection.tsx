@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { type UIEvent, useMemo } from "react";
 import { isAnswering } from "../../lib/questions.ts";
 import type { Question as QuestionType } from "../../types.ts";
 import { Question, type QuestionSupervotes } from "./Question.tsx";
@@ -15,6 +15,16 @@ export type QuestionsSectionProps = {
   /** Opens an author's points from their name. */
   onAuthorSelect?: ((author: { id: string; name: string }) => void) | undefined;
 };
+
+/** How far the list fades out beneath the pinned question, in pixels. */
+const PINNED_FADE = 15;
+
+/** Grows the fade as the list scrolls, so the first question starts out whole. */
+function growPinnedFade(event: UIEvent<HTMLElement>) {
+  const list = event.currentTarget;
+  const fade = Math.min(Math.max(list.scrollTop, 0), PINNED_FADE);
+  list.style.setProperty("--pinned-fade", `${fade}px`);
+}
 
 export function QuestionsSection(
   {
@@ -66,7 +76,9 @@ export function QuestionsSection(
                 {answering.map(renderQuestion)}
               </ol>
             )}
-            <ol className="question-list">{others.map(renderQuestion)}</ol>
+            <ol className="question-list" onScroll={growPinnedFade}>
+              {others.map(renderQuestion)}
+            </ol>
           </>
         )
         : isLoading
