@@ -3,11 +3,11 @@ import type { Session } from "../../hooks/use-conference-events.ts";
 
 // Session times are stored in UTC; the management pages show them in the
 // browser's time zone. The pages render only in the browser (clientLoader), so
-// the server's time zone never shows. Organizers use current Chrome or
-// Firefox, so these pages rely on Temporal (not shipped in Safari) without a
-// polyfill; attendee pages must not.
+// the server's time zone never shows. Safari is the most common browser on
+// these pages and has no Temporal, so they use Date and Intl only.
 const MINUTE = 60_000;
-const DAY = 24 * 60 * MINUTE;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
 
 // British English: 24-hour clock and "Mon 14 Sept", in the browser's time zone.
 const LOCALE = "en-GB";
@@ -34,23 +34,25 @@ export const fmtTime = (d: Date) => TIME.format(d);
 /** "Mon 14", or "Mon 14 Sept" when `long`. */
 export const fmtDay = (d: Date, long = false) => (long ? DAY_LONG : DAY_SHORT).format(d);
 
-const localDate = (d: Date) =>
-  Temporal.Instant.fromEpochMilliseconds(d.getTime())
-    .toZonedDateTimeISO(Temporal.Now.timeZoneId())
-    .toPlainDate();
-
-const localMidnight = (key: string) =>
-  Temporal.PlainDate.from(key).toZonedDateTime(Temporal.Now.timeZoneId());
+const pad = (n: number, width: number) => String(n).padStart(width, "0");
 
 /** Local calendar day, e.g. "2026-09-14". */
-export const dayKey = (d: Date) => localDate(d).toString();
+export const dayKey = (d: Date) =>
+  `${pad(d.getFullYear(), 4)}-${pad(d.getMonth() + 1, 2)}-${pad(d.getDate(), 2)}`;
+
+/** Local midnight `daysLater` calendar days after the start of a `dayKey` day. */
+const localMidnight = (key: string, daysLater: number) => {
+  const [year = 0, month = 1, day = 1] = key.split("-").map(Number);
+  // The Date constructor reads its parts in local time and carries a day past
+  // the end of the month into the next month.
+  return new Date(year, month - 1, day + daysLater);
+};
 
 /** Local midnight at the start of a `dayKey` day. */
-export const startOfDay = (key: string) => new Date(localMidnight(key).epochMilliseconds);
+export const startOfDay = (key: string) => localMidnight(key, 0);
 
 /** Local midnight at the end of a `dayKey` day: 23 or 25 hours later on a DST change. */
-export const endOfDay = (key: string) =>
-  new Date(localMidnight(key).add({ days: 1 }).epochMilliseconds);
+export const endOfDay = (key: string) => localMidnight(key, 1);
 
 /** The browser's time zone at `d`, e.g. "CEST", "GMT-7" or "GMT+5:30". */
 export const zoneName = (d: Date) =>
@@ -74,13 +76,17 @@ export const fmtWhen = (session: { start: Date; end: Date }) =>
 
 /** "5m", "1h 30m", or "2d 3h" (no minutes) beyond a day. */
 export const fmtDuration = (ms: number) => {
-  const duration = Temporal.Duration.from({ milliseconds: Math.max(0, Math.round(ms)) }).round({
-    largestUnit: "day",
-    smallestUnit: ms > DAY ? "hour" : "minute",
-    roundingMode: ms > DAY ? "floor" : "halfExpand",
-  });
+  const positive = Math.max(0, ms);
+  const minutes = ms > DAY
+    ? Math.floor(positive / HOUR) * 60
+    : Math.round(positive / MINUTE);
+  const duration = {
+    days: Math.floor(minutes / (24 * 60)),
+    hours: Math.floor(minutes / 60) % 24,
+    minutes: minutes % 60,
+  };
   // DurationFormat prints nothing for a zero duration.
-  return duration.blank ? "0m" : DURATION.format(duration);
+  return minutes === 0 ? "0m" : DURATION.format(duration);
 };
 
 /** When a question was asked: relative within the hour, then clock time, then day + time. */

@@ -20,7 +20,6 @@
     "lib": [
       "ES2025",
       "ESNext.Collection",
-      "ESNext.Temporal",
       "DOM",
       "DOM.Iterable"
     ],
