@@ -47,7 +47,12 @@ supabase config push
 `DATABASE_URL` is the direct connection (`db.<project-ref>.supabase.co:5432`,
 IPv6, which Fly machines reach); the app uses no pooler. Every server holds
 up to `DATABASE_MAX_POOL_SIZE` connections plus one for the realtime bus, so
-keep the total below the project's `max_connections`.
+keep the total below the project's `max_connections`. The dashboard's
+**Connect** dialog offers the pooler (`<region>.pooler.supabase.com`) first:
+don't use it. Its session mode allows only its pool size across all
+machines together and answers `EMAXCONNSESSION` above it, and its
+transaction mode breaks LISTEN. The server logs a warning at startup when
+`DATABASE_URL` points at the pooler.
 
 Finally, in the dashboard set **Site URL** and **Redirect URLs** (see below),
 enable **IP Address Forwarding** (Authentication → Rate Limits), and create an

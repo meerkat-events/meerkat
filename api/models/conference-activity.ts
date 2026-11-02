@@ -109,53 +109,56 @@ export async function getConferenceStats(
 ) {
   const inConference = eq(events.conferenceId, conferenceId);
 
-  const [questionRows, voteRows, reactionRows, participantRows, total, verdictRows] =
-    await Promise.all([
-      // Same questions the feed and Q&A show: not hidden, author not blocked.
-      db.select({ eventId: questions.eventId, n: count() })
-        .from(questions)
-        .innerJoin(events, eq(questions.eventId, events.id))
-        .leftJoin(users, eq(questions.userId, users.id))
-        .where(and(
-          inConference,
-          isNull(questions.deletedAt),
-          notModerationHidden,
-          notBlocked(),
-        ))
-        .groupBy(questions.eventId)
-        .execute(),
-      db.select({ eventId: questions.eventId, n: count() })
-        .from(votes)
-        .innerJoin(questions, eq(votes.questionId, questions.id))
-        .innerJoin(events, eq(questions.eventId, events.id))
-        .where(and(inConference, notModerationHidden))
-        .groupBy(questions.eventId)
-        .execute(),
-      db.select({ eventId: reactions.eventId, n: count() })
-        .from(reactions)
-        .innerJoin(events, eq(reactions.eventId, events.id))
-        .where(inConference)
-        .groupBy(reactions.eventId)
-        .execute(),
-      db.execute<{ event_id: number; n: number }>(sql`
-        SELECT p.event_id, COUNT(DISTINCT p.user_id)::int AS n
-        FROM (${participantsSql(conferenceId)}) AS p
-        GROUP BY p.event_id`),
-      db.execute<{ n: number }>(sql`
-        SELECT COUNT(DISTINCT p.user_id)::int AS n
-        FROM (${participantsSql(conferenceId)}) AS p`),
-      // Every verdict, to tally moderation and relevance.
-      db.select({
-        eventId: questions.eventId,
-        hiddenAt: questions.hiddenAt,
-        deletedAt: questions.deletedAt,
-        moderation: questions.moderation,
-      })
-        .from(questions)
-        .innerJoin(events, eq(questions.eventId, events.id))
-        .where(and(inConference, isNotNull(questions.moderation)))
-        .execute(),
-    ]);
+  // One query at a time, so a request holds one connection, not six: the
+  // organizer dashboard polls this, and the pool is shared by every request.
+  // Same questions the feed and Q&A show: not hidden, author not blocked.
+  const questionRows = await db
+    .select({ eventId: questions.eventId, n: count() })
+    .from(questions)
+    .innerJoin(events, eq(questions.eventId, events.id))
+    .leftJoin(users, eq(questions.userId, users.id))
+    .where(and(
+      inConference,
+      isNull(questions.deletedAt),
+      notModerationHidden,
+      notBlocked(),
+    ))
+    .groupBy(questions.eventId)
+    .execute();
+  const voteRows = await db
+    .select({ eventId: questions.eventId, n: count() })
+    .from(votes)
+    .innerJoin(questions, eq(votes.questionId, questions.id))
+    .innerJoin(events, eq(questions.eventId, events.id))
+    .where(and(inConference, notModerationHidden))
+    .groupBy(questions.eventId)
+    .execute();
+  const reactionRows = await db
+    .select({ eventId: reactions.eventId, n: count() })
+    .from(reactions)
+    .innerJoin(events, eq(reactions.eventId, events.id))
+    .where(inConference)
+    .groupBy(reactions.eventId)
+    .execute();
+  const participantRows = await db.execute<{ event_id: number; n: number }>(sql`
+    SELECT p.event_id, COUNT(DISTINCT p.user_id)::int AS n
+    FROM (${participantsSql(conferenceId)}) AS p
+    GROUP BY p.event_id`);
+  const total = await db.execute<{ n: number }>(sql`
+    SELECT COUNT(DISTINCT p.user_id)::int AS n
+    FROM (${participantsSql(conferenceId)}) AS p`);
+  // Every verdict, to tally moderation and relevance.
+  const verdictRows = await db
+    .select({
+      eventId: questions.eventId,
+      hiddenAt: questions.hiddenAt,
+      deletedAt: questions.deletedAt,
+      moderation: questions.moderation,
+    })
+    .from(questions)
+    .innerJoin(events, eq(questions.eventId, events.id))
+    .where(and(inConference, isNotNull(questions.moderation)))
+    .execute();
 
   const moderation = tallyModeration(verdictRows, moderationEnabled);
 

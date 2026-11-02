@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { isSupabasePooler } from "./database-url.ts";
 import env from "./env.ts";
 import logger from "./logger.ts";
 
@@ -15,5 +16,13 @@ const client = postgres(env.connectionString, {
 const db = drizzle(client);
 
 logger.info({ maxPoolSize: env.maxPoolSize }, "Initialized DB");
+
+if (isSupabasePooler(env.connectionString)) {
+  logger.warn(
+    "DATABASE_URL points at Supabase's pooler, not the direct connection " +
+      "(db.<project-ref>.supabase.co:5432): requests fail once all machines " +
+      "together open more connections than its pool size",
+  );
+}
 
 export default db;
