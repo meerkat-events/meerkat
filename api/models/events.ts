@@ -2,7 +2,6 @@ import {
   and,
   asc,
   between,
-  desc,
   eq,
   getTableColumns,
   gt,
@@ -233,32 +232,42 @@ export async function getStageLiveEvent(stage: string) {
 }
 
 /**
- * The event to show for a stage or a conference: the live one; else one
+ * The event to show for a stage or a conference, in one query (one snapshot):
+ * the live one, even when it is over (live is the strongest signal); else one
  * running (start <= now < end, earliest start first); else the next to
- * start; else the one that ended last. Running, upcoming (start > now) and
- * past (end <= now) cover every event between them. Null when the scope has
- * no events at all.
+ * start; else the one that ended last. Null when the scope has no events.
+ *
+ * The first sort key is that tier. Rows are only compared on the later keys
+ * within a tier, where the keys of the other tiers are all NULL and tie.
  */
 async function getCurrentEvent(scope: SQL) {
   const now = new Date();
-  return await firstEvent(
-    and(scope, eq(events.live, true)),
-    [desc(events.start), asc(events.id)],
-  ) ?? await firstEvent(
-    and(scope, lte(events.start, now), gt(events.end, now)),
-    [asc(events.start), asc(events.id)],
-  ) ?? await firstEvent(
-    and(scope, gt(events.start, now)),
-    [asc(events.start), asc(events.id)],
-  ) ?? await firstEvent(
-    and(scope, lte(events.end, now)),
-    [desc(events.end), asc(events.id)],
-  );
-}
+  const running = and(lte(events.start, now), gt(events.end, now));
+  const upcoming = gt(events.start, now);
+  const notEnded = gt(events.end, now);
 
-async function firstEvent(where: SQL | undefined, orderBy: SQL[]) {
-  const result = await db.select().from(events).where(where)
-    .orderBy(...orderBy).limit(1).execute();
+  const tier = sql`CASE
+    WHEN ${events.live} THEN 0
+    WHEN ${running} THEN 1
+    WHEN ${upcoming} THEN 2
+    ELSE 3
+  END`;
+  const liveByLatestStart = sql`CASE WHEN ${events.live}
+    THEN ${events.start} END DESC`;
+  const runningOrUpcomingByEarliestStart = sql`CASE
+    WHEN NOT ${events.live} AND ${notEnded} THEN ${events.start} END`;
+  const endedByLatestEnd = sql`CASE
+    WHEN NOT ${events.live} AND NOT ${notEnded} THEN ${events.end} END DESC`;
+
+  const result = await db.select().from(events).where(scope)
+    .orderBy(
+      tier,
+      liveByLatestStart,
+      runningOrUpcomingByEarliestStart,
+      endedByLatestEnd,
+      asc(events.id),
+    )
+    .limit(1).execute();
   return result.at(0) ?? null;
 }
 

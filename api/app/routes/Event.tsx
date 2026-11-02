@@ -15,7 +15,7 @@ export default function EventPage() {
 
   // In keep-live mode the screen follows the stage: right away when a
   // moderator puts another event live (the stream's `live` message), and
-  // through useKeepLive's 10-second poll when the schedule moves on.
+  // through useKeepLive's 30-second poll when the schedule moves on.
   // /stage/:stage does the same without leaving its URL (Stage.tsx).
   const goToEvent = (eventUid: string) => {
     if (eventUid === event?.uid) return;

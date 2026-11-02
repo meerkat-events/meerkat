@@ -12,7 +12,7 @@ const STAGE_REFRESH_MAX_DELAY_MS = 1000;
  * else running, else next, else the one that ended last), switching events
  * without leaving `/stage/:stage`. It follows the stage within a second when
  * a moderator puts another event live (the stream's `live` message) and
- * through useStageLiveEvent's 10-second poll when the schedule moves on. The
+ * through useStageLiveEvent's 30-second poll when the schedule moves on. The
  * screen's options (e.g. `hide-qr-code=true`) stay in the URL.
  */
 export default function StagePage() {

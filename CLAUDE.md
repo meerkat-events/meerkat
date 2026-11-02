@@ -274,7 +274,8 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   transaction. Event upserts never overwrite `live`.
 - **Current event** (`getCurrentEvent` in `models/events.ts`): what a stage
   (`getStageLiveEvent`: the stage screen, `/stage/:stage/qa`) or a
-  conference (`getLiveEvent`: its QR code) shows is the live event; else one
+  conference (`getLiveEvent`: its QR code) shows, in one query, is the live
+  event (even one that is over: live is the strongest signal); else one
   running (`start <= now < end`, earliest start); else the next to start;
   else the one that ended last. 404 only without any events. Stage names
   aren't scoped by conference.
@@ -388,7 +389,7 @@ writes to the SSE streams open on that instance (`sse.ts`).
     every question or vote change in the conference, for the organizer
     pages (`useConferenceQuestions`), which also poll every 10 s.
 - **Session switch**: going live sends `live`; the stage screen
-  (`/stage/:stage`, or `/e/:uid?keep-live=true`) follows it, and its 10 s
+  (`/stage/:stage`, or `/e/:uid?keep-live=true`) follows it, and its 30 s
   poll of the stage's current event (`useStageLiveEvent`, also while
   hidden) catches the rest; the Q&A page
   refreshes its schedule, whose live session the "past or upcoming event"
