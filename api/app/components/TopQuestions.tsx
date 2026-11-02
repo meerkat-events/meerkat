@@ -1,4 +1,5 @@
 import { Box, Heading, Text } from "@chakra-ui/react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { FiRadio } from "react-icons/fi";
 import { LuArrowBigUp } from "react-icons/lu";
 
@@ -18,8 +19,10 @@ interface TopQuestionsProps {
 }
 
 const TopQuestions = ({ questions }: TopQuestionsProps) => {
+  // Slides questions to their new place when a refetch reorders them.
+  const [listRef] = useAutoAnimate<HTMLOListElement>();
   return (
-    <ol>
+    <ol ref={listRef}>
       {questions.length === 0 && (
         <Text as="li" fontSize="3xl" lineHeight="1.4">
           No questions yet. Be the first to ask one by scanning the QR code on

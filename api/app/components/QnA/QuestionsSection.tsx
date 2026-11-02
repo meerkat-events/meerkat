@@ -1,6 +1,7 @@
 import type { Question as QuestionType } from "../../types.ts";
 import { Question, type QuestionSupervotes } from "./Question.tsx";
 import { Flex } from "@chakra-ui/react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 export type QuestionsSectionProps = {
   questions: QuestionType[] | undefined;
@@ -26,12 +27,14 @@ export function QuestionsSection(
   }: QuestionsSectionProps,
 ) {
   const hasQuestions = !!questions?.length;
+  // Slides questions to their new place when a refetch reorders them.
+  const [listRef] = useAutoAnimate<HTMLOListElement>();
 
   return (
     <>
       {hasQuestions
         ? (
-          <ol className="question-list">
+          <ol ref={listRef} className="question-list">
             {questions.map((question) => (
               <Question
                 key={question.uid}
