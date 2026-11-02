@@ -112,7 +112,11 @@ when the frontend and API are served from different origins.
 Deploys go to [Fly.io](https://fly.io) through GitHub Actions
 (`.github/workflows/continous-deployment.yml`): a push to `master` deploys the
 `dev` environment, creating a GitHub release deploys `prod`. `fly.template.toml`
-is rendered with the repository secrets at deploy time.
+is rendered with the repository secrets at deploy time; they hold plain
+settings only. Credentials (`DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`SUPABASE_SECRET_KEY`, `DEVCON_VERIFICATION_SECRET`, `OPENROUTER_API_KEY`, …)
+are Fly secrets (`fly secrets set -a <app>`), so they never appear in the
+app's config.
 
 A release also publishes [`@meerkat-events/react`](packages/react/README.md)
 to npm, after the prod deploy, when the `version` in
