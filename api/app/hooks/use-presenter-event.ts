@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useJitteredRefresh } from "@meerkat-events/react";
 import { useEvent } from "./use-event.ts";
 import { toEvent } from "../lib/event.ts";
+import type { Event } from "../types.ts";
 
 // The presenter view refetches the whole event on an SSE update, paced like
 // every other client (useJitteredRefresh: one refetch at a time), within a
@@ -9,21 +10,21 @@ import { toEvent } from "../lib/event.ts";
 const REFRESH_MAX_DELAY_MS = 1000;
 
 /**
- * The event a presenter view shows, refreshed every 10 seconds, and
- * `scheduleRefresh` for its stream's updates. When the view moves on to
- * another event, the previous one stays on screen until the next has loaded.
+ * The event a presenter view shows, starting from the one its route's
+ * `loader` rendered on the server (no fetch on load), refreshed every 10
+ * seconds, and `scheduleRefresh` for its stream's updates.
  */
-export function usePresenterEvent(uid: string | undefined) {
-  const { data, mutate } = useEvent(uid, {
+export function usePresenterEvent(initialEvent: Event) {
+  const { data, mutate } = useEvent(initialEvent.uid, {
     swr: {
+      fallbackData: { data: initialEvent },
+      revalidateOnMount: false,
       refreshInterval: 10_000,
-      keepPreviousData: true,
     },
   });
 
-  const event = useMemo(() => data?.data ? toEvent(data.data) : undefined, [
-    data?.data,
-  ]);
+  const eventData = data?.data ?? initialEvent;
+  const event = useMemo(() => toEvent(eventData), [eventData]);
 
   const scheduleRefresh = useJitteredRefresh(
     () => mutate(),

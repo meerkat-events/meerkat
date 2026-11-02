@@ -1,4 +1,4 @@
-import { Box, Heading } from "@chakra-ui/react";
+import { Box, Heading, Text } from "@chakra-ui/react";
 import { FiRadio } from "react-icons/fi";
 import { LuArrowBigUp } from "react-icons/lu";
 
@@ -21,10 +21,10 @@ const TopQuestions = ({ questions }: TopQuestionsProps) => {
   return (
     <ol>
       {questions.length === 0 && (
-        <li>
+        <Text as="li" fontSize="3xl" lineHeight="1.4">
           No questions yet. Be the first to ask one by scanning the QR code on
           the right side.
-        </li>
+        </Text>
       )}
       {questions.map((question) => (
         <Question key={question.uid} question={question} />
