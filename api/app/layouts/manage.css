@@ -1711,7 +1711,30 @@
   width: 100%;
   min-width: 0;
   max-width: 760px;
+  min-height: 0;
   margin-inline: auto;
+
+  /* A long list scrolls inside the card, under its title and filters. */
+  & .m-table {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  & .m-table .scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  & .m-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom: 0;
+    background: var(--m-surface);
+    box-shadow: inset 0 -1px var(--m-line);
+  }
 
   & .m-table tbody tr {
     cursor: default;
@@ -1756,6 +1779,16 @@
 
   & .m-hint {
     margin: 0;
+  }
+}
+
+/* Narrow screens scroll the whole page, except here: the table scrolls, so the
+   nav, search and filters stay in reach. A short window has no room for that. */
+@media (max-width: 900px) and (min-height: 600px) {
+  .manage:has(.m-permissions) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    height: 100dvh;
   }
 }
 

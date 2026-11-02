@@ -112,7 +112,11 @@ when the frontend and API are served from different origins.
 Deploys go to [Fly.io](https://fly.io) through GitHub Actions
 (`.github/workflows/continous-deployment.yml`): a push to `master` deploys the
 `dev` environment, creating a GitHub release deploys `prod`. `fly.template.toml`
-is rendered with the repository secrets at deploy time.
+is rendered with the repository secrets at deploy time; they hold plain
+settings only. Credentials (`DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`SUPABASE_SECRET_KEY`, `DEVCON_VERIFICATION_SECRET`, `OPENROUTER_API_KEY`, …)
+are Fly secrets (`fly secrets set -a <app>`), so they never appear in the
+app's config.
 
 A release also publishes [`@meerkat-events/react`](packages/react/README.md)
 to npm, after the prod deploy, when the `version` in
@@ -204,6 +208,18 @@ the setup per environment are in
 
 ### How do I link to the currently live session?
 
-`/stage/<stage>/qa` redirects to the Q&A page of the live event on that stage
-(or the next upcoming one), and `/stage/<stage>` opens the presenter view and
-keeps following the live event. Use these for signage and slides.
+`/stage/<stage>` is the stage screen: the presenter view of the stage's
+current event. When the stage moves on to another event, the page reloads
+itself on the same URL, so the next event starts fresh (add
+`?hide-qr-code=true` to hide the QR code). `/stage/<stage>/qa`
+redirects to the Q&A page of that event, and `/api/v1/conferences/<id>/live`
+does the same for a whole conference (its printed QR code). Use these for
+signage and slides.
+
+The current event is the live one; else one running now (the earliest
+started); else the next to start; else the one that ended last. So the links
+work before, between and after the sessions, and a stage only answers 404
+when it has no events at all (a stage screen opened then needs a reload). The
+JSON lookups (`/api/v1/events/stage/<stage>/live`,
+`/api/v1/conferences/<id>/events/live`) return that event too; its `live`
+field tells whether it is really live.

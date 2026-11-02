@@ -30,8 +30,7 @@ const PUBLIC_ROUTES = [
   "GET /api/v1/events",
   // Old Event Card links, redirected to the Q&A page
   "GET /e/:uid/card",
-  // Signage and printed QR codes
-  "GET /stage/:stage",
+  // Signage and printed QR codes (the stage screen /stage/:stage is a page)
   "GET /stage/:stage/qa",
   "GET /api/v1/events/stage/:stage/live",
   "GET /api/v1/conferences/:id/live",
@@ -75,4 +74,12 @@ test("every other route answers 401 without credentials", async () => {
     const response = await app.request(samplePath(pattern), { method });
     assert.equal(response.status, 401, `${route} answered ${response.status}`);
   }
+});
+
+test("the stage screen is left to the frontend, not redirected", async () => {
+  // main.ts serves pages after the API routes, so /stage/:stage must not
+  // match one: React Router renders it in place.
+  const response = await app.request("/stage/test");
+  assert.equal(response.status, 404);
+  assert.equal(response.headers.get("Location"), null);
 });

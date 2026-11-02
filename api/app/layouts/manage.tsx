@@ -4,6 +4,7 @@ import {
   Navigate,
   NavLink,
   Outlet,
+  useLocation,
   useNavigate,
   useOutletContext,
   useSearchParams,
@@ -17,7 +18,9 @@ import {
   useConferenceEvents,
 } from "../hooks/use-conference-events.ts";
 import { mutate } from "swr";
+import { ConferenceSwitcher } from "../components/Manage/ConferenceSwitcher.tsx";
 import { SessionSearch } from "../components/Manage/SessionSearch.tsx";
+import { useConferencePath } from "../components/Manage/use-conference-path.ts";
 import { PersonDialog } from "../components/Manage/PersonDialog.tsx";
 import { dayKey, fmtDay } from "../components/Manage/time.ts";
 
@@ -58,6 +61,8 @@ export default function ManageLayout() {
   const { data: roles, isLoading: rolesLoading } = useConferenceRoles();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const conferencePath = useConferencePath();
   // One conference at a time: ?conference=<id>, else the first one (by id)
   // this account organizes.
   const organizerRoles = (roles ?? [])
@@ -122,26 +127,40 @@ export default function ManageLayout() {
   return (
     <div className="manage">
       <header className="manage-top">
-        <Link to="/manage" className="manage-brand">
+        <Link to={conferencePath("/manage")} className="manage-brand">
           <Logo height="40px" width="auto" />
           <span>Management</span>
         </Link>
         <div className="manage-event">
-          <span className="name">{context.conferenceName}</span>
+          {organizerRoles.length > 1
+            ? (
+              <ConferenceSwitcher
+                conferences={organizerRoles.map((r) => ({
+                  id: r.conferenceId,
+                  name: r.conferenceName ?? `Conference ${r.conferenceId}`,
+                }))}
+                value={context.conferenceId}
+                // Same page, without the open session, person or filters:
+                // they belong to the conference being left.
+                onChange={(id) => navigate(`${pathname}?conference=${id}`)}
+              />
+            )
+            : <span className="name">{context.conferenceName}</span>}
           {dates && <span className="dates">{dates}</span>}
         </div>
       </header>
       <div className="manage-bar">
         <nav className="manage-pages" aria-label="Pages">
-          <NavLink to="/manage" end>Live question feed</NavLink>
-          <NavLink to="/manage/schedule">Schedule</NavLink>
-          <NavLink to="/manage/analytics">Analytics</NavLink>
-          <NavLink to="/manage/permissions">Permissions</NavLink>
+          <NavLink to={conferencePath("/manage")} end>Live question feed</NavLink>
+          <NavLink to={conferencePath("/manage/schedule")}>Schedule</NavLink>
+          <NavLink to={conferencePath("/manage/analytics")}>Analytics</NavLink>
+          <NavLink to={conferencePath("/manage/permissions")}>Permissions</NavLink>
         </nav>
-        <SessionSearch sessions={sessions ?? []} />
+        <SessionSearch key={context.conferenceId} sessions={sessions ?? []} />
       </div>
       <main className="manage-main">
-        <Outlet context={context} />
+        {/* Keyed so a page's own state (day, search) doesn't carry over. */}
+        <Outlet key={context.conferenceId} context={context} />
       </main>
       {personId && (
         <PersonDialog
@@ -155,12 +174,8 @@ export default function ManageLayout() {
           onPerson={openPerson}
           // A session opens in its dialog on the schedule, same conference;
           // the new URL has no ?person, so this dialog is gone there.
-          onSession={(uid) => {
-            const next = new URLSearchParams({ session: uid });
-            const conference = params.get("conference");
-            if (conference) next.set("conference", conference);
-            navigate(`/manage/schedule?${next}`);
-          }}
+          onSession={(uid) =>
+            navigate(conferencePath(`/manage/schedule?session=${encodeURIComponent(uid)}`))}
         />
       )}
     </div>

@@ -5,9 +5,10 @@ import TopQuestions from "../TopQuestions.tsx";
 import { eventStreamEvents, useEventSource } from "@meerkat-events/react";
 import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
-import { useState } from "react";
-import { apiUrl } from "../../lib/api-url.ts";
+import { useMemo, useState, useSyncExternalStore } from "react";
+import { apiUrl, appOrigin } from "../../lib/api-url.ts";
 import { pinAnswering } from "../../lib/questions.ts";
+import { qa } from "../../routing.ts";
 import type { Event } from "../../types.ts";
 import {
   REACTION_GLYPHS,
@@ -20,12 +21,16 @@ import "./styles.css";
 
 const randomX = randomNormal(50, 8);
 
+/** The page's origin never changes: nothing to subscribe to. */
+function subscribeToNothing() {
+  return () => {};
+}
+
 /** Few enough questions to read from the back of the room. */
 const MAX_QUESTIONS = 5;
 
 export type PresenterProps = {
-  event: Event | undefined;
-  url: URL | undefined;
+  event: Event;
   /** Called when the event's questions or votes change. */
   onQuestionsChanged: () => void;
   /** Called with the uid of an event just put live on this event's stage. */
@@ -33,9 +38,20 @@ export type PresenterProps = {
 };
 
 export default function Presenter(
-  { event, url, onQuestionsChanged, onEventLive }: PresenterProps,
+  { event, onQuestionsChanged, onEventLive }: PresenterProps,
 ) {
   const [searchParams] = useSearchParams();
+  // The Q&A link for the QR code, which is drawn in the browser: only the
+  // browser knows the origin it was served from.
+  const origin = useSyncExternalStore(
+    subscribeToNothing,
+    appOrigin,
+    () => undefined,
+  );
+  const url = useMemo(
+    () => origin ? new URL(qa(event.uid), origin) : undefined,
+    [origin, event.uid],
+  );
   const [reactions, setReactions] = useState<
     { id: string; x: number; emoji: ReactionEmoji }[]
   >([]);
@@ -57,7 +73,7 @@ export default function Presenter(
   // float up on the screen, and another event going live on the stage
   // switches the screen to it.
   useEventSource({
-    url: event ? apiUrl(`/api/v1/events/${event.uid}/questions/stream`) : undefined,
+    url: apiUrl(`/api/v1/events/${event.uid}/questions/stream`),
     onMessage: onQuestionsChanged,
     events: eventStreamEvents({
       onReaction: (reaction) => addReaction(toReactionEmoji(reaction.emoji)),
@@ -65,7 +81,7 @@ export default function Presenter(
     }),
   });
 
-  const allQuestions = event?.questions ?? [];
+  const allQuestions = event.questions;
   const shownQuestions = pinAnswering(allQuestions).slice(0, MAX_QUESTIONS);
   const moreCount = allQuestions.length - shownQuestions.length;
 
@@ -74,7 +90,7 @@ export default function Presenter(
       <header>
         <div className="title">
           <Heading as="h1" size="3xl">
-            {event?.title}
+            {event.title}
           </Heading>
         </div>
       </header>

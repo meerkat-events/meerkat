@@ -50,9 +50,6 @@ jobs:
           CPUS: ${{ vars.CPUS }}
           CPU_KIND: ${{ vars.CPU_KIND }}
           MEMORY: ${{ vars.MEMORY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          DEVCON_VERIFICATION_SECRET: ${{ secrets.DEVCON_VERIFICATION_SECRET }}
           PRETALX_URL: ${{ secrets.PRETALX_URL }}
           ENVIRONMENT: ${{ needs.set-env.outputs.deploy_env }}
           POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}

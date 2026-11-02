@@ -27,8 +27,9 @@ export async function notifyReaction(
 }
 
 /**
- * Tells the stage's screens (presenter views in keep-live mode) and Q&A pages,
- * within the event's conference, that the event is now live.
+ * Tells the stage's screens (`/stage/:stage`, or presenter views in keep-live
+ * mode) and Q&A pages, within the event's conference, that the event is now
+ * live.
  */
 export async function notifyEventLive(
   event: EventIds & { uid: string; title: string; stage: string },

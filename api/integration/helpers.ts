@@ -57,16 +57,51 @@ export async function resetDb() {
   await db.execute(sql`DELETE FROM auth.users`);
 }
 
-/** A conference with one event, optionally with features switched on. */
-export async function seedConference(
-  { name, featureNames = [] }: { name: string; featureNames?: string[] },
-) {
+/** A conference without events. */
+export async function insertConference(name: string) {
   const [conference] = await db.insert(conferences)
     .values({ name })
     .returning();
   if (!conference) {
     throw new Error("Conference insert returned nothing");
   }
+  return conference;
+}
+
+/** An event whose start and end lie the given milliseconds from now. */
+export async function insertEvent(
+  { conferenceId, uid, stage, startOffsetMs, endOffsetMs, live = false }: {
+    conferenceId: number;
+    uid: string;
+    stage: string;
+    startOffsetMs: number;
+    endOffsetMs: number;
+    live?: boolean;
+  },
+) {
+  const now = Date.now();
+  const [event] = await db.insert(events)
+    .values({
+      conferenceId,
+      uid,
+      title: uid,
+      start: new Date(now + startOffsetMs),
+      end: new Date(now + endOffsetMs),
+      stage,
+      live,
+    })
+    .returning();
+  if (!event) {
+    throw new Error("Event insert returned nothing");
+  }
+  return event;
+}
+
+/** A conference with one event, optionally with features switched on. */
+export async function seedConference(
+  { name, featureNames = [] }: { name: string; featureNames?: string[] },
+) {
+  const conference = await insertConference(name);
 
   const now = Date.now();
   const [event] = await db.insert(events)
