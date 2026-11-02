@@ -69,10 +69,15 @@ ul {
   overflow: hidden;
 }
 
-/* The top padding leaves room for the card's status badge. */
+/* The top padding leaves room for the card's status badge. At most half the
+   height, scrolling on its own, so a long question on a short screen (landscape,
+   keyboard open) still leaves room for the list. */
 .question-pinned {
   flex-shrink: 0;
-  padding-top: 1rem;
+  max-height: 50%;
+  overflow-y: auto;
+  padding: 1rem 1rem 0;
+  margin-inline: -1rem;
 }
 
 .question-list {

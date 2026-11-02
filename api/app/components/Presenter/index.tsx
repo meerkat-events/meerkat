@@ -7,7 +7,7 @@ import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { apiUrl, appOrigin } from "../../lib/api-url.ts";
-import { pinAnswering } from "../../lib/questions.ts";
+import { splitAnswering } from "../../lib/questions.ts";
 import { qa } from "../../routing.ts";
 import type { Event } from "../../types.ts";
 import {
@@ -82,7 +82,9 @@ export default function Presenter(
   });
 
   const allQuestions = event.questions;
-  const shownQuestions = pinAnswering(allQuestions).slice(0, MAX_QUESTIONS);
+  const { answering, others } = splitAnswering(allQuestions);
+  const shownQuestions = (answering ? [answering, ...others] : others)
+    .slice(0, MAX_QUESTIONS);
   const moreCount = allQuestions.length - shownQuestions.length;
 
   return (

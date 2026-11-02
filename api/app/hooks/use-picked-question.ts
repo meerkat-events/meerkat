@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { isAnswering } from "../lib/questions.ts";
 import type { Question } from "../types.ts";
 
 const STORAGE_KEY = "meerkat:celebrated-questions";
@@ -41,8 +42,7 @@ export function usePickedQuestion(
     }
     return questions?.find((question) =>
       question.user?.id === userId &&
-      question.selectedAt &&
-      !question.answeredAt &&
+      isAnswering(question) &&
       !celebrated.has(question.uid)
     );
   }, [questions, userId, celebrated]);

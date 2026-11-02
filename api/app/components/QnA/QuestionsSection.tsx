@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { isAnswering } from "../../lib/questions.ts";
+import { splitAnswering } from "../../lib/questions.ts";
 import type { Question as QuestionType } from "../../types.ts";
 import { Question, type QuestionSupervotes } from "./Question.tsx";
 import { Flex } from "@chakra-ui/react";
@@ -27,12 +27,8 @@ export function QuestionsSection(
     onAuthorSelect,
   }: QuestionsSectionProps,
 ) {
-  const answering = useMemo(
-    () => questions?.filter(isAnswering) ?? [],
-    [questions],
-  );
-  const others = useMemo(
-    () => questions?.filter((question) => !isAnswering(question)) ?? [],
+  const { answering, others } = useMemo(
+    () => splitAnswering(questions ?? []),
     [questions],
   );
 
@@ -61,10 +57,8 @@ export function QuestionsSection(
       {questions?.length
         ? (
           <>
-            {answering.length > 0 && (
-              <ol className="question-pinned">
-                {answering.map(renderQuestion)}
-              </ol>
+            {answering && (
+              <ol className="question-pinned">{renderQuestion(answering)}</ol>
             )}
             <ol className="question-list">{others.map(renderQuestion)}</ol>
           </>
