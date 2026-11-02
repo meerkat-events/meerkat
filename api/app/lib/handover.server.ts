@@ -5,6 +5,7 @@ import {
 } from "@supabase/supabase-js";
 import env from "../../env.ts";
 import logger from "../../logger.ts";
+import { posthog, reportException } from "../../posthog.ts";
 import { generateUsername } from "../../usernames.ts";
 import { HandoverTokenError, verifyHandoverToken } from "../../devcon.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
@@ -26,6 +27,49 @@ import type { HandoverError } from "./handover.ts";
 export type HandoverResult =
   | { ok: true; session: Session }
   | { ok: false; error: HandoverError };
+
+/** PostHog event captured once per handover attempt, whatever its outcome. */
+export const HANDOVER_EVENT = "devcon_handover";
+
+export type HandoverOutcome =
+  | { outcome: "success"; userId: string; firstSignIn: boolean }
+  | { outcome: HandoverError; reason?: string };
+
+/**
+ * The PostHog event for a handover attempt, so its rate and failures can be
+ * charted and alerted on. A successful one belongs to the signed-in user (the
+ * person `identify` uses in the browser). A failed one has no user and is
+ * captured without a person: the handover is a document request, so it
+ * carries no browser ids either. Never the email or the token.
+ */
+export function handoverEvent(eventUid: string, result: HandoverOutcome) {
+  const common = { eventUid, environment: env.environment };
+  if (result.outcome === "success") {
+    return {
+      distinctId: result.userId,
+      event: HANDOVER_EVENT,
+      properties: {
+        ...common,
+        outcome: result.outcome,
+        firstSignIn: result.firstSignIn,
+      },
+    };
+  }
+  return {
+    distinctId: globalThis.crypto.randomUUID(),
+    event: HANDOVER_EVENT,
+    properties: {
+      ...common,
+      outcome: result.outcome,
+      ...(result.reason ? { reason: result.reason } : {}),
+      $process_person_profile: false,
+    },
+  };
+}
+
+const captureHandover = (eventUid: string, result: HandoverOutcome) => {
+  posthog?.capture(handoverEvent(eventUid, result));
+};
 
 const supabaseAdmin = () =>
   createClient(env.supabaseUrl!, env.supabaseServiceRoleKey, {
@@ -100,7 +144,7 @@ const createSession = async (
   email: string,
   clientIp: string | undefined,
   eventUid: string,
-): Promise<Session> => {
+): Promise<{ session: Session; firstSignIn: boolean }> => {
   const { data, error } = await supabaseAdmin().auth.admin.generateLink({
     type: "magiclink",
     email,
@@ -133,7 +177,10 @@ const createSession = async (
   // trigger has turned any invitation into a role.
   await grantAttendeeRole(data.user.id, eventUid);
 
-  return verified.data.session;
+  return {
+    session: verified.data.session,
+    firstSignIn: verification_type === "signup",
+  };
 };
 
 const describeAuthError = (error: AuthError | null): string | null =>
@@ -152,7 +199,8 @@ export async function consumeHandoverToken(
   eventUid: string,
 ): Promise<HandoverResult> {
   if (!env.supabaseUrl || !env.supabaseAnonKey) {
-    logger.error("Devcon handover: Supabase is not configured");
+    logger.error({ eventUid }, "Devcon handover: Supabase is not configured");
+    captureHandover(eventUid, { outcome: "failed", reason: "not configured" });
     return { ok: false, error: "failed" };
   }
 
@@ -166,25 +214,38 @@ export async function consumeHandoverToken(
     if (!(error instanceof HandoverTokenError)) {
       throw error;
     }
+    // Not `code`: PostHog's log ingestion redacts attributes of that name.
     logger.warn(
-      { code: error.code, reason: error.message },
+      { eventUid, handoverError: error.code, reason: error.message },
       "Devcon handover: rejected token",
     );
+    captureHandover(eventUid, { outcome: error.code, reason: error.message });
     return { ok: false, error: error.code };
   }
 
   try {
-    const session = await createSession(email, clientIp, eventUid);
+    const { session, firstSignIn } = await createSession(
+      email,
+      clientIp,
+      eventUid,
+    );
     logger.info(
-      { userId: session.user.id },
+      { eventUid, userId: session.user.id, firstSignIn },
       "Devcon handover: session established",
     );
+    captureHandover(eventUid, {
+      outcome: "success",
+      userId: session.user.id,
+      firstSignIn,
+    });
     return { ok: true, session };
   } catch (error) {
     logger.error(
-      { err: error },
+      { err: error, eventUid },
       "Devcon handover: failed to sign in or grant the role",
     );
+    reportException(error);
+    captureHandover(eventUid, { outcome: "failed" });
     return { ok: false, error: "failed" };
   }
 }

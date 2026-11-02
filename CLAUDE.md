@@ -486,6 +486,12 @@ Every deployment tags them with `ENVIRONMENT`.
 - **Feedback**: "Give feedback" in the navigation drawer captures
   `feedback_requested`, which opens the PostHog survey "Give feedback" (Open
   feedback template, event-triggered, shown every time).
+- **Devcon handover**: every attempt logs one `Devcon handover: …` line and
+  captures a server-side `devcon_handover` event (`outcome`
+  success/expired/invalid/failed, `eventUid`, `firstSignIn` or `reason`;
+  never the email or token). Successes belong to the user's person, failures
+  are personless; a failed sign-in is also reported as an exception. Log
+  attributes named `code` arrive redacted in PostHog, so don't use that name.
 - Check with `posthog-cli api call query-logs …`, and `execute-sql` on
   `events` (`$exception`) and `posthog.trace_spans`.
 
