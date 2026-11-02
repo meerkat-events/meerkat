@@ -569,7 +569,10 @@ values such as `site_url` and the redirect URLs stay commented. Always run
 
 Fly.io via `.github/workflows/continous-deployment.yml`: a push to `master`
 deploys `dev`, a GitHub release deploys `prod`. `fly.template.toml` is
-rendered with `envsubst` from GitHub secrets. Its `release_command` runs
+rendered with `envsubst` from GitHub secrets, which carry plain settings and
+build args only: its `[env]` is readable with `fly config show`, so
+credentials (`DATABASE_URL`, the Supabase keys, `DEVCON_VERIFICATION_SECRET`,
+`OPENROUTER_API_KEY`) are Fly secrets, which also win over `[env]`. Its `release_command` runs
 `api/migrate.ts` once per deploy, before the rollout, and a failed migration
 aborts the deploy; it uses `DATABASE_URL`, the direct connection, like the
 app. The health check hits `/api/v1/health` (public; a
