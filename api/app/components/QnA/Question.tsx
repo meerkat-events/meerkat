@@ -28,6 +28,7 @@ import {
 import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useRef, useState } from "react";
+import { motion } from "motion/react";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
 
 export type QuestionSupervotes = {
@@ -175,9 +176,14 @@ export function Question(
   ];
 
   return (
-    <li
+    <motion.li
       key={`${question.uid}-${question.question}`}
       className={classNames.join(" ")}
+      layout="position"
+      initial={{ opacity: 0, y: "-100%" }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
     >
       {isSelected && (
         <div className="question-card-status">
@@ -286,6 +292,6 @@ export function Question(
           />
         )}
       </div>
-    </li>
+    </motion.li>
   );
 }

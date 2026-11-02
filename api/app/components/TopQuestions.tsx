@@ -1,5 +1,5 @@
 import { Box, Heading, Text } from "@chakra-ui/react";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { FiRadio } from "react-icons/fi";
 import { LuArrowBigUp } from "react-icons/lu";
 
@@ -19,20 +19,25 @@ interface TopQuestionsProps {
 }
 
 const TopQuestions = ({ questions }: TopQuestionsProps) => {
-  // Slides questions to their new place when a refetch reorders them.
-  const [listRef] = useAutoAnimate<HTMLOListElement>();
+  // Questions slide to their new place when the order changes and fade in
+  // and out of the top five; the ones on the first render just appear, and
+  // nothing moves for people who prefer reduced motion.
   return (
-    <ol ref={listRef}>
-      {questions.length === 0 && (
-        <Text as="li" fontSize="3xl" lineHeight="1.4">
-          No questions yet. Be the first to ask one by scanning the QR code on
-          the right side.
-        </Text>
-      )}
-      {questions.map((question) => (
-        <Question key={question.uid} question={question} />
-      ))}
-    </ol>
+    <MotionConfig reducedMotion="user">
+      <ol>
+        {questions.length === 0 && (
+          <Text as="li" fontSize="3xl" lineHeight="1.4">
+            No questions yet. Be the first to ask one by scanning the QR code on
+            the right side.
+          </Text>
+        )}
+        <AnimatePresence initial={false}>
+          {questions.map((question) => (
+            <Question key={question.uid} question={question} />
+          ))}
+        </AnimatePresence>
+      </ol>
+    </MotionConfig>
   );
 };
 
@@ -40,7 +45,14 @@ function Question({ question }: { question: QuestionWithVotes }) {
   const isSelected = !!question.selectedAt;
   const classNames = ["bubble", isSelected ? "selected" : ""];
   return (
-    <li key={question.uid} className={classNames.join(" ")}>
+    <motion.li
+      className={classNames.join(" ")}
+      layout="position"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
       {isSelected && (
         <div className="bubble-status">
           <FiRadio />
@@ -58,7 +70,7 @@ function Question({ question }: { question: QuestionWithVotes }) {
       <div className="upvote-section">
         <VoteCount votes={question.votes ?? 0} />
       </div>
-    </li>
+    </motion.li>
   );
 }
 

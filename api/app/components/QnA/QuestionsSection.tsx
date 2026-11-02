@@ -1,7 +1,7 @@
 import type { Question as QuestionType } from "../../types.ts";
 import { Question, type QuestionSupervotes } from "./Question.tsx";
 import { Flex } from "@chakra-ui/react";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { AnimatePresence, MotionConfig } from "motion/react";
 
 export type QuestionsSectionProps = {
   questions: QuestionType[] | undefined;
@@ -27,15 +27,19 @@ export function QuestionsSection(
   }: QuestionsSectionProps,
 ) {
   const hasQuestions = !!questions?.length;
-  // Slides questions to their new place when a refetch reorders them.
-  const [listRef] = useAutoAnimate<HTMLOListElement>();
 
   return (
     <>
       {hasQuestions
         ? (
-          <ol ref={listRef} className="question-list">
-            {questions.map((question) => (
+          // Each Question animates itself (motion.li): it slides to its new
+          // place when the order changes, slides in from the top when new and
+          // fades out when gone. Questions on the first render just appear,
+          // and nothing moves for people who prefer reduced motion.
+          <MotionConfig reducedMotion="user">
+            <ol className="question-list">
+              <AnimatePresence initial={false}>
+                {questions.map((question) => (
               <Question
                 key={question.uid}
                 question={question}
@@ -53,8 +57,10 @@ export function QuestionsSection(
                     })
                   : undefined}
               />
-            ))}
-          </ol>
+                ))}
+              </AnimatePresence>
+            </ol>
+          </MotionConfig>
         )
         : isLoading
         ? (
