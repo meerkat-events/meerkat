@@ -372,7 +372,8 @@ app.delete(
   },
 );
 
-// Shows a question automatic moderation hid, after an organizer reviewed it.
+// Shows a hidden question again (hidden by a moderator or by automatic
+// moderation), after an organizer reviewed it.
 app.post(
   "/api/v1/questions/:uid/restore",
   jwt(),
@@ -431,8 +432,10 @@ app.post(
         question: result.question,
         userId: user.id,
         eventId: event.id,
+        wasDeleted: question.deletedAt !== null,
+        wasModerationHidden: question.hiddenAt !== null,
       },
-      "Restored question hidden by moderation",
+      "Restored hidden question",
     );
 
     return c.json({ data: toPublicQuestion(result) });

@@ -262,7 +262,9 @@ the DB-free `api/features.ts`, which the loader and the client import too).
   routes check `canModerate` (`models/roles.ts`) on the roles from
   `getConferenceRolesForConference`. Only organizers see the management
   pages (`/manage`, `requireOrganizer` in `routes/conferences.ts`) and can
-  restore moderation-hidden questions. `/login` is the one sign-in page:
+  restore hidden questions, whether a moderator or automatic moderation hid
+  them (`POST /api/v1/questions/:uid/restore`; supervotes refunded by the
+  hide come back as ordinary votes). `/login` is the one sign-in page:
   after `?next=`, organizers land on `/manage` and everyone else on
   `/account`, where moderators pick a talk (`homeFor`).
 - **Admin API**: `x-api-key` header checked against argon2 hashes in

@@ -30,7 +30,8 @@ export function QuestionActions(
   const { trigger: deleteQuestion } = useDeleteQuestion(question.uid);
   const { trigger: selectQuestion } = useSelectQuestion(question.uid);
   const { trigger: restoreQuestion } = useRestoreQuestion(question.uid);
-  const autoHidden = !!question.hiddenAt;
+  // Hidden by a moderator (`deletedAt`) or by automatic moderation (`hiddenAt`).
+  const hidden = !!question.deletedAt || !!question.hiddenAt;
 
   const run = async (action: () => Promise<unknown>, title: string) => {
     try {
@@ -62,9 +63,9 @@ export function QuestionActions(
       <Portal>
         <Menu.Positioner>
           <Menu.Content className="m-menu">
-            {autoHidden
+            {hidden
               ? (
-                // Only its author sees it: an organizer can show it again, but
+                // Attendees don't see it: an organizer can show it again, but
                 // not put it on stage while it is hidden.
                 <Menu.Item
                   value="restore"

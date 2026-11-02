@@ -353,6 +353,34 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
         );
       },
     },
+    {
+      name: "restoring a question an organizer hid",
+      prepare: async (s) => {
+        const supervoted = await request(
+          "POST",
+          `/api/v1/questions/${s.questionUid}/upvote`,
+          { token: s.voter.token, body: { weight: 3 } },
+        );
+        assert.equal(supervoted.status, 200, "supervote");
+        const hidden = await request(
+          "DELETE",
+          `/api/v1/questions/${s.questionUid}`,
+          { token: s.organizer.token },
+        );
+        assert.equal(hidden.status, 200, "hide");
+      },
+      act: (s) =>
+        request("POST", `/api/v1/questions/${s.questionUid}/restore`, {
+          token: s.organizer.token,
+        }),
+      // Hiding refunded the supervote, so it comes back as an ordinary vote.
+      expect: (listed, s) => {
+        const question = listed.find((q) => q.uid === s.questionUid);
+        assert.ok(question, "the restored question is listed");
+        assert.equal(question.votes, 1);
+        assert.deepEqual(question.vote, { weight: 1 });
+      },
+    },
   ];
 
   for (const { name, prepare, act, expect } of questionActions) {

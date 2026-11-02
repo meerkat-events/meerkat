@@ -3,6 +3,7 @@ import {
   asc,
   desc,
   eq,
+  gt,
   isNotNull,
   isNull,
   lte,
@@ -223,15 +224,35 @@ export function deleteQuestion(id: number) {
 }
 
 /**
- * Shows a question automatic moderation hid. Its verdict stays in
+ * Shows a hidden question again, whether an organizer or moderator hid it
+ * (`deletedAt`) or automatic moderation did (`hiddenAt`). The verdict stays in
  * `moderation`, so a hide decision without `hiddenAt` reads as restored.
+ *
+ * Hiding refunded the supervotes spent on the question, so they come back as
+ * ordinary votes: a refunded supervote must not count three times again.
  */
-export async function restoreQuestion(id: number) {
-  const results = await db.update(questions).set({
-    hiddenAt: null,
-  }).where(eq(questions.id, id)).returning().execute();
+export function restoreQuestion(id: number) {
+  return db.transaction(async (tx) => {
+    const [existing] = await tx.select({ deletedAt: questions.deletedAt })
+      .from(questions)
+      .where(eq(questions.id, id))
+      .execute();
 
-  return results.length === 1 ? results[0] : null;
+    if (!existing) return null;
+
+    if (existing.deletedAt) {
+      await tx.update(votes).set({ weight: 1 }).where(
+        and(eq(votes.questionId, id), gt(votes.weight, 1)),
+      ).execute();
+    }
+
+    const [restored] = await tx.update(questions).set({
+      deletedAt: null,
+      hiddenAt: null,
+    }).where(eq(questions.id, id)).returning().execute();
+
+    return restored ?? null;
+  });
 }
 
 export type Question = typeof questions.$inferSelect;
