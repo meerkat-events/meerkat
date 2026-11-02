@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
 import {
+  getPresenterEvent,
+  getStagePresenterEvent,
+} from "../app/lib/presenter-event.server.ts";
+import {
   anonymousUser,
   emailUser,
   grantTestRole,
@@ -14,6 +18,7 @@ type ListedQuestion = { uid: string };
 
 describe("hiding a question", () => {
   let eventUid: string;
+  let stage: string;
   let organizer: TestUser;
   let moderator: TestUser;
   let author: TestUser;
@@ -40,6 +45,7 @@ describe("hiding a question", () => {
     await resetDb();
     const { conference, event } = await seedConference({ name: "Hide" });
     eventUid = event.uid;
+    stage = event.stage;
     organizer = await emailUser("organizer@example.com");
     await grantTestRole(organizer.id, conference.id, "organizer");
     moderator = await emailUser("moderator@example.com");
@@ -55,12 +61,49 @@ describe("hiding a question", () => {
   });
 
   test("its author still sees it, nobody else does", async () => {
+    const voter = await anonymousUser();
+    const voted = await request(
+      "POST",
+      `/api/v1/questions/${questionUid}/upvote`,
+      { token: voter.token },
+    );
+    assert.equal(voted.status, 200);
+
     assert.equal((await hide(moderator)).status, 200);
 
     assert.deepEqual(await listedUids(author), [questionUid]);
     assert.deepEqual(await listedUids(), []);
+    assert.deepEqual(await listedUids(voter), []);
     assert.deepEqual(await listedUids(await anonymousUser()), []);
     assert.deepEqual(await listedUids(moderator), []);
+  });
+
+  test("the presenter view and the stage screen leave it out", async () => {
+    assert.equal((await hide(moderator)).status, 200);
+
+    const presented = await getPresenterEvent(eventUid);
+    assert.deepEqual(presented.questions, []);
+    assert.equal(presented.votes, 0);
+    const onStage = await getStagePresenterEvent(stage);
+    assert.equal(onStage.uid, eventUid);
+    assert.deepEqual(onStage.questions, []);
+  });
+
+  test("hiding the question on stage takes it off the presenter view", async () => {
+    const selected = await request(
+      "POST",
+      `/api/v1/questions/${questionUid}/select`,
+      { token: moderator.token },
+    );
+    assert.equal(selected.status, 200);
+    assert.deepEqual(
+      (await getPresenterEvent(eventUid)).questions.map((q) => q.uid),
+      [questionUid],
+    );
+
+    assert.equal((await hide(moderator)).status, 200);
+
+    assert.deepEqual((await getPresenterEvent(eventUid)).questions, []);
   });
 
   test("an organizer can restore it", async () => {
