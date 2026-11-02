@@ -3,11 +3,8 @@ import {
   Outlet,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
-import { SupabaseProvider } from "../context/supabase.tsx";
-import { createClient } from "@supabase/supabase-js";
 import type { Route } from "./+types/page.ts";
 import { useMemo } from "react";
-import { getConfig } from "../lib/config.ts";
 import { getEventTheme, getStageTheme } from "../lib/event-theme.server.ts";
 import { Provider } from "../components/ui/provider.tsx";
 import { meerkat } from "../theme/index.ts";
@@ -42,18 +39,11 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
 
   const system = useMemo(() => createSystem(theme ?? meerkat), [theme]);
 
-  const supabase = useMemo(() => {
-    const config = getConfig();
-    if (config.supabaseUrl && config.supabaseAnonKey) {
-      return createClient(config.supabaseUrl, config.supabaseAnonKey);
-    }
-
-    return undefined;
-  }, []);
-
   const systemTheme = theme?.systemTheme ?? "dark";
 
-  const content = (
+  // No Supabase client and no session: the presenter view is for guests
+  // only, and its requests carry no token.
+  return (
     <Provider
       colorMode={{
         defaultTheme: systemTheme,
@@ -64,16 +54,6 @@ export default function PageLayout({ loaderData }: Route.ComponentProps) {
       <Outlet />
     </Provider>
   );
-
-  if (supabase) {
-    return (
-      <SupabaseProvider client={supabase}>
-        {content}
-      </SupabaseProvider>
-    );
-  }
-
-  return content;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

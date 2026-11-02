@@ -29,9 +29,10 @@ export default function StagePage({ params, loaderData }: Route.ComponentProps) 
   // The event this page load shows: the one the server rendered.
   const { event, scheduleRefresh } = usePresenterEvent(loaderData.event);
 
-  // The server just looked the stage up: the first lookup here is the poll's.
+  // The server just looked the stage up: the first lookup here is the poll's
+  // (or a `live` message's), never a load or focusing the screen.
   const { data, mutate: refreshStage } = useStageLiveEvent(params["stage"], {
-    swr: { revalidateOnMount: false },
+    swr: { revalidateOnMount: false, revalidateOnFocus: false },
   });
   const stageEventUid = data?.data.uid;
 
