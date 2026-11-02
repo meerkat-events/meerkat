@@ -4,6 +4,7 @@ import { LuSearch } from "react-icons/lu";
 import { VisuallyHidden } from "@chakra-ui/react";
 import type { Session } from "../../hooks/use-conference-events.ts";
 import { fmtWhen, sessionStatus } from "./time.ts";
+import { useConferencePath } from "./use-conference-path.ts";
 
 const norm = (s: string | null | undefined) =>
   (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -27,6 +28,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
  */
 export function SessionSearch({ sessions }: { sessions: Session[] }) {
   const navigate = useNavigate();
+  const conferencePath = useConferencePath();
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
@@ -78,7 +80,7 @@ export function SessionSearch({ sessions }: { sessions: Session[] }) {
     setValue("");
     setOpen(false);
     inputRef.current?.blur();
-    navigate(`/manage/schedule?session=${encodeURIComponent(session.uid)}`);
+    navigate(conferencePath(`/manage/schedule?session=${encodeURIComponent(session.uid)}`));
   };
 
   const onKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {

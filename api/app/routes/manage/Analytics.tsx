@@ -6,6 +6,7 @@ import {
   useConferenceStats,
 } from "../../hooks/use-conference-stats.ts";
 import { SortMenu } from "../../components/Manage/SortMenu.tsx";
+import { useConferencePath } from "../../components/Manage/use-conference-path.ts";
 import { useUrlChoice } from "../../components/Manage/use-url-choice.ts";
 import { ModerationOverview } from "../../components/Manage/ModerationOverview.tsx";
 import { RelevanceInfo } from "../../components/Manage/RelevanceInfo.tsx";
@@ -48,6 +49,7 @@ export default function Analytics() {
   const { conferenceId, sessions } = useManage();
   const { data: stats } = useConferenceStats(conferenceId);
   const navigate = useNavigate();
+  const conferencePath = useConferencePath();
   const now = useNow(30_000);
   const [sort, setSort] = useUrlChoice("sort", SORTS.map((s) => s.value), "recent");
 
@@ -144,13 +146,13 @@ export default function Analytics() {
                     onClick={(ev) => {
                       // The title link handles its own clicks.
                       if ((ev.target as HTMLElement).closest("a")) return;
-                      navigate(sessionPath(session.uid));
+                      navigate(conferencePath(sessionPath(session.uid)));
                     }}
                   >
                     <td>
                       <div className="title">
                         {live && <span className="m-live-dot" aria-hidden="true" />}
-                        <Link to={sessionPath(session.uid)}>{session.title}</Link>
+                        <Link to={conferencePath(sessionPath(session.uid))}>{session.title}</Link>
                       </div>
                       <div className="meta">
                         <span className="m-stage">{session.stage}</span>
