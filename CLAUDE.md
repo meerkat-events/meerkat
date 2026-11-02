@@ -168,8 +168,8 @@ reloaded only when `:uid` or `:stage` changes) and the Devcon handover in
 `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
 
 - `layouts/page.tsx` — bare presenter view (`/e/:uid`, and the stage
-  screen `/stage/:stage`, which shows the stage's current event and switches
-  in place), no auth.
+  screen `/stage/:stage`, which shows the stage's current event and reloads
+  itself, on the same URL, when the stage moves on to another), no auth.
 - `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
   package, `apiUrl=""`), Supabase client, `UserProvider`, Chakra system.
 
@@ -391,7 +391,9 @@ writes to the SSE streams open on that instance (`sse.ts`).
 - **Session switch**: going live sends `live`; the stage screen
   (`/stage/:stage`, or `/e/:uid?keep-live=true`) follows it, and its 30 s
   poll of the stage's current event (`useStageLiveEvent`, also while
-  hidden) catches the rest; the Q&A page
+  hidden) catches the rest. `/stage/:stage` then reloads the page (a fresh
+  start: the new conference's theme, stream and state), `keep-live`
+  navigates client-side; the Q&A page
   refreshes its schedule, whose live session the "past or upcoming event"
   banner links to.
 

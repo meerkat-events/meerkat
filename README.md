@@ -205,8 +205,9 @@ the setup per environment are in
 ### How do I link to the currently live session?
 
 `/stage/<stage>` is the stage screen: the presenter view of the stage's
-current event, which switches to the next event in place, without leaving the
-URL (add `?hide-qr-code=true` to hide the QR code). `/stage/<stage>/qa`
+current event. When the stage moves on to another event, the page reloads
+itself on the same URL, so the next event starts fresh (add
+`?hide-qr-code=true` to hide the QR code). `/stage/<stage>/qa`
 redirects to the Q&A page of that event, and `/api/v1/conferences/<id>/live`
 does the same for a whole conference (its printed QR code). Use these for
 signage and slides.
