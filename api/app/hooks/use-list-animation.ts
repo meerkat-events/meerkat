@@ -71,8 +71,10 @@ export function useListAnimation<ListElement extends HTMLElement>(
         continue;
       }
       const moved = previousTop - top + anchoringShift;
-      if (moved === 0) {
-        // Didn't move: let an animation that's still running finish.
+      // Under a pixel is no move: offsetTop is rounded, while scroll
+      // anchoring scrolls by fractions on high-density screens. Let an
+      // animation that's still running finish.
+      if (Math.abs(moved) < 1) {
         continue;
       }
       // Start from where the item shows now, which includes how far a
