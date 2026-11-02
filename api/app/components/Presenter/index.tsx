@@ -7,6 +7,7 @@ import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { apiUrl, appOrigin } from "../../lib/api-url.ts";
+import { splitAnswering } from "../../lib/questions.ts";
 import { qa } from "../../routing.ts";
 import type { Event } from "../../types.ts";
 import {
@@ -27,16 +28,6 @@ function subscribeToNothing() {
 
 /** Few enough questions to read from the back of the room. */
 const MAX_QUESTIONS = 5;
-
-/** The top questions, always including the one being answered. */
-function topQuestions<Q extends { selectedAt?: unknown }>(questions: Q[]) {
-  const top = questions.slice(0, MAX_QUESTIONS);
-  const selected = questions.find((question) => question.selectedAt);
-  if (!selected || top.includes(selected)) {
-    return top;
-  }
-  return [selected, ...top.slice(0, MAX_QUESTIONS - 1)];
-}
 
 export type PresenterProps = {
   event: Event;
@@ -91,7 +82,9 @@ export default function Presenter(
   });
 
   const allQuestions = event.questions;
-  const shownQuestions = topQuestions(allQuestions);
+  const { answering, others } = splitAnswering(allQuestions);
+  const shownQuestions = (answering ? [answering, ...others] : others)
+    .slice(0, MAX_QUESTIONS);
   const moreCount = allQuestions.length - shownQuestions.length;
 
   return (
@@ -104,7 +97,7 @@ export default function Presenter(
         </div>
       </header>
       <main>
-        <TopQuestions questions={shownQuestions} />
+        <TopQuestions questions={shownQuestions} answering={answering} />
       </main>
       <footer>
         <span className="footer-logo">

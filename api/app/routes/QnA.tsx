@@ -62,6 +62,7 @@ import { tapTargetStyles } from "../theme/index.ts";
 import { TierCelebration } from "../components/Points/TierCelebration.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
+import { splitAnswering } from "../lib/questions.ts";
 import {
   HANDOVER_ERROR_MESSAGES,
   HANDOVER_ERROR_PARAM,
@@ -265,9 +266,7 @@ function QnAPage() {
   const supervoteEarning = useSupervoteEarning({
     available: supervoteData?.available,
     refresh: () => void refreshSupervotes(),
-    answeringQuestionUid: questions?.find((question) =>
-      question.selectedAt && !question.answeredAt
-    )?.uid,
+    answeringQuestionUid: splitAnswering(questions ?? []).answering?.uid,
     isCelebrating: !!picked,
   });
   const [isSupervoteInfoOpen, setIsSupervoteInfoOpen] = useState(false);
@@ -494,7 +493,7 @@ function QnAPage() {
             </Flex>
           </Flex>
         </header>
-        <main className="content flex">
+        <main className="content question-content">
           <QuestionsSection
             questions={questions}
             canModerate={canModerateHere}

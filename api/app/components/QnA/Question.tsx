@@ -44,6 +44,8 @@ interface QuestionProps {
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
   supervoted?: boolean;
+  /** The question on stage right now (see splitAnswering). */
+  answering: boolean;
   /** Opens the author's points from their name. */
   onAuthorSelect?: (() => void) | undefined;
 }
@@ -57,6 +59,7 @@ export function Question(
     refresh,
     supervotes,
     supervoted,
+    answering,
     onAuthorSelect,
   }: QuestionProps,
 ) {
@@ -166,7 +169,7 @@ export function Question(
   };
 
   const isAnswered = !!question.answeredAt;
-  const isSelected = !question.answeredAt && !!question.selectedAt;
+  const isSelected = answering;
 
   const classNames = [
     "question-card",
