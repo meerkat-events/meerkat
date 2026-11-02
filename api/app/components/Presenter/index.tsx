@@ -7,6 +7,7 @@ import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
 import { useState } from "react";
 import { apiUrl } from "../../lib/api-url.ts";
+import { pinAnswering } from "../../lib/questions.ts";
 import type { Event } from "../../types.ts";
 import {
   REACTION_GLYPHS,
@@ -21,16 +22,6 @@ const randomX = randomNormal(50, 8);
 
 /** Few enough questions to read from the back of the room. */
 const MAX_QUESTIONS = 5;
-
-/** The top questions, always including the one being answered. */
-function topQuestions<Q extends { selectedAt?: unknown }>(questions: Q[]) {
-  const top = questions.slice(0, MAX_QUESTIONS);
-  const selected = questions.find((question) => question.selectedAt);
-  if (!selected || top.includes(selected)) {
-    return top;
-  }
-  return [selected, ...top.slice(0, MAX_QUESTIONS - 1)];
-}
 
 export type PresenterProps = {
   event: Event | undefined;
@@ -75,7 +66,7 @@ export default function Presenter(
   });
 
   const allQuestions = event?.questions ?? [];
-  const shownQuestions = topQuestions(allQuestions);
+  const shownQuestions = pinAnswering(allQuestions).slice(0, MAX_QUESTIONS);
   const moreCount = allQuestions.length - shownQuestions.length;
 
   return (

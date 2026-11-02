@@ -28,6 +28,7 @@ import {
 import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useRef, useState } from "react";
+import { isAnswering } from "../../lib/questions.ts";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
 
 export type QuestionSupervotes = {
@@ -166,7 +167,7 @@ export function Question(
   };
 
   const isAnswered = !!question.answeredAt;
-  const isSelected = !question.answeredAt && !!question.selectedAt;
+  const isSelected = isAnswering(question);
 
   const classNames = [
     "question-card",
