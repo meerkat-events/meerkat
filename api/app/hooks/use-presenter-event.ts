@@ -19,10 +19,9 @@ export function usePresenterEvent(initialEvent: Event) {
     swr: {
       fallbackData: { data: initialEvent },
       revalidateOnMount: false,
-      // The stream refetches when it re-opens (after a reconnect too), and
-      // the poll covers the rest: focusing the screen fetches nothing.
+      // The stream and the poll keep it current: focusing the screen
+      // fetches nothing. Coming back online still refetches.
       revalidateOnFocus: false,
-      revalidateOnReconnect: false,
       refreshInterval: 10_000,
     },
   });
