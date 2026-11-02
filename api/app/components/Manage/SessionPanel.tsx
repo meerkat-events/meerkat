@@ -34,8 +34,8 @@ import {
 } from "./time.ts";
 
 const qaUrl = (session: Session) => new URL(`/e/${session.uid}/qa`, appOrigin());
-// The stage screen: the presenter view of whatever is live on the stage (or
-// next up), following the stage from one session to the next.
+// The stage screen: the presenter view of the event the stage shows (live,
+// else running, else next), following the stage from one session to the next.
 const stageScreenUrl = (session: Session) =>
   new URL(`/stage/${encodeURIComponent(session.stage)}`, appOrigin());
 // Redirects to whatever is live on the stage (or next up), so it can be printed once.
