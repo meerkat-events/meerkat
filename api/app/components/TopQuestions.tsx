@@ -1,6 +1,7 @@
 import { Box, Heading, Text } from "@chakra-ui/react";
 import { FiRadio } from "react-icons/fi";
 import { LuArrowBigUp } from "react-icons/lu";
+import { useListAnimation } from "../hooks/use-list-animation.ts";
 
 type QuestionWithVotes = {
   id: number;
@@ -20,8 +21,11 @@ interface TopQuestionsProps {
 }
 
 const TopQuestions = ({ questions, answering }: TopQuestionsProps) => {
+  // Questions slide to their new place when the order changes (the answering
+  // one to the top) and fade in when they enter the top five.
+  const listRef = useListAnimation<HTMLOListElement>("fade");
   return (
-    <ol>
+    <ol ref={listRef}>
       {questions.length === 0 && (
         <Text as="li" fontSize="3xl" lineHeight="1.4">
           No questions yet. Be the first to ask one by scanning the QR code on

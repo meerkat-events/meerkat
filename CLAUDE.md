@@ -193,6 +193,13 @@ as `event.conference.features` (`supervotes` turns on supervotes,
 `attendees_only` limits taking part to people with a role; its name lives in
 the DB-free `api/features.ts`, which the loader and the client import too).
 
+Question lists animate on the Web Animations API, without a library:
+`useListAnimation` (`app/hooks/use-list-animation.ts`) slides items to
+their new place when a refetch reorders them and slides or fades new ones
+in; removed ones just disappear. Items are keyed by `uid`, nothing moves
+with `prefers-reduced-motion`, and overlays opened from a card stay in a
+Portal (a moving card has a `transform`).
+
 ### Auth and roles
 
 - **Sign-in** yields a Supabase Auth session in exactly three ways: anonymous
