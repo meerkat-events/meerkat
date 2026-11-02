@@ -123,14 +123,15 @@ export const events = pgTable("events", {
   // insert.
   index("events_uid_lower_idx").on(lower(table.uid)),
   index("events_conference_id_idx").on(table.conferenceId),
-  // The signage polls (getStageLiveEvent) first look for the stage's live
-  // event: stage = ? and live, ordered by start. Partial, so it holds only
-  // the few live rows.
+  // The signage polls (getStageLiveEvent, getCurrentEvent) first look for
+  // the stage's live event: stage = ? and live, ordered by start. Partial,
+  // so it holds only the few live rows.
   index("events_stage_live_idx").on(table.stage, table.start)
     .where(sql`${table.live}`),
-  // When nothing is live, the stage's next event: stage = ? and
-  // start >= now(), ordered by start. Also serves the stage filter of
-  // getEvents and setEventLive's update.
+  // When nothing is live, the stage's running and next events: stage = ?
+  // and a range of start, ordered by start. The last ended event (end <=
+  // now, ordered by end) scans and sorts the stage's rows, a few dozen. Also
+  // serves the stage filter of getEvents and setEventLive's update.
   index("events_stage_start_idx").on(table.stage, table.start),
 ]).enableRLS();
 

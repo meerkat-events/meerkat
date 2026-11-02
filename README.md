@@ -204,6 +204,17 @@ the setup per environment are in
 
 ### How do I link to the currently live session?
 
-`/stage/<stage>/qa` redirects to the Q&A page of the live event on that stage
-(or the next upcoming one), and `/stage/<stage>` opens the presenter view and
-keeps following the live event. Use these for signage and slides.
+`/stage/<stage>` is the stage screen: the presenter view of the stage's
+current event, which switches to the next event in place, without leaving the
+URL (add `?hide-qr-code=true` to hide the QR code). `/stage/<stage>/qa`
+redirects to the Q&A page of that event, and `/api/v1/conferences/<id>/live`
+does the same for a whole conference (its printed QR code). Use these for
+signage and slides.
+
+The current event is the live one; else one running now (the earliest
+started); else the next to start; else the one that ended last. So the links
+work before, between and after the sessions, and a stage only answers 404
+when it has no events at all (a stage screen opened then needs a reload). The
+JSON lookups (`/api/v1/events/stage/<stage>/live`,
+`/api/v1/conferences/<id>/events/live`) return that event too; its `live`
+field tells whether it is really live.

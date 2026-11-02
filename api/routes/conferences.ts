@@ -42,7 +42,9 @@ app.get("/api/v1/conferences", jwt(), async (c) => {
 });
 
 // Public: the conference page's QR code points here, so a phone camera opens
-// whatever is live, like /stage/:stage/qa. It only redirects.
+// the Q&A page of the event the conference shows (live, else running, else
+// next, else the one that ended last), like /stage/:stage/qa. It only
+// redirects.
 app.get("/api/v1/conferences/:id/live", async (c) => {
   const conferenceId = parseInt(c.req.param("id"));
   if (Number.isInteger(conferenceId) === false) {
@@ -55,7 +57,7 @@ app.get("/api/v1/conferences/:id/live", async (c) => {
 
   if (!liveEvent) {
     throw new HTTPException(404, {
-      message: `No live event found for conference ${conferenceId}`,
+      message: `No event found for conference ${conferenceId}`,
     });
   }
 

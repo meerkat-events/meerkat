@@ -1,16 +1,8 @@
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { useMemo } from "react";
-import { useJitteredRefresh } from "@meerkat-events/react";
-import { useEvent } from "~/hooks/use-event.ts";
 import Presenter from "../components/Presenter/index.tsx";
-import { toEvent } from "../lib/event.ts";
+import { usePresenterEvent } from "../hooks/use-presenter-event.ts";
 import { useKeepLive } from "../hooks/use-keep-live.ts";
 import { stageScreenSearchParams } from "../../stage-screen.ts";
-
-// The stage screen refetches the whole event on an SSE update, paced like
-// every other client (useJitteredRefresh: one refetch at a time), within a
-// second.
-const REFRESH_MAX_DELAY_MS = 1000;
 
 export default function EventPage() {
   const { uid } = useParams();
@@ -19,22 +11,12 @@ export default function EventPage() {
 
   const keepLive = searchParams.get("keep-live") === "true";
 
-  const {
-    data,
-    mutate: refreshEvent,
-  } = useEvent(uid, {
-    swr: {
-      refreshInterval: 10_000,
-    },
-  });
-
-  const event = useMemo(() => data?.data ? toEvent(data.data) : undefined, [
-    data?.data,
-  ]);
+  const { event, scheduleRefresh } = usePresenterEvent(uid);
 
   // In keep-live mode the screen follows the stage: right away when a
   // moderator puts another event live (the stream's `live` message), and
   // through useKeepLive's 10-second poll when the schedule moves on.
+  // /stage/:stage does the same without leaving its URL (Stage.tsx).
   const goToEvent = (eventUid: string) => {
     if (eventUid === event?.uid) return;
     const nextSearchParams = stageScreenSearchParams(searchParams);
@@ -45,11 +27,6 @@ export default function EventPage() {
     event: keepLive ? event : undefined,
     onUpdate: (newEvent) => goToEvent(newEvent.uid),
   });
-
-  const scheduleRefresh = useJitteredRefresh(
-    () => refreshEvent(),
-    REFRESH_MAX_DELAY_MS,
-  );
 
   return (
     <Presenter

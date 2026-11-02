@@ -8,24 +8,33 @@ import { createClient } from "@supabase/supabase-js";
 import type { Route } from "./+types/page.ts";
 import { useMemo } from "react";
 import { getConfig } from "../lib/config.ts";
-import { getEventTheme } from "../lib/event-theme.server.ts";
+import { getEventTheme, getStageTheme } from "../lib/event-theme.server.ts";
 import { Provider } from "../components/ui/provider.tsx";
 import { meerkat } from "../theme/index.ts";
 import { useReportRouteError } from "../hooks/use-report-route-error.ts";
 import { createSystem } from "../theme/index.ts";
 
-// The theme of the event's conference, straight from the database.
+// The theme of the event's conference, straight from the database; on the
+// stage screen, of the conference of the event the stage shows.
 export async function loader({ params }: Route.LoaderArgs) {
   const uid = params["uid"];
-  return { theme: uid ? await getEventTheme(uid) : null };
+  const stage = params["stage"];
+  if (uid) {
+    return { theme: await getEventTheme(uid) };
+  }
+  if (stage) {
+    return { theme: await getStageTheme(stage) };
+  }
+  return { theme: null };
 }
 
-// The theme depends on the event only: changing the stage screen's options
-// doesn't reload it.
+// The theme depends on the event or the stage only: changing the stage
+// screen's options or its event doesn't reload it.
 export function shouldRevalidate(
   { currentParams, nextParams }: ShouldRevalidateFunctionArgs,
 ) {
-  return currentParams["uid"] !== nextParams["uid"];
+  return currentParams["uid"] !== nextParams["uid"] ||
+    currentParams["stage"] !== nextParams["stage"];
 }
 
 export default function PageLayout({ loaderData }: Route.ComponentProps) {

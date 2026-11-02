@@ -5,12 +5,15 @@ import {
   desc,
   eq,
   getTableColumns,
+  gt,
   gte,
   inArray,
+  lte,
   ne,
   not,
   notInArray,
   sql,
+  type SQL,
 } from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import db from "../db.ts";
@@ -213,36 +216,49 @@ export async function countParticipants(eventId: number) {
   return results.at(0)?.count ?? 0;
 }
 
+/**
+ * The event a conference's printed QR code opens: see getCurrentEvent. Its
+ * `live` flag tells whether it is really live.
+ */
 export async function getLiveEvent(conferenceId: number) {
-  const result = await db.select().from(events).where(
-    and(
-      eq(events.conferenceId, conferenceId),
-      eq(events.live, true),
-    ),
-  ).limit(1).execute();
-  return result.at(0);
+  return await getCurrentEvent(eq(events.conferenceId, conferenceId));
 }
 
+/**
+ * The event a stage's signage shows: see getCurrentEvent. Stage names aren't
+ * scoped by conference, like setEventLive.
+ */
 export async function getStageLiveEvent(stage: string) {
-  let result = await db.select().from(events).where(
-    and(
-      eq(events.stage, stage),
-      eq(events.live, true),
-    ),
-  ).orderBy(desc(events.start)).limit(1).execute();
+  return await getCurrentEvent(eq(events.stage, stage));
+}
 
-  if (result.length < 1) {
-    result = await db.select().from(events).where(
-      and(
-        eq(events.stage, stage),
-        gte(
-          events.start,
-          new Date(),
-        ),
-      ),
-    ).orderBy(asc(events.start)).limit(1).execute();
-  }
+/**
+ * The event to show for a stage or a conference: the live one; else one
+ * running (start <= now < end, earliest start first); else the next to
+ * start; else the one that ended last. Running, upcoming (start > now) and
+ * past (end <= now) cover every event between them. Null when the scope has
+ * no events at all.
+ */
+async function getCurrentEvent(scope: SQL) {
+  const now = new Date();
+  return await firstEvent(
+    and(scope, eq(events.live, true)),
+    [desc(events.start), asc(events.id)],
+  ) ?? await firstEvent(
+    and(scope, lte(events.start, now), gt(events.end, now)),
+    [asc(events.start), asc(events.id)],
+  ) ?? await firstEvent(
+    and(scope, gt(events.start, now)),
+    [asc(events.start), asc(events.id)],
+  ) ?? await firstEvent(
+    and(scope, lte(events.end, now)),
+    [desc(events.end), asc(events.id)],
+  );
+}
 
+async function firstEvent(where: SQL | undefined, orderBy: SQL[]) {
+  const result = await db.select().from(events).where(where)
+    .orderBy(...orderBy).limit(1).execute();
   return result.at(0) ?? null;
 }
 

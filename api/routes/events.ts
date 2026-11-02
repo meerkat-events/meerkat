@@ -12,7 +12,6 @@ import {
   MAX_REACTIONS_PER_INTERVAL,
 } from "../moderation.ts";
 import env from "../env.ts";
-import { stageScreenSearchParams } from "../stage-screen.ts";
 import {
   type Conference,
   getConferenceById,
@@ -583,7 +582,7 @@ app.get("/api/v1/conferences/:id/events/live", jwt(), async (c) => {
 
   if (!liveEvent) {
     throw new HTTPException(404, {
-      message: `No live event found for conference ${conferenceId}`,
+      message: `No event found for conference ${conferenceId}`,
     });
   }
 
@@ -603,30 +602,15 @@ app.get("/api/v1/conferences/:id/events/live", jwt(), async (c) => {
   });
 });
 
-// Signage, public: the stage screen and printed QR codes open these, and the
-// presenter view polls /api/v1/events/stage/:stage/live (useKeepLive).
+// Signage, public: printed QR codes open /stage/:stage/qa, and the stage
+// screen (the page /stage/:stage, or /e/:uid?keep-live=true) polls
+// /api/v1/events/stage/:stage/live. Both resolve the event the stage shows:
+// live, else running, else next, else the one that ended last.
 // The Event Card (Zupass attendance PODs) is gone; old links and bookmarks
 // land on the session's Q&A page instead.
 app.get("/e/:uid/card", (c) => {
   const uid = encodeURIComponent(c.req.param("uid"));
   return c.redirect(new URL(`/e/${uid}/qa`, env.base), 301);
-});
-
-app.get("/stage/:stage", async (c) => {
-  const stage = c.req.param("stage");
-  const liveEvent = await getStageLiveEvent(stage);
-
-  if (!liveEvent) {
-    throw new HTTPException(404, {
-      message: `No live event found for stage ${stage}`,
-    });
-  }
-
-  const url = new URL(`/e/${liveEvent.uid}`, env.base);
-  const requestSearchParams = new URL(c.req.url).searchParams;
-  url.search = stageScreenSearchParams(requestSearchParams).toString();
-
-  return c.redirect(url);
 });
 
 app.get("/stage/:stage/qa", async (c) => {
@@ -635,7 +619,7 @@ app.get("/stage/:stage/qa", async (c) => {
 
   if (!liveEvent) {
     throw new HTTPException(404, {
-      message: `No live event found for stage ${stage}`,
+      message: `No event found for stage ${stage}`,
     });
   }
 
@@ -650,7 +634,7 @@ app.get("/api/v1/events/stage/:stage/live", async (c) => {
 
   if (!liveEvent) {
     throw new HTTPException(404, {
-      message: `No live event found for stage ${stage}`,
+      message: `No event found for stage ${stage}`,
     });
   }
 
