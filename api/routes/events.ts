@@ -12,14 +12,8 @@ import {
   MAX_REACTIONS_PER_INTERVAL,
 } from "../moderation.ts";
 import env from "../env.ts";
+import { getConferenceById } from "../models/conferences.ts";
 import {
-  type Conference,
-  getConferenceById,
-  toApiConference,
-} from "../models/conferences.ts";
-import {
-  countParticipants,
-  type Event,
   getEventByUID,
   getEvents,
   getLiveEvent,
@@ -48,7 +42,6 @@ import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
 import { tooManyRequests } from "../utils/too-many-requests.ts";
 import { REACTION_EMOJIS } from "../reactions.ts";
 import { ATTENDEES_ONLY_MESSAGE } from "../features.ts";
-import { type Feature, getFeatures } from "../models/features.ts";
 import {
   canModerate,
   getConferenceRolesForConference,
@@ -57,7 +50,7 @@ import {
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
 import { getStageLiveEvent } from "../models/events.ts";
-import type { Questions } from "../models/questions.ts";
+import { getPublicEvent, toApiQuestion } from "../models/public-event.ts";
 import { hub } from "../realtime/index.ts";
 import {
   notifyEventLive,
@@ -93,38 +86,15 @@ const eventMiddleware = createMiddleware<Env>(async (c, next) => {
 // embedders read the event and its questions from it.
 app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
   const event = c.get("event");
+  const publicEvent = await getPublicEvent(event);
 
-  const [conference, questions, participants, features] = await Promise.all([
-    getConferenceById(event.conferenceId),
-    // By default, we exclude the answered questions
-    getQuestions(event.id, "popular", false),
-    countParticipants(event.id),
-    getFeatures(event.conferenceId),
-  ]);
-
-  if (!conference) {
+  if (!publicEvent) {
     throw new HTTPException(404, {
       message: `Conference ${event.conferenceId} not found`,
     });
   }
 
-  const votes = questions.reduce((acc, question) => acc + question.votes, 0);
-
-  return c.json({
-    data: {
-      ...event,
-      questions: questions.map(toApiQuestion),
-      votes,
-      participants,
-      conference: {
-        ...toApiConference(conference),
-        features: features.reduce((acc, val) => {
-          acc[val.name] = val.active;
-          return acc;
-        }, {} as Record<string, boolean>),
-      },
-    },
-  });
+  return c.json({ data: publicEvent });
 });
 
 // The session's Q&A link as a PNG QR code. The app draws its QR codes in the
@@ -152,19 +122,6 @@ app.get("/api/v1/events/:uid/code", jwt(), eventMiddleware, async (c) => {
 
 // The viewer's vote is left out here: only the Q&A page's own list, fetched
 // with a token, gets it (see the questions route).
-const toApiQuestion = (
-  { userId: _userId, user, viewerVoteWeight: _viewerVoteWeight, ...rest }:
-    Awaited<ReturnType<typeof getQuestions>>[number],
-) => ({
-  ...rest,
-  user: user
-    ? {
-      id: user?.id,
-      name: user?.userMetadata?.["name"] ?? user?.id,
-    }
-    : undefined,
-});
-
 // Public, for guests and embedders (`@meerkat-events/react`). Authentication
 // is optional: with a valid token, the viewer's own hidden questions are
 // included (automatic moderation hides them from everyone else) and each
@@ -568,38 +525,16 @@ app.get("/api/v1/conferences/:id/events/live", jwt(), async (c) => {
     });
   }
 
-  const [conference, liveEvent, features] = await Promise.all([
-    getConferenceById(conferenceId),
-    getLiveEvent(conferenceId),
-    getFeatures(conferenceId),
-  ]);
+  const liveEvent = await getLiveEvent(conferenceId);
+  const publicEvent = liveEvent ? await getPublicEvent(liveEvent) : null;
 
-  if (!conference) {
-    throw new HTTPException(404, {
-      message: `Conference with id ${conferenceId} not found`,
-    });
-  }
-
-  if (!liveEvent) {
+  if (!publicEvent) {
     throw new HTTPException(404, {
       message: `No event found for conference ${conferenceId}`,
     });
   }
 
-  const [questions, participants] = await Promise.all([
-    getQuestions(liveEvent.id, "popular", false),
-    countParticipants(liveEvent.id),
-  ]);
-
-  return c.json({
-    data: toFullApiEvent({
-      event: liveEvent,
-      features,
-      questions,
-      conference,
-      participants,
-    }),
-  });
+  return c.json({ data: publicEvent });
 });
 
 // Signage, public: printed QR codes open /stage/:stage/qa, and the stage
@@ -640,30 +575,6 @@ app.get("/api/v1/events/stage/:stage/live", async (c) => {
 
   return c.json({ data: liveEvent });
 });
-
-const toFullApiEvent = (
-  { event, features, questions, conference, participants }: {
-    event: Event;
-    features: Feature[];
-    questions: Questions;
-    conference: Conference;
-    participants: number;
-  },
-) => {
-  return {
-    ...event,
-    questions: questions.map(toApiQuestion),
-    votes: questions.reduce((acc, question) => acc + question.votes, 0),
-    participants,
-    conference: {
-      ...toApiConference(conference),
-      features: features.reduce((acc, val) => {
-        acc[val.name] = val.active;
-        return acc;
-      }, {} as Record<string, boolean>),
-    },
-  };
-};
 
 // Public, like the question list it tells clients to refetch (EventSource
 // can't send a token anyway). An unnamed `update` means "refetch the

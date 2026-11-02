@@ -158,18 +158,24 @@ variables and throws at import when a required one is missing; it and
 
 React Router 8 in SSR mode with `prerender: false`, Chakra UI v3, SWR. The
 server renders every page, in its conference's theme; pages fetch their data
-with SWR in the browser, so the server renders their loading state. Render
+with SWR in the browser, so the server renders their loading state, except
+the presenter views, whose loaders render the event with its questions
+(below). Render
 must therefore match on server and client: read browser-only state
 (`localStorage`, the Supabase session) in effects, not during render. No
 loader calls the API: the server `loader`s query the database. They are the
 root's (the browser's config, document requests only: `shouldRevalidate` is
 false), the layouts' (the conference theme, `lib/event-theme.server.ts`,
-reloaded only when `:uid` or `:stage` changes) and the Devcon handover in
-`routes/QnA.tsx`. Two layouts in `app/routes.ts`:
+reloaded only when `:uid` or `:stage` changes), the presenter views'
+(`routes/Event.tsx`, `routes/Stage.tsx`: the event as
+`GET /api/v1/events/:uid` returns it, `models/public-event.ts`, which seeds
+SWR's `fallbackData` so the browser doesn't fetch it again on load) and the
+Devcon handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
 
 - `layouts/page.tsx` — bare presenter view (`/e/:uid`, and the stage
   screen `/stage/:stage`, which shows the stage's current event and reloads
-  itself, on the same URL, when the stage moves on to another), no auth.
+  itself, on the same URL, when the stage moves on to another), for guests
+  only: no auth, no Supabase client, no session.
 - `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
   package, `apiUrl=""`), Supabase client, `UserProvider`, Chakra system.
 

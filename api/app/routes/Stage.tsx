@@ -1,12 +1,19 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useEffect } from "react";
 import { useJitteredRefresh } from "@meerkat-events/react";
 import Presenter from "../components/Presenter/index.tsx";
 import { usePresenterEvent } from "../hooks/use-presenter-event.ts";
 import { useStageLiveEvent } from "../hooks/use-stage-live-event.ts";
+import { getStagePresenterEvent } from "../lib/presenter-event.server.ts";
+import type { Route } from "./+types/Stage.ts";
 
 // The stage screen's pacing of refetches (CLAUDE.md, Real-time).
 const STAGE_REFRESH_MAX_DELAY_MS = 1000;
+
+// The server renders the event the stage shows, with its questions: a
+// reload shows them at once, without a loading state.
+export async function loader({ params }: Route.LoaderArgs) {
+  return { event: await getStagePresenterEvent(params["stage"]) };
+}
 
 /**
  * The stage screen: the presenter view of the event the stage shows (live,
@@ -18,23 +25,22 @@ const STAGE_REFRESH_MAX_DELAY_MS = 1000;
  * previous one. The screen's options (e.g. `hide-qr-code=true`) stay in the
  * URL.
  */
-export default function StagePage() {
-  const { stage } = useParams();
-  const { data, mutate: refreshStage } = useStageLiveEvent(stage);
+export default function StagePage({ params, loaderData }: Route.ComponentProps) {
+  // The event this page load shows: the one the server rendered.
+  const { event, scheduleRefresh } = usePresenterEvent(loaderData.event);
+
+  // The server just looked the stage up: the first lookup here is the poll's
+  // (or a `live` message's), never a load or focusing the screen.
+  const { data, mutate: refreshStage } = useStageLiveEvent(params["stage"], {
+    swr: { revalidateOnMount: false, revalidateOnFocus: false },
+  });
   const stageEventUid = data?.data.uid;
 
-  // The event this page load shows: the first one the stage lookup returns.
-  const [shownUid, setShownUid] = useState<string>();
-  if (stageEventUid && !shownUid) {
-    setShownUid(stageEventUid);
-  }
   useEffect(() => {
-    if (shownUid && stageEventUid && stageEventUid !== shownUid) {
+    if (stageEventUid && stageEventUid !== event.uid) {
       globalThis.location.reload();
     }
-  }, [stageEventUid, shownUid]);
-
-  const { event, scheduleRefresh } = usePresenterEvent(shownUid);
+  }, [stageEventUid, event.uid]);
 
   // Every screen of the stage hears the `live` message at once: spread
   // their lookups out like every other refetch.
@@ -46,7 +52,6 @@ export default function StagePage() {
   return (
     <Presenter
       event={event}
-      url={event?.url}
       onQuestionsChanged={scheduleRefresh}
       onEventLive={scheduleStageRefresh}
     />
