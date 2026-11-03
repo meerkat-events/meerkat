@@ -20,6 +20,7 @@ export default [
       route("/manage", "routes/manage/Feed.tsx"),
       route("/manage/schedule", "routes/manage/Schedule.tsx"),
       route("/manage/analytics", "routes/manage/Analytics.tsx"),
+      route("/manage/moderation", "routes/manage/Moderation.tsx"),
       route("/manage/permissions", "routes/manage/Permissions.tsx"),
     ]),
   ]),

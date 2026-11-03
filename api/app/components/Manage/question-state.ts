@@ -40,6 +40,7 @@ export type QuestionState =
   | "answered"
   | "hidden"
   | "autoHidden"
+  | "restored"
   | "review";
 
 export const REASON_LABELS: Record<ModerationReason, string> = {
@@ -84,6 +85,7 @@ export function reasonText(moderation: Moderation | null | undefined) {
  * ones are not on the Q&A; every other question is open, on stage or
  * answered, and may be marked for review on top. A hidden question whose
  * verdict is "hide" is automatic moderation's; any other was a moderator's.
+ * A visible one whose verdict is "hide" was restored by an organizer.
  */
 export function questionStates(q: ModeratedQuestion): QuestionState[] {
   const states: QuestionState[] = [];
@@ -94,6 +96,7 @@ export function questionStates(q: ModeratedQuestion): QuestionState[] {
     if (q.answeredAt) states.push("answered");
     else if (q.selectedAt) states.push("answering");
     else states.push("open");
+    if (q.moderation?.decision === "hide") states.push("restored");
     if (q.moderation?.decision === "review") states.push("review");
   }
   return states;

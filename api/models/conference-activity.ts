@@ -1,4 +1,18 @@
-import { and, count, desc, eq, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  type AnyColumn,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import db from "../db.ts";
 import { summarizeModeration, tallyModeration } from "../moderation-summary.ts";
 import {
@@ -9,6 +23,7 @@ import {
   users,
   votes,
 } from "../schema.ts";
+import { REACTION_EMOJIS, type ReactionEmoji } from "../reactions.ts";
 import { voteTotal, voteTotalOf } from "./votes.ts";
 
 const notBlocked = () =>
@@ -19,6 +34,23 @@ const notBlocked = () =>
 // see them only where they review moderation (feed, person history).
 const notModerationHidden = isNull(questions.hiddenAt);
 
+/** A time span, from inclusive to `to` exclusive; either end may be open. */
+export type TimeWindow = { from?: Date | undefined; to?: Date | undefined };
+
+/** Whether `column` falls in the window; always true for an open window. */
+function within(column: AnyColumn, { from, to }: TimeWindow) {
+  return and(
+    from ? gte(column, from) : undefined,
+    to ? lt(column, to) : undefined,
+  ) ?? sql`TRUE`;
+}
+
+// Questions automatic moderation hid or marked for review, restored ones
+// included. A refused verdict has no decision and counts as hidden.
+const moderatedByModeration = and(
+  isNotNull(questions.moderation),
+  sql`${questions.moderation}->>'decision' IS DISTINCT FROM 'show'`,
+);
 
 /**
  * Questions across a conference, newest first, for organizers moderating
@@ -33,6 +65,10 @@ export function getConferenceQuestions(
     limit?: number;
     /** Also what organizers or automatic moderation hid, to review it. */
     includeHidden?: boolean;
+    /** Only what automatic moderation hid or marked for review. */
+    moderated?: boolean;
+    /** Only questions asked in this window. */
+    asked?: TimeWindow;
   } = {},
 ) {
   const conditions = [
@@ -43,6 +79,8 @@ export function getConferenceQuestions(
     conditions.push(isNull(questions.deletedAt), notModerationHidden);
   }
   if (options.live) conditions.push(eq(events.live, true));
+  if (options.moderated) conditions.push(moderatedByModeration);
+  if (options.asked) conditions.push(within(questions.createdAt, options.asked));
   if (options.eventUid) {
     conditions.push(eq(lower(events.uid), options.eventUid.toLowerCase()));
   }
@@ -101,16 +139,32 @@ type EventCounts = {
  * Activity totals for a conference and for each of its sessions. Participants
  * are people who asked or voted (as in `countParticipants`), counted once
  * across the whole conference for the totals. Counts cover what attendees
- * saw; `moderation` adds what automatic moderation did.
+ * saw; `moderation` adds what automatic moderation did. With a `window`, only
+ * what happened in it counts: questions asked, votes and reactions given,
+ * questions picked.
  */
 export async function getConferenceStats(
   conferenceId: number,
-  { moderationEnabled }: { moderationEnabled: boolean },
+  { moderationEnabled, supervotesEnabled, window = {} }: {
+    moderationEnabled: boolean;
+    supervotesEnabled: boolean;
+    window?: TimeWindow;
+  },
 ) {
   const inConference = eq(events.conferenceId, conferenceId);
+  const asked = within(questions.createdAt, window);
 
-  const [questionRows, voteRows, reactionRows, participantRows, total, verdictRows] =
-    await Promise.all([
+  const [
+    questionRows,
+    voteRows,
+    reactionRows,
+    participantRows,
+    total,
+    verdictRows,
+    emojiRows,
+    supervotesGiven,
+    supervotesReceived,
+  ] = await Promise.all([
       // Same questions the feed and Q&A show: not hidden, author not blocked.
       db.select({ eventId: questions.eventId, n: count() })
         .from(questions)
@@ -118,6 +172,7 @@ export async function getConferenceStats(
         .leftJoin(users, eq(questions.userId, users.id))
         .where(and(
           inConference,
+          asked,
           isNull(questions.deletedAt),
           notModerationHidden,
           notBlocked(),
@@ -128,22 +183,22 @@ export async function getConferenceStats(
         .from(votes)
         .innerJoin(questions, eq(votes.questionId, questions.id))
         .innerJoin(events, eq(questions.eventId, events.id))
-        .where(and(inConference, notModerationHidden))
+        .where(and(inConference, within(votes.createdAt, window), notModerationHidden))
         .groupBy(questions.eventId)
         .execute(),
       db.select({ eventId: reactions.eventId, n: count() })
         .from(reactions)
         .innerJoin(events, eq(reactions.eventId, events.id))
-        .where(inConference)
+        .where(and(inConference, within(reactions.createdAt, window)))
         .groupBy(reactions.eventId)
         .execute(),
       db.execute<{ event_id: number; n: number }>(sql`
         SELECT p.event_id, COUNT(DISTINCT p.user_id)::int AS n
-        FROM (${participantsSql(conferenceId)}) AS p
+        FROM (${participantsSql(conferenceId, window)}) AS p
         GROUP BY p.event_id`),
       db.execute<{ n: number }>(sql`
         SELECT COUNT(DISTINCT p.user_id)::int AS n
-        FROM (${participantsSql(conferenceId)}) AS p`),
+        FROM (${participantsSql(conferenceId, window)}) AS p`),
       // Every verdict, to tally moderation and relevance.
       db.select({
         eventId: questions.eventId,
@@ -153,8 +208,39 @@ export async function getConferenceStats(
       })
         .from(questions)
         .innerJoin(events, eq(questions.eventId, events.id))
-        .where(and(inConference, isNotNull(questions.moderation)))
+        .where(and(inConference, asked, isNotNull(questions.moderation)))
         .execute(),
+      db.select({ emoji: reactions.emoji, n: count() })
+        .from(reactions)
+        .innerJoin(events, eq(reactions.eventId, events.id))
+        .where(and(inConference, within(reactions.createdAt, window)))
+        .groupBy(reactions.emoji)
+        .execute(),
+      // Supervotes spent, on questions attendees saw (like the vote counts).
+      db.select({ n: count() })
+        .from(votes)
+        .innerJoin(questions, eq(votes.questionId, questions.id))
+        .innerJoin(events, eq(questions.eventId, events.id))
+        .where(and(
+          inConference,
+          within(votes.createdAt, window),
+          gt(votes.weight, 1),
+          notModerationHidden,
+        ))
+        .execute(),
+      // Picking a question earns its author a supervote, the first time only,
+      // and `selectedAt` keeps that first pick (models/questions.ts).
+      supervotesEnabled
+        ? db.select({ n: count() })
+          .from(questions)
+          .innerJoin(events, eq(questions.eventId, events.id))
+          .where(and(
+            inConference,
+            isNotNull(questions.selectedAt),
+            within(questions.selectedAt, window),
+          ))
+          .execute()
+        : Promise.resolve([{ n: 0 }]),
     ]);
 
   const moderation = tallyModeration(verdictRows, moderationEnabled);
@@ -197,6 +283,20 @@ export async function getConferenceStats(
       reactions: sum("reactions"),
       participants: total.at(0)?.n ?? 0,
     },
+    // Every emoji, most used first; ones nobody sent count 0.
+    reactions: REACTION_EMOJIS
+      .map((emoji): { emoji: ReactionEmoji; count: number } => ({
+        emoji,
+        count: emojiRows.find((r) => r.emoji === emoji)?.n ?? 0,
+      }))
+      .sort((a, b) => b.count - a.count),
+    supervotes: {
+      enabled: supervotesEnabled,
+      /** Earned by authors whose question was picked. */
+      received: supervotesReceived.at(0)?.n ?? 0,
+      /** Spent on questions. */
+      given: supervotesGiven.at(0)?.n ?? 0,
+    },
     moderation: moderation.totals,
     events: [...byEvent.entries()].map(([eventId, counts]) => ({
       eventId,
@@ -205,22 +305,24 @@ export async function getConferenceStats(
   };
 }
 
-// Everyone who asked or voted in a conference session, one row per
-// (session, person).
-function participantsSql(conferenceId: number) {
+// Everyone who asked or voted in a conference session (in the window), one
+// row per (session, person).
+function participantsSql(conferenceId: number, window: TimeWindow) {
   return sql`
     SELECT ${questions.eventId} AS event_id, ${questions.userId} AS user_id
     FROM ${questions}
     INNER JOIN ${events} ON ${events.id} = ${questions.eventId}
     WHERE ${events.conferenceId} = ${conferenceId}
       AND ${questions.hiddenAt} IS NULL
+      AND ${within(questions.createdAt, window)}
     UNION
     SELECT ${questions.eventId} AS event_id, ${votes.userId} AS user_id
     FROM ${votes}
     INNER JOIN ${questions} ON ${questions.id} = ${votes.questionId}
     INNER JOIN ${events} ON ${events.id} = ${questions.eventId}
     WHERE ${events.conferenceId} = ${conferenceId}
-      AND ${questions.hiddenAt} IS NULL`;
+      AND ${questions.hiddenAt} IS NULL
+      AND ${within(votes.createdAt, window)}`;
 }
 
 export type UserActivity = Awaited<ReturnType<typeof getConferenceUserActivity>>;

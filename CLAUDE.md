@@ -326,8 +326,9 @@ its CSS, callers pass the items' uids joined, nothing moves with
   (weighted, so a supervote is 3 votes; own votes don't count). Tiers
   (`api/tiers.ts`: top 0.1/1/10/25%) rank against everyone who asked or
   voted; ties share the better tier, 0 points has none, and nobody has one
-  below `MIN_CONTRIBUTORS` (20) contributors. There is no
-  leaderboard: `GET /api/v1/conferences/:id/participants/:userId` (signed-in
+  below `MIN_CONTRIBUTORS` (20) contributors. Attendees see no
+  leaderboard (organizers get the top 10 on Analytics under "All days",
+  `getTopContributors`): `GET /api/v1/conferences/:id/participants/:userId` (signed-in
   users only) returns one person, fetched when their name on a question is
   tapped (names aren't tappable for guests), and for the
   signed-in user only when their questions' votes or picks change
@@ -359,7 +360,11 @@ its CSS, callers pass the items' uids joined, nothing moves with
   restore a hidden question (`POST /api/v1/questions/:uid/restore`, which
   keeps the verdict, so "hide" without `hidden_at` reads as restored); one
   can't be selected for the stage while hidden. Counts of session activity
-  leave hidden questions out; Analytics adds moderation totals and relevance.
+  leave hidden questions out; the Moderation page (`/manage/moderation`)
+  shows moderation totals, relevance and every question moderation hid or
+  flagged (`moderated=true`). Analytics and Moderation filter by a day in
+  the organizer's time zone: the browser sends `from`/`to`, and counts cover
+  what happened in that window (questions asked, votes and reactions given).
   A moderator's "Hide Question" (`POST /api/v1/questions/:uid/hide`) sets
   `hidden_at` the same way, so its author keeps seeing the question and an
   organizer can restore it; the management pages call a hidden question
