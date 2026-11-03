@@ -58,12 +58,6 @@ html:has(.page) {
       display: flex;
       flex-flow: column nowrap;
       gap: 2rem;
-
-      /* A question moving up passes over the ones making room for it
-         (useListAnimation marks it while it moves). */
-      & > [data-rising] {
-        z-index: 1;
-      }
     }
   }
 

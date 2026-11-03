@@ -103,12 +103,8 @@ ul {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* No scroll anchoring: Chrome would scroll the list along with a visible
-     question that moves up (React keeps that card in place and moves the
-     others), up to the top for a long jump. iOS Safari has no anchoring, so
-     this makes every browser keep the scroll position. */
-  overflow-anchor: none;
-  /* The questions' offsetParent, for useListAnimation */
+  /* The questions' offsetParent, for useListAnimation (which also turns
+     the list's scroll anchoring off) */
   position: relative;
   display: flex;
   flex-direction: column;
@@ -126,13 +122,12 @@ ul {
   );
 }
 
-/* A question moving up passes over the ones making room for it
-   (useListAnimation marks it while it moves). Cards can be see-through, so
-   while it moves its tint sits on the plain page color instead, and the text
-   it passes doesn't show through its own. Not a backdrop-filter: the list's
-   mask leaves that nothing to blur. */
+/* A question moving up passes over the ones making room for it, raised by
+   useListAnimation, which marks it data-rising while it moves. Cards can be
+   see-through, so its tint sits on the theme's opaque page surface instead,
+   and the text it passes doesn't show through its own. Not a
+   backdrop-filter: the list's mask leaves that nothing to blur. */
 .question-list > [data-rising] {
-  z-index: 1;
   background-color: var(--page-surface);
   background-image: linear-gradient(var(--card-tint), var(--card-tint));
 }

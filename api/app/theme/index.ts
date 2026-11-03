@@ -13,6 +13,7 @@ import {
   transparentize,
 } from "color2k";
 import type { Theme } from "../types.ts";
+import { isColor, pageSurface } from "./surface.ts";
 
 export { meerkat } from "./meerkat.ts";
 export { devconnect } from "./devconnect.ts";
@@ -45,24 +46,6 @@ const LIGHTER_SHADES = [600, 500, 400, 300, 200, 100, 50] as const;
 const TEXT_CONTRAST = 4.5;
 /** WCAG 2.2 minimum contrast for focus rings and icons (1.4.11). */
 const NON_TEXT_CONTRAST = 3;
-
-const isColor = (value: string) => {
-  try {
-    getLuminance(value);
-    return true;
-  } catch {
-    // A gradient or another non-color background
-    return false;
-  }
-};
-
-/** The page background if it is a color, else black or white for its text. */
-function pageSurface(theme: Theme) {
-  if (isColor(theme.background)) {
-    return theme.background;
-  }
-  return getLuminance(theme.textColor) > 0.5 ? "#000000" : "#FFFFFF";
-}
 
 /**
  * The `preferred` brand shade if it has at least `minContrast` against what

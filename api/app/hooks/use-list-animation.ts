@@ -14,14 +14,23 @@ const EASING = "ease-out";
  * the ones below it slide up into the gap.
  *
  * Put the returned ref on the list; its direct children are the items, and
- * the list must be their offsetParent (position: relative in its CSS). An
- * item moving up is marked `data-rising` while it moves, for the list's CSS
- * to paint it above the others.
+ * the list must be their offsetParent (position: relative in its CSS), with
+ * items that are positioned or flex items, so z-index applies to them.
  * `itemKeys` identifies the items in order (their uids joined), so the list
  * is measured only when they change. Items are told apart by their DOM node,
  * so their React keys must be stable. The items on the list's first render
  * appear without animating, and nothing animates for people who prefer
  * reduced motion.
+ *
+ * The hook takes care of what the animation needs from the list itself:
+ * - It turns the list's scroll anchoring off. When a visible item moves up,
+ *   React keeps that item's node and moves the others, so Chrome anchors on
+ *   it and scrolls the list along with it, to the top for a long jump. iOS
+ *   Safari doesn't anchor, so this keeps the scroll position everywhere.
+ * - An item moving up passes over the ones moving down to make room for it,
+ *   which would otherwise paint over it (they come later in the list). The
+ *   hook raises it while it moves and marks it `data-rising`, so the list's
+ *   CSS can also make it opaque when its items are see-through.
  */
 export function useListAnimation<ListElement extends HTMLElement>(
   enter: ListEnterAnimation,
@@ -43,14 +52,18 @@ export function useListAnimation<ListElement extends HTMLElement>(
     }
     const isFirstRender = list !== previousList.current;
     previousList.current = list;
+    if (isFirstRender) {
+      list.style.overflowAnchor = "none";
+    }
     const reduceMotion = globalThis.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     const running = runningAnimations.current;
-    // A list that scrolls on its own: the browser's scroll anchoring may just
-    // have scrolled it to keep the visible items in place, before its scroll
-    // event. The items didn't move on screen by that much.
-    const anchoringShift = isFirstRender
+    // A list that scrolls on its own may have just scrolled, before its
+    // scroll event: the browser lowers scrollTop when the list gets shorter
+    // (an item removed while scrolled to the bottom). The items didn't move
+    // on screen by that much.
+    const scrollShift = isFirstRender
       ? 0
       : list.scrollTop - lastScrollTop.current;
     lastScrollTop.current = list.scrollTop;
@@ -72,26 +85,24 @@ export function useListAnimation<ListElement extends HTMLElement>(
         startAnimation(running, item, enterKeyframes(enter));
         continue;
       }
-      const moved = previousTop - top + anchoringShift;
-      // Under a pixel is no move: offsetTop is rounded, while scroll
-      // anchoring scrolls by fractions on high-density screens. Let an
-      // animation that's still running finish.
+      const moved = previousTop - top + scrollShift;
+      // Under a pixel is no move: offsetTop is rounded, while scrollTop can
+      // change by fractions on high-density screens. Let an animation that's
+      // still running finish.
       if (Math.abs(moved) < 1) {
         continue;
       }
       // Start from where the item shows now, which includes how far a
       // running animation has carried it and how faded in it is.
       const shown = currentlyShown(running, item);
+      const startOffset = moved + shown.translateY;
       const animation = startAnimation(running, item, [
-        {
-          transform: `translateY(${moved + shown.translateY}px)`,
-          opacity: shown.opacity,
-        },
+        { transform: `translateY(${startOffset}px)`, opacity: shown.opacity },
         { transform: "none", opacity: 1 },
       ]);
-      // An item moving up passes the ones moving down to make room, which
-      // would otherwise paint over it (they come later in the list).
-      if (moved > 0) {
+      // Moving up on screen: it starts below its place. Not `moved`, which
+      // ignores where an interrupted animation left it.
+      if (startOffset > 0) {
         raiseWhileRunning(running, item, animation);
       }
     }
@@ -138,7 +149,7 @@ function startAnimation(
 ) {
   running.get(item)?.cancel();
   // Raised only while moving up (raiseWhileRunning), not by an earlier move.
-  delete item.dataset["rising"];
+  lower(item);
   const animation = item.animate(keyframes, {
     duration: DURATION_MS,
     easing: EASING,
@@ -148,23 +159,29 @@ function startAnimation(
 }
 
 /**
- * Marks the item `data-rising` until its animation ends, so the list's CSS
- * can paint it above its siblings. A newer animation that replaced this one
- * decides for itself, so its mark isn't removed here.
+ * Paints the item above its siblings, marked `data-rising`, until its
+ * animation ends. A newer animation that replaced this one decides for
+ * itself, so its raise isn't undone here.
  */
 function raiseWhileRunning(
   running: WeakMap<Element, Animation>,
   item: HTMLElement,
   animation: Animation,
 ) {
+  item.style.zIndex = "1";
   item.dataset["rising"] = "";
-  const lower = () => {
+  const lowerIfCurrent = () => {
     if (running.get(item) === animation) {
-      delete item.dataset["rising"];
+      lower(item);
     }
   };
-  animation.addEventListener("finish", lower);
-  animation.addEventListener("cancel", lower);
+  animation.addEventListener("finish", lowerIfCurrent);
+  animation.addEventListener("cancel", lowerIfCurrent);
+}
+
+function lower(item: HTMLElement) {
+  item.style.zIndex = "";
+  delete item.dataset["rising"];
 }
 
 /** How far down the item's running animation shows it, in px, and how
