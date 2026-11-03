@@ -184,9 +184,7 @@ export function EventPicker({ events, onSelect }: EventPickerProps) {
                 fontSize="xs"
                 color="rgba(200, 175, 242, 0.6)"
               >
-                {query.trim()
-                  ? `Showing ${MAX_VISIBLE_EVENTS} of ${matchCount} matches. Keep typing to narrow them down.`
-                  : `Showing ${MAX_VISIBLE_EVENTS} of ${matchCount} events. Type to search all of them.`}
+                +{matchCount - MAX_VISIBLE_EVENTS} more events
               </Text>
             )}
           </Combobox.Content>
