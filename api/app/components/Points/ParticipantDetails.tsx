@@ -202,21 +202,17 @@ function Details(
 /** Tells organizers and moderators that they moderate this Q&A. */
 function ModeratorBadge({ role }: { role: ModeratingRole }) {
   return (
-    <Flex direction="column" alignItems="center" gap="1" marginBottom="1">
-      <Badge
-        size="md"
-        variant="solid"
-        colorPalette="green"
-        borderRadius="full"
-        paddingX="2.5"
-      >
-        <LuShieldCheck aria-hidden="true" />
-        {role === "organizer" ? "Organizer" : "Moderator"}
-      </Badge>
-      <Text textStyle="xs" color="fg.muted">
-        You can moderate this Q&A
-      </Text>
-    </Flex>
+    <Badge
+      size="md"
+      variant="solid"
+      colorPalette="green"
+      borderRadius="full"
+      paddingX="2.5"
+      marginBottom="1"
+    >
+      <LuShieldCheck aria-hidden="true" />
+      {role === "organizer" ? "Organizer" : "Moderator"}
+    </Badge>
   );
 }
 
