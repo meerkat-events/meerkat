@@ -103,6 +103,11 @@ ul {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* No scroll anchoring: Chrome would scroll the list along with a visible
+     question that moves up (React keeps that card in place and moves the
+     others), up to the top for a long jump. iOS Safari has no anchoring, so
+     this makes every browser keep the scroll position. */
+  overflow-anchor: none;
   /* The questions' offsetParent, for useListAnimation */
   position: relative;
   display: flex;
