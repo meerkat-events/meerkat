@@ -80,6 +80,21 @@ ul {
   margin-inline: -1rem;
 }
 
+/* A question that becomes the answering one moves here from the list, as a
+   new card: fade it in rather than have it pop up. The list itself animates
+   with useListAnimation. */
+@media (prefers-reduced-motion: no-preference) {
+  .question-pinned > li {
+    animation: question-pinned-in 300ms ease-out;
+  }
+}
+
+@keyframes question-pinned-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .question-list {
   /* Extra bottom space so the last question scrolls clear of the heart bubble */
   padding: 1rem 1rem 4.5rem;
@@ -88,6 +103,8 @@ ul {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* The questions' offsetParent, for useListAnimation */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--chakra-spacing-question-gap); /* theme questionGap */

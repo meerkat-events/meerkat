@@ -1,5 +1,6 @@
 import { type UIEvent, useMemo } from "react";
 import { splitAnswering } from "../../lib/questions.ts";
+import { useListAnimation } from "../../hooks/use-list-animation.ts";
 import type { Question as QuestionType } from "../../types.ts";
 import { Question, type QuestionSupervotes } from "./Question.tsx";
 import { Flex } from "@chakra-ui/react";
@@ -45,6 +46,13 @@ export function QuestionsSection(
     () => splitAnswering(questions ?? []),
     [questions],
   );
+  // Questions slide to their new place when the order changes, and new ones
+  // (or one that's been answered and leaves the pinned spot) slide down into
+  // theirs. The pinned question fades in through CSS (.question-pinned).
+  const listRef = useListAnimation<HTMLOListElement>(
+    "slide-in",
+    others.map((question) => question.uid).join(),
+  );
 
   const renderQuestion = (question: QuestionType) => (
     <Question
@@ -75,7 +83,11 @@ export function QuestionsSection(
             {answering && (
               <ol className="question-pinned">{renderQuestion(answering)}</ol>
             )}
-            <ol className="question-list" onScroll={growPinnedFade}>
+            <ol
+              ref={listRef}
+              className="question-list"
+              onScroll={growPinnedFade}
+            >
               {others.map(renderQuestion)}
             </ol>
           </>

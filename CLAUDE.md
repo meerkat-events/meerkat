@@ -193,6 +193,14 @@ as `event.conference.features` (`supervotes` turns on supervotes,
 `attendees_only` limits taking part to people with a role; its name lives in
 the DB-free `api/features.ts`, which the loader and the client import too).
 
+Question lists animate on the Web Animations API, without a library:
+`useListAnimation` (`app/hooks/use-list-animation.ts`) slides items to
+their new place when a refetch reorders them and slides or fades new ones
+in; removed ones just disappear. The list must be `position: relative` in
+its CSS, callers pass the items' uids joined, nothing moves with
+`prefers-reduced-motion`, and overlays opened from a card stay in a Portal
+(a moving card has a `transform`).
+
 ### Auth and roles
 
 - **Sign-in** yields a Supabase Auth session in exactly three ways: anonymous
@@ -582,6 +590,14 @@ values such as `site_url` and the redirect URLs stay commented. Always run
   ```
   `modify` and `switch` are interactive; move with `gh stack up`, `down` or
   `checkout <branch>` instead.
+- **UI changes come with pictures in the pull request.** Screenshots at the
+  device the page is for: a phone viewport for the Q&A and other attendee
+  pages, a desktop stage screen (1920×1080) for the presenter view. A UX
+  change (motion, an interaction) gets a short clip instead: a few seconds
+  showing only that change, recorded against invented demo data, never real
+  attendee questions. Attach them to the pull request, not the repository.
+  `playwright-cli video-start <file> --size=<viewport>` records at the
+  viewport's size (without `--size` the page is shrunk into 800×800).
 - A local pre-commit hook (in `.git/hooks`, untracked) runs `eslint --fix` on
   staged `api/` files and re-stages the fixes.
 - **Worktrees bootstrap themselves.** `.worktreeinclude` copies the

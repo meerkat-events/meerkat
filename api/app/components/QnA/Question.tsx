@@ -178,10 +178,7 @@ export function Question(
   ];
 
   return (
-    <li
-      key={`${question.uid}-${question.question}`}
-      className={classNames.join(" ")}
-    >
+    <li className={classNames.join(" ")}>
       {isSelected && (
         <div className="question-card-status">
           <Icon as={FiRadio} />

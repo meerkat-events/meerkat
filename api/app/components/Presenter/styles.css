@@ -53,6 +53,8 @@ html:has(.page) {
       /* Room for the status indicator and the answering question's outline
          and shadow, which main's overflow would otherwise cut off */
       padding: 1.25rem 0 1.5rem;
+      /* The questions' offsetParent, for useListAnimation */
+      position: relative;
       display: flex;
       flex-flow: column nowrap;
       gap: 2rem;
