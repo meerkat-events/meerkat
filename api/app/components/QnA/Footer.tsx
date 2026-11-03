@@ -82,7 +82,8 @@ export function Footer({
   });
 
   const submitQuestion = () => {
-    if (question) {
+    // Without the event there is nothing to post to: the mutation has no key.
+    if (question && event) {
       trigger({
         question,
       });
