@@ -305,10 +305,10 @@ function QnAPage() {
   };
 
   // Organizers and moderators of this conference get the moderation actions.
-  const canModerateHere =
-    roles?.some((role) =>
-      canModerate(role) && role.conferenceId === event?.conferenceId
-    ) ?? false;
+  const moderatingRole = roles?.filter(canModerate).find((role) =>
+    role.conferenceId === event?.conferenceId
+  )?.role;
+  const canModerateHere = moderatingRole !== undefined;
 
   // An attendees-only conference lets only people with a role there (the
   // Devcon handover or an invitation) ask, vote and react.
@@ -570,6 +570,7 @@ function QnAPage() {
           isMe: selectedAuthor.id === user?.id,
         }}
         onClose={() => setSelectedAuthor(undefined)}
+        moderatingRole={moderatingRole}
         onLogout={() => {
           setSelectedAuthor(undefined);
           setIsLogoutOpen(true);

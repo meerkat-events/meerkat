@@ -10,8 +10,12 @@ export type ConferenceRole = {
   grantedAt: Date;
 };
 
+export type ModeratingRole = "organizer" | "moderator";
+
 /** Organizers and moderators moderate the Q&A; only organizers see /manage. */
-export const canModerate = (role: ConferenceRole) =>
+export const canModerate = (
+  role: ConferenceRole,
+): role is ConferenceRole & { role: ModeratingRole } =>
   role.role === "organizer" || role.role === "moderator";
 
 /** Where someone lands after signing in, by their roles. */

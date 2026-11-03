@@ -1,4 +1,5 @@
 import {
+  Badge,
   Box,
   Button,
   CloseButton,
@@ -10,7 +11,9 @@ import {
   VisuallyHidden,
 } from "@chakra-ui/react";
 import { useRef } from "react";
+import { LuShieldCheck } from "react-icons/lu";
 import { tapTargetStyles } from "../../theme/index.ts";
+import type { ModeratingRole } from "../../hooks/use-conference-roles.ts";
 import { MeerkatMascot } from "../QnA/MeerkatMascot.tsx";
 import { useParticipant } from "../../hooks/use-participant.ts";
 import type { Participant, PointsScoring } from "../../types.ts";
@@ -24,6 +27,11 @@ export type ParticipantDetailsProps = {
   onClose: () => void;
   /** Offered on the user's own profile. */
   onLogout?: (() => void) | undefined;
+  /**
+   * The user's role if they moderate this conference, shown on their own
+   * profile so moderators can tell that they are moderating.
+   */
+  moderatingRole?: ModeratingRole | undefined;
 };
 
 const plural = (count: number, singular: string, plural: string) =>
@@ -34,7 +42,8 @@ const plural = (count: number, singular: string, plural: string) =>
  * their name on a question. Their points are fetched only while it's open.
  */
 export function ParticipantDetails(
-  { conferenceId, selected, onClose, onLogout }: ParticipantDetailsProps,
+  { conferenceId, selected, onClose, onLogout, moderatingRole }:
+    ParticipantDetailsProps,
 ) {
   // Focus starts on Close rather than the first button, which on the user's
   // own profile would be Log out
@@ -64,7 +73,11 @@ export function ParticipantDetails(
             style={tier !== null ? tierPaletteStyle(tier) : undefined}
           >
             {selected && (
-              <Details conferenceId={conferenceId} {...selected} />
+              <Details
+                conferenceId={conferenceId}
+                {...selected}
+                moderatingRole={selected.isMe ? moderatingRole : undefined}
+              />
             )}
             {selected?.isMe && onLogout && (
               <Dialog.Footer paddingTop="0">
@@ -90,8 +103,8 @@ export function ParticipantDetails(
 }
 
 function Details(
-  { conferenceId, userId, name, isMe }:
-    & { conferenceId: number | undefined }
+  { conferenceId, userId, name, isMe, moderatingRole }:
+    & Pick<ParticipantDetailsProps, "conferenceId" | "moderatingRole">
     & NonNullable<ParticipantDetailsProps["selected"]>,
 ) {
   const { data, scoring, error, isLoading } = useParticipant(
@@ -130,6 +143,7 @@ function Details(
             </Text>
           )}
         </Dialog.Title>
+        {moderatingRole && <ModeratorBadge role={moderatingRole} />}
         {tier !== null && data && (
           <Dialog.Description textStyle="sm" color="fg.muted">
             <Text
@@ -182,6 +196,23 @@ function Details(
           : <PointsBreakdown participant={data} scoring={scoring} />}
       </Dialog.Body>
     </>
+  );
+}
+
+/** Tells organizers and moderators that they moderate this Q&A. */
+function ModeratorBadge({ role }: { role: ModeratingRole }) {
+  return (
+    <Badge
+      size="md"
+      variant="solid"
+      colorPalette="green"
+      borderRadius="full"
+      paddingX="2.5"
+      marginBottom="1"
+    >
+      <LuShieldCheck aria-hidden="true" />
+      {role === "organizer" ? "Organizer" : "Moderator"}
+    </Badge>
   );
 }
 
