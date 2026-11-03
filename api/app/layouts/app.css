@@ -129,10 +129,7 @@ ul {
 .question-list > [data-rising] {
   z-index: 1;
   background-color: var(--page-surface);
-  background-image: linear-gradient(
-    var(--chakra-colors-bg-panel),
-    var(--chakra-colors-bg-panel)
-  );
+  background-image: linear-gradient(var(--card-tint), var(--card-tint));
 }
 
 /* QuestionsSection sets --pinned-fade from the scroll position. */
@@ -141,9 +138,11 @@ ul {
 }
 
 /* Question card: full-width text, then a meta row with the author and the
-   (organizer) options on the left and the vote pill on the right. */
+   (organizer) options on the left and the vote pill on the right. Its tint
+   is --card-tint, which a card moving up also paints (data-rising). */
 .question-card {
-  background-color: var(--chakra-colors-bg-panel);
+  --card-tint: var(--chakra-colors-bg-panel);
+  background-color: var(--card-tint);
   border-radius: 15px;
   border: 1px solid transparent;
   padding: 0.75rem 0.75rem 0.75rem 1rem;
@@ -156,7 +155,7 @@ ul {
 
 /* Let the themed page background show through on light themes. */
 .light .question-card {
-  background-color: color-mix(
+  --card-tint: color-mix(
     in srgb,
     var(--chakra-colors-bg-panel) 80%,
     transparent
@@ -167,7 +166,7 @@ ul {
    of the page, and a faint lighter edge keeps cards distinct without relying
    on color. (Before .selected so its border still wins.) */
 .dark .question-card {
-  background-color: color-mix(
+  --card-tint: color-mix(
     in srgb,
     var(--chakra-colors-brand-400) 18%,
     transparent
