@@ -37,6 +37,7 @@ import {
 import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
 import { type ReactionEmoji, toReactionEmoji } from "../../reactions.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
+import { canParticipate } from "../lib/participation.ts";
 import { uuidv7 } from "uuidv7";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
@@ -315,8 +316,11 @@ function QnAPage() {
   const isAttendeesOnly = !!event?.conference.features[ATTENDEES_ONLY_FEATURE];
   const hasRoleHere =
     roles?.some((role) => role.conferenceId === event?.conferenceId) ?? false;
-  const canParticipate = isAuthenticated &&
-    (!isAttendeesOnly || hasRoleHere);
+  const mayParticipate = canParticipate({
+    event,
+    isAuthenticated,
+    hasRoleHere,
+  });
   // Guests see the prompt once auth has loaded; signed-in users only once
   // their roles are in, so a role holder never sees it flash.
   const showDevconPrompt = isAttendeesOnly &&
@@ -498,7 +502,7 @@ function QnAPage() {
             questions={questions}
             canModerate={canModerateHere}
             refresh={refresh}
-            canVote={canParticipate}
+            canVote={mayParticipate}
             isLoading={isQuestionsLoading}
             supervotes={supervoteWeight
               ? {
@@ -515,7 +519,7 @@ function QnAPage() {
           <div className="react-bubble">
             <ReactButton
               ref={reactButtonRef}
-              disabled={!canParticipate}
+              disabled={!mayParticipate}
               onReact={onReactClick}
             />
           </div>
@@ -524,7 +528,7 @@ function QnAPage() {
             user={user}
             isUserLoading={isLoading}
             isAuthenticated={isAuthenticated}
-            canParticipate={canParticipate}
+            canParticipate={mayParticipate}
             showDevconPrompt={showDevconPrompt}
             refresh={refresh}
             onProfileOpen={openOwnProfile}
