@@ -1454,7 +1454,7 @@
   }
 }
 
-/* ---------- moderation (analytics) ---------- */
+/* ---------- moderation ---------- */
 .m-moderation {
   display: flex;
   flex-direction: column;
@@ -1543,12 +1543,58 @@
   }
 }
 
+/* ---------- analytics ---------- */
+/* Two cards side by side: reactions and supervotes, top sessions and contributors. */
+.m-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+
+  & .m-table table {
+    min-width: 0;
+  }
+
+  & .m-table .rank {
+    width: 1%;
+    color: var(--m-ink-3);
+  }
+}
+
+.m-analytics-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+
+  & h2 {
+    margin: 0 0 2px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  & .m-tile {
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: var(--m-surface-2);
+  }
+
+  & .m-tile .value {
+    font-size: 30px;
+  }
+}
+
+.m-tiles.m-tiles-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 @media (max-width: 760px) {
   .m-moderation .m-tiles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .m-moderation-charts {
+  .m-moderation-charts,
+  .m-analytics-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -1610,6 +1656,10 @@
     width: 1%;
     text-align: right;
     white-space: nowrap;
+  }
+
+  /* Numbers only: the column headers keep the header style above. */
+  & td.n {
     font-size: 14px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;

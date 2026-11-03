@@ -98,6 +98,7 @@ export function QuestionTable(
                   {states.includes("autoHidden") && (
                     <span className="tag flagged">Auto-hidden</span>
                   )}
+                  {states.includes("restored") && <span className="tag">Restored</span>}
                   {states.includes("review") && <span className="tag review">Review</span>}
                   {states.includes("hidden") && <span className="tag">Hidden</span>}
                   {states.includes("answering") && (
@@ -105,7 +106,8 @@ export function QuestionTable(
                   )}
                   {states.includes("answered") && <span className="tag">Answered</span>}
                 </span>
-                {(states.includes("autoHidden") || states.includes("review")) &&
+                {(states.includes("autoHidden") || states.includes("restored") ||
+                  states.includes("review")) &&
                   reasonText(q.moderation) && (
                   <span className="reason">{reasonText(q.moderation)}</span>
                 )}

@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { events, questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
 import { tierFor } from "../tiers.ts";
@@ -103,4 +103,39 @@ export async function getParticipantPoints(
     tier: points > 0 ? tierFor(ahead + 1, scores.size) : null,
     contributors: scores.size,
   };
+}
+
+/**
+ * The participants with the most points at a conference, most first, for
+ * organizers (attendees see no leaderboard). Ties go to who was picked more.
+ */
+export async function getTopContributors(conferenceId: number, limit: number) {
+  const askers = await getAskerStats(conferenceId);
+  const top = askers
+    .map((asker) => ({
+      ...asker,
+      points: asker.picked * SCORING.picked + asker.votesReceived * SCORING.vote,
+    }))
+    .filter((asker) => asker.points > 0)
+    .sort((a, b) => b.points - a.points || b.picked - a.picked)
+    .slice(0, limit);
+  if (top.length === 0) return [];
+
+  const people = await db
+    .select({ id: users.id, userMetadata: users.userMetadata })
+    .from(users)
+    .where(inArray(users.id, top.map((asker) => asker.userId)))
+    .execute();
+  const nameOf = (userId: string) => {
+    const metadata = people.find((person) => person.id === userId)?.userMetadata;
+    return (metadata?.["name"] as string | undefined) ?? userId;
+  };
+
+  return top.map((asker) => ({
+    userId: asker.userId,
+    name: nameOf(asker.userId),
+    points: asker.points,
+    picked: asker.picked,
+    votesReceived: asker.votesReceived,
+  }));
 }

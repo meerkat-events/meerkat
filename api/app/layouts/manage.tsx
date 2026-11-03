@@ -165,6 +165,7 @@ export default function ManageLayout() {
           <NavLink to={conferencePath("/manage")} end>Live question feed</NavLink>
           <NavLink to={conferencePath("/manage/schedule")}>Schedule</NavLink>
           <NavLink to={conferencePath("/manage/analytics")}>Analytics</NavLink>
+          <NavLink to={conferencePath("/manage/moderation")}>Moderation</NavLink>
           <NavLink to={conferencePath("/manage/permissions")}>Permissions</NavLink>
         </nav>
         <SessionSearch key={context.conferenceId} sessions={sessions ?? []} />

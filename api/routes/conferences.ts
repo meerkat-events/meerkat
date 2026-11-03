@@ -29,7 +29,12 @@ import {
   getConferenceUserActivity,
 } from "../models/conference-activity.ts";
 import { summarizeModeration } from "../moderation-summary.ts";
-import { getParticipantPoints, SCORING } from "../models/points.ts";
+import {
+  getParticipantPoints,
+  getTopContributors,
+  SCORING,
+} from "../models/points.ts";
+import { isSupervotesEnabled } from "../models/supervotes.ts";
 import { hub } from "../realtime/index.ts";
 import { eventStream } from "../realtime/sse.ts";
 
@@ -104,16 +109,31 @@ const toApiQuestion = (
     : undefined,
 });
 
-const conferenceQuestionsQuery = zod.object({
+// A time window, e.g. one day in the organizer's time zone, which only the
+// browser knows: `from` inclusive, `to` exclusive, ISO 8601 with an offset.
+const timeWindowQuery = zod.object({
+  from: zod.iso.datetime({ offset: true }).optional(),
+  to: zod.iso.datetime({ offset: true }).optional(),
+});
+
+const toTimeWindow = ({ from, to }: zod.infer<typeof timeWindowQuery>) => ({
+  from: from ? new Date(from) : undefined,
+  to: to ? new Date(to) : undefined,
+});
+
+const conferenceQuestionsQuery = timeWindowQuery.extend({
   live: zod.enum(["true", "false"]).optional(),
   event: zod.string().min(1).optional(),
   hidden: zod.enum(["true", "false"]).optional(),
+  moderated: zod.enum(["true", "false"]).optional(),
   limit: zod.coerce.number().int().min(1).max(1000).optional(),
 });
 
 // Questions from every session of a conference (or only the live ones, or one
 // session), for the organizer question feed. `hidden=true` also returns what
-// organizers or automatic moderation hid, so they can review it.
+// organizers or automatic moderation hid, so they can review it;
+// `moderated=true` returns only what automatic moderation hid or marked for
+// review, and `from`/`to` only questions asked in that window.
 app.get(
   "/api/v1/conferences/:id/questions",
   jwt(),
@@ -123,11 +143,13 @@ app.get(
       c.req.param("id"),
       c.get("jwtPayload").sub,
     );
-    const { live, event, hidden, limit } = c.req.valid("query");
+    const { live, event, hidden, moderated, limit, ...window } = c.req.valid("query");
 
     const questions = await getConferenceQuestions(conference.id, {
       live: live === "true",
       includeHidden: hidden === "true",
+      moderated: moderated === "true",
+      asked: toTimeWindow(window),
       ...(event ? { eventUid: event } : {}),
       ...(limit ? { limit } : {}),
     });
@@ -157,19 +179,31 @@ app.get("/api/v1/conferences/:id/questions/stream", async (c) => {
 });
 
 // Activity totals for the organizer dashboard: the whole conference and each
-// session (questions, votes, reactions, participants).
-app.get("/api/v1/conferences/:id/stats", jwt(), async (c) => {
-  const conference = await requireOrganizer(
-    c.req.param("id"),
-    c.get("jwtPayload").sub,
-  );
+// session (questions, votes, reactions, participants, supervotes), and what
+// automatic moderation did. `from`/`to` count only what happened in that window.
+// `topContributors` ranks points, which add up over the whole conference.
+app.get(
+  "/api/v1/conferences/:id/stats",
+  jwt(),
+  zValidator("query", timeWindowQuery),
+  async (c) => {
+    const conference = await requireOrganizer(
+      c.req.param("id"),
+      c.get("jwtPayload").sub,
+    );
 
-  const stats = await getConferenceStats(conference.id, {
-    moderationEnabled: conference.moderation !== null,
-  });
+    const [stats, topContributors] = await Promise.all([
+      getConferenceStats(conference.id, {
+        moderationEnabled: conference.moderation !== null,
+        supervotesEnabled: await isSupervotesEnabled(conference.id),
+        window: toTimeWindow(c.req.valid("query")),
+      }),
+      getTopContributors(conference.id, 10),
+    ]);
 
-  return c.json({ data: stats });
-});
+    return c.json({ data: { ...stats, topContributors } });
+  },
+);
 
 // One person's history in this conference, so moderators can check who they
 // are before blocking them.

@@ -5,6 +5,7 @@ import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
 import { apiUrl } from "../lib/api-url.ts";
 import type { ModeratedQuestion } from "../components/Manage/question-state.ts";
+import type { TimeWindow } from "./use-conference-stats.ts";
 
 export type ConferenceQuestion = ModeratedQuestion & {
   event: { id: number; uid: string; title: string; stage: string };
@@ -20,13 +21,25 @@ export type ConferenceQuestion = ModeratedQuestion & {
  */
 export function useConferenceQuestions(
   conferenceId: number | undefined,
-  scope: { live: true } | { event: string },
+  scope:
+    | { live: true }
+    | { event: string }
+    // What automatic moderation hid or marked for review, of every session,
+    // asked in the window if there is one.
+    | { moderated: true; window?: TimeWindow | undefined },
 ) {
   const { session } = useAuth();
   const token = session?.access_token;
   const filter = "live" in scope
     ? "live=true"
-    : `event=${encodeURIComponent(scope.event)}`;
+    : "event" in scope
+    ? `event=${encodeURIComponent(scope.event)}`
+    : new URLSearchParams({
+      moderated: "true",
+      ...(scope.window
+        ? { from: scope.window.from.toISOString(), to: scope.window.to.toISOString() }
+        : {}),
+    }).toString();
 
   const { data, error, isLoading, mutate } = useSWR<
     { data: ConferenceQuestion[] },
