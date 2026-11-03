@@ -327,7 +327,7 @@ its CSS, callers pass the items' uids joined, nothing moves with
   (`api/tiers.ts`: top 0.1/1/10/25%) rank against everyone who asked or
   voted; ties share the better tier, 0 points has none, and nobody has one
   below `MIN_CONTRIBUTORS` (20) contributors. Attendees see no
-  leaderboard (organizers get the top 10 on Analytics,
+  leaderboard (organizers get the top 10 on Analytics under "All days",
   `getTopContributors`): `GET /api/v1/conferences/:id/participants/:userId` (signed-in
   users only) returns one person, fetched when their name on a question is
   tapped (names aren't tappable for guests), and for the

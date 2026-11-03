@@ -78,6 +78,8 @@ export default function Analytics() {
   const supervotes = stats?.supervotes;
   const contributors = stats?.topContributors ?? [];
   const scope = day === ALL_DAYS ? "across every day" : `on ${fmtDay(startOfDay(day), true)}`;
+  // Points add up over the whole conference, so they don't belong to one day.
+  const showContributors = day === ALL_DAYS;
 
   return (
     <div className="m-dash">
@@ -143,7 +145,7 @@ export default function Analytics() {
         </section>
       </div>
 
-      <div className="m-analytics-grid">
+      <div className={showContributors ? "m-analytics-grid" : undefined}>
         <section className="m-card m-table" aria-label={`Top ${TOP} sessions`}>
           <div className="m-table-head">
             <div>
@@ -205,57 +207,59 @@ export default function Analytics() {
           </div>
         </section>
 
-        <section className="m-card m-table" aria-label={`Top ${TOP} contributors`}>
-          <div className="m-table-head">
-            <div>
-              <h2 style={{ fontSize: 16 }}>Top {TOP} contributors</h2>
-              <span className="m-hint">
-                Points across the whole conference: 5 per question picked, 1 per vote received
-              </span>
+        {showContributors && (
+          <section className="m-card m-table" aria-label={`Top ${TOP} contributors`}>
+            <div className="m-table-head">
+              <div>
+                <h2 style={{ fontSize: 16 }}>Top {TOP} contributors</h2>
+                <span className="m-hint">
+                  Points across the whole conference: 5 per question picked, 1 per vote received
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col" className="n">#</th>
-                  <th scope="col">Name</th>
-                  <th scope="col" className="n">Points</th>
-                  <th scope="col" className="n">Picked</th>
-                  <th scope="col" className="n">Votes received</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contributors.map((person, index) => (
-                  <tr key={person.userId} onClick={() => openPerson(person.userId)}>
-                    <td className="n rank">{index + 1}</td>
-                    <td>
-                      <div className="title">
-                        <button
-                          type="button"
-                          className="m-person-link"
-                          title="See their questions and sessions"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            openPerson(person.userId);
-                          }}
-                        >
-                          {person.name}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="n">{num(person.points)}</td>
-                    <td className="n">{num(person.picked)}</td>
-                    <td className="n">{num(person.votesReceived)}</td>
+            <div className="scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col" className="n">#</th>
+                    <th scope="col">Name</th>
+                    <th scope="col" className="n">Points</th>
+                    <th scope="col" className="n">Picked</th>
+                    <th scope="col" className="n">Votes received</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {stats && contributors.length === 0 && (
-              <div className="m-empty">Nobody has points yet.</div>
-            )}
-          </div>
-        </section>
+                </thead>
+                <tbody>
+                  {contributors.map((person, index) => (
+                    <tr key={person.userId} onClick={() => openPerson(person.userId)}>
+                      <td className="n rank">{index + 1}</td>
+                      <td>
+                        <div className="title">
+                          <button
+                            type="button"
+                            className="m-person-link"
+                            title="See their questions and sessions"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              openPerson(person.userId);
+                            }}
+                          >
+                            {person.name}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="n">{num(person.points)}</td>
+                      <td className="n">{num(person.picked)}</td>
+                      <td className="n">{num(person.votesReceived)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {stats && contributors.length === 0 && (
+                <div className="m-empty">Nobody has points yet.</div>
+              )}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

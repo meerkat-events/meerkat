@@ -1554,11 +1554,12 @@
   & .m-table table {
     min-width: 0;
   }
+}
 
-  & .m-table .rank {
-    width: 1%;
-    color: var(--m-ink-3);
-  }
+/* A top 10's position column. */
+.m-table .rank {
+  width: 1%;
+  color: var(--m-ink-3);
 }
 
 .m-analytics-card {
