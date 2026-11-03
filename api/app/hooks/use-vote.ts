@@ -3,6 +3,7 @@ import useSWRMutation from "swr/mutation";
 import { cooldownFor, UserContext } from "../context/user.tsx";
 import { poster } from "./fetcher.ts";
 import type { HTTPError } from "./http-error.ts";
+import { rateLimitedMutationOptions } from "./rate-limited-mutation.ts";
 import { useAuth } from "./use-auth.ts";
 
 export function useVote(
@@ -19,15 +20,12 @@ export function useVote(
     (path: string, { arg }: { arg: Record<string, unknown> }) =>
       poster(path, { arg }, session?.access_token),
     {
+      ...rateLimitedMutationOptions({
+        onRateLimited: (error) => setCooldown(cooldownFor("vote", error)),
+        onError,
+      }),
       onSuccess: () => {
         onSuccess?.();
-      },
-      onError: (error) => {
-        if (error.status === 429) {
-          setCooldown(cooldownFor("vote", error));
-        } else {
-          onError?.(error);
-        }
       },
     },
   );
