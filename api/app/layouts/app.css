@@ -121,6 +121,20 @@ ul {
   );
 }
 
+/* A question moving up passes over the ones making room for it
+   (useListAnimation marks it while it moves). Cards can be see-through, so
+   while it moves its tint sits on the plain page color instead, and the text
+   it passes doesn't show through its own. Not a backdrop-filter: the list's
+   mask leaves that nothing to blur. */
+.question-list > [data-rising] {
+  z-index: 1;
+  background-color: var(--page-surface);
+  background-image: linear-gradient(
+    var(--chakra-colors-bg-panel),
+    var(--chakra-colors-bg-panel)
+  );
+}
+
 /* QuestionsSection sets --pinned-fade from the scroll position. */
 .question-pinned + .question-list {
   --top-fade: var(--pinned-fade, 0px);

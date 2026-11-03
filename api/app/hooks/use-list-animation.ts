@@ -14,7 +14,9 @@ const EASING = "ease-out";
  * the ones below it slide up into the gap.
  *
  * Put the returned ref on the list; its direct children are the items, and
- * the list must be their offsetParent (position: relative in its CSS).
+ * the list must be their offsetParent (position: relative in its CSS). An
+ * item moving up is marked `data-rising` while it moves, for the list's CSS
+ * to paint it above the others.
  * `itemKeys` identifies the items in order (their uids joined), so the list
  * is measured only when they change. Items are told apart by their DOM node,
  * so their React keys must be stable. The items on the list's first render
@@ -80,13 +82,18 @@ export function useListAnimation<ListElement extends HTMLElement>(
       // Start from where the item shows now, which includes how far a
       // running animation has carried it and how faded in it is.
       const shown = currentlyShown(running, item);
-      startAnimation(running, item, [
+      const animation = startAnimation(running, item, [
         {
           transform: `translateY(${moved + shown.translateY}px)`,
           opacity: shown.opacity,
         },
         { transform: "none", opacity: 1 },
       ]);
+      // An item moving up passes the ones moving down to make room, which
+      // would otherwise paint over it (they come later in the list).
+      if (moved > 0) {
+        raiseWhileRunning(running, item, animation);
+      }
     }
   }, [enter, itemKeys]);
 
@@ -130,11 +137,34 @@ function startAnimation(
   keyframes: Keyframe[],
 ) {
   running.get(item)?.cancel();
+  // Raised only while moving up (raiseWhileRunning), not by an earlier move.
+  delete item.dataset["rising"];
   const animation = item.animate(keyframes, {
     duration: DURATION_MS,
     easing: EASING,
   });
   running.set(item, animation);
+  return animation;
+}
+
+/**
+ * Marks the item `data-rising` until its animation ends, so the list's CSS
+ * can paint it above its siblings. A newer animation that replaced this one
+ * decides for itself, so its mark isn't removed here.
+ */
+function raiseWhileRunning(
+  running: WeakMap<Element, Animation>,
+  item: HTMLElement,
+  animation: Animation,
+) {
+  item.dataset["rising"] = "";
+  const lower = () => {
+    if (running.get(item) === animation) {
+      delete item.dataset["rising"];
+    }
+  };
+  animation.addEventListener("finish", lower);
+  animation.addEventListener("cancel", lower);
 }
 
 /** How far down the item's running animation shows it, in px, and how

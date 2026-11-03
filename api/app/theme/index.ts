@@ -56,6 +56,14 @@ const isColor = (value: string) => {
   }
 };
 
+/** The page background if it is a color, else black or white for its text. */
+function pageSurface(theme: Theme) {
+  if (isColor(theme.background)) {
+    return theme.background;
+  }
+  return getLuminance(theme.textColor) > 0.5 ? "#000000" : "#FFFFFF";
+}
+
 /**
  * The `preferred` brand shade if it has at least `minContrast` against what
  * the theme's content sits on, otherwise the first shade from the base color
@@ -230,6 +238,9 @@ const chakraAdapter = (theme: Theme) => {
     globalCss: {
       html: {
         background: theme.background,
+        // A plain color close to the page background, for surfaces that
+        // must not be see-through (a question card moving over others).
+        "--page-surface": pageSurface(theme),
         // "linear-gradient(360deg, #F6B613 0%, #FF85A6 17%, #9894FF 35%, #74ACDF 64%, #F2F9FF 100%)",
         colorPalette: "brand",
         color: theme.textColor,
