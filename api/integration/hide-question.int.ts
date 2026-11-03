@@ -106,6 +106,29 @@ describe("hiding a question", () => {
     assert.deepEqual((await getPresenterEvent(eventUid)).questions, []);
   });
 
+  test("hiding the question on stage unselects it without answering it", async () => {
+    const selected = await request(
+      "POST",
+      `/api/v1/questions/${questionUid}/select`,
+      { token: moderator.token },
+    );
+    assert.equal(selected.status, 200);
+
+    assert.equal((await hide(moderator)).status, 200);
+
+    const response = await request(
+      "GET",
+      `/api/v1/events/${eventUid}/questions`,
+      { token: author.token },
+    );
+    const { data } = await response.json() as {
+      data: { uid: string; selectedAt: string | null; answeredAt: string | null }[];
+    };
+    assert.equal(data[0]?.uid, questionUid);
+    assert.equal(data[0]?.selectedAt ?? null, null);
+    assert.equal(data[0]?.answeredAt ?? null, null);
+  });
+
   test("an organizer can restore it", async () => {
     assert.equal((await hide(moderator)).status, 200);
 
