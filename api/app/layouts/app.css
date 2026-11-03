@@ -103,7 +103,8 @@ ul {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* The questions' offsetParent, for useListAnimation */
+  /* The questions' offsetParent, for useListAnimation (which also turns
+     the list's scroll anchoring off) */
   position: relative;
   display: flex;
   flex-direction: column;
@@ -121,15 +122,27 @@ ul {
   );
 }
 
+/* A question moving up passes over the ones making room for it, raised by
+   useListAnimation, which marks it data-rising while it moves. Cards can be
+   see-through, so its tint sits on the theme's opaque page surface instead,
+   and the text it passes doesn't show through its own. Not a
+   backdrop-filter: the list's mask leaves that nothing to blur. */
+.question-list > [data-rising] {
+  background-color: var(--page-surface);
+  background-image: linear-gradient(var(--card-tint), var(--card-tint));
+}
+
 /* QuestionsSection sets --pinned-fade from the scroll position. */
 .question-pinned + .question-list {
   --top-fade: var(--pinned-fade, 0px);
 }
 
 /* Question card: full-width text, then a meta row with the author and the
-   (organizer) options on the left and the vote pill on the right. */
+   (organizer) options on the left and the vote pill on the right. Its tint
+   is --card-tint, which a card moving up also paints (data-rising). */
 .question-card {
-  background-color: var(--chakra-colors-bg-panel);
+  --card-tint: var(--chakra-colors-bg-panel);
+  background-color: var(--card-tint);
   border-radius: 15px;
   border: 1px solid transparent;
   padding: 0.75rem 0.75rem 0.75rem 1rem;
@@ -142,7 +155,7 @@ ul {
 
 /* Let the themed page background show through on light themes. */
 .light .question-card {
-  background-color: color-mix(
+  --card-tint: color-mix(
     in srgb,
     var(--chakra-colors-bg-panel) 80%,
     transparent
@@ -153,7 +166,7 @@ ul {
    of the page, and a faint lighter edge keeps cards distinct without relying
    on color. (Before .selected so its border still wins.) */
 .dark .question-card {
-  background-color: color-mix(
+  --card-tint: color-mix(
     in srgb,
     var(--chakra-colors-brand-400) 18%,
     transparent

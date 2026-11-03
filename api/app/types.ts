@@ -2,6 +2,12 @@ export type Theme = {
   brandColor: string;
   contrastColor: string;
   background: string;
+  /**
+   * An opaque color close to the background, for a question card moving
+   * over others. Defaults to the background's colors, mixed (see
+   * pageSurface in theme/index.ts).
+   */
+  surfaceColor?: string;
   textColor: string;
   systemTheme?: "dark" | "light";
   headingFontFamily?: string;

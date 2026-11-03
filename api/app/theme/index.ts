@@ -13,6 +13,7 @@ import {
   transparentize,
 } from "color2k";
 import type { Theme } from "../types.ts";
+import { isColor, pageSurface } from "./surface.ts";
 
 export { meerkat } from "./meerkat.ts";
 export { devconnect } from "./devconnect.ts";
@@ -45,16 +46,6 @@ const LIGHTER_SHADES = [600, 500, 400, 300, 200, 100, 50] as const;
 const TEXT_CONTRAST = 4.5;
 /** WCAG 2.2 minimum contrast for focus rings and icons (1.4.11). */
 const NON_TEXT_CONTRAST = 3;
-
-const isColor = (value: string) => {
-  try {
-    getLuminance(value);
-    return true;
-  } catch {
-    // A gradient or another non-color background
-    return false;
-  }
-};
 
 /**
  * The `preferred` brand shade if it has at least `minContrast` against what
@@ -230,6 +221,9 @@ const chakraAdapter = (theme: Theme) => {
     globalCss: {
       html: {
         background: theme.background,
+        // A plain color close to the page background, for surfaces that
+        // must not be see-through (a question card moving over others).
+        "--page-surface": pageSurface(theme),
         // "linear-gradient(360deg, #F6B613 0%, #FF85A6 17%, #9894FF 35%, #74ACDF 64%, #F2F9FF 100%)",
         colorPalette: "brand",
         color: theme.textColor,
