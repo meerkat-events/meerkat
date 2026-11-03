@@ -57,7 +57,6 @@ export type ConferenceStats = {
   /** Every reaction emoji, most used first. */
   reactions: { emoji: ReactionEmoji; count: number }[];
   supervotes: {
-    enabled: boolean;
     /** Earned by authors whose question was picked. */
     received: number;
     /** Spent on questions. */

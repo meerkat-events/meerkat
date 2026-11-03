@@ -35,7 +35,6 @@ import {
   getTopContributors,
   SCORING,
 } from "../models/points.ts";
-import { isSupervotesEnabled } from "../models/supervotes.ts";
 import { hub } from "../realtime/index.ts";
 import { eventStream } from "../realtime/sse.ts";
 
@@ -197,7 +196,6 @@ app.get(
     const [stats, topContributors] = await Promise.all([
       getConferenceStats(conference.id, {
         moderationEnabled: conference.moderation !== null,
-        supervotesEnabled: await isSupervotesEnabled(conference.id),
         window: toTimeWindow(c.req.valid("query")),
       }),
       getTopContributors(conference.id, 10),

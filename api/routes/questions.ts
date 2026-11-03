@@ -32,7 +32,6 @@ import { tooManyRequests } from "../utils/too-many-requests.ts";
 import logger from "../logger.ts";
 import { notifyQuestionsChanged } from "../realtime/notify.ts";
 import {
-  isSupervotesEnabled,
   spendSupervote,
   SUPERVOTE_WEIGHT,
 } from "../models/supervotes.ts";
@@ -155,11 +154,6 @@ app.post(
     if (hasVoted) {
       await deleteVote(question.id, user.id);
     } else if (weight === SUPERVOTE_WEIGHT) {
-      if (!await isSupervotesEnabled(event.conferenceId)) {
-        throw new HTTPException(403, {
-          message: "Supervotes aren't enabled for this conference",
-        });
-      }
       const isSpent = await spendSupervote(question.id, user.id);
       if (!isSpent) {
         throw new HTTPException(409, { message: "No supervotes left" });
@@ -232,9 +226,7 @@ app.post(
       });
     }
 
-    const result = await selectQuestion(question.id, {
-      earnsSupervote: await isSupervotesEnabled(event.conferenceId),
-    });
+    const result = await selectQuestion(question.id);
 
     if (!result) {
       throw new HTTPException(500, { message: `Failed to select question` });

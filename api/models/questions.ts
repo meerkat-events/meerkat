@@ -150,13 +150,10 @@ export async function getQuestionByUID(uid: string) {
 /**
  * Puts a question on stage and marks the previous selection answered. A
  * question answered before goes back on stage; earlier answers keep their
- * `answeredAt`, so the newest answer stays the newest. With `earnsSupervote`,
- * the author gets a supervote the first time the question is selected.
+ * `answeredAt`, so the newest answer stays the newest. The author gets a
+ * supervote the first time the question is selected.
  */
-export async function selectQuestion(
-  id: number,
-  { earnsSupervote }: { earnsSupervote: boolean },
-) {
+export async function selectQuestion(id: number) {
   const result = await db.transaction(async (tx) => {
     // Locked, so two concurrent selects can't both award the supervote.
     const [previous] = await tx.select({ selectedAt: questions.selectedAt })
@@ -185,7 +182,7 @@ export async function selectQuestion(
       ),
     ).execute();
 
-    if (earnsSupervote && !previous.selectedAt) {
+    if (!previous.selectedAt) {
       await addSupervote(tx, question.userId);
     }
 

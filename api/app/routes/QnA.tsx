@@ -191,10 +191,7 @@ function QnAPage() {
       refreshEvents();
     },
   });
-  const isSupervotesEnabled = !!event?.conference.features["supervotes"];
-  const { data: supervoteData, mutate: refreshSupervotes } = useSupervotes(
-    isSupervotesEnabled,
-  );
+  const { data: supervoteData, mutate: refreshSupervotes } = useSupervotes();
   const { data: roles } = useConferenceRoles();
   const refreshQuestionsRef = useRef(refreshQuestions);
   refreshQuestionsRef.current = refreshQuestions;
@@ -254,10 +251,8 @@ function QnAPage() {
     questions,
     user?.id,
   );
-  // Undefined while supervotes are off for this conference.
-  const supervoteWeight = isSupervotesEnabled
-    ? supervoteData?.weight
-    : undefined;
+  // Undefined until the balance has loaded.
+  const supervoteWeight = supervoteData?.weight;
   const supervoteEarning = useSupervoteEarning({
     available: supervoteData?.available,
     refresh: () => void refreshSupervotes(),

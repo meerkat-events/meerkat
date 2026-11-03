@@ -113,6 +113,13 @@
       "when": 1793764188679,
       "tag": "0015_high_engagement",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793794549098,
+      "tag": "0016_drop_supervotes_feature",
+      "breakpoints": true
     }
   ]
 }

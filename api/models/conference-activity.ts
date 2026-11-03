@@ -154,9 +154,8 @@ type EventCounts = {
  */
 export async function getConferenceStats(
   conferenceId: number,
-  { moderationEnabled, supervotesEnabled, window = {} }: {
+  { moderationEnabled, window = {} }: {
     moderationEnabled: boolean;
-    supervotesEnabled: boolean;
     window?: TimeWindow;
   },
 ) {
@@ -239,17 +238,15 @@ export async function getConferenceStats(
         .execute(),
       // Picking a question earns its author a supervote, the first time only,
       // and `selectedAt` keeps that first pick (models/questions.ts).
-      supervotesEnabled
-        ? db.select({ n: count() })
-          .from(questions)
-          .innerJoin(events, eq(questions.eventId, events.id))
-          .where(and(
-            inConference,
-            isNotNull(questions.selectedAt),
-            within(questions.selectedAt, window),
-          ))
-          .execute()
-        : Promise.resolve([{ n: 0 }]),
+      db.select({ n: count() })
+        .from(questions)
+        .innerJoin(events, eq(questions.eventId, events.id))
+        .where(and(
+          inConference,
+          isNotNull(questions.selectedAt),
+          within(questions.selectedAt, window),
+        ))
+        .execute(),
     ]);
 
   const moderation = tallyModeration(verdictRows, moderationEnabled);
@@ -300,7 +297,6 @@ export async function getConferenceStats(
       }))
       .sort((a, b) => b.count - a.count),
     supervotes: {
-      enabled: supervotesEnabled,
       /** Earned by authors whose question was picked. */
       received: supervotesReceived.at(0)?.n ?? 0,
       /** Spent on questions. */
