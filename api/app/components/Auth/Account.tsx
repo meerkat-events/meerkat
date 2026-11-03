@@ -1,19 +1,17 @@
 import {
   Button,
   Flex,
-  Menu,
-  Portal,
   Text,
   useDisclosure,
   VStack,
 } from "@chakra-ui/react";
-import { FiChevronDown } from "react-icons/fi";
 import { useState } from "react";
 import { useLogout } from "../../hooks/use-logout.ts";
 import { Link } from "react-router";
 import { useModeratedEvents } from "../../hooks/use-moderated-events.ts";
 import { useConferenceRoles } from "../../hooks/use-conference-roles.ts";
 import type { User } from "../../hooks/use-auth.ts";
+import { EventPicker } from "./EventPicker.tsx";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog.tsx";
 import { qa } from "../../routing.ts";
 import { Logo } from "../Logo.tsx";
@@ -31,8 +29,6 @@ export function Account({ user }: AccountProps) {
   const [selectedEventUid, setSelectedEventUid] = useState<string | undefined>(
     undefined,
   );
-
-  const selectedEvent = events?.find((event) => event.uid === selectedEventUid);
 
   const handleJoinEvent = () => {
     if (selectedEventUid) {
@@ -76,34 +72,10 @@ export function Account({ user }: AccountProps) {
                 : events && events.length > 0
                 ? (
                   <VStack gap="1rem" width="100%" maxWidth="20rem">
-                    <Menu.Root positioning={{ placement: "bottom" }}>
-                      <Menu.Trigger asChild>
-                        <Button
-                          width="100%"
-                          variant="outline"
-                          justifyContent="space-between"
-                          colorPalette="gray"
-                        >
-                          {selectedEvent?.title || "Select event"}
-                          <FiChevronDown />
-                        </Button>
-                      </Menu.Trigger>
-                      <Portal>
-                        <Menu.Positioner>
-                          <Menu.Content width="var(--reference-width)">
-                            {events.map((event) => (
-                              <Menu.Item
-                                key={event.uid}
-                                value={event.uid}
-                                onClick={() => setSelectedEventUid(event.uid)}
-                              >
-                                {event.title}
-                              </Menu.Item>
-                            ))}
-                          </Menu.Content>
-                        </Menu.Positioner>
-                      </Portal>
-                    </Menu.Root>
+                    <EventPicker
+                      events={events}
+                      onSelect={setSelectedEventUid}
+                    />
 
                     <Button
                       width="100%"
