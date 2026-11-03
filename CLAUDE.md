@@ -590,6 +590,14 @@ values such as `site_url` and the redirect URLs stay commented. Always run
   ```
   `modify` and `switch` are interactive; move with `gh stack up`, `down` or
   `checkout <branch>` instead.
+- **UI changes come with pictures in the pull request.** Screenshots at the
+  device the page is for: a phone viewport for the Q&A and other attendee
+  pages, a desktop stage screen (1920×1080) for the presenter view. A UX
+  change (motion, an interaction) gets a short clip instead: a few seconds
+  showing only that change, recorded against invented demo data, never real
+  attendee questions. Attach them to the pull request, not the repository.
+  `playwright-cli video-start <file> --size=<viewport>` records at the
+  viewport's size (without `--size` the page is shrunk into 800×800).
 - A local pre-commit hook (in `.git/hooks`, untracked) runs `eslint --fix` on
   staged `api/` files and re-stages the fixes.
 - **Worktrees bootstrap themselves.** `.worktreeinclude` copies the
