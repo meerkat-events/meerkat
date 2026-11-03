@@ -3,6 +3,7 @@ import useSWRMutation from "swr/mutation";
 import { cooldownFor, UserContext } from "../context/user.tsx";
 import { poster } from "./fetcher.ts";
 import type { HTTPError } from "./http-error.ts";
+import { rateLimitedMutationOptions } from "./rate-limited-mutation.ts";
 import { useAuth } from "./use-auth.ts";
 import type { ReactionEmoji } from "../../reactions.ts";
 
@@ -20,15 +21,10 @@ export function useReact(
     `/api/v1/events/${uid}/react`,
     (path: string, { arg }: { arg: Record<string, unknown> }) =>
       poster(path, { arg }, session?.access_token),
-    {
-      onError: (error) => {
-        if (error.status === 429) {
-          setCooldown(cooldownFor("reaction", error));
-        } else {
-          onError?.(error);
-        }
-      },
-    },
+    rateLimitedMutationOptions({
+      onRateLimited: (error) => setCooldown(cooldownFor("reaction", error)),
+      onError,
+    }),
   );
 
   return {

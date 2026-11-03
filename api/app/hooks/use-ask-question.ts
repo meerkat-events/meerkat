@@ -4,6 +4,7 @@ import type { Event, Question } from "../types.ts";
 import { useContext } from "react";
 import { cooldownFor, UserContext } from "../context/user.tsx";
 import { HTTPError } from "./http-error.ts";
+import { rateLimitedMutationOptions } from "./rate-limited-mutation.ts";
 import { useAuth } from "./use-auth.ts";
 
 export const useAskQuestion = (event: Event | undefined, {
@@ -21,15 +22,12 @@ export const useAskQuestion = (event: Event | undefined, {
     event ? `/api/v1/events/${event.uid}/questions` : undefined,
     (path, { arg }) => poster(path, { arg }, session?.access_token),
     {
+      ...rateLimitedMutationOptions({
+        onRateLimited: (error) => setCooldown(cooldownFor("question", error)),
+        onError,
+      }),
       onSuccess: () => {
         onSuccess();
-      },
-      onError: (error) => {
-        if (error.status === 429) {
-          setCooldown(cooldownFor("question", error));
-        } else {
-          onError(error);
-        }
       },
     },
   );
