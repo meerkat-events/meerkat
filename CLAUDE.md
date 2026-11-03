@@ -365,7 +365,7 @@ its CSS, callers pass the items' uids joined, nothing moves with
   flagged (`moderated=true`). Analytics and Moderation filter by a day in
   the organizer's time zone: the browser sends `from`/`to`, and counts cover
   what happened in that window (questions asked, votes and reactions given).
-  A moderator's "Hide Question" (`POST /api/v1/questions/:uid/hide`) sets
+  A moderator's "Spam" action (`POST /api/v1/questions/:uid/hide`) sets
   `hidden_at` the same way, so its author keeps seeing the question and an
   organizer can restore it; the management pages call a hidden question
   "Auto-hidden" when its verdict is "hide" and "Hidden" otherwise. It

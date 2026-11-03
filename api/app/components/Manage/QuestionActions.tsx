@@ -1,11 +1,11 @@
 import {
+  FiAlertOctagon as SpamIcon,
   FiCheckCircle as CheckCircleIcon,
-  FiEyeOff as HideIcon,
   FiMoreHorizontal,
+  FiRadio,
   FiRotateCcw as RestoreIcon,
   FiStopCircle as NotAllowedIcon,
 } from "react-icons/fi";
-import { RxCursorArrow } from "react-icons/rx";
 import { Box, Icon, IconButton, Menu, Portal } from "@chakra-ui/react";
 import { useMarkAsAnswered } from "../../hooks/use-mark-as-answered.ts";
 import { useHideQuestion } from "../../hooks/use-hide-question.ts";
@@ -80,26 +80,26 @@ export function QuestionActions(
                   <Menu.Item
                     value="select"
                     onClick={() =>
-                      run(() => selectQuestion(), "Question selected ✅")}
+                      run(() => selectQuestion(), "Question highlighted ✅")}
                   >
-                    <Icon as={RxCursorArrow} mr="2" />
-                    <Box as="span">Select for Answering</Box>
+                    <Icon as={FiRadio} mr="2" />
+                    <Box as="span">Highlight</Box>
                   </Menu.Item>
                   <Menu.Item
                     value="answer"
                     onClick={() =>
-                      run(() => markAsAnswered(), "Question marked as answered ✅")}
+                      run(() => markAsAnswered(), "Question answered ✅")}
                   >
                     <Icon as={CheckCircleIcon} mr="2" />
-                    <Box as="span">Mark as Answered</Box>
+                    <Box as="span">Answered</Box>
                   </Menu.Item>
                   <Menu.Item
                     value="hide"
                     onClick={() =>
-                      run(() => hideQuestion(), "Question hidden, only its author sees it")}
+                      run(() => hideQuestion(), "Marked as spam, only its author sees it")}
                   >
-                    <Icon as={HideIcon} mr="2" />
-                    <Box as="span">Hide Question</Box>
+                    <Icon as={SpamIcon} mr="2" />
+                    <Box as="span">Spam</Box>
                   </Menu.Item>
                 </>
               )}
