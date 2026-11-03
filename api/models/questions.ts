@@ -224,12 +224,15 @@ export function deleteQuestion(id: number) {
 
 /**
  * Hides a question for a moderator the way automatic moderation does: only
- * its author still sees it, and an organizer can restore it. Hiding an
+ * its author still sees it, and an organizer can restore it. Hiding also
+ * unselects it, never answers it: the question on stage leaves the stage,
+ * for its author too, and doesn't return there when restored. Hiding an
  * already hidden question keeps the time it was first hidden.
  */
 export async function hideQuestion(id: number) {
   const [hidden] = await db.update(questions).set({
     hiddenAt: new Date(),
+    selectedAt: null,
   }).where(
     and(eq(questions.id, id), isNull(questions.hiddenAt)),
   ).returning().execute();
