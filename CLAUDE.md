@@ -313,6 +313,9 @@ its CSS, callers pass the items' uids joined, nothing moves with
   `Retry-After` for limits over a time window (`utils/too-many-requests.ts`),
   and the frontend shows a cooldown modal with the reason and the time left
   (`UserContext.cooldown`).
+- **Nobody votes for their own question**, neither a vote nor a supervote:
+  the upvote route answers 403 (after the attendees-only check, before the
+  rate limits) and the Q&A page disables the pill on the user's own questions.
 - **Votes are weighted**: `votes.weight` is 1, or `SUPERVOTE_WEIGHT` (3) for
   a supervote. A question's vote total is the sum of the weights; every
   query that shows one uses `voteTotal`/`voteTotalOf` from `models/votes.ts`,

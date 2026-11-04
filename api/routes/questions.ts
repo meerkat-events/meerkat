@@ -109,6 +109,13 @@ app.post(
       throw new HTTPException(403, { message: ATTENDEES_ONLY_MESSAGE });
     }
 
+    // Votes, supervotes above all, are for other people's questions.
+    if (question.userId === user.id) {
+      throw new HTTPException(403, {
+        message: "You can't vote for your own question",
+      });
+    }
+
     const minuteAgo = dateDeductedMinutes(1);
     const recentVotes = await getUserVoteTimesAfterDate(
       user.id,

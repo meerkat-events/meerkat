@@ -503,6 +503,7 @@ function QnAPage() {
             canModerate={canModerateHere}
             refresh={refresh}
             canVote={mayParticipate}
+            userId={user?.id}
             isLoading={isQuestionsLoading}
             supervotes={supervoteWeight
               ? {
