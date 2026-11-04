@@ -63,6 +63,7 @@ import { tapTargetStyles } from "../theme/index.ts";
 import { TierCelebration } from "../components/Points/TierCelebration.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
+import { type QuestionSort, useQuestionSort } from "../hooks/use-question-sort.ts";
 import { splitAnswering } from "../lib/questions.ts";
 import {
   HANDOVER_ERROR_MESSAGES,
@@ -111,10 +112,7 @@ export function clientLoader({ request }: Route.ClientLoaderArgs) {
   return null;
 }
 
-const parseSort = (sort: string): "newest" | "popular" =>
-  sort === "popular" ? "popular" : "newest";
-
-const sortOptions = [
+const sortOptions: { label: string; value: QuestionSort }[] = [
   { label: "Popular", value: "popular" },
   { label: "Newest", value: "newest" },
 ];
@@ -148,10 +146,13 @@ function QnAPage() {
   );
   useDocumentTitle(pageTitle(event));
 
-  const sort = parseSort(searchParams.get("sort") ?? "newest");
-  const sortLabel = sortOptions.find((option) => option.value === sort)?.label;
+  const [sort, changeSort] = useQuestionSort();
+  // Until the stored sort is known the list is loading; the control shows
+  // the default meanwhile.
+  const shownSort = sort ?? "newest";
+  const sortLabel = sortOptions.find((option) => option.value === shownSort)?.label;
   // With two modes, the sort control switches straight to the other one.
-  const otherSort = sortOptions.find((option) => option.value !== sort);
+  const otherSort = sortOptions.find((option) => option.value !== shownSort);
 
   const reactButtonRef = useRef<HTMLButtonElement>(null);
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
@@ -190,13 +191,6 @@ function QnAPage() {
       refreshEvents();
     },
   });
-  const changeSort = (sort: string) => {
-    setSearchParams((searchParams) => {
-      const vettedSort = parseSort(sort);
-      searchParams.set("sort", vettedSort);
-      return searchParams;
-    });
-  };
   const isSupervotesEnabled = !!event?.conference.features["supervotes"];
   const { data: supervoteData, mutate: refreshSupervotes } = useSupervotes(
     isSupervotesEnabled,
