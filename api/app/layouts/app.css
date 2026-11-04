@@ -225,11 +225,9 @@ ul {
   min-width: 0;
 }
 
-/* Organizers swipe a card right to uncover Highlight and Answered beneath it.
-   Only vertical panning is left to the browser so the list still scrolls. */
+/* Organizers swipe a card right to uncover Highlight and Answered beneath it. */
 .question-swipe {
   position: relative;
-  touch-action: pan-y;
   /* Clip the slid card sideways only (the status badge sits above the card),
      out to the page edge, so the list never gets wider than the screen. */
   overflow-x: clip;
@@ -239,8 +237,11 @@ ul {
     transition: transform 0.2s ease;
   }
 
-  /* A mouse drag would otherwise highlight the question text. */
+  /* Horizontal drags are the swipe; vertical panning and pinch-zoom stay with
+     the browser, so the list still scrolls and zooms. A mouse drag would
+     otherwise highlight the question text. */
   &.swipeable {
+    touch-action: pan-y pinch-zoom;
     user-select: none;
   }
 

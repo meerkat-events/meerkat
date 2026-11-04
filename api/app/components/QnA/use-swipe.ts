@@ -39,8 +39,26 @@ export function useSwipeReveal({ width, enabled }: {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [isOpen]);
 
+  // Drop a swipe in progress when swiping stops applying mid-drag (e.g.
+  // another moderator answered the question): the handlers are removed, so
+  // its pointerup would never arrive.
+  const [wasEnabled, setWasEnabled] = useState(enabled);
+  if (enabled !== wasEnabled) {
+    setWasEnabled(enabled);
+    if (!enabled) {
+      setDragOffset(null);
+      setOpen(false);
+    }
+  }
+  useEffect(() => {
+    if (!enabled) gesture.current = null;
+  }, [enabled]);
+
   const onPointerDown = (event: PointerEvent<HTMLElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    // React bubbles events from portalled children (the options menu, the
+    // supervote prompt) to the element; dragging inside them is no swipe.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     // Ignore a second finger while one is already swiping.
     if (gesture.current) return;
     gesture.current = {

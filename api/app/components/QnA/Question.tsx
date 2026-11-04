@@ -261,6 +261,8 @@ export function Question(
           : undefined}
         onClickCapture={isOpen
           ? (event) => {
+            // Clicks in portalled children (the options menu) reach here too.
+            if (!event.currentTarget.contains(event.target as Node)) return;
             event.stopPropagation();
             close();
           }
@@ -330,7 +332,8 @@ export function Question(
                 <Portal>
                   <Menu.Positioner>
                     <Menu.Content>
-                      {!isSelected && !isAnswered && (
+                      {/* An answered question can go back on stage. */}
+                      {!isSelected && (
                         <Menu.Item value="select" onClick={handleSelected}>
                           <Icon as={FiRadio} mr="2" color="accent.menuIcon" />
                           <Box as="span">Highlight</Box>
