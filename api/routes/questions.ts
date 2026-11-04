@@ -39,6 +39,8 @@ import {
 
 const app = new Hono();
 
+export const OWN_QUESTION_MESSAGE = "You can't vote for your own question";
+
 // `{ "weight": 3 }` (SUPERVOTE_WEIGHT) spends a supervote on the new vote.
 const upvoteSchema = zod.object({
   weight: zod.union([zod.literal(1), zod.literal(SUPERVOTE_WEIGHT)])
@@ -129,6 +131,12 @@ app.post(
       userId: user.id,
     });
     const hasVoted = !!existingVote;
+
+    // Votes, supervotes above all, are for other people's questions. A vote
+    // cast on one's own question before this rule can still be removed.
+    if (!hasVoted && question.userId === user.id) {
+      throw new HTTPException(403, { message: OWN_QUESTION_MESSAGE });
+    }
 
     // The endpoint toggles: voting again removes the vote. A supervote is
     // spent once and can't be removed, and a supervote request never removes

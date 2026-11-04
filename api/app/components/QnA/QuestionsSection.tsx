@@ -10,6 +10,8 @@ export type QuestionsSectionProps = {
   isLoading: boolean;
   /** Signed in, and allowed to take part in this conference. */
   canVote: boolean;
+  /** The signed-in user, who can't vote for their own questions. */
+  userId?: string | undefined;
   canModerate: boolean;
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
@@ -35,6 +37,7 @@ export function QuestionsSection(
   {
     questions,
     canVote,
+    userId,
     canModerate,
     refresh,
     isLoading,
@@ -54,12 +57,16 @@ export function QuestionsSection(
     others.map((question) => question.uid).join(),
   );
 
+  const isOwn = (question: QuestionType) =>
+    userId !== undefined && question.user?.id === userId;
+
   const renderQuestion = (question: QuestionType) => (
     <Question
       key={question.uid}
       question={question}
       canModerate={canModerate}
-      canVote={canVote}
+      // An own question's pill only takes back a vote cast before the rule
+      canVote={canVote && (!isOwn(question) || !!question.vote)}
       refresh={refresh}
       voted={!!question.vote}
       supervotes={supervotes}
