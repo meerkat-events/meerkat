@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isAnswering, splitAnswering } from "./questions.ts";
+import {
+  isAnswering,
+  isQuestionListLoading,
+  splitAnswering,
+} from "./questions.ts";
 
 const now = new Date();
 
@@ -35,4 +39,47 @@ test("splitAnswering picks the latest selected when two are answering", () => {
 
   assert.equal(answering?.id, 2);
   assert.deepEqual(others.map(({ id }) => id), [1]);
+});
+
+// The server render has no session to wait for and, without `?sort=`, no
+// sort: it must still render the loading state the hydrating browser renders.
+test("isQuestionListLoading is true while the sort is unknown, even with nothing else pending", () => {
+  assert.equal(
+    isQuestionListLoading({
+      isSortKnown: false,
+      isWaitingForSession: false,
+      isFetching: false,
+    }),
+    true,
+  );
+});
+
+test("isQuestionListLoading is true while the session or the first list is pending", () => {
+  assert.equal(
+    isQuestionListLoading({
+      isSortKnown: true,
+      isWaitingForSession: true,
+      isFetching: false,
+    }),
+    true,
+  );
+  assert.equal(
+    isQuestionListLoading({
+      isSortKnown: true,
+      isWaitingForSession: false,
+      isFetching: true,
+    }),
+    true,
+  );
+});
+
+test("isQuestionListLoading is false once the list for a known sort has arrived", () => {
+  assert.equal(
+    isQuestionListLoading({
+      isSortKnown: true,
+      isWaitingForSession: false,
+      isFetching: false,
+    }),
+    false,
+  );
 });

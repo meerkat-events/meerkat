@@ -7,6 +7,7 @@ import {
   useJitteredRefresh,
 } from "@meerkat-events/react";
 import { apiUrl } from "../lib/api-url.ts";
+import { isQuestionListLoading } from "../lib/questions.ts";
 import type { Question } from "../types.ts";
 import { fetcher } from "./fetcher.ts";
 import type { HTTPError } from "./http-error.ts";
@@ -68,12 +69,16 @@ export const useEventQuestions = (
     events: eventStreamEvents({ onReaction, onEventLive }),
   });
 
-  // Loading while the session is still unknown too, so the page doesn't show
-  // "No questions, yet" before the first list arrives.
+  // Loading while the sort or the session is still unknown too, so the page
+  // doesn't show "No questions, yet" before the first list arrives.
   return {
     data: data?.data,
     error,
-    isLoading: isWaitingForSession || isLoading,
+    isLoading: isQuestionListLoading({
+      isSortKnown: sort !== undefined,
+      isWaitingForSession,
+      isFetching: isLoading,
+    }),
     mutate: refresh,
   };
 };
