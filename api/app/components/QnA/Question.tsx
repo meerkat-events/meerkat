@@ -5,13 +5,6 @@ import {
   FiStopCircle as NotAllowedIcon,
 } from "react-icons/fi";
 import {
-  LuSignal,
-  LuSignalHigh,
-  LuSignalLow,
-  LuSignalMedium,
-  LuSignalZero,
-} from "react-icons/lu";
-import {
   Box,
   chakra,
   Icon,
@@ -37,8 +30,10 @@ import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useRef, useState } from "react";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
-import { relevanceIndex, relevanceLevel } from "../Manage/question-state.ts";
-import { RelevanceExplanation } from "../Manage/RelevanceInfo.tsx";
+import {
+  RELEVANCE_LEVELS,
+  relevanceLevel,
+} from "../Manage/question-state.ts";
 
 export type QuestionSupervotes = {
   /** Supervotes the user can spend; the prompt only shows when above 0. */
@@ -304,21 +299,12 @@ export function Question(
   );
 }
 
-/** One more bar per relevance level, from 0 (Unrelated) to 4 (Excellent). */
-const RELEVANCE_ICONS = [
-  LuSignalZero,
-  LuSignalLow,
-  LuSignalMedium,
-  LuSignalHigh,
-  LuSignal,
-];
-
 /**
  * Automatic moderation's relevance score, small, for moderators. Tapping it
- * opens how the score works, as on /manage.
+ * opens a short explanation, sized for phones (/manage has the long one).
  */
 function RelevanceScore({ score }: { score: number }) {
-  const formatted = score.toFixed(1);
+  const formatted = `${score.toFixed(1)}/4`;
   const level = relevanceLevel(score);
 
   return (
@@ -327,9 +313,6 @@ function RelevanceScore({ score }: { score: number }) {
         <chakra.button
           type="button"
           position="relative"
-          display="inline-flex"
-          alignItems="center"
-          gap="1"
           flexShrink={0}
           textStyle="xs"
           color="fg.muted"
@@ -338,34 +321,31 @@ function RelevanceScore({ score }: { score: number }) {
           borderRadius="sm"
           _hover={{ color: "fg" }}
           focusVisibleRing="outside"
-          aria-label={`Relevance ${formatted} of 4: ${level}. How relevance is scored`}
+          aria-label={`Relevance ${score.toFixed(1)} of 4: ${level}`}
           {...tapTargetStyles}
         >
-          <Icon as={RELEVANCE_ICONS[relevanceIndex(score)]} aria-hidden />
-          {formatted}/4
+          {formatted}
         </chakra.button>
       </Popover.Trigger>
       <Portal>
         <Popover.Positioner>
-          <Popover.Content maxW="xs" textStyle="sm">
+          <Popover.Content maxW="2xs" textStyle="sm">
             <Popover.Arrow>
               <Popover.ArrowTip />
             </Popover.Arrow>
-            <Popover.Body
-              display="flex"
-              flexDirection="column"
-              gap="2"
-              color="fg.muted"
-              css={{
-                "& [data-part='title']": { color: "fg", fontWeight: "semibold" },
-                "& b": { color: "fg", fontWeight: "semibold" },
-                "& ul": { display: "grid", gap: "1" },
-              }}
-            >
-              <Text color="fg">
-                This question: <b>{formatted}/4 · {level}</b>
+            <Popover.Body display="flex" flexDirection="column" gap="2" p="3">
+              <Popover.Title fontWeight="semibold">
+                Relevance {formatted} · {level}
+              </Popover.Title>
+              <Text color="fg.muted">
+                How well the question fits this talk, rated by the moderation
+                model. It never hides a question.
               </Text>
-              <RelevanceExplanation />
+              <chakra.ol color="fg.muted" fontVariantNumeric="tabular-nums">
+                {RELEVANCE_LEVELS.map((relevance, value) => (
+                  <li key={relevance.name}>{value} · {relevance.name}</li>
+                ))}
+              </chakra.ol>
             </Popover.Body>
           </Popover.Content>
         </Popover.Positioner>
