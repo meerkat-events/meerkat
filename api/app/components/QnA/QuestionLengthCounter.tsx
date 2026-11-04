@@ -1,7 +1,7 @@
 import { Text, VisuallyHidden } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
-/** From this many characters left, the counter turns to the warning colour. */
+/** From this many characters left, screen readers hear what's left. */
 const NEAR_LIMIT_REMAINING = 20;
 
 /** Screen readers hear the count this long after the attendee stops typing. */
@@ -23,8 +23,7 @@ export type QuestionLengthCounterProps = {
 
 /**
  * Shows "120 / 200" in the question field once the attendee types,
- * small and low-contrast, in the warning colour near the limit and the error
- * colour at it.
+ * small and low-contrast throughout, so it never competes with the question.
  *
  * Screen readers get a static description of the limit (through the field's
  * `aria-describedby`) and, only near the limit, a polite announcement of the
@@ -34,20 +33,12 @@ export function QuestionLengthCounter(
   { length, maxLength, descriptionId, className }: QuestionLengthCounterProps,
 ) {
   const remaining = maxLength - length;
-  const isAtLimit = remaining <= 0;
   const isNearLimit = remaining <= NEAR_LIMIT_REMAINING;
 
   const announcement = useDelayedAnnouncement(
     isNearLimit ? describeRemaining(remaining) : "",
   );
 
-  const color = isAtLimit
-    ? "fg.error"
-    : isNearLimit
-    ? "fg.warning"
-    // Quieter than the "Signed as" line, so the count doesn't stand out
-    // until it matters.
-    : "fg.subtle";
 
   return (
     <>
@@ -61,7 +52,8 @@ export function QuestionLengthCounter(
           as="span"
           {...(className ? { className } : {})}
           fontSize="xs"
-          color={color}
+          // Quieter than the "Signed as" line, near the limit too.
+          color="fg.subtle"
           whiteSpace="nowrap"
           fontVariantNumeric="tabular-nums"
         >
