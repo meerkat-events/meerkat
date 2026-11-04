@@ -168,9 +168,9 @@ html:has(.page) {
   opacity: 0.6;
 }
 
-/* Where the question on stage appears while none is selected. */
+/* Where the question on stage appears while none is selected: muted text
+   on the page, no card. */
 .bubble.placeholder {
-  border: 2px dashed var(--chakra-colors-brand-solid);
   background-color: transparent;
   color: var(--chakra-colors-fg-muted);
 }
