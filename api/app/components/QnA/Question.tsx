@@ -21,6 +21,13 @@ import { UpVoteButton } from "../Buttons/UpVoteButton.tsx";
 import { useHideQuestion } from "../../hooks/use-hide-question.ts";
 import { FiRadio } from "react-icons/fi";
 import { RxCursorArrow } from "react-icons/rx";
+import {
+  BiCircle,
+  BiCircleHalf,
+  BiCircleQuarter,
+  BiCircleThreeQuarter,
+  BiSolidCircle,
+} from "react-icons/bi";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import {
   CONFIRMATION_DURATION,
@@ -32,6 +39,7 @@ import { useRef, useState } from "react";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
 import {
   RELEVANCE_LEVELS,
+  relevanceIndex,
   relevanceLevel,
 } from "../Manage/question-state.ts";
 
@@ -192,6 +200,12 @@ export function Question(
       )}
       <Text className="question-card-text" textStyle="md" fontWeight="semibold">
         {question.question}
+        {canModerate && question.relevance != null && (
+          <>
+            {" "}
+            <RelevanceScore score={question.relevance} />
+          </>
+        )}
       </Text>
       <div className="question-card-meta">
         <div className="question-card-byline">
@@ -263,9 +277,6 @@ export function Question(
               </Portal>
             </Menu.Root>
           )}
-          {canModerate && question.relevance != null && (
-            <RelevanceScore score={question.relevance} />
-          )}
         </div>
         <UpVoteButton
           votes={question.votes}
@@ -299,9 +310,19 @@ export function Question(
   );
 }
 
+/** A quarter more of the pie per relevance level, from 0 (empty) to 4 (full). */
+const RELEVANCE_ICONS = [
+  BiCircle,
+  BiCircleQuarter,
+  BiCircleHalf,
+  BiCircleThreeQuarter,
+  BiSolidCircle,
+];
+
 /**
- * Automatic moderation's relevance score, small, for moderators. Tapping it
- * opens a short explanation, sized for phones (/manage has the long one).
+ * Automatic moderation's relevance score, small, for moderators, at the end
+ * of the question text. Tapping it opens a short explanation, sized for
+ * phones (/manage has the long one).
  */
 function RelevanceScore({ score }: { score: number }) {
   const formatted = `${score.toFixed(1)}/4`;
@@ -313,8 +334,13 @@ function RelevanceScore({ score }: { score: number }) {
         <chakra.button
           type="button"
           position="relative"
-          flexShrink={0}
+          display="inline-flex"
+          alignItems="center"
+          gap="1"
+          verticalAlign="middle"
+          whiteSpace="nowrap"
           textStyle="xs"
+          fontWeight="normal"
           color="fg.muted"
           fontVariantNumeric="tabular-nums"
           cursor="pointer"
@@ -324,6 +350,7 @@ function RelevanceScore({ score }: { score: number }) {
           aria-label={`Relevance ${score.toFixed(1)} of 4: ${level}`}
           {...tapTargetStyles}
         >
+          <Icon as={RELEVANCE_ICONS[relevanceIndex(score)]} aria-hidden />
           {formatted}
         </chakra.button>
       </Popover.Trigger>

@@ -69,10 +69,14 @@ export const RELEVANCE_LEVELS = [
   { name: "Excellent", means: "a specific, thoughtful question for this speaker" },
 ] as const;
 
+/** The index of the level a score is closest to, e.g. 2.6 → 3. */
+export function relevanceIndex(score: number) {
+  return Math.min(RELEVANCE_LEVELS.length - 1, Math.max(0, Math.round(score)));
+}
+
 /** The level a score is closest to, e.g. 2.6 → "Highly relevant". */
 export function relevanceLevel(score: number) {
-  const index = Math.min(RELEVANCE_LEVELS.length - 1, Math.max(0, Math.round(score)));
-  return RELEVANCE_LEVELS[index]?.name ?? "";
+  return RELEVANCE_LEVELS[relevanceIndex(score)]?.name ?? "";
 }
 
 /** The reasons as one readable line, e.g. "Scam, Shilling". */
