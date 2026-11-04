@@ -65,7 +65,8 @@ export function QuestionsSection(
       key={question.uid}
       question={question}
       canModerate={canModerate}
-      canVote={canVote && !isOwn(question)}
+      // An own question's pill only takes back a vote cast before the rule
+      canVote={canVote && (!isOwn(question) || !!question.vote)}
       refresh={refresh}
       voted={!!question.vote}
       supervotes={supervotes}
