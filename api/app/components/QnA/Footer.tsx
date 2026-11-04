@@ -9,16 +9,16 @@ import {
 import type { Event } from "../../types.ts";
 import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
 import { tapTargetStyles } from "../../theme/index.ts";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { CONFIRMATION_DURATION, toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
 import type { User } from "../../hooks/use-auth.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../../features.ts";
+import { MAX_CHARS_PER_QUESTION } from "../../../moderation.ts";
+import { QuestionLengthCounter } from "./QuestionLengthCounter.tsx";
 
 import "./Footer.css";
-
-const MAX_QUESTION_LENGTH = 200;
 
 export type FooterProps = {
   event: Event | undefined;
@@ -51,6 +51,8 @@ export function Footer({
 
   const [question, setQuestion] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lengthDescriptionId = useId();
+  const hasText = question.length > 0;
 
   // Grow and shrink the input with its content (capped by maxH below).
   useLayoutEffect(() => {
@@ -59,6 +61,12 @@ export function Footer({
     textarea.style.height = "auto";
     const borders = textarea.offsetHeight - textarea.clientHeight;
     textarea.style.height = `${textarea.scrollHeight + borders}px`;
+    // Typing at the end of a question taller than the field: scroll to its
+    // very end, bottom padding included, so the last line stays above the
+    // character count. The browser would only scroll the caret into view.
+    if (textarea.selectionEnd === textarea.value.length) {
+      textarea.scrollTop = textarea.scrollHeight;
+    }
   }, [question]);
 
   const { trigger, isMutating } = useAskQuestion(event, {
@@ -95,13 +103,17 @@ export function Footer({
       <div className="overlay-container">
         <div className="target question-input">
           {/* The send button sits inside the field, in its bottom corner as a
-              long question grows. */}
+              long question grows. Once there is text, the character count
+              sits in the opposite corner. */}
           <Box position="relative">
             <Textarea
               ref={textareaRef}
               resize="none"
               rows={1}
-              maxH="9.25rem"
+              // Once there is text, a strip at the bottom holds the count,
+              // and the field is taller by as much so as many lines show.
+              maxH={hasText ? "11rem" : "9.25rem"}
+              paddingBottom={hasText ? "10" : undefined}
               overflowY="auto"
               size="lg"
               value={question}
@@ -123,7 +135,8 @@ export function Footer({
               _focusVisible={{
                 borderColor: "transparent",
               }}
-              maxLength={MAX_QUESTION_LENGTH}
+              maxLength={MAX_CHARS_PER_QUESTION}
+              aria-describedby={lengthDescriptionId}
               paddingEnd="14"
               // Block, so the wrapper ends where the field does
               display="block"
@@ -145,6 +158,12 @@ export function Footer({
             >
               <FiSend />
             </IconButton>
+            <QuestionLengthCounter
+              length={question.length}
+              maxLength={MAX_CHARS_PER_QUESTION}
+              descriptionId={lengthDescriptionId}
+              className="question-counter"
+            />
           </Box>
           {/* Guests have no account yet; one is created only when they
               join the conversation. */}
