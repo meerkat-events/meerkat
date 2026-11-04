@@ -34,7 +34,12 @@ export function useModeratedEvents() {
       try {
         setIsLoading(true);
         const eventPromises = moderatedConferenceIds.map((conferenceId) =>
-          fetcher(`/api/v1/conferences/${conferenceId}/events`, token)
+          // Ask for the endpoint's maximum so large conferences aren't
+          // cut off at the default page of 100.
+          fetcher(
+            `/api/v1/conferences/${conferenceId}/events?limit=1000`,
+            token,
+          )
         );
 
         const results = await Promise.all(eventPromises);
