@@ -22,6 +22,7 @@ import { ConferenceSwitcher } from "../components/Manage/ConferenceSwitcher.tsx"
 import { SessionSearch } from "../components/Manage/SessionSearch.tsx";
 import { useConferencePath } from "../components/Manage/use-conference-path.ts";
 import { PersonDialog } from "../components/Manage/PersonDialog.tsx";
+import { CooldownModal } from "../components/QnA/CooldownModal.tsx";
 import { dayKey, fmtDay } from "../components/Manage/time.ts";
 
 import "./manage.css";
@@ -190,6 +191,8 @@ export default function ManageLayout() {
             navigate(conferencePath(`/manage/schedule?session=${encodeURIComponent(uid)}`))}
         />
       )}
+      {/* Organizers vote from the question tables, under the same rate limit. */}
+      <CooldownModal />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
 } from "./question-state.ts";
 import { RelevanceInfo } from "./RelevanceInfo.tsx";
 import { askedAt, askedTitle } from "./time.ts";
+import { VoteToggle } from "./VoteToggle.tsx";
 
 type Row = ModeratedQuestion & {
   event?: { uid: string; title: string; stage: string };
@@ -138,7 +139,13 @@ export function QuestionTable(
                   )
                   : <span className="level">Not scored</span>}
               </td>
-              <td className="n">{q.votes}</td>
+              <td className="n">
+                {/* Lists that carry the organizer's own vote let them vote;
+                    someone's history doesn't. */}
+                {q.vote === undefined
+                  ? q.votes
+                  : <VoteToggle question={q} vote={q.vote} refresh={refresh} />}
+              </td>
               <td className="actions">
                 <QuestionActions question={q} refresh={refresh} onPerson={onPerson} />
               </td>

@@ -146,7 +146,8 @@ export type Question = {
   } | undefined;
   /**
    * The signed-in viewer's vote on the question, or null. Only in the event's
-   * question list fetched with a token (`useEventQuestions`).
+   * question list fetched with a token (`useEventQuestions`) and the
+   * organizers' conference question list (`useConferenceQuestions`).
    */
   vote?: { weight: number } | null | undefined;
 };

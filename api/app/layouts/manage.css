@@ -704,6 +704,37 @@
   color: var(--m-brand-300);
 }
 
+.m-qtable .n:has(.m-vote) {
+  width: 76px;
+}
+
+/* The vote count as a toggle, filled once the organizer has voted. */
+.m-vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: 999px;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-vote:hover:not(:disabled) {
+  border-color: var(--m-brand-300);
+}
+
+.m-vote.voted {
+  border-color: var(--m-brand-300);
+  background: color-mix(in srgb, var(--m-brand-300) 16%, transparent);
+}
+
+.m-vote:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
 .m-qtable .actions {
   width: 40px;
   text-align: right;
@@ -758,6 +789,11 @@
   .m-qtable td.n::before {
     content: "\25B2 ";
     color: var(--m-ink-3);
+  }
+
+  /* The vote toggle shows its own arrow. */
+  .m-qtable td.n:has(.m-vote)::before {
+    content: none;
   }
 
   .m-qtable td.relevance::before {
