@@ -9,16 +9,16 @@ import {
 import type { Event } from "../../types.ts";
 import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
 import { tapTargetStyles } from "../../theme/index.ts";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { CONFIRMATION_DURATION, toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
 import type { User } from "../../hooks/use-auth.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../../features.ts";
+import { MAX_CHARS_PER_QUESTION } from "../../../moderation.ts";
+import { QuestionLengthCounter } from "./QuestionLengthCounter.tsx";
 
 import "./Footer.css";
-
-const MAX_QUESTION_LENGTH = 200;
 
 export type FooterProps = {
   event: Event | undefined;
@@ -51,6 +51,7 @@ export function Footer({
 
   const [question, setQuestion] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lengthDescriptionId = useId();
 
   // Grow and shrink the input with its content (capped by maxH below).
   useLayoutEffect(() => {
@@ -123,7 +124,8 @@ export function Footer({
               _focusVisible={{
                 borderColor: "transparent",
               }}
-              maxLength={MAX_QUESTION_LENGTH}
+              maxLength={MAX_CHARS_PER_QUESTION}
+              aria-describedby={lengthDescriptionId}
               paddingEnd="14"
               // Block, so the wrapper ends where the field does
               display="block"
@@ -146,26 +148,35 @@ export function Footer({
               <FiSend />
             </IconButton>
           </Box>
-          {/* Guests have no account yet; one is created only when they
-              join the conversation. */}
-          {isAuthenticated && (
-            <span className="signin-name">
-              Signed as{" "}
-              <ChakraLink
-                as="button"
-                onClick={onProfileOpen}
-                position="relative"
-                // The full tap target, shifted down into the padding below so
-                // it stays off the question input just above
-                _before={{
-                  ...tapTargetStyles._before,
-                  transform: "translate(-50%, calc(-50% + 6px))",
-                }}
-              >
-                {user?.user_metadata["name"] ?? user?.id}
-              </ChakraLink>
-            </span>
-          )}
+          {/* The name is centred under the field, the counter at its end. */}
+          <div className="input-details">
+            <QuestionLengthCounter
+              length={question.length}
+              maxLength={MAX_CHARS_PER_QUESTION}
+              descriptionId={lengthDescriptionId}
+              className="input-counter"
+            />
+            {/* Guests have no account yet; one is created only when they
+                join the conversation. */}
+            {isAuthenticated && (
+              <span className="signin-name">
+                Signed as{" "}
+                <ChakraLink
+                  as="button"
+                  onClick={onProfileOpen}
+                  position="relative"
+                  // The full tap target, shifted down into the padding below
+                  // so it stays off the question input just above
+                  _before={{
+                    ...tapTargetStyles._before,
+                    transform: "translate(-50%, calc(-50% + 6px))",
+                  }}
+                >
+                  {user?.user_metadata["name"] ?? user?.id}
+                </ChakraLink>
+              </span>
+            )}
+          </div>
         </div>
         {/* Attendees-only conferences offer no anonymous sign-in: people
             without a role there are pointed to the conference app instead. */}
