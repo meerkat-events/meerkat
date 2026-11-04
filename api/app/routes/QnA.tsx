@@ -147,9 +147,12 @@ function QnAPage() {
   useDocumentTitle(pageTitle(event));
 
   const [sort, changeSort] = useQuestionSort();
-  const sortLabel = sortOptions.find((option) => option.value === sort)?.label;
+  // Until the stored sort is known the list is loading; the control shows
+  // the default meanwhile.
+  const shownSort = sort ?? "newest";
+  const sortLabel = sortOptions.find((option) => option.value === shownSort)?.label;
   // With two modes, the sort control switches straight to the other one.
-  const otherSort = sortOptions.find((option) => option.value !== sort);
+  const otherSort = sortOptions.find((option) => option.value !== shownSort);
 
   const reactButtonRef = useRef<HTMLButtonElement>(null);
   const [reactions, setReactions] = useState<ReactionItem[]>([]);

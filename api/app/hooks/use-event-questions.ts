@@ -25,13 +25,17 @@ import { useSupabase } from "../context/supabase.tsx";
  */
 export const useEventQuestions = (
   uid: string | undefined,
-  sort: QuestionSort,
+  sort: QuestionSort | undefined,
   { onReaction, onEventLive }: EventStreamCallbacks = {},
 ) => {
   const { session, isLoading: isAuthLoading } = useAuth();
   const { client } = useSupabase();
   const accessToken = session?.access_token;
-  const endpoint = uid ? `/api/v1/events/${uid}/questions?sort=${sort}` : null;
+  // An unknown sort (the device's stored one, before hydration) fetches
+  // nothing yet, so the list isn't fetched in two sorts on load.
+  const endpoint = uid && sort
+    ? `/api/v1/events/${uid}/questions?sort=${sort}`
+    : null;
 
   // Wait until the browser knows whether there is a session (a stored one, or
   // the one a Devcon handover brings in the URL fragment), so the first fetch
