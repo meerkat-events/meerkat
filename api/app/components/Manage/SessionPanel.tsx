@@ -273,7 +273,7 @@ function HighEngagementSwitch(
     onChanged: () => Promise<unknown>;
   },
 ) {
-  const { trigger, isMutating } = useSetHighEngagement(session.uid);
+  const { trigger } = useSetHighEngagement(session.uid);
   // The new state, shown until the refetched session carries it.
   const [pending, setPending] = useState<boolean | null>(null);
 
@@ -304,7 +304,9 @@ function HighEngagementSwitch(
     <Switch.Root
       className="m-session-option"
       checked={pending ?? session.highEngagement}
-      disabled={isMutating}
+      // Until the sessions are refetched, not just while the request runs: a
+      // second toggle before then would lose its pending state.
+      disabled={pending !== null}
       onCheckedChange={(details) => onCheckedChange(details.checked)}
     >
       <Switch.HiddenInput />

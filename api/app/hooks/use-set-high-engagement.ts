@@ -5,7 +5,7 @@ import { useAuth } from "./use-auth.ts";
 /** Switches an event's high engagement presenter view (organizers only). */
 export function useSetHighEngagement(uid: string) {
   const { session } = useAuth();
-  const { trigger, isMutating } = useSWRMutation<
+  const { trigger } = useSWRMutation<
     { data: { highEngagement: boolean } },
     Error,
     string,
@@ -15,5 +15,5 @@ export function useSetHighEngagement(uid: string) {
     (path: string, { arg }: { arg: { enabled: boolean } }) =>
       poster(path, { arg }, session?.access_token),
   );
-  return { trigger, isMutating };
+  return { trigger };
 }

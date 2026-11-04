@@ -23,32 +23,39 @@ interface HighEngagementQuestionsProps {
 export default function HighEngagementQuestions(
   { answering, recentlyAnswered, showsQRCode }: HighEngagementQuestionsProps,
 ) {
-  const keys = [
-    answering?.uid ?? PLACEHOLDER_KEY,
-    ...(recentlyAnswered.length > 0 ? [FEED_LABEL_KEY] : []),
-    ...recentlyAnswered.map((question) => question.uid),
+  // One flat array of keyed items: React keeps an item's node only among
+  // siblings, so the answered question must stay in the same array to keep
+  // its card when it moves from the top into the feed.
+  const items = [
+    answering
+      ? <Question key={answering.uid} question={answering} answering />
+      : <Placeholder key={PLACEHOLDER_KEY} showsQRCode={showsQRCode} />,
   ];
-  const listRef = useListAnimation<HTMLOListElement>("slide-in", keys.join());
+  if (recentlyAnswered.length > 0) {
+    items.push(
+      <Text
+        as="li"
+        key={FEED_LABEL_KEY}
+        className="feed-label"
+        fontSize="xl"
+        fontWeight="semibold"
+      >
+        Answered
+      </Text>,
+    );
+  }
+  for (const question of recentlyAnswered) {
+    items.push(
+      <Question key={question.uid} question={question} answering={false} />,
+    );
+  }
+
+  const keys = items.map((item) => item.key).join();
+  const listRef = useListAnimation<HTMLOListElement>("slide-in", keys);
 
   return (
     <ol ref={listRef} className="high-engagement">
-      {answering
-        ? <Question key={answering.uid} question={answering} answering />
-        : <Placeholder key={PLACEHOLDER_KEY} showsQRCode={showsQRCode} />}
-      {recentlyAnswered.length > 0 && (
-        <Text
-          as="li"
-          key={FEED_LABEL_KEY}
-          className="feed-label"
-          fontSize="xl"
-          fontWeight="semibold"
-        >
-          Answered
-        </Text>
-      )}
-      {recentlyAnswered.map((question) => (
-        <Question key={question.uid} question={question} answering={false} />
-      ))}
+      {items}
     </ol>
   );
 }

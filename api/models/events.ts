@@ -27,10 +27,9 @@ export function upsertEvents(
 ) {
   const allColumns = getTableColumns(events);
   // Set in Meerkat, not by the imported schedule: a re-import keeps them.
-  const keptColumns = [
+  const keptColumns: (keyof typeof allColumns)[] = [
     "uid",
     "conferenceId",
-    "createdAt",
     "id",
     "live",
     "highEngagement",
