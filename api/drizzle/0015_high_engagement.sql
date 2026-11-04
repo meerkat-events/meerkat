@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "high_engagement" boolean DEFAULT false NOT NULL;

@@ -6,6 +6,7 @@ import {
   NativeSelect,
   Portal,
   SegmentGroup,
+  Switch,
   Tabs,
 } from "@chakra-ui/react";
 import type { Session } from "../../hooks/use-conference-events.ts";
@@ -13,6 +14,7 @@ import type { SessionCounts } from "../../hooks/use-conference-stats.ts";
 import { useConferenceQuestions } from "../../hooks/use-conference-questions.ts";
 import { useManage } from "../../layouts/manage.tsx";
 import { useGoLive } from "../../hooks/use-go-live.ts";
+import { useSetHighEngagement } from "../../hooks/use-set-high-engagement.ts";
 import { QuestionTable } from "./QuestionTable.tsx";
 import { FilterChips } from "./FilterChips.tsx";
 import { FILTERS, matchesFilter, SORTS, sortQuestions } from "./question-state.ts";
@@ -50,7 +52,8 @@ export function SessionPanel(
     session: Session;
     counts: SessionCounts | undefined;
     onClose: () => void;
-    onChanged: () => void;
+    /** Refetches the sessions, resolving once `session` is up to date. */
+    onChanged: () => Promise<unknown>;
     onPerson: (userId: string) => void;
   },
 ) {
@@ -72,7 +75,7 @@ export function SessionPanel(
   const onGoLive = async () => {
     try {
       await goLive();
-      onChanged();
+      void onChanged();
       toaster.create({
         type: "success",
         title: `${session.title} is live`,
@@ -159,6 +162,7 @@ export function SessionPanel(
                       ]}
                     />
                   </div>
+                  <HighEngagementSwitch session={session} onChanged={onChanged} />
                 </div>
 
                 {/* One dialog at a time: the QR code is a tab, not a dialog on top. */}
@@ -259,6 +263,59 @@ function SessionQuestions(
           )}
       </div>
     </>
+  );
+}
+
+/** Switches the session's stage screen between its two layouts. */
+function HighEngagementSwitch(
+  { session, onChanged }: {
+    session: Session;
+    onChanged: () => Promise<unknown>;
+  },
+) {
+  const { trigger, isMutating } = useSetHighEngagement(session.uid);
+  // The new state, shown until the refetched session carries it.
+  const [pending, setPending] = useState<boolean | null>(null);
+
+  const onCheckedChange = async (enabled: boolean) => {
+    setPending(enabled);
+    try {
+      await trigger({ enabled });
+      await onChanged();
+      toaster.create({
+        type: "success",
+        title: enabled
+          ? "High engagement mode on"
+          : "High engagement mode off",
+        duration: 1500,
+      });
+    } catch (error) {
+      toaster.create({
+        type: "error",
+        title: "Couldn't change the stage screen",
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setPending(null);
+    }
+  };
+
+  return (
+    <Switch.Root
+      className="m-session-option"
+      checked={pending ?? session.highEngagement}
+      disabled={isMutating}
+      onCheckedChange={(details) => onCheckedChange(details.checked)}
+    >
+      <Switch.HiddenInput />
+      <Switch.Control />
+      <Switch.Label>
+        High engagement stage screen
+        <span className="m-hint">
+          Only the question being answered, with the answered ones below it
+        </span>
+      </Switch.Label>
+    </Switch.Root>
   );
 }
 

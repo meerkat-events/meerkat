@@ -13,6 +13,11 @@ export function canModerate(roles: { role: ConferenceRole["role"] }[]) {
   return roles.some((r) => r.role === "organizer" || r.role === "moderator");
 }
 
+/** Whether any of these roles is organizer: the management pages' role. */
+export function isOrganizer(roles: { role: ConferenceRole["role"] }[]) {
+  return roles.some((r) => r.role === "organizer");
+}
+
 export function getConferenceRoles(
   userId: string,
 ): Promise<

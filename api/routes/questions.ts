@@ -16,6 +16,7 @@ import {
 } from "../models/questions.ts";
 import {
   canModerate,
+  isOrganizer,
   getConferenceRolesForConference,
   mayParticipate,
 } from "../models/roles.ts";
@@ -478,9 +479,7 @@ app.post(
       user.id,
       event.conferenceId,
     );
-    const isOrganizer = roles.some((role) => role.role === "organizer");
-
-    if (!isOrganizer) {
+    if (!isOrganizer(roles)) {
       throw new HTTPException(403, { message: `User is not an organizer` });
     }
 
