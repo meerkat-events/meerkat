@@ -22,7 +22,7 @@ export type QuestionLengthCounterProps = {
 };
 
 /**
- * Shows "120 / 200" under the question field once the attendee types,
+ * Shows "120 / 200" in the question field once the attendee types,
  * in the warning colour near the limit and the error colour at it.
  *
  * Screen readers get a static description of the limit (through the field's

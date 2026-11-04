@@ -52,6 +52,7 @@ export function Footer({
   const [question, setQuestion] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lengthDescriptionId = useId();
+  const hasText = question.length > 0;
 
   // Grow and shrink the input with its content (capped by maxH below).
   useLayoutEffect(() => {
@@ -60,6 +61,12 @@ export function Footer({
     textarea.style.height = "auto";
     const borders = textarea.offsetHeight - textarea.clientHeight;
     textarea.style.height = `${textarea.scrollHeight + borders}px`;
+    // Typing at the end of a question taller than the field: scroll to its
+    // very end, bottom padding included, so the last line stays above the
+    // character count. The browser would only scroll the caret into view.
+    if (textarea.selectionEnd === textarea.value.length) {
+      textarea.scrollTop = textarea.scrollHeight;
+    }
   }, [question]);
 
   const { trigger, isMutating } = useAskQuestion(event, {
@@ -96,13 +103,17 @@ export function Footer({
       <div className="overlay-container">
         <div className="target question-input">
           {/* The send button sits inside the field, in its bottom corner as a
-              long question grows. */}
+              long question grows, with the character count beside it once
+              there is text. */}
           <Box position="relative">
             <Textarea
               ref={textareaRef}
               resize="none"
               rows={1}
-              maxH="9.25rem"
+              // Once there is text, a strip at the bottom holds the count,
+              // and the field is taller by as much so as many lines show.
+              maxH={hasText ? "11rem" : "9.25rem"}
+              paddingBottom={hasText ? "10" : undefined}
               overflowY="auto"
               size="lg"
               value={question}
@@ -147,36 +158,33 @@ export function Footer({
             >
               <FiSend />
             </IconButton>
-          </Box>
-          {/* The name is centred under the field, the counter at its end. */}
-          <div className="input-details">
             <QuestionLengthCounter
               length={question.length}
               maxLength={MAX_CHARS_PER_QUESTION}
               descriptionId={lengthDescriptionId}
-              className="input-counter"
+              className="question-counter"
             />
-            {/* Guests have no account yet; one is created only when they
-                join the conversation. */}
-            {isAuthenticated && (
-              <span className="signin-name">
-                Signed as{" "}
-                <ChakraLink
-                  as="button"
-                  onClick={onProfileOpen}
-                  position="relative"
-                  // The full tap target, shifted down into the padding below
-                  // so it stays off the question input just above
-                  _before={{
-                    ...tapTargetStyles._before,
-                    transform: "translate(-50%, calc(-50% + 6px))",
-                  }}
-                >
-                  {user?.user_metadata["name"] ?? user?.id}
-                </ChakraLink>
-              </span>
-            )}
-          </div>
+          </Box>
+          {/* Guests have no account yet; one is created only when they
+              join the conversation. */}
+          {isAuthenticated && (
+            <span className="signin-name">
+              Signed as{" "}
+              <ChakraLink
+                as="button"
+                onClick={onProfileOpen}
+                position="relative"
+                // The full tap target, shifted down into the padding below so
+                // it stays off the question input just above
+                _before={{
+                  ...tapTargetStyles._before,
+                  transform: "translate(-50%, calc(-50% + 6px))",
+                }}
+              >
+                {user?.user_metadata["name"] ?? user?.id}
+              </ChakraLink>
+            </span>
+          )}
         </div>
         {/* Attendees-only conferences offer no anonymous sign-in: people
             without a role there are pointed to the conference app instead. */}
