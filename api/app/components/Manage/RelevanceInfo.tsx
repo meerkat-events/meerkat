@@ -25,28 +25,39 @@ export function RelevanceInfo() {
         <Popover.Positioner>
           <Popover.Content className="m-menu m-popover">
             <Popover.Body>
-              <Popover.Title>How relevance is scored</Popover.Title>
-              <p>
-                When a question is asked, the moderation model also rates how
-                relevant it is to the conference, the talk's topic and its
-                speaker, from 0 to 4:
-              </p>
-              <ul>
-                {RELEVANCE_LEVELS.map((level, score) => (
-                  <li key={level.name}>
-                    <b>{score} · {level.name}</b>: {level.means}
-                  </li>
-                ))}
-              </ul>
-              <p>
-                The score weighs these levels by how sure the model is, so 2.6
-                lies between Related and Highly relevant. It never hides a
-                question, and questions are only scored when moderation is on.
-              </p>
+              <RelevanceExplanation />
             </Popover.Body>
           </Popover.Content>
         </Popover.Positioner>
       </Portal>
     </Popover.Root>
+  );
+}
+
+/**
+ * How the relevance score works, as a popover's title and text: here and in
+ * the score's popover on the Q&A page, which style it each their own way.
+ */
+export function RelevanceExplanation() {
+  return (
+    <>
+      <Popover.Title>How relevance is scored</Popover.Title>
+      <p>
+        When a question is asked, the moderation model also rates how relevant
+        it is to the conference, the talk's topic and its speaker, from 0 to 4:
+      </p>
+      <ul>
+        {RELEVANCE_LEVELS.map((level, score) => (
+          <li key={level.name}>
+            <b>{score} · {level.name}</b>: {level.means}
+          </li>
+        ))}
+      </ul>
+      <p>
+        The score weighs these levels by how sure the model is, so 2.6 lies
+        between Related and Highly relevant. It never hides a question, and
+        questions are only scored when moderation is on.
+      </p>
+    </>
   );
 }

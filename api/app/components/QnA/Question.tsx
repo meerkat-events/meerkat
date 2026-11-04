@@ -3,17 +3,23 @@ import {
   FiEyeOff as DeleteIcon,
   FiMoreHorizontal,
   FiStopCircle as NotAllowedIcon,
-  FiTarget,
 } from "react-icons/fi";
+import {
+  LuSignal,
+  LuSignalHigh,
+  LuSignalLow,
+  LuSignalMedium,
+  LuSignalZero,
+} from "react-icons/lu";
 import {
   Box,
   chakra,
   Icon,
   IconButton,
   Menu,
+  Popover,
   Portal,
   Text,
-  VisuallyHidden,
 } from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
 import type { Question as QuestionType } from "../../types.ts";
@@ -31,7 +37,8 @@ import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useRef, useState } from "react";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
-import { relevanceLevel } from "../Manage/question-state.ts";
+import { relevanceIndex, relevanceLevel } from "../Manage/question-state.ts";
+import { RelevanceExplanation } from "../Manage/RelevanceInfo.tsx";
 
 export type QuestionSupervotes = {
   /** Supervotes the user can spend; the prompt only shows when above 0. */
@@ -297,25 +304,72 @@ export function Question(
   );
 }
 
-/** Automatic moderation's relevance score, small, for moderators. */
+/** One more bar per relevance level, from 0 (Unrelated) to 4 (Excellent). */
+const RELEVANCE_ICONS = [
+  LuSignalZero,
+  LuSignalLow,
+  LuSignalMedium,
+  LuSignalHigh,
+  LuSignal,
+];
+
+/**
+ * Automatic moderation's relevance score, small, for moderators. Tapping it
+ * opens how the score works, as on /manage.
+ */
 function RelevanceScore({ score }: { score: number }) {
-  const label = `Relevance ${score.toFixed(1)} of 4: ${relevanceLevel(score)}`;
+  const formatted = score.toFixed(1);
+  const level = relevanceLevel(score);
 
   return (
-    <Text
-      as="span"
-      textStyle="xs"
-      color="fg.muted"
-      display="inline-flex"
-      alignItems="center"
-      gap="1"
-      flexShrink={0}
-      fontVariantNumeric="tabular-nums"
-    >
-      {/* The title is for pointers only: screen readers read the hidden label. */}
-      <Icon as={FiTarget} aria-hidden />
-      <span aria-hidden title={label}>{score.toFixed(1)}</span>
-      <VisuallyHidden>{label}</VisuallyHidden>
-    </Text>
+    <Popover.Root positioning={{ placement: "bottom-start" }}>
+      <Popover.Trigger asChild>
+        <chakra.button
+          type="button"
+          position="relative"
+          display="inline-flex"
+          alignItems="center"
+          gap="1"
+          flexShrink={0}
+          textStyle="xs"
+          color="fg.muted"
+          fontVariantNumeric="tabular-nums"
+          cursor="pointer"
+          borderRadius="sm"
+          _hover={{ color: "fg" }}
+          focusVisibleRing="outside"
+          aria-label={`Relevance ${formatted} of 4: ${level}. How relevance is scored`}
+          {...tapTargetStyles}
+        >
+          <Icon as={RELEVANCE_ICONS[relevanceIndex(score)]} aria-hidden />
+          {formatted}/4
+        </chakra.button>
+      </Popover.Trigger>
+      <Portal>
+        <Popover.Positioner>
+          <Popover.Content maxW="xs" textStyle="sm">
+            <Popover.Arrow>
+              <Popover.ArrowTip />
+            </Popover.Arrow>
+            <Popover.Body
+              display="flex"
+              flexDirection="column"
+              gap="2"
+              color="fg.muted"
+              css={{
+                "& [data-part='title']": { color: "fg", fontWeight: "semibold" },
+                "& b": { color: "fg", fontWeight: "semibold" },
+                "& ul": { display: "grid", gap: "1" },
+              }}
+            >
+              <Text color="fg">
+                This question: <b>{formatted}/4 · {level}</b>
+              </Text>
+              <RelevanceExplanation />
+            </Popover.Body>
+          </Popover.Content>
+        </Popover.Positioner>
+      </Portal>
+    </Popover.Root>
   );
 }
