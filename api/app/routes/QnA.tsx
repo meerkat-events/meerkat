@@ -111,8 +111,10 @@ export function clientLoader({ request }: Route.ClientLoaderArgs) {
   return null;
 }
 
-const parseSort = (sort: string): "newest" | "popular" =>
-  sort === "popular" ? "popular" : "newest";
+// Popular first by default, so attendees see (and upvote) the questions the
+// room cares about most; "?sort=newest" switches to the ticker.
+const parseSort = (sort: string | null): "newest" | "popular" =>
+  sort === "newest" ? "newest" : "popular";
 
 const sortOptions = [
   { label: "Popular", value: "popular" },
@@ -148,7 +150,7 @@ function QnAPage() {
   );
   useDocumentTitle(pageTitle(event));
 
-  const sort = parseSort(searchParams.get("sort") ?? "newest");
+  const sort = parseSort(searchParams.get("sort"));
   const sortLabel = sortOptions.find((option) => option.value === sort)?.label;
   // With two modes, the sort control switches straight to the other one.
   const otherSort = sortOptions.find((option) => option.value !== sort);
