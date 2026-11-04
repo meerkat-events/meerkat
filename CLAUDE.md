@@ -319,8 +319,10 @@ its CSS, callers pass the items' uids joined, nothing moves with
   so the Q&A page, the stage screen and the organizer views agree (activity
   stats counting votes cast use `COUNT`). The question list
   fetched with a token gives each question the viewer's `vote: { weight }`
-  or null; the Q&A page reads its vote state from there. No other response
-  carries `vote`.
+  or null; the Q&A page reads its vote state from there. The organizers'
+  `GET /api/v1/conferences/:id/questions` carries it too, so they can vote
+  (regular votes only) from the question tables on `/manage`. No other
+  response carries `vote`.
 - **Supervotes** (`models/supervotes.ts`, conferences with the `supervotes`
   feature) live in one stored balance per user across all conferences
   (`supervote_balances`, `CHECK balance >= 0`). Selecting a question earns

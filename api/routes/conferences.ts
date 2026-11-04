@@ -101,10 +101,12 @@ async function requireOrganizer(conferenceIdParam: string, userId: string) {
 // Organizers get the verdict's summary (decision, reasons, relevance), never
 // the raw scores; attendees never get it at all (toPublicQuestion).
 const toApiQuestion = (
-  { userId: _userId, user, moderation, ...rest }: ConferenceQuestions[number],
+  { userId: _userId, user, moderation, viewerVoteWeight, ...rest }:
+    ConferenceQuestions[number],
 ) => ({
   ...rest,
   moderation: summarizeModeration(moderation),
+  vote: viewerVoteWeight === null ? null : { weight: viewerVoteWeight },
   user: user
     ? { id: user.id, name: user.userMetadata?.["name"] ?? user.id }
     : undefined,
@@ -140,10 +142,8 @@ app.get(
   jwt(),
   zValidator("query", conferenceQuestionsQuery),
   async (c) => {
-    const conference = await requireOrganizer(
-      c.req.param("id"),
-      c.get("jwtPayload").sub,
-    );
+    const userId = c.get("jwtPayload").sub;
+    const conference = await requireOrganizer(c.req.param("id"), userId);
     const { live, event, hidden, moderated, limit, ...window } = c.req.valid("query");
 
     const questions = await getConferenceQuestions(conference.id, {
@@ -153,6 +153,7 @@ app.get(
       asked: toTimeWindow(window),
       ...(event ? { eventUid: event } : {}),
       ...(limit ? { limit } : {}),
+      viewerId: userId,
     });
 
     return c.json({ data: questions.map(toApiQuestion) });

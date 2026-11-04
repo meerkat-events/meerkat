@@ -56,6 +56,9 @@ const moderatedByModeration = and(
  * Questions across a conference, newest first, for organizers moderating
  * several stages at once. Questions from blocked users are left out. Hidden
  * ones, by an organizer or by automatic moderation, only with `includeHidden`.
+ * With a viewer, each question also carries the weight of the viewer's vote
+ * on it (`viewerVoteWeight`, null when they haven't voted), so organizers can
+ * vote from the feed.
  */
 export function getConferenceQuestions(
   conferenceId: number,
@@ -69,6 +72,7 @@ export function getConferenceQuestions(
     moderated?: boolean;
     /** Only questions asked in this window. */
     asked?: TimeWindow;
+    viewerId?: string;
   } = {},
 ) {
   const conditions = [
@@ -85,6 +89,10 @@ export function getConferenceQuestions(
     conditions.push(eq(lower(events.uid), options.eventUid.toLowerCase()));
   }
 
+  const viewerVoteWeight = options.viewerId
+    ? sql<number | null>`MAX(${votes.weight}) FILTER (WHERE ${votes.userId} = ${options.viewerId})`
+    : sql<null>`NULL`;
+
   return db
     .select({
       id: questions.id,
@@ -100,6 +108,7 @@ export function getConferenceQuestions(
       userId: questions.userId,
       user: users,
       votes: voteTotal,
+      viewerVoteWeight: viewerVoteWeight.as("viewer_vote_weight"),
       event: {
         id: events.id,
         uid: events.uid,
