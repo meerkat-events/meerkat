@@ -3,7 +3,6 @@ import {
   FiEyeOff as DeleteIcon,
   FiMoreHorizontal,
   FiStopCircle as NotAllowedIcon,
-  FiTarget,
 } from "react-icons/fi";
 import {
   Box,
@@ -11,9 +10,9 @@ import {
   Icon,
   IconButton,
   Menu,
+  Popover,
   Portal,
   Text,
-  VisuallyHidden,
 } from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
 import type { Question as QuestionType } from "../../types.ts";
@@ -22,6 +21,13 @@ import { UpVoteButton } from "../Buttons/UpVoteButton.tsx";
 import { useHideQuestion } from "../../hooks/use-hide-question.ts";
 import { FiRadio } from "react-icons/fi";
 import { RxCursorArrow } from "react-icons/rx";
+import {
+  BiCircle,
+  BiCircleHalf,
+  BiCircleQuarter,
+  BiCircleThreeQuarter,
+  BiSolidCircle,
+} from "react-icons/bi";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import {
   CONFIRMATION_DURATION,
@@ -31,7 +37,17 @@ import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useRef, useState } from "react";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
-import { relevanceLevel } from "../Manage/question-state.ts";
+import {
+  RELEVANCE_LEVELS,
+  relevanceIndex,
+  relevanceLevel,
+} from "../Manage/question-state.ts";
+
+/**
+ * Whether moderators see each question's relevance score after its text.
+ * Off while we iterate on its design; the API still sends the score.
+ */
+const SHOW_RELEVANCE_SCORE = false;
 
 export type QuestionSupervotes = {
   /** Supervotes the user can spend; the prompt only shows when above 0. */
@@ -190,6 +206,12 @@ export function Question(
       )}
       <Text className="question-card-text" textStyle="md" fontWeight="semibold">
         {question.question}
+        {SHOW_RELEVANCE_SCORE && canModerate && question.relevance != null && (
+          <>
+            {" "}
+            <RelevanceScore score={question.relevance} />
+          </>
+        )}
       </Text>
       <div className="question-card-meta">
         <div className="question-card-byline">
@@ -261,9 +283,6 @@ export function Question(
               </Portal>
             </Menu.Root>
           )}
-          {canModerate && question.relevance != null && (
-            <RelevanceScore score={question.relevance} />
-          )}
         </div>
         <UpVoteButton
           votes={question.votes}
@@ -297,25 +316,73 @@ export function Question(
   );
 }
 
-/** Automatic moderation's relevance score, small, for moderators. */
+/** A quarter more of the pie per relevance level, from 0 (empty) to 4 (full). */
+const RELEVANCE_ICONS = [
+  BiCircle,
+  BiCircleQuarter,
+  BiCircleHalf,
+  BiCircleThreeQuarter,
+  BiSolidCircle,
+];
+
+/**
+ * Automatic moderation's relevance score, small, for moderators, at the end
+ * of the question text. Tapping it opens a short explanation, sized for
+ * phones (/manage has the long one).
+ */
 function RelevanceScore({ score }: { score: number }) {
-  const label = `Relevance ${score.toFixed(1)} of 4: ${relevanceLevel(score)}`;
+  const formatted = `${score.toFixed(1)}/4`;
+  const level = relevanceLevel(score);
 
   return (
-    <Text
-      as="span"
-      textStyle="xs"
-      color="fg.muted"
-      display="inline-flex"
-      alignItems="center"
-      gap="1"
-      flexShrink={0}
-      fontVariantNumeric="tabular-nums"
-    >
-      {/* The title is for pointers only: screen readers read the hidden label. */}
-      <Icon as={FiTarget} aria-hidden />
-      <span aria-hidden title={label}>{score.toFixed(1)}</span>
-      <VisuallyHidden>{label}</VisuallyHidden>
-    </Text>
+    <Popover.Root positioning={{ placement: "bottom-start" }}>
+      <Popover.Trigger asChild>
+        <chakra.button
+          type="button"
+          position="relative"
+          display="inline-flex"
+          alignItems="center"
+          gap="1"
+          verticalAlign="middle"
+          whiteSpace="nowrap"
+          textStyle="xs"
+          fontWeight="normal"
+          color="fg.muted"
+          fontVariantNumeric="tabular-nums"
+          cursor="pointer"
+          borderRadius="sm"
+          _hover={{ color: "fg" }}
+          focusVisibleRing="outside"
+          aria-label={`Relevance ${score.toFixed(1)} of 4: ${level}`}
+          {...tapTargetStyles}
+        >
+          <Icon as={RELEVANCE_ICONS[relevanceIndex(score)]} aria-hidden />
+          {formatted}
+        </chakra.button>
+      </Popover.Trigger>
+      <Portal>
+        <Popover.Positioner>
+          <Popover.Content maxW="2xs" textStyle="sm">
+            <Popover.Arrow>
+              <Popover.ArrowTip />
+            </Popover.Arrow>
+            <Popover.Body display="flex" flexDirection="column" gap="2" p="3">
+              <Popover.Title fontWeight="semibold">
+                Relevance {formatted} · {level}
+              </Popover.Title>
+              <Text color="fg.muted">
+                How well the question fits this talk, rated by the moderation
+                model. It never hides a question.
+              </Text>
+              <chakra.ol color="fg.muted" fontVariantNumeric="tabular-nums">
+                {RELEVANCE_LEVELS.map((relevance, value) => (
+                  <li key={relevance.name}>{value} · {relevance.name}</li>
+                ))}
+              </chakra.ol>
+            </Popover.Body>
+          </Popover.Content>
+        </Popover.Positioner>
+      </Portal>
+    </Popover.Root>
   );
 }
