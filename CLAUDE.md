@@ -252,8 +252,10 @@ its CSS, callers pass the items' uids joined, nothing moves with
 
   Admin routes use an API key instead (below). Public responses never
   carry hidden questions, moderation fields or emails (`toPublicQuestion`,
-  `toApiConference`). `api/app.test.ts` holds the same list and checks that
-  every other route answers 401 without credentials, so a new public route
+  `toApiConference`); the one exception is the relevance score in the
+  question list a conference's moderators fetch (see Automatic moderation).
+  `api/app.test.ts` holds the same list and checks that every other route
+  answers 401 without credentials, so a new public route
   has to be added there on purpose. On the frontend, a hook calling a
   protected route passes `session?.access_token` and keeps its SWR key
   `null` until there is one. `optionalJwt()` sets the payload when a valid
@@ -326,7 +328,9 @@ its CSS, callers pass the items' uids joined, nothing moves with
   or null; the Q&A page reads its vote state from there. The organizers'
   `GET /api/v1/conferences/:id/questions` carries it too, so they can vote
   (regular votes only) from the question tables on `/manage`. No other
-  response carries `vote`.
+  response carries `vote`. The event's question list fetched by an
+  organizer or moderator of the conference also gives each question its
+  `relevance`.
 - **Supervotes** (`models/supervotes.ts`, conferences with the `supervotes`
   feature) live in one stored balance per user across all conferences
   (`supervote_balances`, `CHECK balance >= 0`). Selecting a question earns
@@ -372,7 +376,11 @@ its CSS, callers pass the items' uids joined, nothing moves with
   other query and all public responses
   (`toPublicQuestion`, `toApiConference`) leave them and the moderation
   fields out. Organizers get only a summary of the verdict (decision,
-  reasons, relevance; `moderation-summary.ts`), never raw scores, and can
+  reasons, relevance; `moderation-summary.ts`), never raw scores.
+  Organizers and moderators also get the relevance score, and nothing else
+  of the verdict, in the event's question list (`getRelevanceByQuestion`,
+  merged only after a `canModerate` check), which the Q&A page shows small
+  next to each question's moderation menu. Organizers can
   restore a hidden question (`POST /api/v1/questions/:uid/restore`, which
   keeps the verdict, so "hide" without `hidden_at` reads as restored); one
   can't be selected for the stage while hidden. Counts of session activity

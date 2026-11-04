@@ -23,6 +23,7 @@ import {
 import {
   createQuestion,
   getQuestions,
+  getRelevanceByQuestion,
   getSelectedQuestion,
   type Sort,
   Sorts,
@@ -127,7 +128,10 @@ app.get("/api/v1/events/:uid/code", jwt(), eventMiddleware, async (c) => {
 // Public, for guests and embedders (`@meerkat-events/react`). Authentication
 // is optional: with a valid token, the viewer's own hidden questions are
 // included (automatic moderation hides them from everyone else) and each
-// question carries the viewer's `vote` on it, or null.
+// question carries the viewer's `vote` on it, or null. Organizers and
+// moderators of the event's conference also get each question's `relevance`
+// (0 to 4, or null when unscored), and nothing else of the verdict, for the
+// Q&A page's moderation controls.
 app.get(
   "/api/v1/events/:uid/questions",
   optionalJwt(),
@@ -146,16 +150,20 @@ app.get(
 
     const payloadSub = c.get("jwtPayload")?.sub;
     const viewerId = typeof payloadSub === "string" ? payloadSub : undefined;
-    const questions = await getQuestions(
-      event.id,
-      sort as Sort,
-      answered,
-      viewerId,
-    );
+    const [questions, roles] = await Promise.all([
+      getQuestions(event.id, sort as Sort, answered, viewerId),
+      viewerId
+        ? getConferenceRolesForConference(viewerId, event.conferenceId)
+        : [],
+    ]);
 
     if (!viewerId) {
       return c.json({ data: questions.map(toApiQuestion) });
     }
+
+    const relevanceByQuestion = canModerate(roles)
+      ? await getRelevanceByQuestion(event.id)
+      : null;
 
     return c.json({
       data: questions.map((question) => ({
@@ -163,6 +171,9 @@ app.get(
         vote: question.viewerVoteWeight === null
           ? null
           : { weight: question.viewerVoteWeight },
+        ...(relevanceByQuestion
+          ? { relevance: relevanceByQuestion.get(question.uid) ?? null }
+          : {}),
       })),
     });
   },

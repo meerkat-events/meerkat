@@ -117,6 +117,28 @@ export async function getEventsWithQuestionsBy(userId: string) {
     .where(and(eq(questions.userId, userId), isNull(questions.deletedAt)));
 }
 
+/**
+ * The relevance automatic moderation gave each of an event's questions (0 to
+ * 4), by question uid, for the event's moderators. Questions without a score
+ * (not moderated, refused, classifier failed) are left out.
+ */
+export async function getRelevanceByQuestion(eventId: number) {
+  const relevance = sql<number>`(${questions.moderation}->>'relevance')::float8`;
+  const rows = await db
+    .select({ uid: questions.uid, relevance })
+    .from(questions)
+    .where(
+      and(
+        eq(questions.eventId, eventId),
+        isNull(questions.deletedAt),
+        isNotNull(relevance),
+      ),
+    )
+    .execute();
+
+  return new Map(rows.map((row) => [row.uid, row.relevance]));
+}
+
 export async function getQuestionByUID(uid: string) {
   const result = await db.select().from(questions).where(
     eq(questions.uid, uid),
