@@ -23,11 +23,13 @@ const subscribe = (listener: () => void) => {
 };
 
 /**
- * The Q&A page's sort, remembered on the device for every session and
- * conference. A `?sort=` in the URL (an old or shared link) wins over the
- * stored choice; choosing a sort stores it and drops the parameter. The
- * server doesn't know the stored choice and renders "newest"; the browser
- * switches to the stored one right after hydration.
+ * The Q&A page's sort. A `?sort=` in the URL wins; a plain URL shows the
+ * sort remembered on the device, else "newest". Only tapping the sort
+ * control remembers anything: choosing "popular" stores it for every session
+ * and conference, choosing "newest" (the default) forgets it. Like the
+ * organizer pages' `useUrlChoice`, the URL carries a chosen non-default sort.
+ * The server doesn't know the stored choice and renders "newest"; the
+ * browser switches to the stored one right after hydration.
  */
 export function useQuestionSort(): [QuestionSort, (next: QuestionSort) => void] {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,17 +37,19 @@ export function useQuestionSort(): [QuestionSort, (next: QuestionSort) => void] 
   const sort = toQuestionSort(searchParams.get("sort")) ?? stored ?? "newest";
 
   const setSort = useCallback((next: QuestionSort) => {
-    let isStored = false;
     try {
-      globalThis.localStorage?.setItem(STORAGE_KEY, next);
-      isStored = globalThis.localStorage !== undefined;
+      if (next === "popular") {
+        globalThis.localStorage?.setItem(STORAGE_KEY, next);
+      } else {
+        globalThis.localStorage?.removeItem(STORAGE_KEY);
+      }
     } catch {
-      // Blocked storage (private browsing): the URL keeps the choice instead.
+      // Blocked storage (private browsing): the URL still holds the choice.
     }
     listeners.forEach((listener) => listener());
     setSearchParams((params) => {
-      if (isStored) params.delete("sort");
-      else params.set("sort", next);
+      if (next === "popular") params.set("sort", next);
+      else params.delete("sort");
       return params;
     }, { replace: true });
   }, [setSearchParams]);
