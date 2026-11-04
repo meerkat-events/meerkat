@@ -23,7 +23,8 @@ export type QuestionLengthCounterProps = {
 
 /**
  * Shows "120 / 200" in the question field once the attendee types,
- * in the warning colour near the limit and the error colour at it.
+ * small and low-contrast, in the warning colour near the limit and the error
+ * colour at it.
  *
  * Screen readers get a static description of the limit (through the field's
  * `aria-describedby`) and, only near the limit, a polite announcement of the
@@ -44,7 +45,9 @@ export function QuestionLengthCounter(
     ? "fg.error"
     : isNearLimit
     ? "fg.warning"
-    : "fg.muted";
+    // Quieter than the "Signed as" line, so the count doesn't stand out
+    // until it matters.
+    : "fg.subtle";
 
   return (
     <>
@@ -57,9 +60,8 @@ export function QuestionLengthCounter(
           aria-hidden="true"
           as="span"
           {...(className ? { className } : {})}
-          fontSize="sm"
+          fontSize="xs"
           color={color}
-          fontWeight={isNearLimit ? "semibold" : "normal"}
           whiteSpace="nowrap"
           fontVariantNumeric="tabular-nums"
         >

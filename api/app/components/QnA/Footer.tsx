@@ -103,8 +103,8 @@ export function Footer({
       <div className="overlay-container">
         <div className="target question-input">
           {/* The send button sits inside the field, in its bottom corner as a
-              long question grows, with the character count beside it once
-              there is text. */}
+              long question grows. Once there is text, the character count
+              sits in the opposite corner. */}
           <Box position="relative">
             <Textarea
               ref={textareaRef}

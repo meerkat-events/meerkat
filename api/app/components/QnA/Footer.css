@@ -31,12 +31,13 @@
   color: var(--chakra-colors-fg-muted);
 }
 
-/* The character count, inside the field at the bottom, just before the send
-   button (40px wide, 5px from the edges) and centred on it. The field makes
-   room for it with extra bottom padding while there is text. */
+/* The character count, inside the field at the bottom, at its start: lined
+   up with the text (16px in) and centred on the send button opposite (40px
+   tall, 5px from the bottom). The field makes room for it with extra bottom
+   padding while there is text. */
 .question-counter {
   position: absolute;
-  inset-inline-end: 53px;
+  inset-inline-start: 16px;
   bottom: 15px;
   line-height: 20px;
   pointer-events: none;
