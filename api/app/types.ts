@@ -150,6 +150,12 @@ export type Question = {
    * organizers' conference question list (`useConferenceQuestions`).
    */
   vote?: { weight: number } | null | undefined;
+  /**
+   * How relevant automatic moderation found the question, 0 to 4, or null
+   * when it wasn't scored. Only in the event's question list fetched by an
+   * organizer or moderator of its conference.
+   */
+  relevance?: number | null | undefined;
 };
 
 /**

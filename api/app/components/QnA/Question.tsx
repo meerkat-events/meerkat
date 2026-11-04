@@ -3,6 +3,7 @@ import {
   FiEyeOff as DeleteIcon,
   FiMoreHorizontal,
   FiStopCircle as NotAllowedIcon,
+  FiTarget,
 } from "react-icons/fi";
 import {
   Box,
@@ -12,6 +13,7 @@ import {
   Menu,
   Portal,
   Text,
+  VisuallyHidden,
 } from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
 import type { Question as QuestionType } from "../../types.ts";
@@ -29,6 +31,7 @@ import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { useRef, useState } from "react";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
+import { relevanceLevel } from "../Manage/question-state.ts";
 
 export type QuestionSupervotes = {
   /** Supervotes the user can spend; the prompt only shows when above 0. */
@@ -225,6 +228,7 @@ export function Question(
                   size="sm"
                   h="questionControl"
                   minW="questionControl"
+                  flexShrink={0}
                   aria-label="Options"
                   variant="ghost"
                   colorPalette="gray"
@@ -257,6 +261,9 @@ export function Question(
               </Portal>
             </Menu.Root>
           )}
+          {canModerate && question.relevance != null && (
+            <RelevanceScore score={question.relevance} />
+          )}
         </div>
         <UpVoteButton
           votes={question.votes}
@@ -287,5 +294,28 @@ export function Question(
         )}
       </div>
     </li>
+  );
+}
+
+/** Automatic moderation's relevance score, small, for moderators. */
+function RelevanceScore({ score }: { score: number }) {
+  const label = `Relevance ${score.toFixed(1)} of 4: ${relevanceLevel(score)}`;
+
+  return (
+    <Text
+      as="span"
+      textStyle="xs"
+      color="fg.muted"
+      display="inline-flex"
+      alignItems="center"
+      gap="1"
+      flexShrink={0}
+      fontVariantNumeric="tabular-nums"
+      title={label}
+    >
+      <Icon as={FiTarget} aria-hidden />
+      <span aria-hidden>{score.toFixed(1)}</span>
+      <VisuallyHidden>{label}</VisuallyHidden>
+    </Text>
   );
 }

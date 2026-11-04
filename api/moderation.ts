@@ -226,7 +226,10 @@ export type QuestionModeration =
     /** Most likely harmful option, even when the question was not hidden. */
     category: HarmfulCategory;
     decision: ModerationDecision;
-    /** Relevance to conference, topic and speaker, 0 to 4; not exposed yet. */
+    /**
+     * Relevance to conference, topic and speaker, 0 to 4. Organizers see it
+     * on /manage, and organizers and moderators on the Q&A page.
+     */
     relevance?: number;
     /** Dated model snapshot that answered. */
     model: string;
