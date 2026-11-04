@@ -16,6 +16,8 @@ export function toEvent(data: Event) {
     start: new Date(data.start),
     end: new Date(data.end),
     questions: data.questions.map(toQuestion),
-    recentlyAnswered: data.recentlyAnswered.map(toQuestion),
+    // Missing from servers older than high engagement mode, which a new
+    // client can still reach while a deploy rolls out.
+    recentlyAnswered: (data.recentlyAnswered ?? []).map(toQuestion),
   };
 }
