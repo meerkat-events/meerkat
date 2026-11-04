@@ -22,6 +22,28 @@ export function splitAnswering<Q extends Answerable>(questions: Q[]) {
   return { answering, others };
 }
 
+type QuestionListState = {
+  /** The sort to fetch is known (from the URL, or the device's storage). */
+  isSortKnown: boolean;
+  /** The browser doesn't know yet whether there is a session. */
+  isWaitingForSession: boolean;
+  /** The first list for the current key hasn't arrived. */
+  isFetching: boolean;
+};
+
+/**
+ * Whether the Q&A page's question list is still loading. Without `?sort=`
+ * the sort comes from the device's storage, which neither the server render
+ * nor hydration reads, so nothing is fetched yet; the list still counts as
+ * loading, or the server would render "No questions, yet" where the
+ * hydrating browser renders "Loading..." (React #418).
+ */
+export function isQuestionListLoading(
+  { isSortKnown, isWaitingForSession, isFetching }: QuestionListState,
+) {
+  return !isSortKnown || isWaitingForSession || isFetching;
+}
+
 // selectedAt arrives as an ISO string in JSON, whatever its declared type.
 function selectedTime(question: Answerable) {
   return new Date(question.selectedAt!).getTime();
