@@ -14,6 +14,7 @@ import { getUserByEmail, getUserById } from "../models/user.ts";
 import {
   getConferenceRolesForConference,
   grantRole,
+  isOrganizer,
 } from "../models/roles.ts";
 import {
   getConferenceAttendees,
@@ -90,7 +91,7 @@ async function requireOrganizer(conferenceIdParam: string, userId: string) {
   }
 
   const roles = await getConferenceRolesForConference(user.id, conferenceId);
-  if (!roles.some((role) => role.role === "organizer")) {
+  if (!isOrganizer(roles)) {
     throw new HTTPException(403, { message: "User is not an organizer" });
   }
 

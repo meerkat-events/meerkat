@@ -3,7 +3,7 @@ import { FiRadio } from "react-icons/fi";
 import { LuArrowBigUp } from "react-icons/lu";
 import { useListAnimation } from "../hooks/use-list-animation.ts";
 
-type QuestionWithVotes = {
+export type QuestionWithVotes = {
   id: number;
   uid: string;
   eventId: number;
@@ -46,11 +46,16 @@ const TopQuestions = ({ questions, answering }: TopQuestionsProps) => {
   );
 };
 
-function Question(
+/** A question card of the presenter view, greyed out once answered. */
+export function Question(
   { question, answering }: { question: QuestionWithVotes; answering: boolean },
 ) {
   const isSelected = answering;
-  const classNames = ["bubble", isSelected ? "selected" : ""];
+  const classNames = [
+    "bubble",
+    isSelected ? "selected" : "",
+    question.answeredAt ? "answered" : "",
+  ];
   return (
     <li key={question.uid} className={classNames.join(" ")}>
       {isSelected && (

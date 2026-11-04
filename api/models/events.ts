@@ -26,13 +26,16 @@ export function upsertEvents(
   newEvents: typeof events.$inferInsert[],
 ) {
   const allColumns = getTableColumns(events);
+  // Set in Meerkat, not by the imported schedule: a re-import keeps them.
+  const keptColumns: (keyof typeof allColumns)[] = [
+    "uid",
+    "conferenceId",
+    "id",
+    "live",
+    "highEngagement",
+  ];
   const updateColumns = (Object.keys(allColumns) as (keyof typeof allColumns)[])
-    .filter(
-      (column) =>
-        !["uid", "conferenceId", "createdAt", "id", "live"].includes(
-          column,
-        ),
-    );
+    .filter((column) => !keptColumns.includes(column));
 
   return db.insert(events)
     .values(newEvents)
@@ -290,6 +293,13 @@ export async function setEventLive(eventId: number) {
 
     return event;
   });
+}
+
+/** Switches the presenter view's high engagement mode. Null for no such event. */
+export async function setHighEngagement(eventId: number, enabled: boolean) {
+  const result = await db.update(events).set({ highEngagement: enabled })
+    .where(eq(events.id, eventId)).returning();
+  return result.at(0) ?? null;
 }
 
 // UTC day boundaries, matching toDay(); local-time boundaries dropped late

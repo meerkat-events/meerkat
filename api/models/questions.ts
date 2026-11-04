@@ -126,9 +126,10 @@ export async function getQuestionByUID(uid: string) {
 }
 
 /**
- * Puts a question on stage and marks the previous selection answered. With
- * `earnsSupervote`, the author gets a supervote the first time the question
- * is selected.
+ * Puts a question on stage and marks the previous selection answered. A
+ * question answered before goes back on stage; earlier answers keep their
+ * `answeredAt`, so the newest answer stays the newest. With `earnsSupervote`,
+ * the author gets a supervote the first time the question is selected.
  */
 export async function selectQuestion(
   id: number,
@@ -145,6 +146,7 @@ export async function selectQuestion(
 
     const result = await tx.update(questions).set({
       selectedAt: new Date(),
+      answeredAt: null,
     }).where(eq(questions.id, id)).returning().execute();
 
     const question = result.at(0);
@@ -157,6 +159,7 @@ export async function selectQuestion(
         not(eq(questions.id, question.id)),
         eq(questions.eventId, question.eventId),
         isNotNull(questions.selectedAt),
+        isNull(questions.answeredAt),
       ),
     ).execute();
 

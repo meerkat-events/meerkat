@@ -2,6 +2,7 @@ import QR from "../QR.tsx";
 import { Logo } from "../Logo.tsx";
 import { Heading, Text } from "@chakra-ui/react";
 import TopQuestions from "../TopQuestions.tsx";
+import HighEngagementQuestions from "./HighEngagementQuestions.tsx";
 import { eventStreamEvents, useEventSource } from "@meerkat-events/react";
 import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
@@ -85,7 +86,11 @@ export default function Presenter(
   const { answering, others } = splitAnswering(allQuestions);
   const shownQuestions = (answering ? [answering, ...others] : others)
     .slice(0, MAX_QUESTIONS);
-  const moreCount = allQuestions.length - shownQuestions.length;
+  // In high engagement mode the question being answered is the only open
+  // one on screen.
+  const moreCount = event.highEngagement
+    ? others.length
+    : allQuestions.length - shownQuestions.length;
 
   return (
     <div className={`page ${hideQRCode ? "hide-qr-code" : ""}`}>
@@ -97,7 +102,15 @@ export default function Presenter(
         </div>
       </header>
       <main>
-        <TopQuestions questions={shownQuestions} answering={answering} />
+        {event.highEngagement
+          ? (
+            <HighEngagementQuestions
+              answering={answering}
+              recentlyAnswered={event.recentlyAnswered}
+              showsQRCode={!hideQRCode}
+            />
+          )
+          : <TopQuestions questions={shownQuestions} answering={answering} />}
       </main>
       <footer>
         <span className="footer-logo">

@@ -281,11 +281,21 @@ its CSS, callers pass the items' uids joined, nothing moves with
 ### Domain rules
 
 - Questions are timestamp-driven: `selectedAt` (selecting one marks the
-  previously selected one answered), `answeredAt`, `deletedAt` (soft delete;
+  previously selected one answered unless it already is, so answer times
+  stay put, and clears its own `answeredAt`, so an answered question goes
+  back on stage), `answeredAt`, `deletedAt` (soft delete;
   queries filter it out). Banned users' questions are hidden by the query, not
   deleted.
 - One live event per stage: `setEventLive` turns the others off in a
   transaction. Event upserts never overwrite `live`.
+- **High engagement mode** (`events.high_engagement`, per event, off by
+  default): organizers switch it in the session panel on `/manage`
+  (`POST /api/v1/events/:uid/high-engagement`, which notifies the event's
+  stream). The presenter view then shows only the question being answered
+  (or a placeholder) with the latest answered ones below it, greyed out
+  (`Presenter/HighEngagementQuestions.tsx`); the public event carries them as
+  `recentlyAnswered` (newest first, at most 8), empty when the mode is off.
+  Event upserts never overwrite it.
 - **Current event** (`getCurrentEvent` in `models/events.ts`): what a stage
   (`getStageLiveEvent`: the stage screen, `/stage/:stage/qa`) or a
   conference (`getLiveEvent`: its QR code) shows, in one query, is the live

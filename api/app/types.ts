@@ -123,6 +123,13 @@ export type Event = {
   stage: string;
   conference: Conference;
   live: boolean;
+  /**
+   * The presenter view shows only the question being answered, with
+   * `recentlyAnswered` below it.
+   */
+  highEngagement: boolean;
+  /** The latest answered questions, newest first; empty unless highEngagement. */
+  recentlyAnswered: Question[];
 };
 export type Question = {
   id: number;

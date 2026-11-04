@@ -115,6 +115,10 @@ export const events = pgTable("events", {
   cover: text("cover"),
   speaker: text("speaker"),
   live: boolean("live").notNull().default(false),
+  // The presenter view shows only the question being answered, with the
+  // latest answered ones below it, instead of the most-voted open ones.
+  // Organizers switch it per event.
+  highEngagement: boolean("high_engagement").notNull().default(false),
 }, (table) => [
   // The upserts' ON CONFLICT target.
   uniqueIndex("events_uid_uniq").on(table.uid),

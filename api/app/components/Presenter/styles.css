@@ -161,6 +161,26 @@ html:has(.page) {
   }
 }
 
+/* High engagement mode: answered questions below the one on stage, greyed
+   out like on the Q&A page. Their contents fade, not the card itself:
+   useListAnimation animates the card's opacity while it moves. */
+.bubble.answered > * {
+  opacity: 0.6;
+}
+
+/* Where the question on stage appears while none is selected: muted text
+   on the page, no card. */
+.bubble.placeholder {
+  background-color: transparent;
+  color: var(--chakra-colors-fg-muted);
+}
+
+.high-engagement > .feed-label {
+  margin-top: 1rem;
+  margin-bottom: -1rem;
+  color: var(--chakra-colors-fg-muted);
+}
+
 .bubble-status {
   display: flex;
   align-items: center;

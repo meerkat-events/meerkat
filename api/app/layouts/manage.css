@@ -891,6 +891,19 @@
     border-top: 1px solid var(--m-line);
   }
 
+  /* A switch below the title, with a hint under its label. */
+  & .m-session-option {
+    margin-top: 14px;
+    align-items: flex-start;
+    line-height: 1.4;
+
+    & .m-hint {
+      display: block;
+      margin-top: 2px;
+      font-weight: normal;
+    }
+  }
+
   /* A title block with the header's actions on its right. */
   & .m-title-row {
     display: flex;

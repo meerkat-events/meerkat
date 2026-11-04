@@ -18,6 +18,7 @@ import {
   getEvents,
   getLiveEvent,
   setEventLive,
+  setHighEngagement,
 } from "../models/events.ts";
 import {
   createQuestion,
@@ -45,6 +46,7 @@ import { ATTENDEES_ONLY_MESSAGE } from "../features.ts";
 import {
   canModerate,
   getConferenceRolesForConference,
+  isOrganizer,
   mayParticipate,
 } from "../models/roles.ts";
 import logger from "../logger.ts";
@@ -449,6 +451,44 @@ app.post(
         userId: user.id,
       },
       "Set event live",
+    );
+
+    return c.json({ data: result });
+  },
+);
+
+const highEngagementSchema = zod.object({ enabled: zod.boolean() });
+
+// Organizers switch the presenter view's high engagement mode per event. The
+// stream's update makes open presenter screens refetch the event and switch.
+app.post(
+  "/api/v1/events/:uid/high-engagement",
+  jwt(),
+  eventMiddleware,
+  zValidator("json", highEngagementSchema),
+  async (c) => {
+    const event = c.get("event");
+    const { enabled } = c.req.valid("json");
+    const userId = c.get("jwtPayload").sub;
+
+    const roles = await getConferenceRolesForConference(
+      userId,
+      event.conferenceId,
+    );
+    if (!isOrganizer(roles)) {
+      throw new HTTPException(403, { message: `User is not an organizer` });
+    }
+
+    const result = await setHighEngagement(event.id, enabled);
+    if (!result) {
+      throw new HTTPException(404, { message: `Event ${event.uid} not found` });
+    }
+
+    void notifyQuestionsChanged(result);
+
+    logger.info(
+      { eventId: event.id, eventUid: event.uid, userId, enabled },
+      "Set high engagement mode",
     );
 
     return c.json({ data: result });

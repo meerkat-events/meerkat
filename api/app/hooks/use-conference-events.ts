@@ -16,6 +16,8 @@ export type Session = {
   speaker: string | null;
   description: string | null;
   live: boolean;
+  /** See `Event.highEngagement`. */
+  highEngagement: boolean;
 };
 
 type RawSession = Omit<Session, "start" | "end"> & {
