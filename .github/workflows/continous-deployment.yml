@@ -14,7 +14,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
   set-env:
     name: Set Environment Variable
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       deploy_env: ${{ steps.set-env.outputs.ENVIRONMENT }}
     steps:
@@ -29,7 +29,7 @@ jobs:
           echo "ENVIRONMENT=$ENVIRONMENT" >> $GITHUB_OUTPUT
   deploy:
     name: Deploy app
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [ci, set-env]
     concurrency: deploy-group # optional: ensure only one action runs at a time
     environment: ${{ needs.set-env.outputs.deploy_env }}
@@ -71,7 +71,7 @@ jobs:
   publish-npm:
     name: Publish @meerkat-events/react
     if: github.event_name == 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [ci, deploy]
     environment: npm
     permissions:
