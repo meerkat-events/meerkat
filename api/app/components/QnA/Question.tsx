@@ -43,6 +43,12 @@ import {
   relevanceLevel,
 } from "../Manage/question-state.ts";
 
+/**
+ * Whether moderators see each question's relevance score after its text.
+ * Off while we iterate on its design; the API still sends the score.
+ */
+const SHOW_RELEVANCE_SCORE = false;
+
 export type QuestionSupervotes = {
   /** Supervotes the user can spend; the prompt only shows when above 0. */
   available: number;
@@ -200,7 +206,7 @@ export function Question(
       )}
       <Text className="question-card-text" textStyle="md" fontWeight="semibold">
         {question.question}
-        {canModerate && question.relevance != null && (
+        {SHOW_RELEVANCE_SCORE && canModerate && question.relevance != null && (
           <>
             {" "}
             <RelevanceScore score={question.relevance} />
