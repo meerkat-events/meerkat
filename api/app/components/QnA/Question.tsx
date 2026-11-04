@@ -311,10 +311,10 @@ function RelevanceScore({ score }: { score: number }) {
       gap="1"
       flexShrink={0}
       fontVariantNumeric="tabular-nums"
-      title={label}
     >
+      {/* The title is for pointers only: screen readers read the hidden label. */}
       <Icon as={FiTarget} aria-hidden />
-      <span aria-hidden>{score.toFixed(1)}</span>
+      <span aria-hidden title={label}>{score.toFixed(1)}</span>
       <VisuallyHidden>{label}</VisuallyHidden>
     </Text>
   );

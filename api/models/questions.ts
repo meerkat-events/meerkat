@@ -127,7 +127,13 @@ export async function getRelevanceByQuestion(eventId: number) {
   const rows = await db
     .select({ uid: questions.uid, relevance })
     .from(questions)
-    .where(and(eq(questions.eventId, eventId), isNotNull(relevance)))
+    .where(
+      and(
+        eq(questions.eventId, eventId),
+        isNull(questions.deletedAt),
+        isNotNull(relevance),
+      ),
+    )
     .execute();
 
   return new Map(rows.map((row) => [row.uid, row.relevance]));

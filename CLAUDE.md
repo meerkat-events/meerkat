@@ -253,8 +253,9 @@ its CSS, callers pass the items' uids joined, nothing moves with
   Admin routes use an API key instead (below). Public responses never
   carry hidden questions, moderation fields or emails (`toPublicQuestion`,
   `toApiConference`); the one exception is the relevance score in the
-  question list a conference's moderators fetch (see Automatic moderation). `api/app.test.ts` holds the same list and checks that
-  every other route answers 401 without credentials, so a new public route
+  question list a conference's moderators fetch (see Automatic moderation).
+  `api/app.test.ts` holds the same list and checks that every other route
+  answers 401 without credentials, so a new public route
   has to be added there on purpose. On the frontend, a hook calling a
   protected route passes `session?.access_token` and keeps its SWR key
   `null` until there is one. `optionalJwt()` sets the payload when a valid
