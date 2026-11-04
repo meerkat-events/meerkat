@@ -19,14 +19,7 @@ import type { Question as QuestionType } from "../../types.ts";
 import { useMarkAsAnswered } from "../../hooks/use-mark-as-answered.ts";
 import { UpVoteButton } from "../Buttons/UpVoteButton.tsx";
 import { useHideQuestion } from "../../hooks/use-hide-question.ts";
-import { FiRadio } from "react-icons/fi";
-import {
-  BiCircle,
-  BiCircleHalf,
-  BiCircleQuarter,
-  BiCircleThreeQuarter,
-  BiSolidCircle,
-} from "react-icons/bi";
+import { FiRadio, FiStar, FiThumbsDown } from "react-icons/fi";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import {
   CONFIRMATION_DURATION,
@@ -34,20 +27,20 @@ import {
 } from "../../components/ui/toaster.tsx";
 import { useVote } from "../../hooks/use-vote.ts";
 import { tapTargetStyles } from "../../theme/index.ts";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SupervotePrompt } from "./SupervotePrompt.tsx";
 import {
   RELEVANCE_LEVELS,
   relevanceIndex,
-  relevanceLevel,
 } from "../Manage/question-state.ts";
 import { useSwipeReveal } from "./use-swipe.ts";
 
 /**
- * Whether moderators see each question's relevance score after its text.
- * Off while we iterate on its design; the API still sends the score.
+ * Whether moderators see a relevance label ("Relevant", "Off topic") next to
+ * the vote pill. Set it to false to hide the labels; the API still sends the
+ * score either way.
  */
-const SHOW_RELEVANCE_SCORE = false;
+const SHOW_RELEVANCE_SCORE = true;
 
 // Space (px) between the revealed buttons and the swiped card.
 const SWIPE_GAP = 8;
@@ -276,12 +269,6 @@ export function Question(
         )}
         <Text className="question-card-text" textStyle="md" fontWeight="semibold">
           {question.question}
-          {SHOW_RELEVANCE_SCORE && canModerate && question.relevance != null && (
-            <>
-              {" "}
-              <RelevanceScore score={question.relevance} />
-            </>
-          )}
         </Text>
         <div className="question-card-meta">
           <div className="question-card-byline">
@@ -363,15 +350,20 @@ export function Question(
               </Menu.Root>
             )}
           </div>
-          <UpVoteButton
-            votes={question.votes}
-            voted={voted}
-            loading={isVoting}
-            supervoted={supervoted}
-            onClick={handleVoteClick}
-            // A supervote is spent for good: it can't be un-voted.
-            disabled={!canVote || isAnswered || supervoted}
-          />
+          <div className="question-card-actions">
+            {SHOW_RELEVANCE_SCORE && canModerate && question.relevance != null && (
+              <RelevanceScore score={question.relevance} />
+            )}
+            <UpVoteButton
+              votes={question.votes}
+              voted={voted}
+              loading={isVoting}
+              supervoted={supervoted}
+              onClick={handleVoteClick}
+              // A supervote is spent for good: it can't be un-voted.
+              disabled={!canVote || isAnswered || supervoted}
+            />
+          </div>
           {supervotes && (
             <SupervotePrompt
               open={isPromptOpen}
@@ -396,26 +388,73 @@ export function Question(
   );
 }
 
-/** A quarter more of the pie per relevance level, from 0 (empty) to 4 (full). */
-const RELEVANCE_ICONS = [
-  BiCircle,
-  BiCircleQuarter,
-  BiCircleHalf,
-  BiCircleThreeQuarter,
-  BiSolidCircle,
-];
+/** Scores from this up get "Relevant" (about a quarter of questions). */
+const GOOD_QUESTION_FROM = 3;
+/** Scores below this get "Off topic". */
+const UNRELATED_BELOW = 0.5;
+
+/** Phones narrower than most (iPhone SE and smaller): labels show their icon only. */
+const NARROW_SCREEN = "@media (max-width: 359px)";
+
+const RELEVANCE_LABELS = {
+  good: {
+    text: "Relevant",
+    icon: FiStar,
+    palette: "green",
+    hint: "Rated by the moderation model.",
+  },
+  unrelated: {
+    text: "Off topic",
+    icon: FiThumbsDown,
+    palette: "red",
+    hint: "Rated by the moderation model. Hide it if it doesn't belong.",
+  },
+} as const;
+
+/** Which label a relevance score gets, if any: in-between scores get none. */
+function relevanceLabel(score: number) {
+  if (score >= GOOD_QUESTION_FROM) return RELEVANCE_LABELS.good;
+  if (score < UNRELATED_BELOW) return RELEVANCE_LABELS.unrelated;
+  return null;
+}
 
 /**
- * Automatic moderation's relevance score, small, for moderators, at the end
- * of the question text. Tapping it opens a short explanation, sized for
- * phones (/manage has the long one).
+ * While `open`, closes (`setOpen(false)`) as soon as anything on the page
+ * scrolls. The listener captures, so it also hears the question list's own
+ * scrolling.
+ */
+function useCloseOnScroll(open: boolean, setOpen: (open: boolean) => void) {
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    globalThis.addEventListener("scroll", close, { capture: true, passive: true });
+    return () => {
+      globalThis.removeEventListener("scroll", close, { capture: true });
+    };
+  }, [open, setOpen]);
+}
+
+/**
+ * For moderators, next to the vote pill: "Relevant" for a relevant
+ * question, "Off topic" for an off-topic one, nothing in between. Tapping it
+ * shows the level the model's score is closest to, by the name the model is
+ * given (RELEVANCE_LEVELS mirrors buildRelevanceQuestion), and the score out
+ * of 4.
  */
 function RelevanceScore({ score }: { score: number }) {
-  const formatted = `${score.toFixed(1)}/4`;
-  const level = relevanceLevel(score);
+  const [open, setOpen] = useState(false);
+  useCloseOnScroll(open, setOpen);
+
+  const label = relevanceLabel(score);
+  if (!label) return null;
+  const level = RELEVANCE_LEVELS[relevanceIndex(score)];
 
   return (
-    <Popover.Root positioning={{ placement: "bottom-start" }}>
+    <Popover.Root
+      positioning={{ placement: "bottom-start" }}
+      open={open}
+      onOpenChange={(details) => setOpen(details.open)}
+    >
       <Popover.Trigger asChild>
         <chakra.button
           type="button"
@@ -426,18 +465,23 @@ function RelevanceScore({ score }: { score: number }) {
           verticalAlign="middle"
           whiteSpace="nowrap"
           textStyle="xs"
-          fontWeight="normal"
-          color="fg.muted"
-          fontVariantNumeric="tabular-nums"
+          fontWeight="medium"
+          colorPalette={label.palette}
+          bg="colorPalette.subtle"
+          color="colorPalette.fg"
+          px="1.5"
+          py="0.5"
+          borderRadius="full"
           cursor="pointer"
-          borderRadius="sm"
-          _hover={{ color: "fg" }}
           focusVisibleRing="outside"
-          aria-label={`Relevance ${score.toFixed(1)} of 4: ${level}`}
+          aria-label={label.text}
           {...tapTargetStyles}
         >
-          <Icon as={RELEVANCE_ICONS[relevanceIndex(score)]} aria-hidden />
-          {formatted}
+          <Icon as={label.icon} aria-hidden />
+          {/* Icon only on the narrowest phones, so the author's name fits. */}
+          <chakra.span css={{ [NARROW_SCREEN]: { display: "none" } }}>
+            {label.text}
+          </chakra.span>
         </chakra.button>
       </Popover.Trigger>
       <Portal>
@@ -446,19 +490,23 @@ function RelevanceScore({ score }: { score: number }) {
             <Popover.Arrow>
               <Popover.ArrowTip />
             </Popover.Arrow>
-            <Popover.Body display="flex" flexDirection="column" gap="2" p="3">
-              <Popover.Title fontWeight="semibold">
-                Relevance {formatted} · {level}
+            <Popover.Body display="flex" flexDirection="column" gap="1" p="3">
+              <Popover.Title
+                display="flex"
+                justifyContent="space-between"
+                gap="3"
+                fontWeight="semibold"
+              >
+                {level?.name}
+                <chakra.span
+                  color="colorPalette.fg"
+                  colorPalette={label.palette}
+                  fontVariantNumeric="tabular-nums"
+                >
+                  {score.toFixed(1)}/4
+                </chakra.span>
               </Popover.Title>
-              <Text color="fg.muted">
-                How well the question fits this talk, rated by the moderation
-                model. It never hides a question.
-              </Text>
-              <chakra.ol color="fg.muted" fontVariantNumeric="tabular-nums">
-                {RELEVANCE_LEVELS.map((relevance, value) => (
-                  <li key={relevance.name}>{value} · {relevance.name}</li>
-                ))}
-              </chakra.ol>
+              <Text color="fg.muted" textStyle="xs">{label.hint}</Text>
             </Popover.Body>
           </Popover.Content>
         </Popover.Positioner>
