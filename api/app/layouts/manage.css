@@ -895,9 +895,11 @@
   & .m-session-option {
     margin-top: 14px;
     align-items: flex-start;
+    line-height: 1.4;
 
     & .m-hint {
       display: block;
+      margin-top: 2px;
       font-weight: normal;
     }
   }
