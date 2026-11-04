@@ -11,6 +11,7 @@ import type { Question } from "../types.ts";
 import { fetcher } from "./fetcher.ts";
 import type { HTTPError } from "./http-error.ts";
 import { useAuth } from "./use-auth.ts";
+import type { QuestionSort } from "./use-question-sort.ts";
 import { useSupabase } from "../context/supabase.tsx";
 
 /**
@@ -24,7 +25,7 @@ import { useSupabase } from "../context/supabase.tsx";
  */
 export const useEventQuestions = (
   uid: string | undefined,
-  sort: "newest" | "popular",
+  sort: QuestionSort,
   { onReaction, onEventLive }: EventStreamCallbacks = {},
 ) => {
   const { session, isLoading: isAuthLoading } = useAuth();
