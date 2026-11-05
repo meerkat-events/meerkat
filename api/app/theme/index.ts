@@ -16,8 +16,6 @@ import type { Theme } from "../types.ts";
 import { isColor, pageSurface } from "./surface.ts";
 
 export { meerkat } from "./meerkat.ts";
-export { devconnect } from "./devconnect.ts";
-export { devcon8 } from "./devcon8.ts";
 
 const generateColorScale = (baseColor: string) => {
   return {

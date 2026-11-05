@@ -1,7 +1,7 @@
 ALTER SEQUENCE conferences_id_seq RESTART WITH 1;
 ALTER SEQUENCE events_id_seq RESTART WITH 1;
 ALTER SEQUENCE questions_id_seq RESTART WITH 1;
--- Default theme for seeded conferences (mirrors app/theme/devconnect.ts)
+-- Default theme for seeded conferences (Devconnect's)
 WITH devconnect_theme AS (
 	SELECT '{
 		"brandColor": "#74acdf",
