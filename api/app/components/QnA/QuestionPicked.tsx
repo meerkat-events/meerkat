@@ -1,10 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { CloseButton, Portal } from "@chakra-ui/react";
+import { useRef } from "react";
 import { FiZap } from "react-icons/fi";
-import { MeerkatMascot } from "./MeerkatMascot.tsx";
-import { useModalOverlay } from "../../hooks/use-modal-overlay.ts";
-import { tapTargetStyles } from "../../theme/index.ts";
-import "./QuestionPicked.css";
+import { Celebration } from "../Celebration/Celebration.tsx";
 
 const CONFETTI_COLORS = [
   "var(--chakra-colors-brand-solid)",
@@ -14,19 +10,6 @@ const CONFETTI_COLORS = [
   "#74ACDF",
   "#FFFFFF",
 ];
-
-// Four-point star centred on the origin.
-const SPARKLE = "M0-6L1.5-1.5L6 0L1.5 1.5L0 6L-1.5 1.5L-6 0L-1.5-1.5Z";
-
-// Randomized once per page load; the pattern doesn't need to differ between
-// celebrations.
-const CONFETTI = Array.from({ length: 60 }, (_, i) => ({
-  left: `${Math.random() * 100}%`,
-  background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  animationDuration: `${1.6 + Math.random() * 1.6}s`,
-  animationDelay: `${Math.random() * 0.5}s`,
-  round: i % 3 === 0,
-}));
 
 export type QuestionPickedProps = {
   /**
@@ -50,103 +33,39 @@ export function QuestionPicked(
   { onDismiss, weight }: QuestionPickedProps,
 ) {
   const supervoteIconRef = useRef<HTMLDivElement>(null);
-  const dismissRef = useRef(() => {});
-  dismissRef.current = () =>
-    onDismiss(supervoteIconRef.current?.getBoundingClientRect());
-  const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
-  useModalOverlay(overlay, closeRef);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        dismissRef.current();
-      }
-    };
-    globalThis.addEventListener("keydown", onKeyDown);
-    return () => globalThis.removeEventListener("keydown", onKeyDown);
-  }, []);
 
   return (
-    <Portal>
-      <div
-        ref={setOverlay}
-        className="question-picked"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="question-picked-title"
-        aria-describedby="question-picked-description"
-        onClick={() => dismissRef.current()}
+    <Celebration
+      confettiColors={CONFETTI_COLORS}
+      titleId="question-picked-title"
+      descriptionId="question-picked-description"
+      onDismiss={() =>
+        onDismiss(supervoteIconRef.current?.getBoundingClientRect())}
+    >
+      <h2 id="question-picked-title" className="celebration-title">
+        Good question!
+      </h2>
+      <p
+        id="question-picked-description"
+        className="celebration-description"
       >
-        <div className="question-picked-confetti" aria-hidden="true">
-          {CONFETTI.map(({ round, ...style }, i) => (
-            <span
-              key={i}
-              className={round ? "round" : undefined}
-              style={style}
-            />
-          ))}
-        </div>
-        <div className="question-picked-card">
-          {/* Tapping anywhere closes the overlay; the button is for keyboards
-              and screen readers, and gets focus when it opens */}
-          <CloseButton
-            ref={closeRef}
-            className="question-picked-close"
-            size="sm"
-            aria-label="Close"
-            {...tapTargetStyles}
-          />
-          <div className="question-picked-medal">
-            <div className="question-picked-rays" />
-            <div className="question-picked-disc">
-              <MeerkatMascot className="question-picked-meerkat" />
-            </div>
-            <svg
-              className="question-picked-sparkles"
-              viewBox="0 0 40 40"
-              aria-hidden="true"
-            >
-              <g transform="translate(14 22) scale(1.1)">
-                <path d={SPARKLE} />
-              </g>
-              <g transform="translate(28 10) scale(.8)">
-                <path d={SPARKLE} />
-              </g>
-              <g transform="translate(33 27) scale(.55)">
-                <path d={SPARKLE} />
-              </g>
-            </svg>
+        Your question is being answered right now.
+      </p>
+      {weight && (
+        <div className="celebration-reward">
+          <div ref={supervoteIconRef} className="celebration-reward-icon">
+            <FiZap />
           </div>
-          <h2 id="question-picked-title" className="question-picked-title">
-            Good question!
-          </h2>
-          <p
-            id="question-picked-description"
-            className="question-picked-description"
-          >
-            Your question is being answered right now.
-          </p>
-          {weight && (
-            <div className="question-picked-supervote">
-              <div
-                ref={supervoteIconRef}
-                className="question-picked-supervote-icon"
-              >
-                <FiZap />
-              </div>
-              <div>
-                <div className="question-picked-supervote-title">
-                  Supervote earned
-                </div>
-                <div className="question-picked-supervote-description">
-                  Your next upvote counts x{weight}
-                </div>
-              </div>
+          <div>
+            <div className="celebration-reward-title">
+              Supervote earned
             </div>
-          )}
+            <div className="celebration-reward-description">
+              Your next upvote counts x{weight}
+            </div>
+          </div>
         </div>
-      </div>
-    </Portal>
+      )}
+    </Celebration>
   );
 }
