@@ -1,5 +1,4 @@
 import {
-  isRouteErrorResponse,
   Outlet,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
@@ -14,7 +13,6 @@ import { SWRConfig } from "swr";
 import { getConfig } from "../lib/config.ts";
 import { getEventTheme } from "../lib/event-theme.server.ts";
 import { Toaster } from "../components/ui/toaster.tsx";
-import { useReportRouteError } from "../hooks/use-report-route-error.ts";
 import { createSystem, meerkat } from "../theme/index.ts";
 
 import "./app.css";
@@ -80,32 +78,4 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   return content;
 }
 
-export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  useReportRouteError(error);
-
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
-  let stack: string | undefined;
-
-  if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details = error.status === 404
-      ? "The requested page could not be found."
-      : error.statusText || details;
-  } else if (error && error instanceof Error) {
-    details = error.message;
-    stack = error.stack;
-  }
-
-  return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
-  );
-}
+export { RouteError as ErrorBoundary } from "../components/RouteError.tsx";
