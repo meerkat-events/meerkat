@@ -6,7 +6,7 @@ import HighEngagementQuestions from "./HighEngagementQuestions.tsx";
 import { eventStreamEvents, useEventSource } from "@meerkat-events/react";
 import { HeartIcon } from "../assets/heart.ts";
 import { useSearchParams } from "react-router";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { apiUrl, appOrigin } from "../../lib/api-url.ts";
 import { splitAnswering } from "../../lib/questions.ts";
 import { qa } from "../../routing.ts";
@@ -49,10 +49,7 @@ export default function Presenter(
     appOrigin,
     () => undefined,
   );
-  const url = useMemo(
-    () => origin ? new URL(qa(event.uid), origin) : undefined,
-    [origin, event.uid],
-  );
+  const url = origin ? new URL(qa(event.uid), origin).toString() : undefined;
   const [reactions, setReactions] = useState<
     { id: string; x: number; emoji: ReactionEmoji }[]
   >([]);
