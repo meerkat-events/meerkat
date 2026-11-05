@@ -115,8 +115,14 @@ export function useSwipeReveal({ width, enabled }: {
         onPointerCancel: (event: PointerEvent<HTMLElement>) =>
           finish(event, true),
         // The browser can take the pointer back mid-swipe (e.g. to scroll).
-        onLostPointerCapture: (event: PointerEvent<HTMLElement>) =>
-          finish(event, true),
+        // Only the element's own capture counts: on touch screens the browser
+        // first captures the finger to whatever it landed on (the question
+        // text), and that child's lostpointercapture bubbles up here the
+        // moment the swipe takes the capture over.
+        onLostPointerCapture: (event: PointerEvent<HTMLElement>) => {
+          if (event.target !== event.currentTarget) return;
+          finish(event, true);
+        },
       }
       : {},
   };
