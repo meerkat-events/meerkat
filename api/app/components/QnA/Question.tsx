@@ -278,10 +278,12 @@ export function Question(
                       <Icon as={SpamIcon} mr="2" color="accent.menuIcon" />
                       <Box as="span">Spam</Box>
                     </Menu.Item>
-                    <Menu.Item value="block" onClick={handleBlock}>
-                      <Icon as={NotAllowedIcon} mr="2" color="accent.menuIcon" />
-                      <Box as="span">Block User</Box>
-                    </Menu.Item>
+                    {question.user && (
+                      <Menu.Item value="block" onClick={handleBlock}>
+                        <Icon as={NotAllowedIcon} mr="2" color="accent.menuIcon" />
+                        <Box as="span">Block User</Box>
+                      </Menu.Item>
+                    )}
                   </Menu.Content>
                 </Menu.Positioner>
               </Portal>

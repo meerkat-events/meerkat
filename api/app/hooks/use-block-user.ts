@@ -4,7 +4,7 @@ import { useAuth } from "./use-auth.ts";
 
 export function useBlockUser(uid: string) {
   const { session } = useAuth();
-  const { trigger } = useSWRMutation<{ data: { success: boolean } }>(
+  const { trigger } = useSWRMutation<{ data: Record<string, never> }>(
     `/api/v1/users/${uid}/block`,
     (path: string, { arg }: { arg: Record<string, unknown> }) =>
       poster(path, { arg }, session?.access_token),
