@@ -220,6 +220,5 @@ The current event is the live one; else one running now (the earliest
 started); else the next to start; else the one that ended last. So the links
 work before, between and after the sessions, and a stage only answers 404
 when it has no events at all (a stage screen opened then needs a reload). The
-JSON lookups (`/api/v1/events/stage/<stage>/live`,
-`/api/v1/conferences/<id>/events/live`) return that event too; its `live`
-field tells whether it is really live.
+JSON lookup (`/api/v1/events/stage/<stage>/live`) returns that event too; its
+`live` field tells whether it is really live.

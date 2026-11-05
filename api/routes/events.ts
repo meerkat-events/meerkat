@@ -16,7 +16,6 @@ import { getConferenceById } from "../models/conferences.ts";
 import {
   getEventByUID,
   getEvents,
-  getLiveEvent,
   setEventLive,
   setHighEngagement,
 } from "../models/events.ts";
@@ -24,7 +23,6 @@ import {
   createQuestion,
   getQuestions,
   getRelevanceByQuestion,
-  getSelectedQuestion,
   type Sort,
   Sorts,
   toPublicQuestion,
@@ -51,7 +49,6 @@ import {
   mayParticipate,
 } from "../models/roles.ts";
 import logger from "../logger.ts";
-import { generateQRCodePNG } from "../code.ts";
 import { getStageLiveEvent } from "../models/events.ts";
 import { getPublicEvent, toApiQuestion } from "../models/public-event.ts";
 import { hub } from "../realtime/index.ts";
@@ -98,29 +95,6 @@ app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
   }
 
   return c.json({ data: publicEvent });
-});
-
-// The session's Q&A link as a PNG QR code. The app draws its QR codes in the
-// browser; this is for signed-in API clients.
-app.get("/api/v1/events/:uid/code", jwt(), eventMiddleware, async (c) => {
-  const widthInput = Number.parseInt(c.req.query("width") ?? "512");
-
-  if (isNaN(widthInput)) {
-    throw new HTTPException(400, { message: "Invalid width" });
-  }
-  if (widthInput < 128 || widthInput > 2048) {
-    throw new HTTPException(400, {
-      message: "Invalid width, must be between 128 and 2048",
-    });
-  }
-
-  const event = c.get("event");
-
-  const url = new URL(`/e/${event.uid}/qa`, env.base);
-
-  return c.body(await generateQRCodePNG(url.toString(), widthInput), 200, {
-    "Content-Type": "image/png",
-  });
 });
 
 // The viewer's vote is left out here: only the Q&A page's own list, fetched
@@ -175,20 +149,6 @@ app.get(
           ? { relevance: relevanceByQuestion.get(question.uid) ?? null }
           : {}),
       })),
-    });
-  },
-);
-
-app.get(
-  "/api/v1/events/:uid/questions/selected",
-  jwt(),
-  eventMiddleware,
-  async (c) => {
-    const event = c.get("event");
-    const question = await getSelectedQuestion(event.id);
-
-    return c.json({
-      data: question ? toApiQuestion(question) : null,
     });
   },
 );
@@ -566,26 +526,6 @@ app.get("/api/v1/events", async (c) => {
     ...(date ? { date } : {}),
   });
   return c.json({ data: events });
-});
-
-app.get("/api/v1/conferences/:id/events/live", jwt(), async (c) => {
-  const conferenceId = parseInt(c.req.param("id"));
-  if (Number.isInteger(conferenceId) === false) {
-    throw new HTTPException(400, {
-      message: `Invalid conference id ${conferenceId}`,
-    });
-  }
-
-  const liveEvent = await getLiveEvent(conferenceId);
-  const publicEvent = liveEvent ? await getPublicEvent(liveEvent) : null;
-
-  if (!publicEvent) {
-    throw new HTTPException(404, {
-      message: `No event found for conference ${conferenceId}`,
-    });
-  }
-
-  return c.json({ data: publicEvent });
 });
 
 // Signage, public: printed QR codes open /stage/:stage/qa, and the stage

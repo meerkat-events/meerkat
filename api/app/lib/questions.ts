@@ -7,8 +7,8 @@ export const isAnswering = (question: Answerable) =>
 /**
  * Splits off the question the speaker is answering right now, keeping the
  * others in their order. Selecting answers the previous selection, but two
- * concurrent selects can leave two questions answering; like the server's
- * getSelectedQuestion, the latest selected one is on stage.
+ * concurrent selects can leave two questions answering; the latest selected
+ * one is on stage.
  */
 export function splitAnswering<Q extends Answerable>(questions: Q[]) {
   let answering: Q | undefined;
