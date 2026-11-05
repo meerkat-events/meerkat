@@ -16,14 +16,14 @@ import { FaXTwitter } from "react-icons/fa6";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { Link as ReactRouterLink } from "react-router";
 import { Logo } from "../Logo.tsx";
+import { qa } from "../../routing.ts";
 
 interface NavLinkProps {
   label: string;
   href: string;
-  active: boolean;
 }
 
-function NavLink({ label, href, active: _active }: NavLinkProps) {
+function NavLink({ label, href }: NavLinkProps) {
   return (
     <List.Item>
       <Link
@@ -122,10 +122,10 @@ function MeerkatLinks() {
 }
 
 interface NavigationDrawerProps {
-  navLinks: NavLinkProps[];
+  eventUid: string | undefined;
 }
 
-export function NavigationDrawer({ navLinks }: NavigationDrawerProps) {
+export function NavigationDrawer({ eventUid }: NavigationDrawerProps) {
   return (
     <Drawer.Root placement="start">
       <Drawer.Trigger asChild>
@@ -155,12 +155,7 @@ export function NavigationDrawer({ navLinks }: NavigationDrawerProps) {
             <Drawer.Body>
               <Box as="nav">
                 <List.Root gap="3">
-                  {navLinks.map((link) => (
-                    <NavLink
-                      key={link.href}
-                      {...link}
-                    />
-                  ))}
+                  <NavLink label="Questions" href={qa(eventUid ?? "")} />
                   {isPostHogEnabled() && <GiveFeedback />}
                 </List.Root>
               </Box>
