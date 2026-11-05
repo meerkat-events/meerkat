@@ -414,8 +414,9 @@ function QRBlock(
 }
 
 /**
- * Draws the session's QR code to a PNG in the browser and downloads it, so
- * no server endpoint (and no token) is needed.
+ * Draws the session's QR code to a PNG in the browser and downloads it. White
+ * background and #36364c modules, the colors of the QR codes printed so far:
+ * keep them, so new downloads match the printed ones.
  */
 async function downloadQRCode(url: string, size: number, fileName: string) {
   const svg = (await generateQRCodeSVG(url))

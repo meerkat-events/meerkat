@@ -124,9 +124,12 @@ describe("question relevance", () => {
     });
     assert.equal(eventResponse.status, 200);
     const { data: publicEvent } = await eventResponse.json() as {
-      data: { questions: ListedQuestion[] };
+      data: { questions: (ListedQuestion & { selectedAt: string | null })[] };
     };
-    assert.ok(publicEvent.questions.some((q) => q.uid === scoredUid));
+    const selectedQuestion = publicEvent.questions.find((q) =>
+      q.uid === scoredUid
+    );
+    assert.ok(selectedQuestion?.selectedAt, "the scored question is selected");
     for (const question of publicEvent.questions) {
       assert.ok(!("relevance" in question));
     }
