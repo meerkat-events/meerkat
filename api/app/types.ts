@@ -112,8 +112,10 @@ export type Event = {
   uid: string;
   conferenceId: number;
   title: string;
-  start: Date;
-  end: Date;
+  // Timestamps are ISO strings, as the API's JSON sends them; parse them with
+  // `new Date()` where a date is needed (lib/event.ts for the stage screen).
+  start: string;
+  end: string;
   description: string | null;
   cover: string | null;
   questions: Question[];
@@ -137,9 +139,9 @@ export type Question = {
   uid: string;
   votes: number;
   question: string;
-  createdAt: Date;
-  answeredAt?: Date | undefined;
-  selectedAt?: Date | undefined;
+  createdAt: string;
+  answeredAt?: string | undefined;
+  selectedAt?: string | undefined;
   user?: {
     id: string;
     name?: string | undefined;

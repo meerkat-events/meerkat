@@ -200,14 +200,14 @@ function PersonTab(
     refresh: () => void;
   },
 ) {
-  const asDates = (q: UserActivity["questions"][number]) => ({
+  // The table's questions leave a missing timestamp out instead of null.
+  const asRow = (q: UserActivity["questions"][number]) => ({
     ...q,
-    createdAt: new Date(q.createdAt),
-    selectedAt: q.selectedAt ? new Date(q.selectedAt) : undefined,
-    answeredAt: q.answeredAt ? new Date(q.answeredAt) : undefined,
+    selectedAt: q.selectedAt ?? undefined,
+    answeredAt: q.answeredAt ?? undefined,
   });
   const theirs = data.questions.map((q) => ({
-    ...asDates(q),
+    ...asRow(q),
     user: { id: data.user.id, name: data.user.name },
   }));
   // Hidden by an organizer or by automatic moderation.
@@ -217,7 +217,7 @@ function PersonTab(
     ? theirs.filter((q) => !isHidden(q))
     : tab === "hidden"
     ? theirs.filter(isHidden)
-    : data.upvoted.map((q) => ({ ...asDates(q), user: q.user }));
+    : data.upvoted.map((q) => ({ ...asRow(q), user: q.user }));
 
   const empty = {
     questions: "They haven't asked anything yet.",

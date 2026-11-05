@@ -38,6 +38,7 @@ import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
 import { type ReactionEmoji, toReactionEmoji } from "../../reactions.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
 import { canParticipate } from "../lib/participation.ts";
+import { groupByState } from "../lib/group-sessions.ts";
 import { uuidv7 } from "uuidv7";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
@@ -141,7 +142,7 @@ function QnAPage() {
   });
   const events = eventsData?.data;
   const { past, live, upcoming } = useMemo(
-    () => groupByState(computeFields(events ?? [], uid ?? "")),
+    () => groupByState(computeFields(events ?? [], uid ?? ""), new Date()),
     [events, uid],
   );
   useDocumentTitle(pageTitle(event));
@@ -593,28 +594,6 @@ function QnAPage() {
     </>
   );
 }
-
-const groupByState = <E extends { live?: boolean; start?: Date; end?: Date }>(
-  events: E[],
-) => {
-  const liveEvent = events.find((event) => event.live);
-  const groupingDate = liveEvent?.start ?? new Date();
-
-  return events.reduce((acc, event) => {
-    if (event === liveEvent) {
-      acc.live.push(event);
-    } else if (event.start && event.start < groupingDate) {
-      acc.past.push(event);
-    } else {
-      acc.upcoming.push(event);
-    }
-    return acc;
-  }, {
-    past: [] as E[],
-    live: [] as E[],
-    upcoming: [] as E[],
-  });
-};
 
 const computeFields = (events: Event[], uid: string) => {
   return events.map((event) => ({

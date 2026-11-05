@@ -1,16 +1,38 @@
 import type { Event, Question } from "../types.ts";
 
-function toQuestion(question: Question) {
+/** A question with its timestamps parsed from the JSON's ISO strings. */
+export type ParsedQuestion =
+  & Omit<Question, "createdAt" | "answeredAt" | "selectedAt">
+  & {
+    createdAt: Date;
+    answeredAt?: Date | undefined;
+    selectedAt?: Date | undefined;
+  };
+
+/** An event with its dates and its questions' timestamps parsed. */
+export type ParsedEvent =
+  & Omit<Event, "start" | "end" | "questions" | "recentlyAnswered">
+  & {
+    start: Date;
+    end: Date;
+    questions: ParsedQuestion[];
+    recentlyAnswered: ParsedQuestion[];
+  };
+
+function toQuestion(question: Question): ParsedQuestion {
   return {
     ...question,
     createdAt: new Date(question.createdAt),
     answeredAt: question.answeredAt
       ? new Date(question.answeredAt)
       : undefined,
+    selectedAt: question.selectedAt
+      ? new Date(question.selectedAt)
+      : undefined,
   };
 }
 
-export function toEvent(data: Event) {
+export function toEvent(data: Event): ParsedEvent {
   return {
     ...data,
     start: new Date(data.start),
