@@ -26,6 +26,15 @@ export const toaster = createToaster({
   },
 });
 
+/** The toast for a failed action, with the error's message when it has one. */
+export function toastError(title: string, error: unknown) {
+  toaster.create({
+    type: "error",
+    title,
+    description: error instanceof Error ? error.message : undefined,
+  });
+}
+
 // Confirmations and errors use the theme's colors (successToast.* and
 // errorToast.*; see theme/index.ts) with centered content.
 const typeStyles = {

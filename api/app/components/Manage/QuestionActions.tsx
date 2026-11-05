@@ -11,7 +11,7 @@ import { useMarkAsAnswered } from "../../hooks/use-mark-as-answered.ts";
 import { useHideQuestion } from "../../hooks/use-hide-question.ts";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import { useRestoreQuestion } from "../../hooks/use-restore-question.ts";
-import { toaster } from "../ui/toaster.tsx";
+import { toaster, toastError } from "../ui/toaster.tsx";
 import type { ModeratedQuestion } from "./question-state.ts";
 
 /**
@@ -38,11 +38,7 @@ export function QuestionActions(
       refresh();
       toaster.create({ title, type: "success", duration: 1000 });
     } catch (error) {
-      toaster.create({
-        title: "That didn't work",
-        type: "error",
-        description: error instanceof Error ? error.message : undefined,
-      });
+      toastError("That didn't work", error);
     }
   };
 
