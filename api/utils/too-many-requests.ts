@@ -32,3 +32,26 @@ export function tooManyRequests(
     res: new Response(message, { headers }),
   });
 }
+
+/** The start of a sliding window that ends now and lasts `seconds`. */
+export function windowStartSecondsAgo(seconds: number) {
+  return new Date(Date.now() - seconds * 1000);
+}
+
+/**
+ * Throws a 429 when the user already acted `max` times inside the window
+ * starting at `windowStart` (`recent`, oldest first), so the next action
+ * would go over the limit. The 429 says when to retry.
+ */
+export function enforceRateLimit(
+  { recent, max, windowStart, message }: {
+    recent: Date[];
+    max: number;
+    windowStart: Date;
+    message: string;
+  },
+) {
+  if (recent.length >= max) {
+    throw tooManyRequests(message, { recent, allowed: max - 1, windowStart });
+  }
+}

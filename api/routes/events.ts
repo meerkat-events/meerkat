@@ -40,15 +40,17 @@ import {
   getUserPostTimesAfterDate,
   getUserPostCountPerTalk,
 } from "../models/user.ts";
-import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
-import { tooManyRequests } from "../utils/too-many-requests.ts";
+import { requireParticipant } from "../utils/require-participant.ts";
+import {
+  enforceRateLimit,
+  tooManyRequests,
+  windowStartSecondsAgo,
+} from "../utils/too-many-requests.ts";
 import { REACTION_EMOJIS } from "../reactions.ts";
-import { ATTENDEES_ONLY_MESSAGE } from "../features.ts";
 import {
   canModerate,
   getConferenceRolesForConference,
   isOrganizer,
-  mayParticipate,
 } from "../models/roles.ts";
 import logger from "../logger.ts";
 import { generateQRCodePNG } from "../code.ts";
@@ -206,22 +208,9 @@ app.post(
     const questionData = c.req.valid("json");
     const event = c.get("event");
     const payload = c.get("jwtPayload");
-    const uid = payload.sub as string;
-    const user = await getUserById(uid);
+    const user = await requireParticipant(payload.sub, event.conferenceId);
 
-    if (!user) {
-      throw new HTTPException(401, { message: `User ${uid} not found` });
-    }
-
-    if (user.bannedUntil && user.bannedUntil > new Date()) {
-      throw new HTTPException(403, { message: `User ${uid} is blocked` });
-    }
-
-    if (!await mayParticipate(user.id, event.conferenceId)) {
-      throw new HTTPException(403, { message: ATTENDEES_ONLY_MESSAGE });
-    }
-
-    const minuteAgo = dateDeductedMinutes(1);
+    const minuteAgo = windowStartSecondsAgo(60);
     const lastMinuteActivityPromise = getUserPostTimesAfterDate(
       user.id,
       minuteAgo,
@@ -238,13 +227,12 @@ app.post(
       throw tooManyRequests("User has too many posts");
     }
 
-    if (lastMinuteActivity.length >= MAX_QUESTIONS_PER_INTERVAL) {
-      throw tooManyRequests("User has too many posts", {
-        recent: lastMinuteActivity,
-        allowed: MAX_QUESTIONS_PER_INTERVAL - 1,
-        windowStart: minuteAgo,
-      });
-    }
+    enforceRateLimit({
+      recent: lastMinuteActivity,
+      max: MAX_QUESTIONS_PER_INTERVAL,
+      windowStart: minuteAgo,
+      message: "User has too many posts",
+    });
 
     const { hiddenAt, moderation, call } = await moderateQuestion({
       question: questionData.question,
@@ -351,20 +339,8 @@ app.post(
   async (c) => {
     const payload = c.get("jwtPayload");
     const { uid, emoji } = c.req.valid("json");
-    const user = await getUserById(payload.sub);
     const event = c.get("event");
-
-    if (!user) {
-      throw new HTTPException(401, { message: `User not found` });
-    }
-
-    if (user.bannedUntil && user.bannedUntil > new Date()) {
-      throw new HTTPException(403, { message: `User is blocked` });
-    }
-
-    if (!await mayParticipate(user.id, event.conferenceId)) {
-      throw new HTTPException(403, { message: ATTENDEES_ONLY_MESSAGE });
-    }
+    const user = await requireParticipant(payload.sub, event.conferenceId);
 
     const reactionContext = { userId: user.id, eventId: event.id };
 
@@ -375,19 +351,18 @@ app.post(
       return c.json({ data: resentReaction(existing, reactionContext) });
     }
 
-    const thirtySecondsAgo = dateDeductedMinutes(0.5);
+    const thirtySecondsAgo = windowStartSecondsAgo(30);
     const thirtySecondsActivity = await getUserReactionTimesAfterDate(
       user.id,
       thirtySecondsAgo,
     );
 
-    if (thirtySecondsActivity.length >= MAX_REACTIONS_PER_INTERVAL) {
-      throw tooManyRequests("User has too many reactions", {
-        recent: thirtySecondsActivity,
-        allowed: MAX_REACTIONS_PER_INTERVAL - 1,
-        windowStart: thirtySecondsAgo,
-      });
-    }
+    enforceRateLimit({
+      recent: thirtySecondsActivity,
+      max: MAX_REACTIONS_PER_INTERVAL,
+      windowStart: thirtySecondsAgo,
+      message: "User has too many reactions",
+    });
 
     const reaction = await createReaction({
       uid,

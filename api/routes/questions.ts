@@ -2,7 +2,6 @@ import { Hono, type HonoRequest } from "hono";
 import zod from "zod";
 import { HTTPException } from "hono/http-exception";
 import { MAX_VOTES_PER_EVENT } from "../moderation.ts";
-import { ATTENDEES_ONLY_MESSAGE } from "../features.ts";
 import { jwt } from "../middlewares/jwt.ts";
 import { getEventById } from "../models/events.ts";
 import {
@@ -18,7 +17,6 @@ import {
   canModerate,
   isOrganizer,
   getConferenceRolesForConference,
-  mayParticipate,
 } from "../models/roles.ts";
 import { getUserById } from "../models/user.ts";
 import {
@@ -27,8 +25,14 @@ import {
   getUserVoteTimesAfterDate,
   getVotesByQuestionIdAndUserId,
 } from "../models/votes.ts";
-import { dateDeductedMinutes } from "../utils/date-deducted-minutes.ts";
-import { tooManyRequests } from "../utils/too-many-requests.ts";
+import {
+  requireParticipation,
+  requireUnblockedUser,
+} from "../utils/require-participant.ts";
+import {
+  enforceRateLimit,
+  windowStartSecondsAgo,
+} from "../utils/too-many-requests.ts";
 import logger from "../logger.ts";
 import { notifyQuestionsChanged } from "../realtime/notify.ts";
 import {
@@ -77,20 +81,11 @@ app.post(
 
     const payload = c.get("jwtPayload");
 
-    const [user, question] = await Promise.all([
+    const [foundUser, question] = await Promise.all([
       getUserById(payload.sub),
       getQuestionByUID(uid),
     ]);
-
-    if (!user) {
-      throw new HTTPException(401, {
-        message: `User ${payload.sub} not found`,
-      });
-    }
-
-    if (user.bannedUntil && user.bannedUntil > new Date()) {
-      throw new HTTPException(403, { message: `User is blocked` });
-    }
+    const user = requireUnblockedUser(foundUser, payload.sub);
 
     if (!question) {
       throw new HTTPException(404, {
@@ -106,24 +101,21 @@ app.post(
       });
     }
 
-    if (!await mayParticipate(user.id, event.conferenceId)) {
-      throw new HTTPException(403, { message: ATTENDEES_ONLY_MESSAGE });
-    }
+    await requireParticipation(user.id, event.conferenceId);
 
-    const minuteAgo = dateDeductedMinutes(1);
+    const minuteAgo = windowStartSecondsAgo(60);
     const recentVotes = await getUserVoteTimesAfterDate(
       user.id,
       event.id,
       minuteAgo,
     );
 
-    if (recentVotes.length >= MAX_VOTES_PER_EVENT) {
-      throw tooManyRequests("User has too many votes", {
-        recent: recentVotes,
-        allowed: MAX_VOTES_PER_EVENT - 1,
-        windowStart: minuteAgo,
-      });
-    }
+    enforceRateLimit({
+      recent: recentVotes,
+      max: MAX_VOTES_PER_EVENT,
+      windowStart: minuteAgo,
+      message: "User has too many votes",
+    });
 
     const existingVote = await getVotesByQuestionIdAndUserId({
       questionId: question.id,

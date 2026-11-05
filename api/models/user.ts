@@ -17,6 +17,11 @@ export async function getUserByEmail(email: string) {
   return user.length > 0 ? user[0] : null;
 }
 
+/** Whether the user is blocked right now: a block lasts until `bannedUntil`. */
+export function isBanned(user: User) {
+  return user.bannedUntil !== null && user.bannedUntil > new Date();
+}
+
 const BAN_DURATION = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export async function markUserAsBlocked(id: string) {
