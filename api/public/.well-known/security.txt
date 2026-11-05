@@ -1,0 +1,4 @@
+Contact: https://github.com/meerkat-events/meerkat/security/advisories/new
+Expires: 2027-10-31T23:00:00.000Z
+Preferred-Languages: en
+Policy: https://github.com/meerkat-events/meerkat/security/policy

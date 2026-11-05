@@ -1,0 +1,12 @@
+# Meerkat is reached through QR codes and conference apps, not search.
+# Every response also carries `X-Robots-Tag: noindex` (api/app.ts).
+User-agent: *
+Disallow: /
+
+# Link previews when someone shares a Q&A link: these fetchers honor
+# robots.txt and would show no preview otherwise. (Slack, Discord and
+# iMessage ignore robots.txt.)
+User-agent: facebookexternalhit
+User-agent: Twitterbot
+User-agent: LinkedInBot
+Allow: /

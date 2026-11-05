@@ -146,7 +146,12 @@ seeds conferences and signs users in with real local tokens.
    `/stage/:stage/qa` (to the stage's current event, see "Domain rules")
    lives here too; the stage screen `/stage/:stage` is a page. CORS (`CORS_ORIGINS`, default `*`) applies to
    `/api/*` only.
-2. **Static files** from `build/client/` (`/assets/*` cached immutable).
+2. **Static files** from `build/client/` (`/assets/*` cached immutable),
+   copied from `api/public/`. That includes `robots.txt` (no crawling except
+   link-preview fetchers) and `.well-known/security.txt`, whose `Expires`
+   `security-txt.test.ts` warns about a month ahead and fails once it has
+   passed (renew yearly). Every response also
+   carries `X-Robots-Tag: noindex` (first middleware in `app.ts`).
 3. **React Router SSR** for everything else.
 
 Routes call `models/*.ts`, the only place with SQL (Drizzle), against

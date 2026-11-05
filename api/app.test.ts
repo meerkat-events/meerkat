@@ -83,3 +83,10 @@ test("the stage screen is left to the frontend, not redirected", async () => {
   assert.equal(response.status, 404);
   assert.equal(response.headers.get("Location"), null);
 });
+
+test("every response asks crawlers not to index it", async () => {
+  const unauthorized = await app.request("/api/v1/users/me/roles");
+  const notFound = await app.request("/nothing-here");
+  assert.equal(unauthorized.headers.get("X-Robots-Tag"), "noindex");
+  assert.equal(notFound.headers.get("X-Robots-Tag"), "noindex");
+});
