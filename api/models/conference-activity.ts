@@ -145,12 +145,14 @@ type EventCounts = {
 };
 
 /**
- * Activity totals for a conference and for each of its sessions. Participants
- * are people who asked or voted (as in `countParticipants`), counted once
- * across the whole conference for the totals. Counts cover what attendees
- * saw; `moderation` adds what automatic moderation did. With a `window`, only
- * what happened in it counts: questions asked, votes and reactions given,
- * questions picked.
+ * Activity totals for a conference and for each of its sessions. Questions
+ * are the ones attendees see: not deleted, not hidden by automatic
+ * moderation, author not blocked. Votes and reactions count all of them,
+ * whatever happened to the question since. Participants are people who asked
+ * a question that counts, voted or reacted, counted once across the whole
+ * conference for the totals. `moderation` adds what automatic moderation did.
+ * With a `window`, only what happened in it counts: questions asked, votes
+ * and reactions given, questions picked.
  */
 export async function getConferenceStats(
   conferenceId: number,
@@ -191,7 +193,7 @@ export async function getConferenceStats(
         .from(votes)
         .innerJoin(questions, eq(votes.questionId, questions.id))
         .innerJoin(events, eq(questions.eventId, events.id))
-        .where(and(inConference, within(votes.createdAt, window), notModerationHidden))
+        .where(and(inConference, within(votes.createdAt, window)))
         .groupBy(questions.eventId)
         .execute(),
       db.select({ eventId: reactions.eventId, n: count() })
@@ -224,7 +226,7 @@ export async function getConferenceStats(
         .where(and(inConference, within(reactions.createdAt, window)))
         .groupBy(reactions.emoji)
         .execute(),
-      // Supervotes spent, on questions attendees saw (like the vote counts).
+      // Supervotes spent, all of them (like the vote counts).
       db.select({ n: count() })
         .from(votes)
         .innerJoin(questions, eq(votes.questionId, questions.id))
@@ -233,7 +235,6 @@ export async function getConferenceStats(
           inConference,
           within(votes.createdAt, window),
           gt(votes.weight, 1),
-          notModerationHidden,
         ))
         .execute(),
       // Picking a question earns its author a supervote, the first time only,
@@ -310,15 +311,20 @@ export async function getConferenceStats(
   };
 }
 
-// Everyone who asked or voted in a conference session (in the window), one
-// row per (session, person).
+// Everyone who took part in a conference session (in the window), one row
+// per (session, person): asked a question that counts in the stats (not
+// deleted, not hidden by automatic moderation, author not blocked), voted or
+// reacted.
 function participantsSql(conferenceId: number, window: TimeWindow) {
   return sql`
     SELECT ${questions.eventId} AS event_id, ${questions.userId} AS user_id
     FROM ${questions}
     INNER JOIN ${events} ON ${events.id} = ${questions.eventId}
+    LEFT JOIN ${users} ON ${users.id} = ${questions.userId}
     WHERE ${events.conferenceId} = ${conferenceId}
+      AND ${questions.deletedAt} IS NULL
       AND ${questions.hiddenAt} IS NULL
+      AND ${notBlocked()}
       AND ${within(questions.createdAt, window)}
     UNION
     SELECT ${questions.eventId} AS event_id, ${votes.userId} AS user_id
@@ -326,8 +332,13 @@ function participantsSql(conferenceId: number, window: TimeWindow) {
     INNER JOIN ${questions} ON ${questions.id} = ${votes.questionId}
     INNER JOIN ${events} ON ${events.id} = ${questions.eventId}
     WHERE ${events.conferenceId} = ${conferenceId}
-      AND ${questions.hiddenAt} IS NULL
-      AND ${within(votes.createdAt, window)}`;
+      AND ${within(votes.createdAt, window)}
+    UNION
+    SELECT ${reactions.eventId} AS event_id, ${reactions.userId} AS user_id
+    FROM ${reactions}
+    INNER JOIN ${events} ON ${events.id} = ${reactions.eventId}
+    WHERE ${events.conferenceId} = ${conferenceId}
+      AND ${within(reactions.createdAt, window)}`;
 }
 
 export type UserActivity = Awaited<ReturnType<typeof getConferenceUserActivity>>;
