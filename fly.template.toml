@@ -6,6 +6,12 @@
 app = '$APP_NAME'
 primary_region = '$PRIMARY_REGION'
 
+# Build time only (Dockerfile), and public: VITE_API_URL and LEGAL_OPERATOR
+# are compiled into the browser bundle; POSTHOG_CLI_HOST, POSTHOG_CLI_PROJECT_ID
+# and RELEASE_VERSION tag its source-map upload, whose API key is a build
+# secret (`--build-secret` in the deploy workflow), never a build arg. The
+# rendered fly.toml is readable like [env], so nothing confidential goes here.
+# The running app reads none of these, so they stay out of [env].
 [build.args]
 VITE_API_URL = '$VITE_API_URL'
 LEGAL_OPERATOR = '$LEGAL_OPERATOR'
@@ -15,13 +21,13 @@ RELEASE_VERSION = '$RELEASE_VERSION'
 
 # Plain settings only: [env] is readable by anyone with access to the app
 # (`fly config show`). Credentials (DATABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
-# SUPABASE_SECRET_KEY, DEVCON_VERIFICATION_SECRET, OPENROUTER_API_KEY, …) are
-# Fly secrets (`fly secrets set`), which also win over [env] on a name clash.
+# SUPABASE_SECRET_KEY, DEVCON_VERIFICATION_SECRET, OPENROUTER_API_KEY) and the
+# Supabase project's SUPABASE_URL and SUPABASE_ANON_KEY are Fly secrets
+# (`fly secrets set`), which also win over [env] on a name clash.
 [env]
 PORT = '8000'
 BASE_URL = '$BASE_URL'
 DATABASE_MAX_POOL_SIZE = '$DATABASE_MAX_POOL_SIZE'
-VITE_API_URL = '$VITE_API_URL'
 PRETALX_URL = '$PRETALX_URL'
 ENVIRONMENT = '$ENVIRONMENT'
 POSTHOG_PROJECT_TOKEN = '$POSTHOG_PROJECT_TOKEN'
