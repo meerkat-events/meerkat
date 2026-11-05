@@ -58,7 +58,7 @@ function reason({ action, until }: Cooldown) {
     case "vote":
       return `You've voted ${MAX_VOTES_PER_EVENT} times in the last minute.`;
     case "reaction":
-      return `You've sent over ${MAX_REACTIONS_PER_INTERVAL} reactions in 30 seconds.`;
+      return `You've sent ${MAX_REACTIONS_PER_INTERVAL} reactions in the last 30 seconds.`;
   }
 }
 

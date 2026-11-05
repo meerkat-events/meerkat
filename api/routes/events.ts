@@ -381,10 +381,10 @@ app.post(
       thirtySecondsAgo,
     );
 
-    if (thirtySecondsActivity.length > MAX_REACTIONS_PER_INTERVAL) {
+    if (thirtySecondsActivity.length >= MAX_REACTIONS_PER_INTERVAL) {
       throw tooManyRequests("User has too many reactions", {
         recent: thirtySecondsActivity,
-        allowed: MAX_REACTIONS_PER_INTERVAL,
+        allowed: MAX_REACTIONS_PER_INTERVAL - 1,
         windowStart: thirtySecondsAgo,
       });
     }
