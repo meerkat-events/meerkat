@@ -8,16 +8,16 @@ import {
   NativeSelect,
   Portal,
   Switch,
+  VisuallyHidden,
 } from "@chakra-ui/react";
 import { useManage } from "../../layouts/manage.tsx";
 import { useAuth } from "../../hooks/use-auth.ts";
 import {
-  type ConferenceMember,
   type GrantableRole,
   useConferencePermissions,
 } from "../../hooks/use-conference-permissions.ts";
 import { useConferenceAttendees } from "../../hooks/use-conference-attendees.ts";
-import { toaster } from "../../components/ui/toaster.tsx";
+import { toaster, toastError } from "../../components/ui/toaster.tsx";
 import { LuSearch } from "react-icons/lu";
 import type { Route } from "./+types/Permissions.ts";
 
@@ -94,11 +94,7 @@ function AddPersonForm(
       });
       onClose();
     } catch (error) {
-      toaster.create({
-        title: "That didn't work",
-        type: "error",
-        description: error instanceof Error ? error.message : undefined,
-      });
+      toastError("That didn't work", error);
     } finally {
       setAdding(false);
     }
@@ -144,15 +140,56 @@ function AddPersonForm(
   );
 }
 
-function MemberRow(
-  { member, isYou, onRoleChange, onRemove }: {
-    member: ConferenceMember;
-    isYou: boolean;
-    onRoleChange: (email: string, role: GrantableRole) => void;
-    onRemove: (userId: string) => void;
+/** "Add someone": the email field takes the focus when it opens. */
+function AddPersonDialog(
+  { open, onAdd, onClose }: {
+    open: boolean;
+    onAdd: (email: string, role: GrantableRole) => Promise<"member" | "invited">;
+    onClose: () => void;
   },
 ) {
-  const address = member.email ?? "No email on this account";
+  const emailRef = useRef<HTMLInputElement>(null);
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(e) => !e.open && onClose()}
+      initialFocusEl={() => emailRef.current}
+      lazyMount
+      unmountOnExit
+      size="sm"
+    >
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content className="m-add-person">
+            <Dialog.Header>
+              <Dialog.Title>Add someone</Dialog.Title>
+              <Dialog.CloseTrigger asChild>
+                <CloseButton size="sm" />
+              </Dialog.CloseTrigger>
+            </Dialog.Header>
+            <AddPersonForm emailRef={emailRef} onAdd={onAdd} onClose={onClose} />
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+}
+
+/** One person in the table: a member, an invitation or an attendee. */
+function PersonRow(
+  { email, meta, role, isYou = false, onRoleChange, onRemove }: {
+    email: string | null;
+    /** A second line under the address. */
+    meta?: string;
+    role: GrantableRole;
+    /** You can't change or remove your own access. */
+    isYou?: boolean;
+    onRoleChange: (email: string, role: GrantableRole) => void;
+    onRemove: () => void;
+  },
+) {
+  const address = email ?? "No email on this account";
   return (
     <tr>
       <td>
@@ -160,23 +197,19 @@ function MemberRow(
           {address}
           {isYou && <span className="m-you">You</span>}
         </div>
+        {meta && <div className="meta">{meta}</div>}
       </td>
       <td>
         <RoleSelect
           label={`Role of ${address}`}
-          value={member.role}
-          disabled={isYou || !member.email}
-          onChange={(next) => member.email && onRoleChange(member.email, next)}
+          value={role}
+          disabled={isYou || !email}
+          onChange={(next) => email && onRoleChange(email, next)}
         />
       </td>
       <td className="action">
         {!isYou && (
-          <Button
-            size="xs"
-            variant="outline"
-            whiteSpace="nowrap"
-            onClick={() => onRemove(member.userId)}
-          >
+          <Button size="xs" variant="outline" whiteSpace="nowrap" onClick={onRemove}>
             Remove
           </Button>
         )}
@@ -203,7 +236,6 @@ export default function Permissions() {
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
   const [showAttendees, setShowAttendees] = useState(false);
-  const emailRef = useRef<HTMLInputElement>(null);
 
   const query = search.trim().toLowerCase();
   const [attendeeSearch, setAttendeeSearch] = useState("");
@@ -235,11 +267,7 @@ export default function Permissions() {
       await action();
       toaster.create({ title: success, type: "success", duration: 1500 });
     } catch (error) {
-      toaster.create({
-        title: "That didn't work",
-        type: "error",
-        description: error instanceof Error ? error.message : undefined,
-      });
+      toastError("That didn't work", error);
     }
   };
   const onRoleChange = (email: string, role: GrantableRole) =>
@@ -264,25 +292,29 @@ export default function Permissions() {
   const shownLabel = `${shown}${query && attendeeList.hasMore ? "+" : ""}`;
   const searchingAttendees = attendeeList.isLoading || attendeeSearch !== query;
 
+  // The line under the heading: how many people the table shows.
+  const summary = () => {
+    if (!data) {
+      return isLoading ? "Loading…" : "";
+    }
+    if (query) {
+      return `${shownLabel} of ${total} ${total === 1 ? "person" : "people"}`;
+    }
+    const everyone = `${shown} ${shown === 1 ? "person" : "people"} at ${conferenceName}`;
+    if (showAttendees || hiddenAttendees === 0) {
+      return everyone;
+    }
+    const attendeesWord = hiddenAttendees === 1 ? "attendee" : "attendees";
+    return `${everyone} · ${hiddenAttendees} ${attendeesWord} hidden`;
+  };
+
   return (
     <div className="m-permissions">
       <section className="m-card m-table" aria-label="Permissions">
         <div className="m-table-head">
           <div>
             <h2 style={{ fontSize: 16 }}>Permissions</h2>
-            <span className="m-hint">
-              {data
-                ? query
-                  ? `${shownLabel} of ${total} ${total === 1 ? "person" : "people"}`
-                  : `${shown} ${shown === 1 ? "person" : "people"} at ${conferenceName}${
-                    !showAttendees && hiddenAttendees > 0
-                      ? ` · ${hiddenAttendees} ${hiddenAttendees === 1 ? "attendee" : "attendees"} hidden`
-                      : ""
-                  }`
-                : isLoading
-                ? "Loading…"
-                : ""}
-            </span>
+            <span className="m-hint">{summary()}</span>
           </div>
           <Button
             size="xs"
@@ -329,52 +361,39 @@ export default function Permissions() {
                   <tr>
                     <th scope="col">Email</th>
                     <th scope="col">Role</th>
-                    <th scope="col"><span className="sr-only">Actions</span></th>
+                    <th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th>
                   </tr>
                 </thead>
                 <tbody>
                   {members?.map((member) => (
-                    <MemberRow
+                    <PersonRow
                       key={member.userId}
-                      member={member}
+                      email={member.email}
+                      role={member.role}
                       isYou={member.userId === session?.user.id}
                       onRoleChange={onRoleChange}
-                      onRemove={onRemove}
+                      onRemove={() => onRemove(member.userId)}
                     />
                   ))}
                   {invited?.map((invitation) => (
-                    <tr key={invitation.id}>
-                      <td>
-                        <div className="title">{invitation.email}</div>
-                        <div className="meta">Invited · hasn't signed in yet</div>
-                      </td>
-                      <td>
-                        <RoleSelect
-                          label={`Role of ${invitation.email}`}
-                          value={invitation.role}
-                          onChange={(next) => onRoleChange(invitation.email, next)}
-                        />
-                      </td>
-                      <td className="action">
-                        <Button
-                          size="xs"
-                          variant="outline"
-                          whiteSpace="nowrap"
-                          onClick={() =>
-                            run(() => removeInvitation(invitation.id), "Invitation removed")}
-                        >
-                          Remove
-                        </Button>
-                      </td>
-                    </tr>
+                    <PersonRow
+                      key={invitation.id}
+                      email={invitation.email}
+                      meta="Invited · hasn't signed in yet"
+                      role={invitation.role}
+                      onRoleChange={onRoleChange}
+                      onRemove={() =>
+                        run(() => removeInvitation(invitation.id), "Invitation removed")}
+                    />
                   ))}
                   {attendees.map((attendee) => (
-                    <MemberRow
+                    <PersonRow
                       key={attendee.userId}
-                      member={attendee}
+                      email={attendee.email}
+                      role={attendee.role}
                       isYou={attendee.userId === session?.user.id}
                       onRoleChange={onRoleChange}
-                      onRemove={onRemove}
+                      onRemove={() => onRemove(attendee.userId)}
                     />
                   ))}
                   {attendeesShown && attendeeList.error && (
@@ -410,33 +429,7 @@ export default function Permissions() {
           )}
       </section>
 
-      <Dialog.Root
-        open={adding}
-        onOpenChange={(e) => setAdding(e.open)}
-        initialFocusEl={() => emailRef.current}
-        lazyMount
-        unmountOnExit
-        size="sm"
-      >
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content className="m-add-person">
-              <Dialog.Header>
-                <Dialog.Title>Add someone</Dialog.Title>
-                <Dialog.CloseTrigger asChild>
-                  <CloseButton size="sm" />
-                </Dialog.CloseTrigger>
-              </Dialog.Header>
-              <AddPersonForm
-                emailRef={emailRef}
-                onAdd={changeRole}
-                onClose={() => setAdding(false)}
-              />
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
+      <AddPersonDialog open={adding} onAdd={changeRole} onClose={() => setAdding(false)} />
     </div>
   );
 }

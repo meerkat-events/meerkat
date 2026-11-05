@@ -1,3 +1,4 @@
+import { VisuallyHidden } from "@chakra-ui/react";
 import { QuestionActions } from "./QuestionActions.tsx";
 import {
   type ModeratedQuestion,
@@ -56,7 +57,7 @@ export function QuestionTable(
           </th>
           <th scope="col" className="n">Votes</th>
           <th scope="col" className="actions">
-            <span className="sr-only">Actions</span>
+            <VisuallyHidden>Actions</VisuallyHidden>
           </th>
         </tr>
       </thead>
