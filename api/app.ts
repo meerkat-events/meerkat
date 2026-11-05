@@ -17,6 +17,14 @@ import { reportException } from "./posthog.ts";
 
 const app = new Hono();
 
+// Nothing here belongs in search results: Q&A pages are short-lived and
+// reached through QR codes and conference apps. On every response (API,
+// static files and pages, which main.ts adds after these middlewares) for
+// crawlers that ignore robots.txt; see public/robots.txt.
+app.use(async (c, next) => {
+  await next();
+  c.header("X-Robots-Tag", "noindex");
+});
 // Before the middlewares below, which it skips: it answers without calling
 // them, and the browser's PostHog requests don't belong in our own logs and
 // traces.
