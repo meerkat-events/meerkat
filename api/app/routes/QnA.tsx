@@ -428,7 +428,7 @@ function QnAPage() {
             boxShadow="header"
           >
             <nav>
-              <NavigationDrawer eventUid={event?.uid} />
+              <NavigationDrawer questionsHref={qa(uid ?? "")} />
             </nav>
             <Text as="span" textStyle="sm" fontWeight="medium" truncate>
               {event?.conference.name}

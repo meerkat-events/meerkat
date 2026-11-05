@@ -16,29 +16,6 @@ import { FaXTwitter } from "react-icons/fa6";
 import { tapTargetStyles } from "../../theme/index.ts";
 import { Link as ReactRouterLink } from "react-router";
 import { Logo } from "../Logo.tsx";
-import { qa } from "../../routing.ts";
-
-interface NavLinkProps {
-  label: string;
-  href: string;
-}
-
-function NavLink({ label, href }: NavLinkProps) {
-  return (
-    <List.Item>
-      <Link
-        asChild
-        padding="2"
-        borderRadius="md"
-        display="block"
-      >
-        <ReactRouterLink to={href}>
-          {label}
-        </ReactRouterLink>
-      </Link>
-    </List.Item>
-  );
-}
 
 /** Closes the drawer and opens PostHog's feedback survey. */
 function GiveFeedback() {
@@ -122,10 +99,11 @@ function MeerkatLinks() {
 }
 
 interface NavigationDrawerProps {
-  eventUid: string | undefined;
+  /** The Q&A page of the session the drawer is opened on. */
+  questionsHref: string;
 }
 
-export function NavigationDrawer({ eventUid }: NavigationDrawerProps) {
+export function NavigationDrawer({ questionsHref }: NavigationDrawerProps) {
   return (
     <Drawer.Root placement="start">
       <Drawer.Trigger asChild>
@@ -155,7 +133,18 @@ export function NavigationDrawer({ eventUid }: NavigationDrawerProps) {
             <Drawer.Body>
               <Box as="nav">
                 <List.Root gap="3">
-                  <NavLink label="Questions" href={qa(eventUid ?? "")} />
+                  <List.Item>
+                    <Link
+                      asChild
+                      padding="2"
+                      borderRadius="md"
+                      display="block"
+                    >
+                      <ReactRouterLink to={questionsHref}>
+                        Questions
+                      </ReactRouterLink>
+                    </Link>
+                  </List.Item>
                   {isPostHogEnabled() && <GiveFeedback />}
                 </List.Root>
               </Box>
