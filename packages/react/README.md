@@ -67,7 +67,7 @@ at a time, so that all viewers of a talk don't refetch in the same instant.
 
 | Prop        | Type                    | Default    | Description                                             |
 | ----------- | ----------------------- | ---------- | ------------------------------------------------------- |
-| `sessionId` | `string`                | —          | Session identifier (required)                           |
+| `sessionId` | `string`                | —          | The session's uid, as in its URL `/e/:uid/qa` (required) |
 | `sort`      | `"newest" \| "popular"` | `"newest"` | Sort order                                              |
 | `realtime`  | `boolean`               | `true`     | Enable SSE updates. Auto-reconnects on connection loss and refetches after reconnecting. Refetches after a random delay of up to 500 ms, one at a time (`useJitteredRefresh`). |
 | `onReaction` | `(reaction: StreamReaction) => void` | — | Called for every reaction in the session: `{ uid, emoji, createdAt }` |
@@ -136,18 +136,23 @@ your own `useEventSource` handlers.
 
 ### `Question`
 
+A question as `GET /api/v1/events/:uid/questions` returns it, with the
+timestamps turned into `Date`s (unset ones are `null`):
+
 ```typescript
 type Question = {
   id: number;
-  sessionId: string;
-  votes: number;
+  uid: string; // stable public identifier
+  eventId: number; // numeric id of the session
   question: string;
+  votes: number; // sum of the vote weights: a supervote counts 3
   createdAt: Date;
-  answeredAt?: Date;
-  selectedAt?: Date;
+  selectedAt: Date | null; // selected for answering by a moderator
+  answeredAt: Date | null;
+  deletedAt: null; // deleted questions are left out
   user?: {
     id: string;
-    name?: string;
+    name: string;
   };
 };
 ```
@@ -161,6 +166,20 @@ Thrown on non-2xx responses. Extends `Error` with:
 | `status`     | `number`              |
 | `statusText` | `string`              |
 | `body`       | `string \| undefined` |
+
+## Changelog
+
+### 0.3.0
+
+Breaking: `Question` now matches what the API sends.
+
+- Added `uid`, `eventId` and `deletedAt`.
+- Removed `sessionId`, which the API never sent (use `eventId`, or the
+  `sessionId` you passed to `useQuestions`).
+- `selectedAt` and `answeredAt` are `Date | null` (they arrive as `null`
+  when unset, never missing), and `user.name` is always a `string`.
+- Removed the unused `UseSessionUrlProps` type; `useSessionUrl` takes the
+  session uid as a plain string.
 
 ## License
 

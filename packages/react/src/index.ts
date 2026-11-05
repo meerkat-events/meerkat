@@ -17,6 +17,5 @@ export type {
   Question,
   UseQuestionsProps,
   UseQuestionsReturn,
-  UseSessionUrlProps,
 } from "./types.ts";
 export type { UseEventSourceOptions } from "./use-event-source.ts";
