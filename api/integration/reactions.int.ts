@@ -54,10 +54,38 @@ describe("reactions", () => {
     assert.equal(reactionTimes.length, 1, "counts once toward the rate limit");
   });
 
+  test("the limit lets MAX reactions through and turns the next away", async () => {
+    const user = await anonymousUser();
+    // One fewer than the limit already stored, recent enough to count.
+    const rows = Array.from(
+      { length: MAX_REACTIONS_PER_INTERVAL - 1 },
+      () => ({ uid: crypto.randomUUID(), userId: user.id, eventId }),
+    );
+    await db.insert(reactions).values(rows);
+
+    const last = await react(eventUid, user, {
+      uid: crypto.randomUUID(),
+      emoji: "heart",
+    });
+    assert.equal(last.status, 200, `reaction #${MAX_REACTIONS_PER_INTERVAL}`);
+
+    const over = await react(eventUid, user, {
+      uid: crypto.randomUUID(),
+      emoji: "heart",
+    });
+    assert.equal(over.status, 429, `reaction #${MAX_REACTIONS_PER_INTERVAL + 1}`);
+    const retryAfter = Number(over.headers.get("Retry-After"));
+    assert.ok(
+      retryAfter >= 1 && retryAfter <= 30,
+      `Retry-After within the 30 s window, got ${retryAfter}`,
+    );
+  });
+
   test("a resend isn't turned away by the rate limit", async () => {
     const user = await anonymousUser();
+    // Exactly at the limit: a new reaction is turned away, a resend isn't.
     const rows = Array.from(
-      { length: MAX_REACTIONS_PER_INTERVAL + 1 },
+      { length: MAX_REACTIONS_PER_INTERVAL },
       () => ({ uid: crypto.randomUUID(), userId: user.id, eventId }),
     );
     await db.insert(reactions).values(rows);
