@@ -62,7 +62,10 @@ export function UpVoteButton(
       {supervoted
         ? <FiZap color="#F6B613" fill="#F6B613" />
         : <LuArrowBigUp fill={voted ? "currentColor" : "none"} />}
-      {votes}
+      {/* In an element, not a bare text node: browser page translation
+          replaces text nodes, and React then can't remove this one when the
+          pill switches to its loading state (NotFoundError). */}
+      <span>{votes}</span>
     </Button>
   );
 }
