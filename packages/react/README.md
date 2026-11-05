@@ -174,10 +174,13 @@ Thrown on non-2xx responses. Extends `Error` with:
 Breaking: `Question` now matches what the API sends.
 
 - Added `uid`, `eventId` and `deletedAt`.
-- Removed `sessionId`, which the API never sent (use `eventId`, or the
-  `sessionId` you passed to `useQuestions`).
+- Removed `sessionId`, which the API never sent. Use the `sessionId` you
+  passed to `useQuestions`: `eventId` is a numeric id that no URL or
+  endpoint accepts.
 - `selectedAt` and `answeredAt` are `Date | null` (they arrive as `null`
   when unset, never missing), and `user.name` is always a `string`.
+- Dates are parsed before SWR caches the response, so they are `Date`s in
+  every cache entry and an unchanged refetch keeps the same `data` array.
 - Removed the unused `UseSessionUrlProps` type; `useSessionUrl` takes the
   session uid as a plain string.
 

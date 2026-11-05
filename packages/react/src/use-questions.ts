@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import useSWR from "swr";
 import { useMeerkatContext } from "./context.ts";
-import { parseQuestions } from "./fetcher.ts";
+import { createFetcher, parseQuestions } from "./fetcher.ts";
 import { eventStreamEvents } from "./event-stream-events.ts";
 import { useEventSource } from "./use-event-source.ts";
 import { useJitteredRefresh } from "./use-jittered-refresh.ts";
@@ -21,17 +21,21 @@ export function useQuestions({
   const { apiUrl } = useMeerkatContext();
   const endpoint = `/api/v1/events/${sessionId}/questions?sort=${sort}`;
 
-  const { data, error, isLoading, isValidating, mutate } = useSWR<{
-    data: Question[];
-  }>(endpoint, {
-    onSuccess(raw) {
-      if (raw?.data) {
-        raw.data = parseQuestions(
-          raw.data as unknown as Record<string, unknown>[],
-        );
-      }
-    },
-  });
+  // Parse the dates in the fetcher, before SWR caches the response: every
+  // cache entry then holds `Date`s, and SWR's compare keeps the old array
+  // when a refetch returns the same questions.
+  const fetchQuestions = useMemo(() => {
+    const fetchJson = createFetcher(apiUrl);
+    return async (url: string): Promise<{ data: Question[] }> => {
+      const raw = await fetchJson(url);
+      return { data: parseQuestions(raw.data) };
+    };
+  }, [apiUrl]);
+
+  const { data, error, isLoading, isValidating, mutate } = useSWR(
+    endpoint,
+    fetchQuestions,
+  );
 
   // Every viewer gets the same SSE update at once: refetch after a random
   // delay, one request at a time.
