@@ -9,7 +9,7 @@ import { BarList } from "../../components/Manage/BarList.tsx";
 import { ALL_DAYS, DayFilter, useDayFilter } from "../../components/Manage/DayFilter.tsx";
 import { SortMenu } from "../../components/Manage/SortMenu.tsx";
 import { useConferencePath } from "../../components/Manage/use-conference-path.ts";
-import { useUrlChoice } from "../../components/Manage/use-url-choice.ts";
+import { useRememberedChoice } from "../../components/Manage/use-remembered-choice.ts";
 import {
   fmtDay,
   fmtWhen,
@@ -59,7 +59,7 @@ export default function Analytics() {
   const { data: stats } = useConferenceStats(sessions ? conferenceId : undefined, window);
   const navigate = useNavigate();
   const conferencePath = useConferencePath();
-  const [rank, setRank] = useUrlChoice("rank", RANKS.map((r) => r.value), "activity");
+  const [rank, setRank] = useRememberedChoice("rank", RANKS.map((r) => r.value), "activity", "meerkat:manage-rank");
 
   const topSessions = useMemo(() => {
     const byId = new Map((sessions ?? []).map((s) => [s.id, s]));

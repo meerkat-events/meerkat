@@ -129,6 +129,9 @@ export const SORTS = [
 
 export type Sort = (typeof SORTS)[number]["value"];
 
+/** Where the chosen sort is remembered, for the live feed and every session. */
+export const SORT_STORAGE_KEY = "meerkat:manage-sort";
+
 const newestFirst = (a: ModeratedQuestion, b: ModeratedQuestion) =>
   +new Date(b.createdAt) - +new Date(a.createdAt);
 
