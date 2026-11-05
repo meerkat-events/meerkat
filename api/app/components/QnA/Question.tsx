@@ -139,7 +139,16 @@ export function Question(
       return;
     }
 
-    await block();
+    try {
+      await block();
+    } catch (error) {
+      toaster.create({
+        title: "Couldn't block this user",
+        type: "error",
+        description: error instanceof Error ? error.message : undefined,
+      });
+      return;
+    }
     refresh();
 
     toaster.create({
