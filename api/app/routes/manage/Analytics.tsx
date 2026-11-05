@@ -94,7 +94,7 @@ export default function Analytics() {
         <div className="m-card m-tile">
           <span className="label">Participants</span>
           <b className="value">{totals ? num(totals.participants) : "–"}</b>
-          <span className="m-hint">people who asked or voted, counted once</span>
+          <span className="m-hint">people who asked, voted or reacted, counted once</span>
         </div>
         <div className="m-card m-tile">
           <span className="label">Votes cast</span>
