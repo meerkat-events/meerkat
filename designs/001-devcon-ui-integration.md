@@ -53,17 +53,20 @@ export interface useQuestionsProps {
   realtime?: boolean;
 }
 
+// As of 0.3.0; the package README has the current shape.
 type Question = {
   id: number;
-  sessionId: string;
-  votes: number;
+  uid: string;
+  eventId: number;
   question: string;
+  votes: number;
   createdAt: Date;
-  answeredAt?: Date | undefined;
-  selectedAt?: Date | undefined;
+  selectedAt: Date | null;
+  answeredAt: Date | null;
+  deletedAt: null;
   user?: {
     id: string;
-    name?: string | undefined;
+    name: string;
   } | undefined;
 };
 
@@ -87,11 +90,7 @@ const { data, isLoading, isValidating, isConnected, mutate, error } =
 The `useSessionUrl` hook will generate a URL for a given session id.
 
 ```tsx
-export interface UseSessionUrlProps {
-  sessionId: string;
-}
-
-export type UseSessionUrlReturn = string;
+function useSessionUrl(sessionId: string): string;
 
 const data = useSessionUrl(sessionId);
 ```
