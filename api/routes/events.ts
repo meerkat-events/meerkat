@@ -406,13 +406,13 @@ app.post(
       throw new HTTPException(403, { message: `User is not a moderator` });
     }
 
-    const result = await setEventLive(event.id);
+    const { event: liveEvent, changedEvents } = await setEventLive(event.id);
 
-    if (!result) {
-      throw new HTTPException(500, { message: `Failed to set event live` });
+    void notifyEventLive(liveEvent);
+    // The session that ended had its question on stage marked answered.
+    for (const changedEvent of changedEvents) {
+      void notifyQuestionsChanged(changedEvent);
     }
-
-    void notifyEventLive(result);
 
     logger.info(
       {
@@ -420,11 +420,12 @@ app.post(
         eventUid: event.uid,
         stage: event.stage,
         userId: user.id,
+        answeredOnEndEventIds: changedEvents.map((changed) => changed.id),
       },
       "Set event live",
     );
 
-    return c.json({ data: result });
+    return c.json({ data: liveEvent });
   },
 );
 

@@ -7,6 +7,8 @@ import {
   gt,
   gte,
   inArray,
+  isNotNull,
+  isNull,
   lte,
   ne,
   not,
@@ -274,6 +276,12 @@ async function getCurrentEvent(scope: SQL) {
   return result.at(0) ?? null;
 }
 
+/**
+ * Puts an event live and takes the stage's previous live event off. The
+ * question on stage in the event that ends is marked answered: the session
+ * is over, so it was answered or won't be. Returns the event put live and
+ * the events whose question was marked answered, whose lists changed.
+ */
 export async function setEventLive(eventId: number) {
   return await db.transaction(async (tx) => {
     const result = await tx.update(events).set({ live: true }).where(
@@ -284,15 +292,46 @@ export async function setEventLive(eventId: number) {
     if (!event) {
       throw new Error(`No event with id ${eventId}`);
     }
-    await tx.update(events).set({ live: false }).where(
+    const endedEvents = await tx.update(events).set({ live: false }).where(
       and(
         eq(events.stage, event.stage),
         not(eq(events.id, event.id)),
+        eq(events.live, true),
       ),
+    ).returning({ id: events.id, conferenceId: events.conferenceId });
+
+    const eventsWithAnsweredQuestion = await answerSelectedQuestions(
+      tx,
+      endedEvents.map((ended) => ended.id),
+    );
+    const changedEvents = endedEvents.filter((ended) =>
+      eventsWithAnsweredQuestion.includes(ended.id)
     );
 
-    return event;
+    return { event, changedEvents };
   });
+}
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Marks the question on stage (selected, not yet answered) in each of the
+ * events answered. Returns the ids of the events that had one.
+ */
+async function answerSelectedQuestions(tx: Transaction, eventIds: number[]) {
+  if (eventIds.length === 0) {
+    return [];
+  }
+  const answered = await tx.update(questions).set({ answeredAt: new Date() })
+    .where(
+      and(
+        inArray(questions.eventId, eventIds),
+        isNotNull(questions.selectedAt),
+        isNull(questions.answeredAt),
+      ),
+    ).returning({ eventId: questions.eventId });
+
+  return answered.map((question) => question.eventId);
 }
 
 /** Switches the presenter view's high engagement mode. Null for no such event. */

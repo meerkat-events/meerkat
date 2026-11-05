@@ -294,7 +294,9 @@ its CSS, callers pass the items' uids joined, nothing moves with
   queries filter it out). Banned users' questions are hidden by the query, not
   deleted.
 - One live event per stage: `setEventLive` turns the others off in a
-  transaction. Event upserts never overwrite `live`.
+  transaction, and marks the question on stage (selected, unanswered) of
+  the event that stops being live answered. Event upserts never overwrite
+  `live`.
 - **High engagement mode** (`events.high_engagement`, per event, off by
   default): organizers switch it in the session panel on `/manage`
   (`POST /api/v1/events/:uid/high-engagement`, which notifies the event's
