@@ -414,9 +414,8 @@ function QRBlock(
 }
 
 /**
- * Draws a QR code to a PNG in the browser, styled like the PNG endpoint
- * (`GET /api/v1/events/:uid/code`, which needs a token a download link can't
- * send).
+ * Draws the session's QR code to a PNG in the browser and downloads it, so
+ * no server endpoint (and no token) is needed.
  */
 async function downloadQRCode(url: string, size: number, fileName: string) {
   const svg = (await generateQRCodeSVG(url))

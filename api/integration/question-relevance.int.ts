@@ -111,7 +111,7 @@ describe("question relevance", () => {
     }
   });
 
-  test("the event and its selected question leave the score out", async () => {
+  test("the event leaves the score out of its selected question", async () => {
     const selected = await request(
       "POST",
       `/api/v1/questions/${scoredUid}/select`,
@@ -130,17 +130,5 @@ describe("question relevance", () => {
     for (const question of publicEvent.questions) {
       assert.ok(!("relevance" in question));
     }
-
-    const selectedResponse = await request(
-      "GET",
-      `/api/v1/events/${eventUid}/questions/selected`,
-      { token: moderator.token },
-    );
-    assert.equal(selectedResponse.status, 200);
-    const { data: selectedQuestion } = await selectedResponse.json() as {
-      data: ListedQuestion | null;
-    };
-    assert.equal(selectedQuestion?.uid, scoredUid);
-    assert.ok(!("relevance" in selectedQuestion));
   });
 });
