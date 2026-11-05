@@ -7,11 +7,13 @@ import { FilterChips } from "../../components/Manage/FilterChips.tsx";
 import {
   FILTERS,
   matchesFilter,
+  SORT_STORAGE_KEY,
   SORTS,
   sortQuestions,
 } from "../../components/Manage/question-state.ts";
 import { SortMenu } from "../../components/Manage/SortMenu.tsx";
 import { fmtDay, useNow } from "../../components/Manage/time.ts";
+import { useRememberedChoice } from "../../components/Manage/use-remembered-choice.ts";
 import { useUrlChoice } from "../../components/Manage/use-url-choice.ts";
 import type { Route } from "./+types/Feed.ts";
 
@@ -32,7 +34,7 @@ export default function Feed() {
     { live: true },
   );
 
-  const [sort, setSort] = useUrlChoice("sort", SORTS.map((s) => s.value), "newest");
+  const [sort, setSort] = useRememberedChoice("sort", SORTS.map((s) => s.value), "newest", SORT_STORAGE_KEY);
   const [filter, setFilter] = useUrlChoice("show", FILTERS.map((f) => f.value), "all");
   const liveSessions = useMemo(
     () =>

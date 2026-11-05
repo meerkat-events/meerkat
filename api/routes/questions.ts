@@ -66,6 +66,55 @@ async function readOptionalJson(request: HonoRequest): Promise<unknown> {
   }
 }
 
+/**
+ * The checks every moderation route makes first: the user exists (401
+ * otherwise), the question and its event exist (404), and the user holds
+ * `requiredRole` in the event's conference (403). "moderator" lets
+ * moderators and organizers through (`canModerate`), "organizer" only
+ * organizers (`isOrganizer`).
+ */
+async function loadQuestionForModeration(
+  userId: string,
+  uid: string,
+  requiredRole: "moderator" | "organizer",
+) {
+  const [user, question] = await Promise.all([
+    getUserById(userId),
+    getQuestionByUID(uid),
+  ]);
+
+  if (!user) {
+    throw new HTTPException(401, { message: `User ${userId} not found` });
+  }
+
+  if (!question) {
+    throw new HTTPException(404, { message: `Question ${uid} not found` });
+  }
+
+  const event = await getEventById(question.eventId);
+
+  if (!event) {
+    throw new HTTPException(404, {
+      message: `Event ${question.eventId} not found`,
+    });
+  }
+
+  const roles = await getConferenceRolesForConference(
+    user.id,
+    event.conferenceId,
+  );
+
+  if (requiredRole === "organizer") {
+    if (!isOrganizer(roles)) {
+      throw new HTTPException(403, { message: `User is not an organizer` });
+    }
+  } else if (!canModerate(roles)) {
+    throw new HTTPException(403, { message: `User is not a moderator` });
+  }
+
+  return { user, question, event };
+}
+
 app.post(
   "/api/v1/questions/:uid/upvote",
   jwt(),
@@ -176,40 +225,11 @@ app.post(
   jwt(),
   async (c) => {
     const uid = c.req.param("uid");
-    const payload = c.get("jwtPayload");
-
-    const [user, question] = await Promise.all([
-      getUserById(payload.sub),
-      getQuestionByUID(uid),
-    ]);
-
-    if (!user) {
-      throw new HTTPException(401, {
-        message: `User ${payload.sub} not found`,
-      });
-    }
-
-    if (!question) {
-      throw new HTTPException(404, {
-        message: `Question ${uid} not found`,
-      });
-    }
-
-    const event = await getEventById(question.eventId);
-
-    if (!event) {
-      throw new HTTPException(404, {
-        message: `Event ${question.eventId} not found`,
-      });
-    }
-
-    const roles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
+    const { user, question, event } = await loadQuestionForModeration(
+      c.get("jwtPayload").sub,
+      uid,
+      "moderator",
     );
-    if (!canModerate(roles)) {
-      throw new HTTPException(403, { message: `User is not a moderator` });
-    }
 
     // Only its author can see it; restore it before putting it on stage.
     if (question.hiddenAt) {
@@ -245,40 +265,11 @@ app.post(
   jwt(),
   async (c) => {
     const uid = c.req.param("uid");
-    const payload = c.get("jwtPayload");
-
-    const [user, question] = await Promise.all([
-      getUserById(payload.sub),
-      getQuestionByUID(uid),
-    ]);
-
-    if (!user) {
-      throw new HTTPException(401, {
-        message: `User ${payload.sub} not found`,
-      });
-    }
-
-    if (!question) {
-      throw new HTTPException(404, {
-        message: `Question ${uid} not found`,
-      });
-    }
-
-    const event = await getEventById(question.eventId);
-
-    if (!event) {
-      throw new HTTPException(404, {
-        message: `Event ${question.eventId} not found`,
-      });
-    }
-
-    const roles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
+    const { user, question, event } = await loadQuestionForModeration(
+      c.get("jwtPayload").sub,
+      uid,
+      "moderator",
     );
-    if (!canModerate(roles)) {
-      throw new HTTPException(403, { message: `User is not a moderator` });
-    }
 
     const result = await markAsAnswered(question.id);
 
@@ -307,40 +298,11 @@ app.delete(
   jwt(),
   async (c) => {
     const uid = c.req.param("uid");
-    const payload = c.get("jwtPayload");
-
-    const [user, question] = await Promise.all([
-      getUserById(payload.sub),
-      getQuestionByUID(uid),
-    ]);
-
-    if (!user) {
-      throw new HTTPException(401, {
-        message: `User ${payload.sub} not found`,
-      });
-    }
-
-    if (!question) {
-      throw new HTTPException(404, {
-        message: `Question ${uid} not found`,
-      });
-    }
-
-    const event = await getEventById(question.eventId);
-
-    if (!event) {
-      throw new HTTPException(404, {
-        message: `Event ${question.eventId} not found`,
-      });
-    }
-
-    const roles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
+    const { user, question, event } = await loadQuestionForModeration(
+      c.get("jwtPayload").sub,
+      uid,
+      "moderator",
     );
-    if (!canModerate(roles)) {
-      throw new HTTPException(403, { message: `User is not a moderator` });
-    }
 
     const result = await deleteQuestion(question.id);
 
@@ -373,40 +335,11 @@ app.post(
   jwt(),
   async (c) => {
     const uid = c.req.param("uid");
-    const payload = c.get("jwtPayload");
-
-    const [user, question] = await Promise.all([
-      getUserById(payload.sub),
-      getQuestionByUID(uid),
-    ]);
-
-    if (!user) {
-      throw new HTTPException(401, {
-        message: `User ${payload.sub} not found`,
-      });
-    }
-
-    if (!question) {
-      throw new HTTPException(404, {
-        message: `Question ${uid} not found`,
-      });
-    }
-
-    const event = await getEventById(question.eventId);
-
-    if (!event) {
-      throw new HTTPException(404, {
-        message: `Event ${question.eventId} not found`,
-      });
-    }
-
-    const roles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
+    const { user, question, event } = await loadQuestionForModeration(
+      c.get("jwtPayload").sub,
+      uid,
+      "moderator",
     );
-    if (!canModerate(roles)) {
-      throw new HTTPException(403, { message: `User is not a moderator` });
-    }
 
     const result = await hideQuestion(question.id);
 
@@ -440,40 +373,11 @@ app.post(
   jwt(),
   async (c) => {
     const uid = c.req.param("uid");
-    const payload = c.get("jwtPayload");
-
-    const [user, question] = await Promise.all([
-      getUserById(payload.sub),
-      getQuestionByUID(uid),
-    ]);
-
-    if (!user) {
-      throw new HTTPException(401, {
-        message: `User ${payload.sub} not found`,
-      });
-    }
-
-    if (!question) {
-      throw new HTTPException(404, {
-        message: `Question ${uid} not found`,
-      });
-    }
-
-    const event = await getEventById(question.eventId);
-
-    if (!event) {
-      throw new HTTPException(404, {
-        message: `Event ${question.eventId} not found`,
-      });
-    }
-
-    const roles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
+    const { user, question, event } = await loadQuestionForModeration(
+      c.get("jwtPayload").sub,
+      uid,
+      "organizer",
     );
-    if (!isOrganizer(roles)) {
-      throw new HTTPException(403, { message: `User is not an organizer` });
-    }
 
     const result = await restoreQuestion(question.id);
 

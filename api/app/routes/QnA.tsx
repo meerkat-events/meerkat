@@ -18,7 +18,6 @@ import {
   useSearchParams,
 } from "react-router";
 import type { Route } from "./+types/QnA.ts";
-import { Modal } from "../components/Modal/Modal.tsx";
 import { NavigationDrawer } from "../components/NavigationDrawer/index.tsx";
 import { CooldownModal } from "../components/QnA/CooldownModal.tsx";
 import { Footer } from "../components/QnA/Footer.tsx";
@@ -44,7 +43,6 @@ import { pageTitle } from "../utils/events.ts";
 import throttle from "lodash.throttle";
 import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
-import { useLinks } from "~/components/NavigationDrawer/use-links.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
 import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
 import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
@@ -246,7 +244,6 @@ function QnAPage() {
       return searchParams;
     }, { replace: true });
   };
-  const isBlocked = false;
   const { picked, dismiss: dismissPicked } = usePickedQuestion(
     questions,
     user?.id,
@@ -330,8 +327,6 @@ function QnAPage() {
   const otherLiveSession = live.find((session) =>
     session.live && session.uid !== uid
   );
-
-  const navLinks = useLinks({ event });
 
   const { trigger: goLive } = useGoLive(event?.uid ?? "");
 
@@ -433,7 +428,7 @@ function QnAPage() {
             boxShadow="header"
           >
             <nav>
-              <NavigationDrawer navLinks={navLinks} />
+              <NavigationDrawer questionsHref={qa(uid ?? "")} />
             </nav>
             <Text as="span" textStyle="sm" fontWeight="medium" truncate>
               {event?.conference.name}
@@ -534,18 +529,6 @@ function QnAPage() {
           />
         ))}
       </div>
-      {isBlocked && (
-        <Modal
-          isOpen
-          onClose={() => {}}
-          title="Blocked"
-        >
-          <p>
-            You have been blocked from asking questions. If you believe this is
-            a mistake, please contact the event organizer.
-          </p>
-        </Modal>
-      )}
       <CooldownModal />
       {picked && (
         <QuestionPicked

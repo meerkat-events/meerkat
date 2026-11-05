@@ -4,10 +4,6 @@ body {
   padding: 0;
 }
 
-:root {
-  --max-header-height: 110px;
-}
-
 .layout {
   display: grid;
   height: 100dvh;
@@ -45,10 +41,6 @@ body {
   --toast-offset-left: var(--toast-column-inset);
   --toast-offset-right: calc(var(--toast-column-inset) + 94px + 0.5rem);
   --toast-width: 100%;
-}
-
-.title-section {
-  padding: 0 1rem 0 1rem;
 }
 
 ol,
@@ -229,20 +221,6 @@ ul {
   flex-shrink: 0;
 }
 
-.card {
-  padding: 1rem 0;
-  text-align: center;
-}
-
-.tab-panel {
-  display: flex;
-  flex-direction: column;
-  height: calc(
-    100dvh - var(--max-header-height) - 42px - env(safe-area-inset-bottom)
-      - env(safe-area-inset-top)
-  );
-}
-
 /* The heart button floats above the send button (the footer is its
    positioning context), over the bottom of the question list. */
 .react-bubble {
@@ -403,30 +381,4 @@ ul {
 .flex {
   display: flex;
   flex-direction: column;
-}
-
-.two-lines {
-  display: -webkit-box;
-  line-clamp: 2;
-  overflow: hidden;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-
-.pulsating {
-  animation: pulsate 1s infinite;
-}
-
-@keyframes pulsate {
-  0% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.05);
-  }
-
-  100% {
-    transform: scale(1);
-  }
 }
