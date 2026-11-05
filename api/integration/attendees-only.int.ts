@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
 import { ATTENDEES_ONLY_FEATURE } from "../features.ts";
 import { consumeHandoverToken } from "../app/lib/handover.server.ts";
+import { markUserAsBlocked } from "../models/user.ts";
 import {
   anonymousUser,
   emailUser,
@@ -79,6 +80,26 @@ describe("attendees-only conference", () => {
   test("turns away signed-in users without a role", async () => {
     const user = await emailUser("no-ticket@example.com");
     await assertParticipation(eventUid, questionUid, user, 403);
+  });
+
+  test("turns away blocked attendees as blocked, before the role check", async () => {
+    await invite("blocked@example.com", conferenceId, "attendee");
+    const user = await emailUser("blocked@example.com");
+    await markUserAsBlocked(user.id);
+
+    for (const response of [
+      await askQuestion(eventUid, user),
+      await react(eventUid, user),
+      await upvote(questionUid, user),
+    ]) {
+      assert.equal(response.status, 403);
+      assert.equal(await response.text(), "User is blocked");
+    }
+
+    const stranger = await anonymousUser();
+    await markUserAsBlocked(stranger.id);
+    const response = await askQuestion(eventUid, stranger);
+    assert.equal(await response.text(), "User is blocked", "ban comes first");
   });
 
   test("lets invited attendees take part", async () => {
