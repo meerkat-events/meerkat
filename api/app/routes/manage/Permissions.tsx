@@ -152,7 +152,11 @@ function AddPersonDialog(
   return (
     <Dialog.Root
       open={open}
-      onOpenChange={(e) => !e.open && onClose()}
+      onOpenChange={(e) => {
+        if (!e.open) {
+          onClose();
+        }
+      }}
       initialFocusEl={() => emailRef.current}
       lazyMount
       unmountOnExit
@@ -204,7 +208,11 @@ function PersonRow(
           label={`Role of ${address}`}
           value={role}
           disabled={isYou || !email}
-          onChange={(next) => email && onRoleChange(email, next)}
+          onChange={(next) => {
+            if (email) {
+              onRoleChange(email, next);
+            }
+          }}
         />
       </td>
       <td className="action">
