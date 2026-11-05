@@ -3,7 +3,7 @@ import { useState } from "react";
 import { generateQRCodeSVG } from "../code.ts";
 
 interface QRProps {
-  url: URL;
+  url: string;
 }
 
 const QR = ({
@@ -12,7 +12,14 @@ const QR = ({
   const [svg, setSvg] = useState<string>("");
 
   useEffect(() => {
-    generateQRCodeSVG(url.toString()).then(setSvg);
+    // A slower call for the previous url must not overwrite this one's code.
+    let current = true;
+    generateQRCodeSVG(url).then((code) => {
+      if (current) setSvg(code);
+    });
+    return () => {
+      current = false;
+    };
   }, [url]);
 
   return (

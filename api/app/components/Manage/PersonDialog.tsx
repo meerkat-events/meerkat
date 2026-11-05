@@ -1,15 +1,6 @@
 import { useState } from "react";
 import { useUrlChoice } from "./use-url-choice.ts";
-import {
-  Badge,
-  Button,
-  CloseButton,
-  Dialog,
-  Portal,
-  Spinner,
-  Tabs,
-  Text,
-} from "@chakra-ui/react";
+import { Badge, Button, Dialog, Spinner, Tabs, Text } from "@chakra-ui/react";
 import { useBlockUser } from "../../hooks/use-block-user.ts";
 import { ActionMenu } from "./ActionMenu.tsx";
 import {
@@ -17,6 +8,7 @@ import {
   useUserActivity,
 } from "../../hooks/use-user-activity.ts";
 import { toaster } from "../ui/toaster.tsx";
+import { ManageDialog, useDialogHandoff } from "./ManageDialog.tsx";
 import { QuestionTable } from "./QuestionTable.tsx";
 import { fmtDay, fmtTime, useNow } from "./time.ts";
 
@@ -39,15 +31,8 @@ export function PersonDialog(
   },
 ) {
   const now = useNow(30_000);
-  // One dialog at a time: opening a session closes this dialog first and
-  // opens the session once it is gone. (A dialog opened on top of another is
-  // dismissed when the one beneath it closes.)
-  const [open, setOpen] = useState(true);
-  const [sessionAfterClose, setSessionAfterClose] = useState<string | null>(null);
-  const openSessionInstead = (uid: string) => {
-    setSessionAfterClose(uid);
-    setOpen(false);
-  };
+  // Opening a session closes this dialog first.
+  const handoff = useDialogHandoff(onClose, onSession);
   // The confirmation is remembered per person: this dialog stays mounted
   // while someone else is opened from it, and they can't inherit it.
   const [confirmFor, setConfirmFor] = useState<string | null>(null);
@@ -76,109 +61,88 @@ export function PersonDialog(
   };
 
   return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(e) => setOpen(e.open)}
-      // One URL change either way: the session's URL has no ?person.
-      onExitComplete={() => {
-        if (sessionAfterClose) onSession(sessionAfterClose);
-        else onClose();
-      }}
-      size="xl"
-      scrollBehavior="inside"
+    <ManageDialog
+      handoff={handoff}
+      header={
+        <div className="m-title-row">
+          <div>
+            <Dialog.Title className="name">
+              {data?.user.name ?? "…"}
+              {data?.user.blocked && <span className="m-chip blocked">Blocked</span>}
+            </Dialog.Title>
+            <span className="m-hint">
+              {data?.user.blocked
+                ? "Their questions are hidden from the Q&A."
+                : "Their history at this event"}
+            </span>
+          </div>
+          <ActionMenu
+            actions={data && !data.user.blocked
+              ? [{ label: "Block user", danger: true, onSelect: () => setConfirming(true) }]
+              : []}
+          />
+        </div>
+      }
     >
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content className="m-person">
-            <Dialog.Header>
-              <div>
-                <Dialog.Title className="name">
-                  {data?.user.name ?? "…"}
-                  {data?.user.blocked && <span className="m-chip blocked">Blocked</span>}
-                </Dialog.Title>
-                <span className="m-hint">
-                  {data?.user.blocked
-                    ? "Their questions are hidden from the Q&A."
-                    : "Their history at this event"}
-                </span>
-              </div>
-              <Dialog.CloseTrigger asChild>
-                <CloseButton size="sm" />
-              </Dialog.CloseTrigger>
-              <div className="m-head-actions">
-                <ActionMenu
-                  actions={data && !data.user.blocked
-                    ? [{ label: "Block user", danger: true, onSelect: () => setConfirming(true) }]
-                    : []}
+      {isLoading || !data
+        ? <div className="m-empty"><Spinner size="sm" /></div>
+        : confirming
+        ? (
+          // A step inside this dialog, not a second dialog on top:
+          // what blocking does, at the moment of deciding.
+          <section className="m-confirm-step" aria-labelledby="block-heading">
+            <h3 id="block-heading">Block {data.user.name}?</h3>
+            <Text>
+              Every question they have asked disappears from the Q&A and the stage
+              screens, and they cannot ask again at this event.
+            </Text>
+            <Text color="fg.muted" mt="2">This can't be undone.</Text>
+            <div className="m-confirm-actions">
+              <Button
+                size="xs"
+                variant="outline"
+                autoFocus
+                onClick={() => setConfirming(false)}
+              >
+                Cancel
+              </Button>
+              <Button size="xs" colorPalette="red" onClick={onBlock}>Block user</Button>
+            </div>
+          </section>
+        )
+        : (
+          <Tabs.Root
+            value={tab}
+            onValueChange={(e) => {
+              const next = TABS.find((t) => t.key === e.value);
+              if (next) setTab(next.key);
+            }}
+            lazyMount
+            unmountOnExit
+          >
+            <Tabs.List aria-label={`${data.user.name}'s activity`}>
+              {TABS.map(({ key, label }) => (
+                <Tabs.Trigger key={key} value={key}>
+                  {label}
+                  <Badge size="sm" variant="subtle">{data.summary[key]}</Badge>
+                </Tabs.Trigger>
+              ))}
+            </Tabs.List>
+            {TABS.map(({ key }) => (
+              <Tabs.Content key={key} value={key}>
+                <PersonTab
+                  tab={key}
+                  data={data}
+                  now={now}
+                  onPerson={onPerson}
+                  onSession={handoff.openInstead}
+                  refresh={() => mutate()}
                 />
-              </div>
-            </Dialog.Header>
-
-            <Dialog.Body>
-              {isLoading || !data
-                ? <div className="m-empty"><Spinner size="sm" /></div>
-                : confirming
-                ? (
-                  // A step inside this dialog, not a second dialog on top:
-                  // what blocking does, at the moment of deciding.
-                  <section className="m-confirm-step" aria-labelledby="block-heading">
-                    <h3 id="block-heading">Block {data.user.name}?</h3>
-                    <Text>
-                      Every question they have asked disappears from the Q&A and the stage
-                      screens, and they cannot ask again at this event.
-                    </Text>
-                    <Text color="fg.muted" mt="2">This can't be undone.</Text>
-                    <div className="m-confirm-actions">
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        autoFocus
-                        onClick={() => setConfirming(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button size="xs" colorPalette="red" onClick={onBlock}>Block user</Button>
-                    </div>
-                  </section>
-                )
-                : (
-                  <Tabs.Root
-                    value={tab}
-                    onValueChange={(e) => {
-                      const next = TABS.find((t) => t.key === e.value);
-                      if (next) setTab(next.key);
-                    }}
-                    lazyMount
-                    unmountOnExit
-                  >
-                    <Tabs.List aria-label={`${data.user.name}'s activity`}>
-                      {TABS.map(({ key, label }) => (
-                        <Tabs.Trigger key={key} value={key}>
-                          {label}
-                          <Badge size="sm" variant="subtle">{data.summary[key]}</Badge>
-                        </Tabs.Trigger>
-                      ))}
-                    </Tabs.List>
-                    {TABS.map(({ key }) => (
-                      <Tabs.Content key={key} value={key}>
-                        <PersonTab
-                          tab={key}
-                          data={data}
-                          now={now}
-                          onPerson={onPerson}
-                          onSession={openSessionInstead}
-                          refresh={() => mutate()}
-                        />
-                      </Tabs.Content>
-                    ))}
-                  </Tabs.Root>
-                )}
-            </Dialog.Body>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
+              </Tabs.Content>
+            ))}
+          </Tabs.Root>
+        )}
+    </ManageDialog>
   );
 }
 

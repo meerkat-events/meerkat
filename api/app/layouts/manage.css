@@ -857,36 +857,17 @@
   color: var(--m-ink);
   border: 1px solid var(--m-line-strong);
 
-  /* A compact first row with only the close button; beneath it the title on
-     the left and the dialog's actions on the right, so they never sit next
-     to close. Same as the session dialog's top row. */
+  /* A compact first row with the close button (.m-dialog-top); beneath it
+     the title on the left and the dialog's actions on the right, so they
+     never sit next to close. */
   & .chakra-dialog__header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 12px;
+    flex-direction: column;
     padding-top: 10px;
     border-bottom: 1px solid var(--m-line);
   }
 
-  & .chakra-dialog__header > :first-child {
-    grid-row: 2;
-    grid-column: 1;
-  }
-
-  /* Chakra positions the close button absolutely; here it gets its own row. */
-  & .chakra-dialog__header > .chakra-dialog__closeTrigger {
-    position: static;
-    grid-row: 1;
-    grid-column: 1 / -1;
-    justify-self: end;
-    margin-right: -8px;
-  }
-
-  & .m-head-actions {
-    grid-row: 2;
-    grid-column: 2;
-    justify-self: end;
+  & .chakra-dialog__header .m-title-row {
+    align-items: center;
   }
 
   & .name {
@@ -1291,8 +1272,19 @@
   padding: 0;
 }
 
+/* The first section of each tab. */
 .m-session .m-sec:first-child {
   padding-top: 10px;
+}
+
+/* The session's header is only its top row, flush with the section below. */
+.m-session .chakra-dialog__header {
+  padding: 10px 16px 0;
+  border-bottom: 0;
+}
+
+.m-session .chakra-dialog__body > .m-sec:first-child {
+  padding-top: 0;
 }
 
 .m-sec {
@@ -1378,19 +1370,27 @@
   }
 }
 
-/* Whether the session is live sits top right, beside the close button. */
-/* Stage, status and close in one row; Chakra would position the close
-   button absolutely, on top of the status. */
-.m-session-top {
+/* A management dialog's first row: the close button on the right, with
+   whatever the dialog shows there (a session's stage and status) beside it.
+   Chakra would position the button absolutely, on top of them. */
+.m-dialog-top {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 
   & .chakra-dialog__closeTrigger {
     position: static;
+    /* 16px from the dialog's edge, like the session's. */
+    margin-right: -8px;
   }
 }
 
+.m-session .m-dialog-top .chakra-dialog__closeTrigger {
+  margin-right: 0;
+}
+
+/* Whether the session is live sits top right, beside the close button. */
 .m-session-status {
   margin-left: auto;
 }

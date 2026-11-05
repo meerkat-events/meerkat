@@ -1,14 +1,5 @@
-import { useMemo, useState } from "react";
-import {
-  Button,
-  CloseButton,
-  Dialog,
-  NativeSelect,
-  Portal,
-  SegmentGroup,
-  Switch,
-  Tabs,
-} from "@chakra-ui/react";
+import { useState } from "react";
+import { Switch, Tabs } from "@chakra-ui/react";
 import type { Session } from "../../hooks/use-conference-events.ts";
 import type { SessionCounts } from "../../hooks/use-conference-stats.ts";
 import { useConferenceQuestions } from "../../hooks/use-conference-questions.ts";
@@ -20,10 +11,10 @@ import { FilterChips } from "./FilterChips.tsx";
 import { FILTERS, matchesFilter, SORT_STORAGE_KEY, SORTS, sortQuestions } from "./question-state.ts";
 import { useRememberedChoice } from "./use-remembered-choice.ts";
 import { useUrlChoice } from "./use-url-choice.ts";
-import QR from "../QR.tsx";
 import { toaster } from "../ui/toaster.tsx";
-import { appOrigin } from "../../lib/api-url.ts";
-import { generateQRCodeSVG } from "../../code.ts";
+import { ManageDialog, useDialogHandoff } from "./ManageDialog.tsx";
+import { QRBlock } from "./SessionQR.tsx";
+import { qaUrl, stageScreenUrl } from "./session-urls.ts";
 import { SortMenu } from "./SortMenu.tsx";
 import { ActionMenu } from "./ActionMenu.tsx";
 import {
@@ -35,15 +26,6 @@ import {
   useNow,
   zoneName,
 } from "./time.ts";
-
-const qaUrl = (session: Session) => new URL(`/e/${session.uid}/qa`, appOrigin());
-// The stage screen: the presenter view of the event the stage shows (live,
-// else running, else next), following the stage from one session to the next.
-const stageScreenUrl = (session: Session) =>
-  new URL(`/stage/${encodeURIComponent(session.stage)}`, appOrigin());
-// Redirects to whatever is live on the stage (or next up), so it can be printed once.
-const stageQaUrl = (session: Session) =>
-  new URL(`/stage/${encodeURIComponent(session.stage)}/qa`, appOrigin());
 
 const SESSION_TABS = ["questions", "details", "qr"] as const;
 
@@ -61,15 +43,8 @@ export function SessionPanel(
   const now = useNow(30_000);
   // What this dialog shows is in the URL, so a link opens the same view.
   const [tab, setTab] = useUrlChoice("sessionTab", SESSION_TABS, "questions");
-  // One dialog at a time: opening someone's history closes this dialog first
-  // and opens theirs once it is gone. (A dialog opened on top of another is
-  // dismissed when the one beneath it closes.)
-  const [open, setOpen] = useState(true);
-  const [personAfterClose, setPersonAfterClose] = useState<string | null>(null);
-  const openPersonInstead = (userId: string) => {
-    setPersonAfterClose(userId);
-    setOpen(false);
-  };
+  // Opening someone's history closes this dialog first.
+  const handoff = useDialogHandoff(onClose, onPerson);
   const status = sessionStatus(session, now);
   const { trigger: goLive } = useGoLive(session.uid);
 
@@ -97,110 +72,94 @@ export function SessionPanel(
   };
 
   return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(e) => setOpen(e.open)}
-      // One URL change either way: opening a person also drops ?session.
-      onExitComplete={() => {
-        if (personAfterClose) onPerson(personAfterClose);
-        else onClose();
-      }}
-      size="xl"
-      scrollBehavior="inside"
+    <ManageDialog
+      handoff={handoff}
+      className="m-session"
+      label={session.title}
+      top={
+        <>
+          <span className="m-stage">{session.stage}</span>
+          <div className="m-session-status">
+            {status === "live"
+              ? (
+                <span className="m-chip live">
+                  <span className="m-live-dot" aria-hidden="true" />
+                  Live{now < session.end && ` · ${fmtDuration(+session.end - +now)} left`}
+                </span>
+              )
+              : (
+                <span className="m-chip">
+                  {status === "upcoming"
+                    ? `Starts in ${fmtDuration(+session.start - +now)}`
+                    : status === "ended"
+                    ? `Ended ${fmtTime(session.end)}`
+                    : "Scheduled now"}
+                </span>
+              )}
+          </div>
+        </>
+      }
     >
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content className="m-person m-session" aria-label={session.title}>
-            <Dialog.Body>
-              <div className="m-sec">
-                  <div className="m-session-top">
-                    <span className="m-stage">{session.stage}</span>
-                    <div className="m-session-status">
-                      {status === "live"
-                        ? (
-                          <span className="m-chip live">
-                            <span className="m-live-dot" aria-hidden="true" />
-                            Live{now < session.end && ` · ${fmtDuration(+session.end - +now)} left`}
-                          </span>
-                        )
-                        : (
-                          <span className="m-chip">
-                            {status === "upcoming"
-                              ? `Starts in ${fmtDuration(+session.start - +now)}`
-                              : status === "ended"
-                              ? `Ended ${fmtTime(session.end)}`
-                              : "Scheduled now"}
-                          </span>
-                        )}
-                    </div>
-                    <Dialog.CloseTrigger asChild>
-                      <CloseButton size="sm" aria-label="Close" />
-                    </Dialog.CloseTrigger>
-                  </div>
-                  <div className="m-title-row">
-                    <div>
-                      <h2>{session.title}</h2>
-                      <div className="m-meta">
-                        <span>{session.speaker ?? "No speaker"}</span>
-                        <span>
-                          {fmtWhen(session)} {zoneName(session.start)}
-                        </span>
-                      </div>
-                    </div>
-                    <ActionMenu
-                      actions={[
-                        ...(status !== "live" && status !== "ended"
-                          ? [{ label: "Go live", onSelect: onGoLive }]
-                          : []),
-                        { label: "Open Q&A", href: qaUrl(session).toString() },
-                        { label: "Open stage screen", href: stageScreenUrl(session).toString() },
-                        {
-                          label: "Copy Q&A link",
-                          onSelect: () => copy(qaUrl(session).toString(), "Q&A link copied"),
-                        },
-                        { label: "QR code", onSelect: () => setTab("qr") },
-                      ]}
-                    />
-                  </div>
-                  <HighEngagementSwitch session={session} onChanged={onChanged} />
-                </div>
+      <div className="m-sec">
+        <div className="m-title-row">
+          <div>
+            <h2>{session.title}</h2>
+            <div className="m-meta">
+              <span>{session.speaker ?? "No speaker"}</span>
+              <span>
+                {fmtWhen(session)} {zoneName(session.start)}
+              </span>
+            </div>
+          </div>
+          <ActionMenu
+            actions={[
+              ...(status !== "live" && status !== "ended"
+                ? [{ label: "Go live", onSelect: onGoLive }]
+                : []),
+              { label: "Open Q&A", href: qaUrl(session).toString() },
+              { label: "Open stage screen", href: stageScreenUrl(session).toString() },
+              {
+                label: "Copy Q&A link",
+                onSelect: () => copy(qaUrl(session).toString(), "Q&A link copied"),
+              },
+              { label: "QR code", onSelect: () => setTab("qr") },
+            ]}
+          />
+        </div>
+        <HighEngagementSwitch session={session} onChanged={onChanged} />
+      </div>
 
-                {/* One dialog at a time: the QR code is a tab, not a dialog on top. */}
-                <Tabs.Root
-                  value={tab}
-                  onValueChange={(e) => setTab(SESSION_TABS.find((t) => t === e.value) ?? "questions")}
-                  lazyMount
-                  unmountOnExit
-                >
-                  <Tabs.List className="m-session-tabs" aria-label="Session">
-                    <Tabs.Trigger value="questions">Questions</Tabs.Trigger>
-                    <Tabs.Trigger value="details">Details</Tabs.Trigger>
-                    <Tabs.Trigger value="qr">QR code</Tabs.Trigger>
-                  </Tabs.List>
-                  <Tabs.Content value="questions" padding="0">
-                    <SessionQuestions
-                      session={session}
-                      counts={counts}
-                      status={status}
-                      now={now}
-                      onPerson={openPersonInstead}
-                    />
-                  </Tabs.Content>
-                  <Tabs.Content value="details" padding="0">
-                    <SessionDetails session={session} />
-                  </Tabs.Content>
-                  <Tabs.Content value="qr" padding="0">
-                    <div className="m-sec">
-                      <QRBlock session={session} onCopy={copy} />
-                    </div>
-                  </Tabs.Content>
-                </Tabs.Root>
-            </Dialog.Body>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
+      {/* One dialog at a time: the QR code is a tab, not a dialog on top. */}
+      <Tabs.Root
+        value={tab}
+        onValueChange={(e) => setTab(SESSION_TABS.find((t) => t === e.value) ?? "questions")}
+        lazyMount
+        unmountOnExit
+      >
+        <Tabs.List className="m-session-tabs" aria-label="Session">
+          <Tabs.Trigger value="questions">Questions</Tabs.Trigger>
+          <Tabs.Trigger value="details">Details</Tabs.Trigger>
+          <Tabs.Trigger value="qr">QR code</Tabs.Trigger>
+        </Tabs.List>
+        <Tabs.Content value="questions" padding="0">
+          <SessionQuestions
+            session={session}
+            counts={counts}
+            status={status}
+            now={now}
+            onPerson={handoff.openInstead}
+          />
+        </Tabs.Content>
+        <Tabs.Content value="details" padding="0">
+          <SessionDetails session={session} />
+        </Tabs.Content>
+        <Tabs.Content value="qr" padding="0">
+          <div className="m-sec">
+            <QRBlock session={session} onCopy={copy} />
+          </div>
+        </Tabs.Content>
+      </Tabs.Root>
+    </ManageDialog>
   );
 }
 
@@ -343,102 +302,4 @@ function SessionDetails({ session }: { session: Session }) {
       </dl>
     </div>
   );
-}
-
-function QRBlock(
-  { session, onCopy }: {
-    session: Session;
-    onCopy: (text: string, title: string) => void;
-  },
-) {
-  const [target, setTarget] = useUrlChoice("qr", ["session", "stage"] as const, "session");
-  const [size, setSize] = useState("1024");
-  // Stable per target so the QR component doesn't regenerate on every render.
-  const url = useMemo(
-    () => (target === "stage" ? stageQaUrl(session) : qaUrl(session)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [target, session.uid, session.stage],
-  );
-  const fileName = target === "stage"
-    ? `meerkat-${session.stage}-qr.png`
-    : `meerkat-${session.uid}-qr.png`;
-
-  return (
-    <div className="m-qr">
-      <SegmentGroup.Root
-        size="sm"
-        value={target}
-        onValueChange={(e) => setTarget(e.value === "stage" ? "stage" : "session")}
-        aria-label="QR code opens"
-      >
-        <SegmentGroup.Indicator />
-        <SegmentGroup.Items
-          items={[
-            { value: "session", label: "This session" },
-            { value: "stage", label: "Whole stage" },
-          ]}
-        />
-      </SegmentGroup.Root>
-      <QR url={url} />
-      <p className="m-hint" style={{ margin: 0, textAlign: "center", maxWidth: "32ch" }}>
-        {target === "stage"
-          ? `Always opens whatever is live on ${session.stage}. Print it once for the room.`
-          : "Opens this session's Q&A."}
-      </p>
-      <div className="url">{url.host}{url.pathname}</div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-        <NativeSelect.Root size="xs" width="auto">
-          <NativeSelect.Field
-            aria-label="Image size"
-            value={size}
-            onChange={(ev) => setSize(ev.currentTarget.value)}
-          >
-            <option value="512">512 px</option>
-            <option value="1024">1024 px</option>
-            <option value="2048">2048 px</option>
-          </NativeSelect.Field>
-          <NativeSelect.Indicator />
-        </NativeSelect.Root>
-        <Button
-          size="xs"
-          colorPalette="brand"
-          onClick={() => downloadQRCode(url.toString(), Number(size), fileName)}
-        >
-          Download PNG
-        </Button>
-        <Button size="xs" variant="outline" onClick={() => onCopy(url.toString(), "Link copied")}>
-          Copy link
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Draws the session's QR code to a PNG in the browser and downloads it. White
- * background and #36364c modules, the colors of the QR codes printed so far:
- * keep them, so new downloads match the printed ones.
- */
-async function downloadQRCode(url: string, size: number, fileName: string) {
-  const svg = (await generateQRCodeSVG(url))
-    .replace('fill="none"', 'fill="#ffffff"')
-    .replace('stroke="currentColor"', 'stroke="#36364c"');
-  const image = new Image();
-  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  await image.decode();
-
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const margin = Math.round(size * 0.04);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, size, size);
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(image, margin, margin, size - margin * 2, size - margin * 2);
-
-  const link = document.createElement("a");
-  link.href = canvas.toDataURL("image/png");
-  link.download = fileName;
-  link.click();
 }
