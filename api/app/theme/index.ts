@@ -345,6 +345,19 @@ const chakraAdapter = (theme: Theme) => {
                 : { _light: "{colors.brand.900}", _dark: "{colors.brand.300}" },
             },
           },
+          // The Q&A page's top bar (menu, conference name, supervotes): the
+          // same light brand tint as the sort control's track below it.
+          topBar: {
+            bg: { value: "{colors.segment.track}" },
+            fg: { value: "{colors.fg}" },
+          },
+          // The Q&A page's sort control: a track tinted with the brand
+          // color, so it belongs to the conference's colorway rather than
+          // Chakra's neutral gray, and a raised pill for the current sort.
+          segment: {
+            track: { value: { _light: brandTint(10), _dark: brandTint(20) } },
+            indicator: { value: { _light: "{colors.bg}", _dark: brandTint(45) } },
+          },
           highlight: {
             // The current row of a list, such as the session list.
             selected: { value: highlightColor ?? brandTint(10) },
@@ -354,10 +367,6 @@ const chakraAdapter = (theme: Theme) => {
         },
         shadows: {
           ...(shadowColor && shadowScale(shadowColor)),
-          // Bottom edge of the header bar.
-          header: {
-            value: `0 6px 10px -8px ${shadowColor ?? brandTint(60)}`,
-          },
           // Floating controls: the heart button and its reaction bar.
           floating: {
             value: theme.floatingShadow ??

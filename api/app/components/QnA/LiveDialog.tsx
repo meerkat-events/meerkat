@@ -10,14 +10,9 @@ export function LiveDialog({ event, onConfirm }: LiveDialogProps) {
   return (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          // Takes the surrounding banner's text color for label and outline
-          color="inherit"
-          borderColor="currentColor"
-          _hover={{ bg: "brand.solid/10" }}
-        >
+        {/* The not-live card's action: a solid brand button, like its
+            Jump to Live for attendees */}
+        <Button size="sm" colorPalette="brand" flexShrink="0" whiteSpace="nowrap">
           Go Live
         </Button>
       </Dialog.Trigger>

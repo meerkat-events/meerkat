@@ -101,16 +101,21 @@ function MeerkatLinks() {
 interface NavigationDrawerProps {
   /** The Q&A page of the session the drawer is opened on. */
   questionsHref: string;
+  /** Shown under the logo; the top bar shows the session title instead. */
+  conferenceName?: string | undefined;
 }
 
-export function NavigationDrawer({ questionsHref }: NavigationDrawerProps) {
+export function NavigationDrawer(
+  { questionsHref, conferenceName }: NavigationDrawerProps,
+) {
   return (
     <Drawer.Root placement="start">
       <Drawer.Trigger asChild>
         <Button
           variant="plain"
           colorPalette="gray"
-          color="fg"
+          // The top bar's text color
+          color="inherit"
           size="sm"
           aria-label="Open navigation menu"
           paddingLeft="0"
@@ -126,8 +131,19 @@ export function NavigationDrawer({ questionsHref }: NavigationDrawerProps) {
         <Drawer.Positioner>
           <Drawer.Content>
             <Drawer.Header>
-              <Flex justifyContent="center" alignItems="center" width="100%">
+              <Flex
+                direction="column"
+                justifyContent="center"
+                alignItems="center"
+                gap="3"
+                width="100%"
+              >
                 <Logo height="50px" width="auto" />
+                {conferenceName && (
+                  <Drawer.Title textStyle="md" fontWeight="bold" textAlign="center">
+                    {conferenceName}
+                  </Drawer.Title>
+                )}
               </Flex>
             </Drawer.Header>
             <Drawer.Body>
