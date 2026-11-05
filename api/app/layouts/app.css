@@ -300,6 +300,14 @@ ul {
   }
 }
 
+/* The moderators' relevance label, then the vote pill, on the right. */
+.question-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .card {
   padding: 1rem 0;
   text-align: center;

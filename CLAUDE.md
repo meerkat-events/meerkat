@@ -379,9 +379,10 @@ its CSS, callers pass the items' uids joined, nothing moves with
   reasons, relevance; `moderation-summary.ts`), never raw scores.
   Organizers and moderators also get the relevance score, and nothing else
   of the verdict, in the event's question list (`getRelevanceByQuestion`,
-  merged only after a `canModerate` check). The Q&A page's display of it
-  after the question text (`RelevanceScore` in `Question.tsx`) is switched
-  off for now (`SHOW_RELEVANCE_SCORE`). Organizers can
+  merged only after a `canModerate` check). The Q&A page turns it into a
+  label next to the vote pill (`RelevanceScore` in `Question.tsx`, behind
+  `SHOW_RELEVANCE_SCORE`): "Relevant" from 3, "Off topic" below 0.5, none in
+  between; tapping it shows the level and the score out of 4. Organizers can
   restore a hidden question (`POST /api/v1/questions/:uid/restore`, which
   keeps the verdict, so "hide" without `hidden_at` reads as restored); one
   can't be selected for the stage while hidden. Counts of session activity
