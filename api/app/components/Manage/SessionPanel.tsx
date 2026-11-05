@@ -17,7 +17,8 @@ import { useGoLive } from "../../hooks/use-go-live.ts";
 import { useSetHighEngagement } from "../../hooks/use-set-high-engagement.ts";
 import { QuestionTable } from "./QuestionTable.tsx";
 import { FilterChips } from "./FilterChips.tsx";
-import { FILTERS, matchesFilter, SORTS, sortQuestions } from "./question-state.ts";
+import { FILTERS, matchesFilter, SORT_STORAGE_KEY, SORTS, sortQuestions } from "./question-state.ts";
+import { useRememberedChoice } from "./use-remembered-choice.ts";
 import { useUrlChoice } from "./use-url-choice.ts";
 import QR from "../QR.tsx";
 import { toaster } from "../ui/toaster.tsx";
@@ -212,7 +213,7 @@ function SessionQuestions(
     onPerson: (userId: string) => void;
   },
 ) {
-  const [sort, setSort] = useUrlChoice("sort", SORTS.map((s) => s.value), "newest");
+  const [sort, setSort] = useRememberedChoice("sort", SORTS.map((s) => s.value), "newest", SORT_STORAGE_KEY);
   const [filter, setFilter] = useUrlChoice("show", FILTERS.map((f) => f.value), "all");
   const { conferenceId } = useManage();
   const { data, mutate } = useConferenceQuestions(conferenceId, { event: session.uid });
