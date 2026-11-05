@@ -139,7 +139,16 @@ export function Question(
       return;
     }
 
-    await block();
+    try {
+      await block();
+    } catch (error) {
+      toaster.create({
+        title: "Couldn't block this user",
+        type: "error",
+        description: error instanceof Error ? error.message : undefined,
+      });
+      return;
+    }
     refresh();
 
     toaster.create({
@@ -269,10 +278,12 @@ export function Question(
                       <Icon as={SpamIcon} mr="2" color="accent.menuIcon" />
                       <Box as="span">Spam</Box>
                     </Menu.Item>
-                    <Menu.Item value="block" onClick={handleBlock}>
-                      <Icon as={NotAllowedIcon} mr="2" color="accent.menuIcon" />
-                      <Box as="span">Block User</Box>
-                    </Menu.Item>
+                    {question.user && (
+                      <Menu.Item value="block" onClick={handleBlock}>
+                        <Icon as={NotAllowedIcon} mr="2" color="accent.menuIcon" />
+                        <Box as="span">Block User</Box>
+                      </Menu.Item>
+                    )}
                   </Menu.Content>
                 </Menu.Positioner>
               </Portal>
