@@ -25,16 +25,18 @@ export function homeFor(roles: ConferenceRole[]) {
 }
 
 export function useConferenceRoles() {
-  const { isAuthenticated, session } = useAuth();
+  const { session } = useAuth();
+  const token = session?.access_token;
+  const userId = session?.user.id;
+  // Keyed on the user, so signing in as someone else never shows the previous
+  // user's roles from the cache. Not on the token: it changes on every
+  // refresh, which would drop the roles and unmount the management layout.
   const { data, error, isLoading, mutate } = useSWR<
     { data: ConferenceRole[] },
-    HTTPError,
-    {
-      revalidateOnFocus: false;
-    }
+    HTTPError
   >(
-    isAuthenticated ? `/api/v1/users/me/roles` : undefined,
-    (path) => fetcher(path, session?.access_token),
+    token && userId ? [`/api/v1/users/me/roles`, userId] : undefined,
+    ([path]: [string, string]) => fetcher(path, token),
   );
 
   return { data: data?.data, error, isLoading, mutate };
