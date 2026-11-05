@@ -189,8 +189,8 @@ Loaders may therefore call `models/` directly.
 Theming is per conference: `conferences.theme` (JSONB) becomes a Chakra
 system in `app/theme/index.ts`; the layouts' `loader` reads it for the event
 in the URL. Rows in the `features` table are per-conference flags, surfaced
-as `event.conference.features` (`supervotes` turns on supervotes,
-`attendees_only` limits taking part to people with a role; its name lives in
+as `event.conference.features` (`attendees_only` limits taking part to
+people with a role; its name lives in
 the DB-free `api/features.ts`, which the loader and the client import too).
 
 Question lists animate on the Web Animations API, without a library:
@@ -331,8 +331,8 @@ its CSS, callers pass the items' uids joined, nothing moves with
   response carries `vote`. The event's question list fetched by an
   organizer or moderator of the conference also gives each question its
   `relevance`.
-- **Supervotes** (`models/supervotes.ts`, conferences with the `supervotes`
-  feature) live in one stored balance per user across all conferences
+- **Supervotes** (`models/supervotes.ts`, on in every conference) live in
+  one stored balance per user across all conferences
   (`supervote_balances`, `CHECK balance >= 0`). Selecting a question earns
   its author one, the first time only. Spending one (`POST
   /api/v1/questions/:uid/upvote` with `{ "weight": 3 }`) lowers the balance

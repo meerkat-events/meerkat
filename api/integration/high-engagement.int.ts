@@ -52,9 +52,6 @@ async function answeredAtOf(questionId: number) {
   return row?.answeredAt ?? null;
 }
 
-const select = (questionId: number) =>
-  selectQuestion(questionId, { earnsSupervote: false });
-
 describe("selecting a question", () => {
   test("answers only the previous selection, keeping earlier answer times", async () => {
     const { event } = await seedConference({ name: "Select order" });
@@ -62,12 +59,12 @@ describe("selecting a question", () => {
     const b = await insertQuestion(event.id, "b");
     const c = await insertQuestion(event.id, "c");
 
-    await select(a.id);
-    await select(b.id);
+    await selectQuestion(a.id);
+    await selectQuestion(b.id);
     const aAnsweredAt = await answeredAtOf(a.id);
     assert.ok(aAnsweredAt, "selecting b answers a");
 
-    await select(c.id);
+    await selectQuestion(c.id);
 
     assert.deepEqual(await answeredAtOf(a.id), aAnsweredAt);
     await setHighEngagement(event.id, true);
@@ -83,9 +80,9 @@ describe("selecting a question", () => {
     const a = await insertQuestion(event.id, "a");
     const b = await insertQuestion(event.id, "b");
 
-    await select(a.id);
-    await select(b.id);
-    await select(a.id);
+    await selectQuestion(a.id);
+    await selectQuestion(b.id);
+    await selectQuestion(a.id);
 
     assert.equal(await answeredAtOf(a.id), null);
     assert.ok(await answeredAtOf(b.id), "selecting a again answers b");

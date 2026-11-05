@@ -6,7 +6,6 @@ import env from "../env.ts";
 import type { Bus, RealtimeMessage } from "../realtime/bus.ts";
 import { bus, hub } from "../realtime/index.ts";
 import { createPostgresBus } from "../realtime/postgres-bus.ts";
-import { SUPERVOTES_FEATURE } from "../models/supervotes.ts";
 import {
   conferences,
   events,
@@ -172,10 +171,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
 
   beforeEach(async () => {
     await resetDb();
-    const { conference, event } = await seedConference({
-      name: "Actions",
-      featureNames: [SUPERVOTES_FEATURE],
-    });
+    const { conference, event } = await seedConference({ name: "Actions" });
     const asker = await emailUser("asker@example.com");
     const voter = await emailUser("voter@example.com");
     const organizer = await emailUser("organizer@example.com");

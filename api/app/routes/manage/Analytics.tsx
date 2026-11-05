@@ -125,9 +125,7 @@ export default function Analytics() {
           <div>
             <h2 id="supervotes-heading">Supervotes</h2>
             <span className="m-hint">
-              {supervotes && !supervotes.enabled
-                ? "Supervotes are off for this conference"
-                : `Each one weighs as much as three votes, ${scope}`}
+              Each one weighs as much as three votes, {scope}
             </span>
           </div>
           <div className="m-tiles m-tiles-2">

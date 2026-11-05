@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
 import db from "../db.ts";
 import { getQuestionByUID } from "../models/questions.ts";
-import { getSupervoteBalance, SUPERVOTES_FEATURE } from "../models/supervotes.ts";
+import { getSupervoteBalance } from "../models/supervotes.ts";
 import { createVote } from "../models/votes.ts";
 import { OWN_QUESTION_MESSAGE } from "../routes/questions.ts";
 import { supervoteBalances } from "../schema.ts";
@@ -41,10 +41,7 @@ describe("voting for your own question", () => {
 
   beforeEach(async () => {
     await resetDb();
-    const { event } = await seedConference({
-      name: "Own votes",
-      featureNames: [SUPERVOTES_FEATURE],
-    });
+    const { event } = await seedConference({ name: "Own votes" });
     eventUid = event.uid;
     author = await emailUser("author@example.com");
     await db.insert(supervoteBalances).values({ userId: author.id, balance: 1 });

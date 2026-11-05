@@ -10,11 +10,8 @@ export type Supervotes = {
   weight: number;
 };
 
-/**
- * The signed-in user's supervotes. Pass `enabled` from the conference's
- * `supervotes` feature, so conferences without it don't fetch.
- */
-export function useSupervotes(enabled: boolean) {
+/** The signed-in user's supervotes. */
+export function useSupervotes() {
   const { isAuthenticated, session } = useAuth();
   const accessToken = session?.access_token;
 
@@ -25,7 +22,7 @@ export function useSupervotes(enabled: boolean) {
     HTTPError,
     [string, string | undefined] | null
   >(
-    isAuthenticated && enabled
+    isAuthenticated
       ? ["/api/v1/users/me/supervotes", accessToken]
       : null,
     ([path, token]) => fetcher(path, token),
