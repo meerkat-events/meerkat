@@ -76,8 +76,6 @@ ul {
   flex-shrink: 0;
   max-height: 50%;
   overflow-y: auto;
-  /* A swiped-open card slides past the edge; don't let it scroll sideways. */
-  overflow-x: hidden;
   padding: 1rem 1rem 0;
   margin-inline: -1rem;
 }
@@ -105,7 +103,6 @@ ul {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
   /* The questions' offsetParent, for useListAnimation (which also turns
      the list's scroll anchoring off) */
   position: relative;
@@ -129,9 +126,8 @@ ul {
    useListAnimation, which marks it data-rising while it moves. Cards can be
    see-through, so its tint sits on the theme's opaque page surface instead,
    and the text it passes doesn't show through its own. Not a
-   backdrop-filter: the list's mask leaves that nothing to blur. The item is
-   the swipe wrapper, so the card inside it takes the paint. */
-.question-list > [data-rising] > .question-card {
+   backdrop-filter: the list's mask leaves that nothing to blur. */
+.question-list > [data-rising] {
   background-color: var(--page-surface);
   background-image: linear-gradient(var(--card-tint), var(--card-tint));
 }
@@ -223,81 +219,6 @@ ul {
   align-items: center;
   gap: 0.25rem;
   min-width: 0;
-}
-
-/* Organizers swipe a card right to uncover Highlight and Answered beneath it. */
-.question-swipe {
-  position: relative;
-  /* Clip the slid card sideways only (the status badge sits above the card),
-     out to the page edge, so the list never gets wider than the screen. */
-  overflow-x: clip;
-  overflow-clip-margin: 1rem;
-
-  & > .question-card {
-    transition: transform 0.2s ease;
-  }
-
-  /* Horizontal drags are the swipe; vertical panning and pinch-zoom stay with
-     the browser, so the list still scrolls and zooms. A mouse drag would
-     otherwise highlight the question text. */
-  &.swipeable {
-    touch-action: pan-y pinch-zoom;
-    user-select: none;
-  }
-
-  &.dragging {
-    & > .question-card {
-      transition: none;
-    }
-  }
-}
-
-/* Grows with the drag, so the buttons are uncovered as the card slides. The
-   radius rounds off a half-revealed button the same way as the card. */
-.question-swipe-actions {
-  position: absolute;
-  inset-block: 0;
-  left: 0;
-  display: flex;
-  gap: 0.5rem;
-  overflow: hidden;
-  border-radius: 15px;
-}
-
-.question-swipe-action {
-  flex: 0 0 5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  border-radius: 15px;
-  font-size: var(--chakra-font-sizes-xs);
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-
-  /* Highlighting is the main step, so it gets the solid brand color. */
-  &.highlight {
-    background-color: var(--chakra-colors-brand-solid);
-    color: var(--chakra-colors-brand-contrast);
-  }
-
-  /* A tint of the brand color rather than a fixed scale step: light themes'
-     scales run close to white, which made this nearly invisible. */
-  &.answered {
-    background-color: color-mix(
-      in srgb,
-      var(--chakra-colors-brand-solid) 30%,
-      white
-    );
-    color: var(--chakra-colors-brand-900);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--chakra-colors-brand-focus-ring);
-    outline-offset: 2px;
-  }
 }
 
 /* The moderators' relevance label, then the vote pill, on the right. */
