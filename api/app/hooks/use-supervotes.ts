@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 
 export type Supervotes = {
   /** Supervotes the user can spend, in any conference. */
@@ -27,6 +28,7 @@ export function useSupervotes() {
     token && userId ? ["/api/v1/users/me/supervotes", userId] : null,
     ([path]) => fetcher(path, token),
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   return { data: data?.data, error, isLoading, mutate };
 }

@@ -3,6 +3,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 
 /** A session as the events table stores it (no counts attached). */
 export type Session = {
@@ -46,6 +47,7 @@ export function useConferenceEvents(conferenceId: number | undefined) {
     ([path]: [string, string]) => fetcher(path, token),
     { refreshInterval: 30_000 },
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   const sessions = useMemo(
     () =>

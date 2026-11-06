@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 
 import type { ModerationReason } from "../components/Manage/question-state.ts";
 import type { ReactionEmoji } from "../../reactions.ts";
@@ -98,6 +99,7 @@ export function useConferenceStats(
     ([path]: [string, string]) => fetcher(path, token),
     { refreshInterval: 15_000 },
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   return { data: data?.data, error, isLoading, mutate };
 }

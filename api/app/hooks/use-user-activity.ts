@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 import type { Moderation } from "../components/Manage/question-state.ts";
 
 type RawSession = {
@@ -72,6 +73,7 @@ export function useUserActivity(
       : undefined,
     ([path]: [string, string]) => fetcher(path, token),
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   return { data: data?.data, error, isLoading, mutate };
 }

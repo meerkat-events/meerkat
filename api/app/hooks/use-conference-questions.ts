@@ -3,6 +3,7 @@ import { useEventSource, useJitteredRefresh } from "@meerkat-events/react";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 import { apiUrl } from "../lib/api-url.ts";
 import type { ModeratedQuestion } from "../components/Manage/question-state.ts";
 import type { TimeWindow } from "./use-conference-stats.ts";
@@ -57,6 +58,7 @@ export function useConferenceQuestions(
     ([path]: [string, string]) => fetcher(path, token),
     { refreshInterval: 10_000 },
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   // One stream per list, so a feed and a session panel each refresh.
   const scheduleRefresh = useJitteredRefresh(() => mutate());

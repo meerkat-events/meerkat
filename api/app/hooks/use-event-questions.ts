@@ -12,6 +12,7 @@ import type { Question } from "../types.ts";
 import { fetcher } from "./fetcher.ts";
 import type { HTTPError } from "./http-error.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 import type { QuestionSort } from "./use-question-sort.ts";
 import { useSupabase } from "../context/supabase.tsx";
 
@@ -56,6 +57,7 @@ export const useEventQuestions = (
     endpoint && !isWaitingForSession ? [endpoint, userId] : null,
     ([path]) => fetcher(path, accessToken),
   );
+  useRefetchOnTokenRefresh(accessToken, mutate);
 
   // For the page's own changes (posting, voting): refetch right away.
   const refresh = useCallback(() => {

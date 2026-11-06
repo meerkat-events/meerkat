@@ -2,6 +2,7 @@ import useSWRInfinite from "swr/infinite";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 import type { ConferenceMember } from "./use-conference-permissions.ts";
 
 const PAGE_SIZE = 50;
@@ -23,12 +24,15 @@ export function useConferenceAttendees(
 ) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const userId = session?.user.id;
 
+  // Keyed on the user, not the token, which changes on every refresh and
+  // would drop the loaded pages and start again from the first.
   const pageKey = (
     pageIndex: number,
     previousPage: { data: AttendeePage } | null,
   ): [string, string] | null => {
-    if (!enabled || !conferenceId || !token) return null;
+    if (!enabled || !conferenceId || !token || !userId) return null;
     if (previousPage && !previousPage.data.next) return null;
 
     const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
@@ -38,15 +42,16 @@ export function useConferenceAttendees(
     }
     return [
       `/api/v1/conferences/${conferenceId}/permissions/attendees?${params}`,
-      token,
+      userId,
     ];
   };
 
   const { data, error, isLoading, isValidating, size, setSize, mutate } =
     useSWRInfinite<{ data: AttendeePage }, HTTPError>(
       pageKey,
-      ([path, token]: [string, string]) => fetcher(path, token),
+      ([path]: [string, string]) => fetcher(path, token),
     );
+  useRefetchOnTokenRefresh(token, mutate);
 
   const pages = data ?? [];
   const lastPage = pages.at(-1);

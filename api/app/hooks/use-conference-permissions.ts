@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { deleter, fetcher, poster } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 
 export type GrantableRole = "organizer" | "moderator" | "attendee";
 
@@ -44,6 +45,7 @@ export function useConferencePermissions(conferenceId: number | undefined) {
     conferenceId && token && viewerId ? [path, viewerId] : undefined,
     ([path]: [string, string]) => fetcher(path, token),
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   /** Adds an email or changes its role; invited means it has no account yet. */
   const setRole = async (email: string, role: GrantableRole) => {
