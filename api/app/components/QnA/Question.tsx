@@ -186,7 +186,7 @@ export function Question(
     await selectQuestion();
     refresh();
     toaster.create({
-      title: "Question highlighted",
+      title: "Question selected",
       type: "success",
       duration: CONFIRMATION_DURATION,
     });
@@ -196,12 +196,13 @@ export function Question(
   const isSelected = answering;
 
   const canSwipe = canModerate && !isAnswered;
-  // Swipe right to reveal Highlight and Answered underneath the card. Each
-  // button takes 5.5rem (88px) including the gap after it.
+  // Swipe right to reveal Select for answering and Answered underneath the
+  // card. With the gap after it, Select for answering takes 9rem (144px) and
+  // Answered 5.5rem (88px); app.css sets their widths.
   const { ref, offset, isDragging, isOpen, close, handlers } = useSwipeReveal({
     width: isSelected
       ? 88
-      : 176,
+      : 232,
     enabled: canSwipe,
   });
 
@@ -231,7 +232,7 @@ export function Question(
           {!isSelected && (
             <button
               type="button"
-              className="question-swipe-action highlight"
+              className="question-swipe-action select"
               tabIndex={isOpen ? 0 : -1}
               onClick={() => {
                 close();
@@ -239,7 +240,7 @@ export function Question(
               }}
             >
               <Icon as={FiRadio} boxSize="5" />
-              Highlight
+              Select for answering
             </button>
           )}
           <button
@@ -332,7 +333,7 @@ export function Question(
                       {!isSelected && (
                         <Menu.Item value="select" onClick={handleSelected}>
                           <Icon as={FiRadio} mr="2" color="accent.menuIcon" />
-                          <Box as="span">Highlight</Box>
+                          <Box as="span">Select for answering</Box>
                         </Menu.Item>
                       )}
                       {!isAnswered && (
