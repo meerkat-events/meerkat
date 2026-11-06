@@ -36,9 +36,11 @@
   animation: supervote-counter-bump 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* The colorway's readable brand shade (brand.fg, at least 4.5:1 against
+   the page), not the supervote gold, which disappears on light tints. */
 .supervote-counter-icon {
-  color: #F6B613;
-  fill: #F6B613;
+  color: var(--chakra-colors-brand-fg);
+  fill: var(--chakra-colors-brand-fg);
 }
 
 .supervote-flight {

@@ -101,16 +101,15 @@ ul {
   display: flex;
   flex-direction: column;
   gap: var(--chakra-spacing-question-gap); /* theme questionGap */
-  /* Questions fade out at the list's edges. A mask rather than a colored
-     overlay, so it blends into any theme's gradient or image background. The
-     bottom padding keeps the last question clear of the fade. */
+  /* Questions fade out at the top edge beneath a pinned question (see
+     --pinned-fade below); the bottom edge, above the question input, stays
+     crisp. A mask rather than a colored overlay, so it blends into any
+     theme's gradient or image background. */
   --top-fade: 0px;
   mask-image: linear-gradient(
     to bottom,
     transparent,
-    #000 var(--top-fade),
-    #000 calc(100% - 15px),
-    transparent
+    #000 var(--top-fade)
   );
 }
 

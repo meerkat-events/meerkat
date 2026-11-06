@@ -58,7 +58,7 @@ export function SessionSwitcher(
       >
         <Heading
           as="h1"
-          // Same type as the sort control it shares a row with
+          // Same type as the rest of the top bar
           fontFamily="body"
           textStyle="sm"
           fontWeight="medium"
@@ -70,7 +70,7 @@ export function SessionSwitcher(
               position="relative"
               display="inline-flex"
               alignItems="center"
-              gap="1"
+              gap="1.5"
               maxW="full"
               textAlign="start"
               cursor="pointer"
@@ -82,7 +82,19 @@ export function SessionSwitcher(
               <chakra.span minW="0" truncate>
                 {title ?? "Loading..."}
               </chakra.span>
-              <Icon as={FiChevronDown} color="brand.fg" flexShrink="0" />
+              {/* In a brand-tinted circle, like the sort control's track,
+                  so it reads as a button and not as part of the title */}
+              <chakra.span
+                display="inline-flex"
+                alignItems="center"
+                justifyContent="center"
+                flexShrink="0"
+                boxSize="5"
+                borderRadius="full"
+                bg="segment.track"
+              >
+                <Icon as={FiChevronDown} boxSize="3.5" color="brand.fg" />
+              </chakra.span>
               <VisuallyHidden>Change session</VisuallyHidden>
             </chakra.button>
           </Dialog.Trigger>

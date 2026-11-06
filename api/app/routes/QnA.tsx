@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiX } from "react-icons/fi";
-import { LuArrowDownUp } from "react-icons/lu";
+import { LuCalendarClock } from "react-icons/lu";
 import {
   Alert,
   Button,
@@ -8,7 +8,6 @@ import {
   Grid,
   Icon,
   IconButton,
-  Text,
 } from "@chakra-ui/react";
 import {
   Link,
@@ -34,6 +33,7 @@ import {
   type ReactionOrigin,
 } from "../components/QnA/ReactButton.tsx";
 import { SessionSwitcher } from "../components/QnA/SessionSwitcher.tsx";
+import { SortToggle } from "../components/QnA/SortToggle.tsx";
 import { type ReactionEmoji, toReactionEmoji } from "../../reactions.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
 import { canParticipate } from "../lib/participation.ts";
@@ -57,11 +57,10 @@ import { useTierPromotion } from "../hooks/use-tier-promotion.ts";
 import { ParticipantDetails } from "../components/Points/ParticipantDetails.tsx";
 import { LogoutConfirmDialog } from "../components/Auth/LogoutConfirmDialog.tsx";
 import { useLogout } from "../hooks/use-logout.ts";
-import { tapTargetStyles } from "../theme/index.ts";
 import { TierCelebration } from "../components/Points/TierCelebration.tsx";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
-import { type QuestionSort, useQuestionSort } from "../hooks/use-question-sort.ts";
+import { useQuestionSort } from "../hooks/use-question-sort.ts";
 import { splitAnswering } from "../lib/questions.ts";
 import {
   HANDOVER_ERROR_MESSAGES,
@@ -110,11 +109,6 @@ export function clientLoader({ request }: Route.ClientLoaderArgs) {
   return null;
 }
 
-const sortOptions: { label: string; value: QuestionSort }[] = [
-  { label: "Popular", value: "popular" },
-  { label: "Newest", value: "newest" },
-];
-
 /**
  * Switching sessions (the session switcher, "Jump to Live") is a
  * client-side navigation, which keeps this route mounted. Keying the page by
@@ -145,12 +139,6 @@ function QnAPage() {
   useDocumentTitle(pageTitle(event));
 
   const [sort, changeSort] = useQuestionSort();
-  // Until the stored sort is known the list is loading; the control shows
-  // the default meanwhile.
-  const shownSort = sort ?? "newest";
-  const sortLabel = sortOptions.find((option) => option.value === shownSort)?.label;
-  // With two modes, the sort control switches straight to the other one.
-  const otherSort = sortOptions.find((option) => option.value !== shownSort);
 
   const reactButtonRef = useRef<HTMLButtonElement>(null);
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
@@ -321,6 +309,9 @@ function QnAPage() {
     addReaction(reaction, origin);
   };
 
+  // Nothing to sort in an empty session. Hidden until the questions load,
+  // so it appears with the first ones instead of flashing on empty sessions.
+  const hasQuestions = (questions?.length ?? 0) > 0;
   const isntLive = event === undefined ? false : !event.live;
   // Where the "not live" banner sends attendees: the session live on this
   // stage now (from the schedule, so not while it shows another day).
@@ -369,70 +360,32 @@ function QnAPage() {
               </IconButton>
             </Alert.Root>
           )}
-          {isntLive && (
-            <Alert.Root
-              status="warning"
-              title="You're viewing a past or upcoming event"
-              // Theme colors instead of the warning orange (notLiveBanner.*,
-              // by default a brand tint; see theme/index.ts).
-              bg="notLiveBanner.bg"
-              color="notLiveBanner.fg"
-              borderRadius="0"
-              display="flex"
-              flexDirection="row"
-              gap="1"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Alert.Indicator color="currentColor" />
-              <Alert.Content>
-                <Alert.Title>
-                  You're viewing a past or upcoming event.
-                </Alert.Title>
-              </Alert.Content>
-              {/* Moderators get Go Live instead: two live buttons side by side
-                  read alike */}
-              {otherLiveSession && !canModerateHere && (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  flexShrink="0"
-                  // Takes the banner's text color, like LiveDialog's button
-                  color="inherit"
-                  borderColor="currentColor"
-                  _hover={{ bg: "brand.solid/10" }}
-                >
-                  <Link
-                    to={qa(otherLiveSession.uid)}
-                    title={otherLiveSession.title}
-                  >
-                    Jump to Live
-                  </Link>
-                </Button>
-              )}
-              {event && canModerateHere && (
-                <LiveDialog event={event} onConfirm={onConfirm} />
-              )}
-            </Alert.Root>
-          )}
-          {/* Equal side columns keep the conference name centered in the row */}
+          {/* Equal side columns keep the session title centered in the row */}
           <Grid
             templateColumns="1fr minmax(0, auto) 1fr"
-            gap="1"
+            // Keeps a long title's chevron clear of the supervote counter
+            gap="3"
             alignItems="center"
-            padding="0 1rem 0 1rem"
+            padding="0.375rem 1rem"
             marginBottom="headerBar"
-            // Bottom-only shadow (brand-tinted unless the theme sets a shadow
-            // color) separates the navigation from the page
-            boxShadow="header"
+            bg="topBar.bg"
+            color="topBar.fg"
           >
             <nav>
-              <NavigationDrawer questionsHref={qa(uid ?? "")} />
+              <NavigationDrawer
+                questionsHref={qa(uid ?? "")}
+                conferenceName={event?.conference.name}
+              />
             </nav>
-            <Text as="span" textStyle="sm" fontWeight="medium" truncate>
-              {event?.conference.name}
-            </Text>
+            <Flex minW="0" justifyContent="center">
+              <SessionSwitcher
+                title={event?.title}
+                stage={event?.stage}
+                past={past}
+                live={live}
+                upcoming={upcoming}
+              />
+            </Flex>
             <Flex justifyContent="flex-end">
               {supervoteWeight && (
                 <SupervoteCounter
@@ -447,38 +400,73 @@ function QnAPage() {
               )}
             </Flex>
           </Grid>
+          {/* Below the top bar: the not-live card, then the sort */}
           <Flex
-            padding="0 1rem 0.25rem"
-            minH="7"
-            gap="3"
-            justifyContent="space-between"
-            alignItems="center"
+            direction="column"
+            alignItems="flex-start"
+            gap="1.5"
+            padding="0 1rem 0.5rem"
           >
-            <SessionSwitcher
-              title={event?.title}
-              stage={event?.stage}
-              past={past}
-              live={live}
-              upcoming={upcoming}
-            />
-            <Flex flexShrink="0" alignItems="center" gap="3">
-              <Button
-                variant="plain"
-                size="xs"
-                h="7"
-                paddingInline="1"
-                gap="1"
-                textStyle="sm"
-                fontWeight="medium"
-                color="accent.text"
-                aria-label={`Sorted by ${sortLabel}, switch to ${otherSort?.label}`}
-                onClick={() => otherSort && changeSort(otherSort.value)}
-                {...tapTargetStyles}
+            {/* A notification card under the session title in the top bar:
+                this isn't the session on stage right now */}
+            {isntLive && (
+              <Alert.Root
+                status="info"
+                width="full"
+                display="flex"
+                flexDirection="row"
+                alignItems="center"
+                gap="3"
+                padding="2.5"
+                paddingInlineStart="3"
+                borderRadius="15px"
+                bg="bg.panel"
+                color="fg"
+                // A light lift, much softer than the floating heart bubble's
+                boxShadow="xs"
+                marginBlock="1"
               >
-                <Icon as={LuArrowDownUp} color="accent.icon" />
-                {sortLabel}
-              </Button>
-            </Flex>
+                {/* In the colorway, like the session title's chevron circle:
+                    the brand tint behind the icon, the brand color for it */}
+                <Flex
+                  aria-hidden="true"
+                  alignItems="center"
+                  justifyContent="center"
+                  flexShrink="0"
+                  boxSize="8"
+                  borderRadius="full"
+                  bg="segment.track"
+                  color="brand.fg"
+                >
+                  <Icon as={LuCalendarClock} boxSize="4" />
+                </Flex>
+                <Alert.Content flex="1" minW="0">
+                  <Alert.Title textStyle="sm" fontWeight="medium">
+                    You're viewing a past or upcoming event.
+                  </Alert.Title>
+                </Alert.Content>
+                {/* Moderators get Go Live instead: two live buttons side by
+                    side read alike */}
+                {otherLiveSession && !canModerateHere && (
+                  <Button asChild size="sm" colorPalette="brand" flexShrink="0" whiteSpace="nowrap">
+                    <Link
+                      to={qa(otherLiveSession.uid)}
+                      title={otherLiveSession.title}
+                    >
+                      Jump to Live
+                    </Link>
+                  </Button>
+                )}
+                {event && canModerateHere && (
+                  <LiveDialog event={event} onConfirm={onConfirm} />
+                )}
+              </Alert.Root>
+            )}
+            {hasQuestions && (
+              <Flex width="full" justifyContent="center">
+                <SortToggle value={sort} onChange={changeSort} />
+              </Flex>
+            )}
           </Flex>
         </header>
         <main className="content question-content">
