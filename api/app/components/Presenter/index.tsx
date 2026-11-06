@@ -10,7 +10,7 @@ import { useState, useSyncExternalStore } from "react";
 import { apiUrl, appOrigin } from "../../lib/api-url.ts";
 import { splitAnswering } from "../../lib/questions.ts";
 import { qa } from "../../routing.ts";
-import type { Event } from "../../types.ts";
+import type { ParsedEvent } from "../../lib/event.ts";
 import {
   REACTION_GLYPHS,
   type ReactionEmoji,
@@ -31,7 +31,7 @@ function subscribeToNothing() {
 const MAX_QUESTIONS = 5;
 
 export type PresenterProps = {
-  event: Event;
+  event: ParsedEvent;
   /** Called when the event's questions or votes change. */
   onQuestionsChanged: () => void;
   /** Called with the uid of an event just put live on this event's stage. */

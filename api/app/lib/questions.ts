@@ -44,7 +44,7 @@ export function isQuestionListLoading(
   return !isSortKnown || isWaitingForSession || isFetching;
 }
 
-// selectedAt arrives as an ISO string in JSON, whatever its declared type.
+// selectedAt is an ISO string in JSON, or a Date once parsed (lib/event.ts).
 function selectedTime(question: Answerable) {
   return new Date(question.selectedAt!).getTime();
 }

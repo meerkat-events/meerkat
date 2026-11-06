@@ -2,7 +2,7 @@ import type { Event } from "../types.ts";
 import { useStageLiveEvent } from "./use-stage-live-event.ts";
 
 export type UseKeepLiveProps = {
-  event?: Event | undefined;
+  event?: Pick<Event, "uid" | "stage"> | undefined;
   onUpdate?: (newEvent: Event) => void;
 };
 
