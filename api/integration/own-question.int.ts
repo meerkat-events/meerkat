@@ -8,19 +8,15 @@ import { OWN_QUESTION_MESSAGE } from "../routes/questions.ts";
 import { supervoteBalances } from "../schema.ts";
 import {
   emailUser,
+  postedQuestionUid,
   request,
   resetDb,
   seedConference,
   type TestUser,
+  upvote,
 } from "./helpers.ts";
 
 type ListedQuestion = { uid: string; votes: number };
-
-const upvote = (questionUid: string, user: TestUser, weight?: number) =>
-  request("POST", `/api/v1/questions/${questionUid}/upvote`, {
-    token: user.token,
-    ...(weight !== undefined ? { body: { weight } } : {}),
-  });
 
 /** Asserts the own-question refusal, not some other 403. */
 async function assertRefused(response: Response) {
@@ -46,12 +42,7 @@ describe("voting for your own question", () => {
     author = await emailUser("author@example.com");
     await db.insert(supervoteBalances).values({ userId: author.id, balance: 1 });
 
-    const asked = await request("POST", `/api/v1/events/${eventUid}/questions`, {
-      token: author.token,
-      body: { question: "How does this scale?" },
-    });
-    assert.equal(asked.status, 200);
-    questionUid = (await asked.json() as { data: ListedQuestion }).data.uid;
+    questionUid = await postedQuestionUid(eventUid, author);
   });
 
   test("is refused", async () => {

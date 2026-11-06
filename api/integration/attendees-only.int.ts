@@ -5,41 +5,20 @@ import { consumeHandoverToken } from "../app/lib/handover.server.ts";
 import { markUserAsBlocked } from "../models/user.ts";
 import {
   anonymousUser,
+  askQuestion,
   emailUser,
   grantTestRole,
   handoverToken,
   invite,
+  postedQuestionUid,
+  react,
   request,
   resetDb,
   rolesOf,
   seedConference,
   type TestUser,
+  upvote,
 } from "./helpers.ts";
-
-const askQuestion = (eventUid: string, user: TestUser) =>
-  request("POST", `/api/v1/events/${eventUid}/questions`, {
-    token: user.token,
-    body: { question: "How does this scale?" },
-  });
-
-const react = (eventUid: string, user: TestUser) =>
-  request("POST", `/api/v1/events/${eventUid}/react`, {
-    token: user.token,
-    body: { uid: crypto.randomUUID(), emoji: "heart" },
-  });
-
-const upvote = (questionUid: string, user: TestUser) =>
-  request("POST", `/api/v1/questions/${questionUid}/upvote`, {
-    token: user.token,
-  });
-
-/** Asks a question as `user`, failing the test unless that succeeds. */
-async function postedQuestionUid(eventUid: string, user: TestUser) {
-  const response = await askQuestion(eventUid, user);
-  assert.equal(response.status, 200);
-  const body = await response.json() as { data: { uid: string } };
-  return body.data.uid;
-}
 
 /** Asking, reacting and voting all answer `status` for `user`. */
 async function assertParticipation(

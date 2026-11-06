@@ -8,10 +8,12 @@ import {
   anonymousUser,
   emailUser,
   grantTestRole,
+  postedQuestionUid,
   request,
   resetDb,
   seedConference,
   type TestUser,
+  upvote,
 } from "./helpers.ts";
 
 type ListedQuestion = { uid: string };
@@ -52,22 +54,12 @@ describe("hiding a question", () => {
     await grantTestRole(moderator.id, conference.id, "moderator");
     author = await anonymousUser();
 
-    const asked = await request("POST", `/api/v1/events/${eventUid}/questions`, {
-      token: author.token,
-      body: { question: "How does this scale?" },
-    });
-    assert.equal(asked.status, 200);
-    questionUid = (await asked.json() as { data: ListedQuestion }).data.uid;
+    questionUid = await postedQuestionUid(eventUid, author);
   });
 
   test("its author still sees it, nobody else does", async () => {
     const voter = await anonymousUser();
-    const voted = await request(
-      "POST",
-      `/api/v1/questions/${questionUid}/upvote`,
-      { token: voter.token },
-    );
-    assert.equal(voted.status, 200);
+    assert.equal((await upvote(questionUid, voter)).status, 200);
 
     assert.equal((await hide(moderator)).status, 200);
 

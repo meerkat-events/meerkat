@@ -7,20 +7,10 @@ import { getUserReactionTimesAfterDate } from "../models/reactions.ts";
 import { reactions } from "../schema.ts";
 import {
   anonymousUser,
-  request,
+  react,
   resetDb,
   seedConference,
-  type TestUser,
 } from "./helpers.ts";
-
-const react = (
-  eventUid: string,
-  user: TestUser,
-  body: { uid: string; emoji: string },
-) => request("POST", `/api/v1/events/${eventUid}/react`, {
-  token: user.token,
-  body,
-});
 
 const reactionRows = (uid: string) =>
   db.select().from(reactions).where(eq(reactions.uid, uid));

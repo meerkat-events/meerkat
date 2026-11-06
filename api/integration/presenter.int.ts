@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
 import db from "../db.ts";
-import { questions, votes } from "../schema.ts";
+import { votes } from "../schema.ts";
 import {
   getPresenterEvent,
   getStagePresenterEvent,
@@ -10,6 +10,7 @@ import {
   anonymousUser,
   insertConference,
   insertEvent,
+  insertQuestion,
   request,
   resetDb,
 } from "./helpers.ts";
@@ -23,22 +24,6 @@ const HOUR = 60 * 60 * 1000;
 beforeEach(async () => {
   await resetDb();
 });
-
-/** A question of `eventId` by `userId`, with the given timestamps set. */
-async function insertQuestion(
-  eventId: number,
-  userId: string,
-  uid: string,
-  timestamps: { answeredAt?: Date; deletedAt?: Date; hiddenAt?: Date } = {},
-) {
-  const [question] = await db.insert(questions)
-    .values({ uid, eventId, userId, question: `Question ${uid}`, ...timestamps })
-    .returning();
-  if (!question) {
-    throw new Error("Question insert returned nothing");
-  }
-  return question;
-}
 
 /**
  * An event with five questions, only two of them open and visible: "most"

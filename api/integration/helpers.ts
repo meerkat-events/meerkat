@@ -4,6 +4,7 @@
  * sets the environment; these helpers reset and seed the database and sign
  * users in with real tokens from the local Auth server.
  */
+import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 import { sql } from "drizzle-orm";
 import { sign } from "hono/jwt";
@@ -15,6 +16,7 @@ import {
   events,
   features,
   invitations,
+  questions,
 } from "../schema.ts";
 import app from "../app.ts";
 
@@ -212,5 +214,68 @@ export function request(
     method,
     headers,
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+}
+
+/** A question of `eventId` by `userId`, with the given timestamps set. */
+export async function insertQuestion(
+  eventId: number,
+  userId: string,
+  uid: string,
+  timestamps: { answeredAt?: Date; deletedAt?: Date; hiddenAt?: Date } = {},
+) {
+  const [question] = await db.insert(questions)
+    .values({ uid, eventId, userId, question: `Question ${uid}`, ...timestamps })
+    .returning();
+  if (!question) {
+    throw new Error("Question insert returned nothing");
+  }
+  return question;
+}
+
+/** Asks `question` in the event as `user`, through the API. */
+export function askQuestion(
+  eventUid: string,
+  user: TestUser,
+  question = "How does this scale?",
+) {
+  return request("POST", `/api/v1/events/${eventUid}/questions`, {
+    token: user.token,
+    body: { question },
+  });
+}
+
+/** Asks a question as `user`, failing the test unless that succeeds. */
+export async function postedQuestionUid(
+  eventUid: string,
+  user: TestUser,
+  question?: string,
+) {
+  const response = await askQuestion(eventUid, user, question);
+  assert.equal(response.status, 200);
+  const body = await response.json() as { data: { uid: string } };
+  return body.data.uid;
+}
+
+/** Reacts in the event as `user`, with a fresh heart unless `body` is given. */
+export function react(
+  eventUid: string,
+  user: TestUser,
+  body: { uid: string; emoji: string } = {
+    uid: crypto.randomUUID(),
+    emoji: "heart",
+  },
+) {
+  return request("POST", `/api/v1/events/${eventUid}/react`, {
+    token: user.token,
+    body,
+  });
+}
+
+/** Votes for (or removes the vote on) a question; a supervote with weight 3. */
+export function upvote(questionUid: string, user: TestUser, weight?: number) {
+  return request("POST", `/api/v1/questions/${questionUid}/upvote`, {
+    token: user.token,
+    ...(weight !== undefined ? { body: { weight } } : {}),
   });
 }

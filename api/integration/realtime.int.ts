@@ -13,6 +13,7 @@ import {
   supervoteBalances,
 } from "../schema.ts";
 import {
+  askQuestion,
   emailUser,
   grantTestRole,
   request,
@@ -70,12 +71,6 @@ async function readUntil(response: Response, pattern: RegExp) {
 
 const UPDATE = /data: update\n\n/;
 const REACTION = /event: reaction\ndata: (.*)\n\n/;
-
-const askQuestion = (eventUid: string, user: TestUser) =>
-  request("POST", `/api/v1/events/${eventUid}/questions`, {
-    token: user.token,
-    body: { question: "How does this scale?" },
-  });
 
 describe("realtime", () => {
   beforeEach(async () => {
