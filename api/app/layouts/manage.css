@@ -75,6 +75,31 @@
   flex-wrap: wrap;
 }
 
+/* The event, then the refresh button in the top right corner. */
+.manage-top-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Spins while the page fetches; without motion it lights up instead. */
+.m-refresh[aria-busy="true"] {
+  color: var(--m-brand-300);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .m-refresh[aria-busy="true"] svg {
+    animation: m-spin 1s linear infinite;
+  }
+}
+
+@keyframes m-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .manage-event {
   display: flex;
   flex-direction: column;
@@ -1767,6 +1792,11 @@
     flex-basis: 100%;
     max-width: none;
     margin-bottom: 10px;
+  }
+
+  .manage-top-end {
+    flex-basis: 100%;
+    justify-content: space-between;
   }
 
   .manage-event {
