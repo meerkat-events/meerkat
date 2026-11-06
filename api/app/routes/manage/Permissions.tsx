@@ -18,6 +18,7 @@ import {
 } from "../../hooks/use-conference-permissions.ts";
 import { useConferenceAttendees } from "../../hooks/use-conference-attendees.ts";
 import { toaster, toastError } from "../../components/ui/toaster.tsx";
+import { CardHead } from "../../components/Manage/Card.tsx";
 import { LuSearch } from "react-icons/lu";
 import type { Route } from "./+types/Permissions.ts";
 
@@ -199,7 +200,7 @@ function PersonRow(
       <td>
         <div className="title">
           {address}
-          {isYou && <span className="m-you">You</span>}
+          {isYou && <span className="m-pill you">You</span>}
         </div>
         {meta && <div className="meta">{meta}</div>}
       </td>
@@ -319,11 +320,7 @@ export default function Permissions() {
   return (
     <div className="m-permissions">
       <section className="m-card m-table" aria-label="Permissions">
-        <div className="m-table-head">
-          <div>
-            <h2 style={{ fontSize: 16 }}>Permissions</h2>
-            <span className="m-hint">{summary()}</span>
-          </div>
+        <CardHead title="Permissions" hint={summary()}>
           <Button
             size="xs"
             colorPalette="brand"
@@ -332,7 +329,7 @@ export default function Permissions() {
           >
             Add someone
           </Button>
-        </div>
+        </CardHead>
         <div className="m-permissions-filters">
           <div className="m-search" role="search">
             <LuSearch size={15} aria-hidden="true" />

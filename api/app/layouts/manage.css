@@ -23,7 +23,8 @@
    dark management background outline buttons and close icons all but vanish,
    so they are lightened here (portalled dialogs are listed too). */
 .manage,
-.m-person {
+.m-person,
+.m-add-person {
   --chakra-colors-brand-fg: var(--m-brand-300);
   --chakra-colors-brand-emphasized: var(--m-brand-300);
   --chakra-colors-brand-muted: color-mix(in srgb, var(--m-brand-300) 40%, transparent);
@@ -212,6 +213,60 @@
   padding: 32px 0;
 }
 
+/* A small rounded label: a question's status, whether a session is live,
+   a blocked person, "You". */
+.m-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--m-ink-2);
+  white-space: nowrap;
+
+  /* On stage. */
+  &.answering {
+    border-color: transparent;
+    background: var(--chakra-colors-brand-solid);
+    color: #fff;
+  }
+
+  &.live {
+    border-color: transparent;
+    color: var(--m-ink);
+    background: color-mix(in srgb, var(--m-live) 13%, var(--m-surface));
+  }
+
+  /* Hidden by automatic moderation, or a blocked person. */
+  &.danger {
+    border-color: transparent;
+    background: color-mix(in srgb, #ff6b6b 20%, transparent);
+    color: #ffb4b4;
+  }
+
+  /* Shown, but moderation asks an organizer to look at it. */
+  &.review {
+    border-color: color-mix(in srgb, #fbbf24 55%, transparent);
+    color: #fcd34d;
+  }
+
+  &.you {
+    color: var(--m-brand-300);
+  }
+}
+
+/* A row of controls, e.g. the question filters and sort. */
+.m-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 /* ---------- search ---------- */
 .m-search {
   position: relative;
@@ -390,8 +445,8 @@
   overflow: hidden;
 }
 
-.m-stream-head,
-.m-table-head {
+/* A card's heading row (CardHead): title on the left, controls on the right. */
+.m-card-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -400,11 +455,20 @@
   padding: 14px 18px;
   border-bottom: 1px solid var(--m-line);
 
+  & .heading {
+    min-width: 0;
+  }
+
   & h2 {
     margin: 2px 0 0;
-    font-size: 19px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: -0.01em;
+  }
+
+  /* The page's main card, e.g. the live feed. */
+  &.large h2 {
+    font-size: 19px;
   }
 }
 
@@ -413,7 +477,6 @@
   overflow: auto;
   flex: 1;
   padding: 0 8px 18px;
-
 }
 
 /* Show: all / answered / hidden / auto-hidden / review, with how many of each. */
@@ -454,19 +517,6 @@
   & button[aria-pressed="true"] .count {
     opacity: 1;
   }
-}
-
-/* Hidden by automatic moderation. */
-.m-qtable .tag.flagged {
-  border-color: transparent;
-  background: color-mix(in srgb, #ff6b6b 20%, transparent);
-  color: #ffb4b4;
-}
-
-/* Shown, but moderation asks an organizer to look at it. */
-.m-qtable .tag.review {
-  border-color: color-mix(in srgb, #fbbf24 55%, transparent);
-  color: #fcd34d;
 }
 
 /* Why moderation hid it or asks for a review. */
@@ -568,10 +618,6 @@
 
 /* Questions wrap in full — moderators need to read every word. Every other
    column stays on one line, so rows stay as short as each question allows. */
-.m-qtable th.question {
-  display: table-cell;
-}
-
 .m-qtable td.question {
   white-space: normal;
   line-height: 1.45;
@@ -662,29 +708,10 @@
   gap: 3px;
 }
 
-.m-qtable .tag {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--m-line-strong);
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--m-ink-2);
-}
-
-.m-qtable .tag.answering {
-  border-color: transparent;
-  background: var(--chakra-colors-brand-solid);
-  color: #fff;
-}
-
 .m-qtable .who {
   /* Wide enough for the generated animal names (e.g. curious-otter-0003). */
   width: 160px;
   color: var(--m-ink-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .m-qtable .n {
@@ -798,11 +825,6 @@
     margin-right: 4px;
   }
 
-  .m-qtable td.n {
-    color: var(--m-brand-300);
-    font-weight: 600;
-  }
-
   .m-qtable td.actions {
     float: right;
     margin: 0;
@@ -828,7 +850,7 @@
 }
 
 /* A table row that opens something (e.g. a session from someone's history);
-   its title is the button keyboard users reach. */
+   its title is the button keyboard users reach (rowClick). */
 .m-qtable tr.clickable {
   cursor: pointer;
 }
@@ -853,6 +875,7 @@
      instead of peeking out around the edges. */
   width: 100%;
   max-width: min(1080px, calc(100vw - 48px));
+  height: min(820px, calc(100dvh - 56px));
   background: var(--m-surface);
   color: var(--m-ink);
   border: 1px solid var(--m-line-strong);
@@ -877,21 +900,6 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 16px;
     font-weight: 600;
-  }
-
-  & .m-chip.blocked {
-    border-color: transparent;
-    background: color-mix(in srgb, #ff6b6b 18%, transparent);
-    color: #ffb4b4;
-  }
-
-  & h3 {
-    margin: 18px 0 8px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--m-ink-3);
   }
 
   & .chakra-dialog__footer {
@@ -936,9 +944,6 @@
     margin: 0 0 8px;
     font-size: 16px;
     font-weight: 700;
-    text-transform: none;
-    letter-spacing: normal;
-    color: var(--m-ink);
   }
 }
 
@@ -955,21 +960,6 @@
   grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   min-height: 0;
-}
-
-.m-schedule-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  min-height: 0;
-
-}
-
-.m-schedule-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 
 .m-days {
@@ -1013,6 +1003,7 @@
 }
 
 .m-timeline {
+  position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1039,10 +1030,6 @@
 
 .m-jump-now:hover {
   filter: brightness(1.08);
-}
-
-.m-timeline {
-  position: relative;
 }
 
 .m-tl-scroll {
@@ -1261,12 +1248,6 @@
 }
 
 /* ---------- session panel ---------- */
-/* Every management dialog is the same box, so switching from one to another
-   (a session, then someone's history) doesn't jump around. */
-.m-person {
-  height: min(820px, calc(100dvh - 56px));
-}
-
 /* The session deep dive is a dialog, so it gets the full width of .m-person. */
 .m-session .chakra-dialog__body {
   padding: 0;
@@ -1309,25 +1290,6 @@
   flex-wrap: wrap;
   gap: 4px 10px;
   color: var(--m-ink-2);
-}
-
-.m-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  border: 1px solid var(--m-line-strong);
-  color: var(--m-ink-2);
-  white-space: nowrap;
-
-  &.live {
-    border-color: transparent;
-    color: var(--m-ink);
-    background: color-mix(in srgb, var(--m-live) 13%, var(--m-surface));
-  }
 }
 
 /* The session's tabs stay above its questions as they scroll. */
@@ -1430,6 +1392,12 @@
     overflow-wrap: anywhere;
     text-align: center;
   }
+
+  & .m-toolbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
 }
 
 .m-details {
@@ -1494,8 +1462,9 @@
   }
 }
 
-/* ---------- moderation ---------- */
-.m-moderation {
+/* A card with a heading, smaller tiles and charts: moderation, reactions,
+   supervotes. */
+.m-panel {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1505,10 +1474,6 @@
     margin: 0 0 2px;
     font-size: 16px;
     font-weight: 700;
-  }
-
-  & .m-tiles {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   & .m-tile {
@@ -1521,6 +1486,8 @@
     font-size: 30px;
   }
 }
+
+/* ---------- moderation ---------- */
 
 .m-moderation-charts {
   display: grid;
@@ -1602,35 +1569,16 @@
   color: var(--m-ink-3);
 }
 
-.m-analytics-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 18px 20px;
-
-  & h2 {
-    margin: 0 0 2px;
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  & .m-tile {
-    padding: 14px 16px;
-    border-radius: 10px;
-    background: var(--m-surface-2);
-  }
-
-  & .m-tile .value {
-    font-size: 30px;
-  }
-}
-
 .m-tiles.m-tiles-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.m-tiles.m-tiles-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 @media (max-width: 760px) {
-  .m-moderation .m-tiles {
+  .m-tiles.m-tiles-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1674,13 +1622,13 @@
     border-top: 0;
   }
 
-  & tbody tr {
+  /* Clicking anywhere on a clickable row opens it (rowClick); keyboard and
+     screen-reader users get the link on its title. */
+  & tr.clickable {
     cursor: pointer;
   }
 
-  /* Clicking anywhere on a row opens it; keyboard and screen-reader users
-     get the link on its title. */
-  & tbody tr:hover {
+  & tr.clickable:hover {
     background: var(--m-surface-2);
   }
 
@@ -1689,7 +1637,7 @@
     text-decoration: none;
   }
 
-  & tbody tr:hover .title a {
+  & tr.clickable:hover .title a {
     text-decoration: underline;
   }
 
@@ -1723,9 +1671,6 @@
     font-size: 12px;
     color: var(--m-ink-3);
   }
-}
-
-@media (max-width: 1100px) {
 }
 
 @media (max-width: 900px) {
@@ -1827,14 +1772,6 @@
     box-shadow: inset 0 -1px var(--m-line);
   }
 
-  & .m-table tbody tr {
-    cursor: default;
-  }
-
-  & .m-table tbody tr:hover {
-    background: none;
-  }
-
   & .m-table .m-load-more {
     text-align: center;
   }
@@ -1851,8 +1788,6 @@
 }
 
 .m-add-person {
-  --chakra-colors-brand-fg: var(--m-brand-300);
-  --chakra-colors-color-palette-fg: var(--m-brand-300);
   background: var(--m-surface);
   border: 1px solid var(--m-line);
 
@@ -1881,14 +1816,4 @@
     grid-template-columns: minmax(0, 1fr);
     height: 100dvh;
   }
-}
-
-.m-you {
-  flex: none;
-  padding: 1px 7px;
-  border: 1px solid var(--m-line-strong);
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--m-brand-300);
 }

@@ -3,7 +3,8 @@ import { useNavigate } from "react-router";
 import { LuSearch } from "react-icons/lu";
 import { VisuallyHidden } from "@chakra-ui/react";
 import type { Session } from "../../hooks/use-conference-events.ts";
-import { fmtWhen, sessionStatus } from "./time.ts";
+import { schedulePath } from "./session-urls.ts";
+import { fmtWhen } from "./time.ts";
 import { useConferencePath } from "./use-conference-path.ts";
 
 const norm = (s: string | null | undefined) =>
@@ -80,7 +81,7 @@ export function SessionSearch({ sessions }: { sessions: Session[] }) {
     setValue("");
     setOpen(false);
     inputRef.current?.blur();
-    navigate(conferencePath(`/manage/schedule?session=${encodeURIComponent(session.uid)}`));
+    navigate(conferencePath(schedulePath(session.uid)));
   };
 
   const onKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
@@ -101,7 +102,6 @@ export function SessionSearch({ sessions }: { sessions: Session[] }) {
 
   const searching = open && query.length > 0;
   const showList = searching && results.length > 0;
-  const now = new Date();
   // Read out by screen readers as the results change.
   const announcement = !searching
     ? ""
@@ -155,7 +155,7 @@ export function SessionSearch({ sessions }: { sessions: Session[] }) {
               onClick={() => choose(session)}
             >
               <span className="title">
-                {sessionStatus(session, now) === "live" && (
+                {session.live && (
                   <>
                     <span className="m-live-dot" aria-hidden="true" />
                     <VisuallyHidden>Live:</VisuallyHidden>

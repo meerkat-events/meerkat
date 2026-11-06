@@ -2,9 +2,11 @@ import { useNavigate } from "react-router";
 import { useManage } from "../../layouts/manage.tsx";
 import { useConferenceQuestions } from "../../hooks/use-conference-questions.ts";
 import { useConferenceStats } from "../../hooks/use-conference-stats.ts";
+import { CardHead } from "../../components/Manage/Card.tsx";
 import { ALL_DAYS, DayFilter, useDayFilter } from "../../components/Manage/DayFilter.tsx";
 import { ModerationOverview } from "../../components/Manage/ModerationOverview.tsx";
 import { QuestionTable } from "../../components/Manage/QuestionTable.tsx";
+import { schedulePath } from "../../components/Manage/session-urls.ts";
 import { useConferencePath } from "../../components/Manage/use-conference-path.ts";
 import { fmtDay, startOfDay, useNow } from "../../components/Manage/time.ts";
 import type { Route } from "./+types/Moderation.ts";
@@ -39,14 +41,11 @@ export default function Moderation() {
       {stats && <ModerationOverview moderation={stats.moderation} />}
 
       <section className="m-card m-stream" aria-labelledby="moderated-heading">
-        <div className="m-stream-head">
-          <div>
-            <h2 id="moderated-heading" style={{ fontSize: 16 }}>Moderated questions</h2>
-            <span className="m-hint">
-              Hidden or marked for review, asked on {scope}, newest first
-            </span>
-          </div>
-        </div>
+        <CardHead
+          titleId="moderated-heading"
+          title="Moderated questions"
+          hint={`Hidden or marked for review, asked on ${scope}, newest first`}
+        />
         <div className="m-stream-scroll">
           {questions?.length
             ? (
@@ -55,8 +54,7 @@ export default function Moderation() {
                 questions={questions}
                 now={now}
                 showSession
-                onSession={(uid) =>
-                  navigate(conferencePath(`/manage/schedule?session=${encodeURIComponent(uid)}`))}
+                onSession={(uid) => navigate(conferencePath(schedulePath(uid)))}
                 onPerson={openPerson}
                 refresh={() => mutate()}
               />
