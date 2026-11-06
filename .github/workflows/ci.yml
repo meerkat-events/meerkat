@@ -25,7 +25,7 @@ jobs:
           cache: pnpm
       - uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: 3.0.0
       - run: pnpm install --frozen-lockfile
       # api/ imports @meerkat-events/react from its dist/.
       - run: pnpm --dir packages/react build

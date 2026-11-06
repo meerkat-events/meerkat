@@ -32,9 +32,7 @@ POSTHOG_HOST = '$POSTHOG_HOST'
 # aborts the deploy and the running version keeps serving.
 release_command = 'node /workspace/api/migrate.ts'
 
-[processes]
-app = 'node --import /workspace/api/instrumentation.ts /workspace/api/main.ts'
-
+# Machines run the Dockerfile's CMD, in Fly's default process group ("app").
 [http_service]
 internal_port = 8000
 force_https = true
@@ -44,7 +42,6 @@ force_https = true
 auto_stop_machines = "off"
 auto_start_machines = true
 min_machines_running = 6
-processes = ['app']
 
 # Every open page (Q&A on phones, stage screens, organizer pages) holds an SSE
 # stream for as long as it is open, and each one counts as a request in
