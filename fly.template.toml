@@ -71,7 +71,3 @@ path = "/api/v1/health"
 cpus = $CPUS
 cpu_kind = "$CPU_KIND"
 memory = "$MEMORY"
-
-[[statics]]
-guest_path = "/workspace/api/build/client/assets"
-url_prefix = "/assets"
