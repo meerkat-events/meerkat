@@ -68,9 +68,7 @@ export function QuestionsSection(
       // An own question's pill only takes back a vote cast before the rule
       canVote={canVote && (!isOwn(question) || !!question.vote)}
       refresh={refresh}
-      voted={!!question.vote}
       supervotes={supervotes}
-      supervoted={!!question.vote && question.vote.weight > 1}
       answering={question === answering}
       onAuthorSelect={question.user && onAuthorSelect
         ? () =>
@@ -99,18 +97,6 @@ export function QuestionsSection(
             </ol>
           </>
         )
-        : isLoading
-        ? (
-          <Flex
-            alignItems="center"
-            justifyContent="center"
-            flex="1"
-            textStyle="sm"
-            color="fg.muted"
-          >
-            Loading...
-          </Flex>
-        )
         : (
           <Flex
             alignItems="center"
@@ -119,7 +105,9 @@ export function QuestionsSection(
             textStyle="sm"
             color="fg.muted"
           >
-            <span>No questions, yet. Be first to ask!</span>
+            {isLoading
+              ? "Loading..."
+              : "No questions, yet. Be first to ask!"}
           </Flex>
         )}
     </>
