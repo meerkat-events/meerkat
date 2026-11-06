@@ -362,8 +362,9 @@ its CSS, callers pass the items' uids joined, nothing moves with
   users only) returns one person, fetched when their name on a question is
   tapped (names aren't tappable for guests), and for the
   signed-in user only when their questions' votes or picks change
-  (`useOwnTier`), to celebrate moving into a better tier (last tier seen is
-  kept in localStorage, so dropping out and back in celebrates again).
+  (`useOwnTier`), to celebrate moving into a better tier (the best tier
+  reached is kept in localStorage, so each tier is celebrated once per
+  browser, not again after dropping out and climbing back).
 - **Automatic moderation** (design: `designs/002-question-moderation.md`):
   for a conference with a `conferences.moderation` config (written context,
   optional `instructions`/`criteria` overrides; null = off), the create route
