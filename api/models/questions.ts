@@ -12,7 +12,7 @@ import {
 import { uuidv7 } from "uuidv7";
 import { events, questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
-import { addSupervote, refundSupervotes } from "./supervotes.ts";
+import { addSupervote } from "./supervotes.ts";
 import { notBanned, userName } from "./user.ts";
 import { viewerVoteWeight, voteTotal } from "./votes.ts";
 
@@ -205,30 +205,6 @@ export async function markAsAnswered(
   ).returning().execute();
 
   return results.length === 1 ? results[0] : null;
-}
-
-/**
- * Soft-deletes a question and refunds the supervotes spent on it. Deleting
- * an already deleted question changes nothing and refunds nothing.
- */
-export function deleteQuestion(id: number) {
-  return db.transaction(async (tx) => {
-    const [deleted] = await tx.update(questions).set({
-      deletedAt: new Date(),
-    }).where(
-      and(eq(questions.id, id), isNull(questions.deletedAt)),
-    ).returning().execute();
-
-    if (!deleted) {
-      const [existing] = await tx.select().from(questions)
-        .where(eq(questions.id, id))
-        .execute();
-      return existing ?? null;
-    }
-
-    await refundSupervotes(tx, deleted.id);
-    return deleted;
-  });
 }
 
 /**

@@ -1,9 +1,9 @@
 import type { ModerationStats } from "../../hooks/use-conference-stats.ts";
 import { BarList } from "./BarList.tsx";
+import { Tile } from "./Card.tsx";
+import { fmtCount } from "./format.ts";
 import { type ModerationReason, REASON_LABELS, RELEVANCE_LEVELS } from "./question-state.ts";
 import { RelevanceInfo } from "./RelevanceInfo.tsx";
-
-const num = (n: number) => n.toLocaleString("en-US");
 
 /**
  * What automatic moderation did across the conference: how many questions it
@@ -13,7 +13,7 @@ const num = (n: number) => n.toLocaleString("en-US");
 export function ModerationOverview({ moderation }: { moderation: ModerationStats }) {
   if (!moderation.enabled && moderation.classified === 0) {
     return (
-      <section className="m-card m-moderation" aria-labelledby="moderation-heading">
+      <section className="m-card m-panel" aria-labelledby="moderation-heading">
         <h2 id="moderation-heading">Moderation</h2>
         <p className="m-hint">
           Automatic moderation is off for this conference, so no questions are
@@ -29,47 +29,47 @@ export function ModerationOverview({ moderation }: { moderation: ModerationStats
   const { relevance } = moderation;
 
   return (
-    <section className="m-card m-moderation" aria-labelledby="moderation-heading">
+    <section className="m-card m-panel" aria-labelledby="moderation-heading">
       <div>
         <h2 id="moderation-heading">Moderation</h2>
         <span className="m-hint">
-          {num(moderation.classified)} questions classified
+          {fmtCount(moderation.classified)} questions classified
           {!moderation.enabled && " · moderation is off now"}
         </span>
       </div>
 
-      <div className="m-tiles">
-        <div className="m-tile">
-          <span className="label">Auto-hidden</span>
-          <b className="value">{num(moderation.autoHidden)}</b>
-          <span className="m-hint">
-            only their authors see them
-            {moderation.refused > 0 && ` · ${num(moderation.refused)} refused by the model`}
-          </span>
-        </div>
-        <div className="m-tile">
-          <span className="label">In review</span>
-          <b className="value">{num(moderation.review)}</b>
-          <span className="m-hint">shown, but worth a look</span>
-        </div>
-        <div className="m-tile">
-          <span className="label">Restored</span>
-          <b className="value">{num(moderation.restored)}</b>
-          <span className="m-hint">hidden, then shown again by an organizer</span>
-        </div>
-        <div className="m-tile">
-          <span className="label m-th-info">
-            Average relevance
-            <RelevanceInfo />
-          </span>
-          <b className="value">
-            {relevance.average !== null ? relevance.average.toFixed(1) : "–"}
-            <small> / 4</small>
-          </b>
-          <span className="m-hint">
-            of {num(relevance.scored)} questions attendees saw
-          </span>
-        </div>
+      <div className="m-tiles m-tiles-4">
+        <Tile
+          label="Auto-hidden"
+          value={fmtCount(moderation.autoHidden)}
+          hint={
+            <>
+              only their authors see them
+              {moderation.refused > 0 && ` · ${fmtCount(moderation.refused)} refused by the model`}
+            </>
+          }
+        />
+        <Tile
+          label="In review"
+          value={fmtCount(moderation.review)}
+          hint="shown, but worth a look"
+        />
+        <Tile
+          label="Restored"
+          value={fmtCount(moderation.restored)}
+          hint="hidden, then shown again by an organizer"
+        />
+        <Tile
+          label="Average relevance"
+          info={<RelevanceInfo />}
+          value={
+            <>
+              {relevance.average !== null ? relevance.average.toFixed(1) : "–"}
+              <small> / 4</small>
+            </>
+          }
+          hint={`of ${fmtCount(relevance.scored)} questions attendees saw`}
+        />
       </div>
 
       <div className="m-moderation-charts">

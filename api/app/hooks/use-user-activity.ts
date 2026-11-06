@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 import type { Moderation } from "../components/Manage/question-state.ts";
 
 type RawSession = {
@@ -56,16 +57,23 @@ export function useUserActivity(
 ) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const viewerId = session?.user.id;
 
+  // Keyed on the user, not the token, which changes on every refresh and
+  // would blank the page until the refetch.
   const { data, error, isLoading, mutate } = useSWR<
     { data: UserActivity },
     HTTPError
   >(
-    conferenceId && userId && token
-      ? [`/api/v1/conferences/${conferenceId}/users/${userId}/activity`, token]
+    conferenceId && userId && token && viewerId
+      ? [
+        `/api/v1/conferences/${conferenceId}/users/${userId}/activity`,
+        viewerId,
+      ]
       : undefined,
-    ([path, token]: [string, string]) => fetcher(path, token),
+    ([path]: [string, string]) => fetcher(path, token),
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   return { data: data?.data, error, isLoading, mutate };
 }

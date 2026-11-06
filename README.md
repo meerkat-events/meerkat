@@ -176,7 +176,7 @@ Through the admin API, authenticated with an `x-api-key` header:
 - `POST /api/v1/admin/events` upserts a batch of events, keyed by `uid`.
 
 API keys are stored as argon2 hashes in the `api_keys` table; insert a hashed
-key there to create one.
+key there to create one, with a `valid_until` if it should expire.
 
 ### How do I make someone an organizer?
 

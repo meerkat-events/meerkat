@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { LuCalendarClock } from "react-icons/lu";
 import {
@@ -18,7 +18,6 @@ import {
 } from "react-router";
 import type { Route } from "./+types/QnA.ts";
 import { NavigationDrawer } from "../components/NavigationDrawer/index.tsx";
-import { CooldownModal } from "../components/QnA/CooldownModal.tsx";
 import { Footer } from "../components/QnA/Footer.tsx";
 import { QuestionsSection } from "../components/QnA/QuestionsSection.tsx";
 import { canModerate, useConferenceRoles } from "../hooks/use-conference-roles.ts";
@@ -44,20 +43,16 @@ import throttle from "lodash.throttle";
 import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
 import type { Event } from "../types.ts";
 import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
-import { QuestionPicked } from "../components/QnA/QuestionPicked.tsx";
 import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
-import { SupervoteFlight } from "../components/QnA/SupervoteFlight.tsx";
-import { SupervoteInfo } from "../components/QnA/SupervoteInfo.tsx";
 import { useSupervoteInfoSeen } from "../hooks/use-supervote-info-seen.ts";
 import { useSupervotes } from "../hooks/use-supervotes.ts";
 import { useSupervoteEarning } from "../hooks/use-supervote-earning.ts";
 import { usePickedQuestion } from "../hooks/use-picked-question.ts";
 import { useOwnTier } from "../hooks/use-own-tier.ts";
 import { useTierPromotion } from "../hooks/use-tier-promotion.ts";
-import { ParticipantDetails } from "../components/Points/ParticipantDetails.tsx";
-import { LogoutConfirmDialog } from "../components/Auth/LogoutConfirmDialog.tsx";
 import { useLogout } from "../hooks/use-logout.ts";
-import { TierCelebration } from "../components/Points/TierCelebration.tsx";
+import { useHasOpened } from "../hooks/use-has-opened.ts";
+import { lazyOverlay } from "../lib/lazy-overlay.ts";
 import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
 import { useQuestionSort } from "../hooks/use-question-sort.ts";
@@ -73,6 +68,43 @@ import {
   consumeHandoverToken,
   sessionFragment,
 } from "~/lib/handover.server.ts";
+
+// Dialogs and celebrations nobody sees on load (lazyOverlay).
+const CooldownModal = lazyOverlay(() =>
+  import("../components/QnA/CooldownModal.tsx").then((module) =>
+    module.CooldownModal
+  )
+);
+const QuestionPicked = lazyOverlay(() =>
+  import("../components/QnA/QuestionPicked.tsx").then((module) =>
+    module.QuestionPicked
+  )
+);
+const TierCelebration = lazyOverlay(() =>
+  import("../components/Points/TierCelebration.tsx").then((module) =>
+    module.TierCelebration
+  )
+);
+const ParticipantDetails = lazyOverlay(() =>
+  import("../components/Points/ParticipantDetails.tsx").then((module) =>
+    module.ParticipantDetails
+  )
+);
+const LogoutConfirmDialog = lazyOverlay(() =>
+  import("../components/Auth/LogoutConfirmDialog.tsx").then((module) =>
+    module.LogoutConfirmDialog
+  )
+);
+const SupervoteInfo = lazyOverlay(() =>
+  import("../components/QnA/SupervoteInfo.tsx").then((module) =>
+    module.SupervoteInfo
+  )
+);
+const SupervoteFlight = lazyOverlay(() =>
+  import("../components/QnA/SupervoteFlight.tsx").then((module) =>
+    module.SupervoteFlight
+  )
+);
 
 /**
  * Devcon handover: the Devcon event app sends ticket holders to
@@ -222,7 +254,7 @@ function QnAPage() {
       root.style.removeProperty("--footer-height");
     };
   }, []);
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, cooldown } = useAuth();
   const handoverError = parseHandoverError(
     searchParams.get(HANDOVER_ERROR_PARAM),
   );
@@ -259,6 +291,10 @@ function QnAPage() {
   };
   // Logging out is offered on the user's own profile, behind a confirmation
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const hasCooldownOpened = useHasOpened(cooldown !== undefined);
+  const hasParticipantOpened = useHasOpened(selectedAuthor !== undefined);
+  const hasLogoutOpened = useHasOpened(isLogoutOpen);
+  const hasSupervoteInfoOpened = useHasOpened(isSupervoteInfoOpen);
   const { logout } = useLogout();
   const onLogoutConfirm = async () => {
     await logout();
@@ -517,49 +553,73 @@ function QnAPage() {
           />
         ))}
       </div>
-      <CooldownModal />
+      {/* One Suspense each: an overlay still loading hides no other */}
+      {hasCooldownOpened && (
+        <Suspense fallback={null}>
+          <CooldownModal />
+        </Suspense>
+      )}
       {picked && (
-        <QuestionPicked
-          onDismiss={onPickedDismiss}
-          weight={supervoteEarning.hasEarned ? supervoteWeight : undefined}
-        />
+        <Suspense fallback={null}>
+          <QuestionPicked
+            onDismiss={onPickedDismiss}
+            weight={supervoteEarning.hasEarned ? supervoteWeight : undefined}
+          />
+        </Suspense>
       )}
       {!picked && promotion && (
-        <TierCelebration promotion={promotion} onDismiss={dismissPromotion} />
+        <Suspense fallback={null}>
+          <TierCelebration
+            promotion={promotion}
+            onDismiss={dismissPromotion}
+          />
+        </Suspense>
       )}
-      <ParticipantDetails
-        conferenceId={event?.conferenceId}
-        selected={selectedAuthor && {
-          userId: selectedAuthor.id,
-          name: selectedAuthor.name,
-          isMe: selectedAuthor.id === user?.id,
-        }}
-        onClose={() => setSelectedAuthor(undefined)}
-        moderatingRole={moderatingRole}
-        onLogout={() => {
-          setSelectedAuthor(undefined);
-          setIsLogoutOpen(true);
-        }}
-      />
-      <LogoutConfirmDialog
-        isOpen={isLogoutOpen}
-        onClose={() => setIsLogoutOpen(false)}
-        onConfirm={onLogoutConfirm}
-      />
-      {supervoteWeight && (
-        <SupervoteInfo
-          open={isSupervoteInfoOpen}
-          onClose={() => setIsSupervoteInfoOpen(false)}
-          available={supervoteEarning.count}
-          weight={supervoteWeight}
-        />
+      {hasParticipantOpened && (
+        <Suspense fallback={null}>
+          <ParticipantDetails
+            conferenceId={event?.conferenceId}
+            selected={selectedAuthor && {
+              userId: selectedAuthor.id,
+              name: selectedAuthor.name,
+              isMe: selectedAuthor.id === user?.id,
+            }}
+            onClose={() => setSelectedAuthor(undefined)}
+            moderatingRole={moderatingRole}
+            onLogout={() => {
+              setSelectedAuthor(undefined);
+              setIsLogoutOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
+      {hasLogoutOpened && (
+        <Suspense fallback={null}>
+          <LogoutConfirmDialog
+            isOpen={isLogoutOpen}
+            onClose={() => setIsLogoutOpen(false)}
+            onConfirm={onLogoutConfirm}
+          />
+        </Suspense>
+      )}
+      {supervoteWeight && hasSupervoteInfoOpened && (
+        <Suspense fallback={null}>
+          <SupervoteInfo
+            open={isSupervoteInfoOpen}
+            onClose={() => setIsSupervoteInfoOpen(false)}
+            available={supervoteEarning.count}
+            weight={supervoteWeight}
+          />
+        </Suspense>
       )}
       {supervoteEarning.flightFrom && (
-        <SupervoteFlight
-          from={supervoteEarning.flightFrom}
-          to={supervoteEarning.flightTarget}
-          onLand={supervoteEarning.onFlightLand}
-        />
+        <Suspense fallback={null}>
+          <SupervoteFlight
+            from={supervoteEarning.flightFrom}
+            to={supervoteEarning.flightTarget}
+            onLand={supervoteEarning.onFlightLand}
+          />
+        </Suspense>
       )}
     </>
   );

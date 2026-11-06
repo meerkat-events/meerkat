@@ -6,14 +6,17 @@ import {
   useConferenceStats,
 } from "../../hooks/use-conference-stats.ts";
 import { BarList } from "../../components/Manage/BarList.tsx";
+import { CardHead, Tile } from "../../components/Manage/Card.tsx";
 import { ALL_DAYS, DayFilter, useDayFilter } from "../../components/Manage/DayFilter.tsx";
+import { fmtCount } from "../../components/Manage/format.ts";
+import { rowClick } from "../../components/Manage/row-click.ts";
+import { schedulePath } from "../../components/Manage/session-urls.ts";
 import { SortMenu } from "../../components/Manage/SortMenu.tsx";
 import { useConferencePath } from "../../components/Manage/use-conference-path.ts";
 import { useRememberedChoice } from "../../components/Manage/use-remembered-choice.ts";
 import {
   fmtDay,
   fmtWhen,
-  sessionStatus,
   startOfDay,
   useNow,
 } from "../../components/Manage/time.ts";
@@ -33,9 +36,6 @@ const RANKS = [
 
 const TOP = 10;
 
-const num = (n: number) => n.toLocaleString("en-US");
-// A session opens in its panel on the schedule.
-const sessionPath = (uid: string) => `/manage/schedule?session=${encodeURIComponent(uid)}`;
 // Everything people did in a session.
 const activity = (c: SessionCounts) => c.questions + c.votes + c.reactions;
 // The heart is an SVG on the Q&A page; a chart label needs a character.
@@ -86,29 +86,32 @@ export default function Analytics() {
       <DayFilter days={days} today={today} value={day} onChange={setDay} />
 
       <div className="m-tiles">
-        <div className="m-card m-tile">
-          <span className="label">Questions asked</span>
-          <b className="value">{totals ? num(totals.questions) : "–"}</b>
-          <span className="m-hint">{scope}</span>
-        </div>
-        <div className="m-card m-tile">
-          <span className="label">Participants</span>
-          <b className="value">{totals ? num(totals.participants) : "–"}</b>
-          <span className="m-hint">people who asked, voted or reacted, counted once</span>
-        </div>
-        <div className="m-card m-tile">
-          <span className="label">Votes cast</span>
-          <b className="value">{totals ? num(totals.votes) : "–"}</b>
-          <span className="m-hint">a supervote counts as one</span>
-        </div>
+        <Tile
+          card
+          label="Questions asked"
+          value={totals ? fmtCount(totals.questions) : "–"}
+          hint={scope}
+        />
+        <Tile
+          card
+          label="Participants"
+          value={totals ? fmtCount(totals.participants) : "–"}
+          hint="people who asked, voted or reacted, counted once"
+        />
+        <Tile
+          card
+          label="Votes cast"
+          value={totals ? fmtCount(totals.votes) : "–"}
+          hint="a supervote counts as one"
+        />
       </div>
 
       <div className="m-analytics-grid">
-        <section className="m-card m-analytics-card" aria-labelledby="reactions-heading">
+        <section className="m-card m-panel" aria-labelledby="reactions-heading">
           <div>
             <h2 id="reactions-heading">Reactions</h2>
             <span className="m-hint">
-              {totals ? `${num(totals.reactions)} sent ${scope}` : "–"}
+              {totals ? `${fmtCount(totals.reactions)} sent ${scope}` : "–"}
             </span>
           </div>
           <BarList
@@ -121,7 +124,7 @@ export default function Analytics() {
           />
         </section>
 
-        <section className="m-card m-analytics-card" aria-labelledby="supervotes-heading">
+        <section className="m-card m-panel" aria-labelledby="supervotes-heading">
           <div>
             <h2 id="supervotes-heading">Supervotes</h2>
             <span className="m-hint">
@@ -129,31 +132,28 @@ export default function Analytics() {
             </span>
           </div>
           <div className="m-tiles m-tiles-2">
-            <div className="m-tile">
-              <span className="label">Received</span>
-              <b className="value">{supervotes ? num(supervotes.received) : "–"}</b>
-              <span className="m-hint">earned when someone's question was picked</span>
-            </div>
-            <div className="m-tile">
-              <span className="label">Given</span>
-              <b className="value">{supervotes ? num(supervotes.given) : "–"}</b>
-              <span className="m-hint">spent on questions</span>
-            </div>
+            <Tile
+              label="Received"
+              value={supervotes ? fmtCount(supervotes.received) : "–"}
+              hint="earned when someone's question was picked"
+            />
+            <Tile
+              label="Given"
+              value={supervotes ? fmtCount(supervotes.given) : "–"}
+              hint="spent on questions"
+            />
           </div>
         </section>
       </div>
 
       <div className={showContributors ? "m-analytics-grid" : undefined}>
         <section className="m-card m-table" aria-label={`Top ${TOP} sessions`}>
-          <div className="m-table-head">
-            <div>
-              <h2 style={{ fontSize: 16 }}>Top {TOP} sessions</h2>
-              <span className="m-hint">
-                {rank === "activity" ? "Questions, votes and reactions combined" : "Busiest first"}
-              </span>
-            </div>
+          <CardHead
+            title={`Top ${TOP} sessions`}
+            hint={rank === "activity" ? "Questions, votes and reactions combined" : "Busiest first"}
+          >
             <SortMenu options={RANKS} value={rank} onChange={setRank} />
-          </div>
+          </CardHead>
           <div className="scroll">
             <table>
               <thead>
@@ -168,21 +168,19 @@ export default function Analytics() {
               </thead>
               <tbody>
                 {topSessions.map(({ session, counts }, index) => {
-                  const live = sessionStatus(session, now) === "live";
+                  const { live } = session;
+                  const path = conferencePath(schedulePath(session.uid));
                   return (
                     <tr
                       key={session.uid}
-                      onClick={(ev) => {
-                        // The title link handles its own clicks.
-                        if ((ev.target as HTMLElement).closest("a")) return;
-                        navigate(conferencePath(sessionPath(session.uid)));
-                      }}
+                      className="clickable"
+                      onClick={rowClick(() => navigate(path))}
                     >
                       <td className="n rank">{index + 1}</td>
                       <td>
                         <div className="title">
                           {live && <span className="m-live-dot" aria-hidden="true" />}
-                          <Link to={conferencePath(sessionPath(session.uid))}>{session.title}</Link>
+                          <Link to={path}>{session.title}</Link>
                         </div>
                         <div className="meta">
                           <span className="m-stage">{session.stage}</span>
@@ -190,10 +188,10 @@ export default function Analytics() {
                           {live && <span style={{ color: "var(--m-live)", fontWeight: 600 }}>Live</span>}
                         </div>
                       </td>
-                      <td className="n">{num(counts.questions)}</td>
-                      <td className="n">{num(counts.votes)}</td>
-                      <td className="n">{num(counts.participants)}</td>
-                      <td className="n">{num(counts.reactions)}</td>
+                      <td className="n">{fmtCount(counts.questions)}</td>
+                      <td className="n">{fmtCount(counts.votes)}</td>
+                      <td className="n">{fmtCount(counts.participants)}</td>
+                      <td className="n">{fmtCount(counts.reactions)}</td>
                     </tr>
                   );
                 })}
@@ -207,14 +205,10 @@ export default function Analytics() {
 
         {showContributors && (
           <section className="m-card m-table" aria-label={`Top ${TOP} contributors`}>
-            <div className="m-table-head">
-              <div>
-                <h2 style={{ fontSize: 16 }}>Top {TOP} contributors</h2>
-                <span className="m-hint">
-                  Points across the whole conference: 5 per question picked, 1 per vote received
-                </span>
-              </div>
-            </div>
+            <CardHead
+              title={`Top ${TOP} contributors`}
+              hint="Points across the whole conference: 5 per question picked, 1 per vote received"
+            />
             <div className="scroll">
               <table>
                 <thead>
@@ -228,7 +222,11 @@ export default function Analytics() {
                 </thead>
                 <tbody>
                   {contributors.map((person, index) => (
-                    <tr key={person.userId} onClick={() => openPerson(person.userId)}>
+                    <tr
+                      key={person.userId}
+                      className="clickable"
+                      onClick={rowClick(() => openPerson(person.userId))}
+                    >
                       <td className="n rank">{index + 1}</td>
                       <td>
                         <div className="title">
@@ -236,18 +234,15 @@ export default function Analytics() {
                             type="button"
                             className="m-person-link"
                             title="See their questions and sessions"
-                            onClick={(ev) => {
-                              ev.stopPropagation();
-                              openPerson(person.userId);
-                            }}
+                            onClick={() => openPerson(person.userId)}
                           >
                             {person.name}
                           </button>
                         </div>
                       </td>
-                      <td className="n">{num(person.points)}</td>
-                      <td className="n">{num(person.picked)}</td>
-                      <td className="n">{num(person.votesReceived)}</td>
+                      <td className="n">{fmtCount(person.points)}</td>
+                      <td className="n">{fmtCount(person.picked)}</td>
+                      <td className="n">{fmtCount(person.votesReceived)}</td>
                     </tr>
                   ))}
                 </tbody>

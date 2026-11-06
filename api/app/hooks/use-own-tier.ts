@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 import { participantUrl } from "./use-participant.ts";
 import type { Participant, Question } from "../types.ts";
 
@@ -37,14 +38,16 @@ export function useOwnTier(
     ? earnedSignature(questions, userId)
     : undefined;
 
-  // The signature is only in the key so that a change refetches
-  const { data } = useSWR<{ data: Participant }, HTTPError>(
+  // The signature is only in the key so that a change refetches. The token
+  // isn't: it changes on every refresh, and the URL already names the user.
+  const { data, mutate } = useSWR<{ data: Participant }, HTTPError>(
     conferenceId !== undefined && userId && signature && token
-      ? [participantUrl(conferenceId, userId), token, signature]
+      ? [participantUrl(conferenceId, userId), signature]
       : undefined,
-    ([endpoint, token]: [string, string, string]) => fetcher(endpoint, token),
+    ([endpoint]: [string, string]) => fetcher(endpoint, token),
     { keepPreviousData: true },
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   return { tier: data?.data.tier ?? null, isLoaded: data !== undefined };
 }

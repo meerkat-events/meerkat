@@ -87,24 +87,14 @@ export async function moderateQuestion(
     };
   }
 
-  const decision = decide(result);
-  const moderation: QuestionModeration = {
-    category: result.category,
-    decision,
-    flagged: result.flagged,
-    politics: result.politics,
-    war: result.war,
-    safety: result.safety,
-    selfHarm: result.selfHarm,
-    ...(result.relevance !== undefined ? { relevance: result.relevance } : {}),
-    model: result.model,
-    ...(result.id ? { id: result.id } : {}),
-  };
+  const { usage, ...classification } = result;
+  const decision = decide(classification);
+  const moderation: QuestionModeration = { ...classification, decision };
 
   return {
     hiddenAt: decision === "hide" ? new Date() : null,
     moderation,
-    call: { outcome: "classified", durationMs, usage: result.usage },
+    call: { outcome: "classified", durationMs, usage },
   };
 }
 
@@ -132,18 +122,8 @@ export function logModerationCall(
   };
 
   if (moderation && "category" in moderation) {
-    Object.assign(fields, {
-      decision: moderation.decision,
-      category: moderation.category,
-      flagged: moderation.flagged,
-      politics: moderation.politics,
-      war: moderation.war,
-      safety: moderation.safety,
-      selfHarm: moderation.selfHarm,
-      relevance: moderation.relevance,
-      model: moderation.model,
-      generationId: moderation.id,
-    });
+    const { id: generationId, ...verdict } = moderation;
+    Object.assign(fields, verdict, { generationId });
   }
   if (call.outcome === "classified") {
     Object.assign(fields, {

@@ -1,26 +1,27 @@
 import { useCallback, useMemo, useState } from "react";
 import { splitAnswering } from "../lib/questions.ts";
+import { readStorage, writeStorage } from "../lib/storage.ts";
 import type { Question } from "../types.ts";
 
 const STORAGE_KEY = "meerkat:celebrated-questions";
 
 const readCelebrated = (): Set<string> => {
+  const stored = readStorage(STORAGE_KEY);
+  if (!stored) {
+    return new Set();
+  }
   try {
-    const stored = globalThis.localStorage?.getItem(STORAGE_KEY);
-    return new Set(stored ? JSON.parse(stored) as string[] : []);
+    return new Set(JSON.parse(stored) as string[]);
   } catch {
+    // Not JSON: start over
     return new Set();
   }
 };
 
-const writeCelebrated = (uids: Set<string>) => {
-  try {
-    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify([...uids]));
-  } catch {
-    // Private mode or blocked storage: the celebration may show again on
-    // reload, which is harmless.
-  }
-};
+// Blocked storage: the celebration may show again on reload, which is
+// harmless.
+const writeCelebrated = (uids: Set<string>) =>
+  writeStorage(STORAGE_KEY, JSON.stringify([...uids]));
 
 /**
  * The current user's question that is being answered right now and hasn't

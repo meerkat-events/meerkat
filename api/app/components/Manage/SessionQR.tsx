@@ -43,7 +43,7 @@ export function QRBlock(
           : "Opens this session's Q&A."}
       </p>
       <div className="url">{url.host}{url.pathname}</div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+      <div className="m-toolbar">
         <NativeSelect.Root size="xs" width="auto">
           <NativeSelect.Field
             aria-label="Image size"

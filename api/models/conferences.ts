@@ -52,10 +52,6 @@ export async function getConferenceThemeById(
   return results.at(0) ?? null;
 }
 
-export function getConferences(): Promise<Conference[]> {
-  return db.select().from(conferences).execute();
-}
-
 export async function createConference(
   newConference: typeof conferences.$inferInsert,
 ): Promise<Conference> {

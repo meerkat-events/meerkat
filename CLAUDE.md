@@ -281,7 +281,8 @@ its CSS, callers pass the items' uids joined, nothing moves with
   after `?next=`, organizers land on `/manage` and everyone else on
   `/account`, where moderators pick a talk (`homeFor`).
 - **Admin API**: `x-api-key` header checked against argon2 hashes in
-  `api_keys` (`middlewares/api-key.ts`); no endpoint creates keys. Admin
+  `api_keys` (`middlewares/api-key.ts`; a key past its `valid_until` is
+  rejected, null never expires); no endpoint creates keys. Admin
   routes create conferences and batch-upsert events by `uid`, for importing
   schedules.
 
@@ -345,8 +346,8 @@ its CSS, callers pass the items' uids joined, nothing moves with
   /api/v1/questions/:uid/upvote` with `{ "weight": 3 }`) lowers the balance
   only while it's above 0 and inserts the vote in the same transaction; 409
   when none is left. A supervote is spent once and can't be removed (the
-  toggle answers 409, and the UI disables the gold pill); deleting the
-  question refunds everyone who supervoted it, in the delete's transaction. `GET /api/v1/users/me/supervotes` returns
+  toggle answers 409, and the UI disables the gold pill), and nothing
+  refunds it. `GET /api/v1/users/me/supervotes` returns
   `{ available, weight }`.
 - **Points** (`models/points.ts`) are per conference and come only from
   others: 5 per question selected or answered, 1 per vote received
@@ -402,8 +403,8 @@ its CSS, callers pass the items' uids joined, nothing moves with
   `hidden_at` the same way, so its author keeps seeing the question and an
   organizer can restore it; the management pages call a hidden question
   "Auto-hidden" when its verdict is "hide" and "Hidden" otherwise. It
-  refunds no supervotes, unlike `DELETE /api/v1/questions/:uid` (soft
-  delete, gone for everyone), which the UI no longer calls.
+  refunds no supervotes. No route deletes questions; `deletedAt` remains
+  on older ones, and queries still filter it out.
   The react package never sees hidden questions, because embedders don't
   ask questions.
 - **The moderation eval is the gate.** Any change to `MODERATION_MODEL`,

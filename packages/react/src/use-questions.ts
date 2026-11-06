@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import useSWR from "swr";
 import { useMeerkatContext } from "./context.ts";
-import { createFetcher, parseQuestions } from "./fetcher.ts";
+import { createFetcher } from "./fetcher.ts";
 import { eventStreamEvents } from "./event-stream-events.ts";
 import { useEventSource } from "./use-event-source.ts";
 import { useJitteredRefresh } from "./use-jittered-refresh.ts";
@@ -10,6 +10,29 @@ import type {
   UseQuestionsProps,
   UseQuestionsReturn,
 } from "./types.ts";
+
+const DATE_FIELDS: (keyof Question)[] = [
+  "createdAt",
+  "answeredAt",
+  "selectedAt",
+];
+
+function parseDates(question: Record<string, unknown>): Question {
+  const result = { ...question };
+  for (const field of DATE_FIELDS) {
+    const value = result[field];
+    if (typeof value === "string") {
+      result[field] = new Date(value);
+    }
+  }
+  return result as unknown as Question;
+}
+
+function parseQuestions(
+  questions: Record<string, unknown>[],
+): Question[] {
+  return questions.map(parseDates);
+}
 
 export function useQuestions({
   sessionId,
@@ -41,13 +64,9 @@ export function useQuestions({
   // delay, one request at a time.
   const scheduleRefresh = useJitteredRefresh(() => mutate());
 
-  const sseUrl = useMemo(
-    () =>
-      realtime && sessionId
-        ? `${apiUrl}/api/v1/events/${sessionId}/questions/stream`
-        : undefined,
-    [apiUrl, sessionId, realtime],
-  );
+  const sseUrl = realtime && sessionId
+    ? `${apiUrl}/api/v1/events/${sessionId}/questions/stream`
+    : undefined;
 
   const { isConnected } = useEventSource({
     url: sseUrl,
