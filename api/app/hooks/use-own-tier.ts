@@ -37,12 +37,13 @@ export function useOwnTier(
     ? earnedSignature(questions, userId)
     : undefined;
 
-  // The signature is only in the key so that a change refetches
+  // The signature is only in the key so that a change refetches. The token
+  // isn't: it changes on every refresh, and the URL already names the user.
   const { data } = useSWR<{ data: Participant }, HTTPError>(
     conferenceId !== undefined && userId && signature && token
-      ? [participantUrl(conferenceId, userId), token, signature]
+      ? [participantUrl(conferenceId, userId), signature]
       : undefined,
-    ([endpoint, token]: [string, string, string]) => fetcher(endpoint, token),
+    ([endpoint]: [string, string]) => fetcher(endpoint, token),
     { keepPreviousData: true },
   );
 

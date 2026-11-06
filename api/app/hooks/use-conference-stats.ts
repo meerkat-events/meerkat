@@ -81,18 +81,21 @@ export function useConferenceStats(
 ) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const userId = session?.user.id;
   const query = window
     ? `?${new URLSearchParams({ from: window.from.toISOString(), to: window.to.toISOString() })}`
     : "";
 
+  // Keyed on the user, not the token, which changes on every refresh and
+  // would blank the page until the refetch.
   const { data, error, isLoading, mutate } = useSWR<
     { data: ConferenceStats },
     HTTPError
   >(
-    conferenceId && token
-      ? [`/api/v1/conferences/${conferenceId}/stats${query}`, token]
+    conferenceId && token && userId
+      ? [`/api/v1/conferences/${conferenceId}/stats${query}`, userId]
       : undefined,
-    ([path, token]: [string, string]) => fetcher(path, token),
+    ([path]: [string, string]) => fetcher(path, token),
     { refreshInterval: 15_000 },
   );
 

@@ -30,6 +30,7 @@ export function useConferenceQuestions(
 ) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const userId = session?.user.id;
   const filter = "live" in scope
     ? "live=true"
     : "event" in scope
@@ -41,17 +42,19 @@ export function useConferenceQuestions(
         : {}),
     }).toString();
 
+  // Keyed on the user, not the token, which changes on every refresh and
+  // would blank the page until the refetch.
   const { data, error, isLoading, mutate } = useSWR<
     { data: ConferenceQuestion[] },
     HTTPError
   >(
-    conferenceId && token
+    conferenceId && token && userId
       ? [
         `/api/v1/conferences/${conferenceId}/questions?${filter}&hidden=true`,
-        token,
+        userId,
       ]
       : undefined,
-    ([path, token]: [string, string]) => fetcher(path, token),
+    ([path]: [string, string]) => fetcher(path, token),
     { refreshInterval: 10_000 },
   );
 

@@ -18,15 +18,18 @@ export function useParticipant(
 ) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const viewerId = session?.user.id;
 
+  // Keyed on the viewer rather than the token, which changes on every
+  // refresh and would blank the open profile.
   const { data, error, isLoading } = useSWR<
     { data: Participant; scoring: PointsScoring },
     HTTPError
   >(
-    conferenceId !== undefined && userId && token
-      ? [participantUrl(conferenceId, userId), token]
+    conferenceId !== undefined && userId && token && viewerId
+      ? [participantUrl(conferenceId, userId), viewerId]
       : undefined,
-    ([path, token]: [string, string]) => fetcher(path, token),
+    ([path]: [string, string]) => fetcher(path, token),
   );
 
   return { data: data?.data, scoring: data?.scoring, error, isLoading };

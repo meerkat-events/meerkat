@@ -32,6 +32,7 @@ export const useEventQuestions = (
   const { session, isLoading: isAuthLoading } = useAuth();
   const { client } = useSupabase();
   const accessToken = session?.access_token;
+  const userId = session?.user.id;
   // An unknown sort (the device's stored one, before hydration) fetches
   // nothing yet, so the list isn't fetched in two sorts on load.
   const endpoint = uid && sort
@@ -42,16 +43,18 @@ export const useEventQuestions = (
   // the one a Devcon handover brings in the URL fragment), so the first fetch
   // already carries the token instead of fetching the list twice. Without a
   // Supabase client (the server render, or no Supabase configured) there is
-  // no session to wait for. The token is part of the key, so the list
-  // refetches when a session starts or ends or its token refreshes.
+  // no session to wait for. The user id is part of the key, so the list
+  // refetches with the viewer's own votes and hidden questions when a session
+  // starts or ends or someone else signs in. Not the token: it changes on
+  // every refresh, which would empty the list and show "Loading…" again.
   const isWaitingForSession = client !== undefined && isAuthLoading;
   const { data, error, isLoading, mutate } = useSWR<
     { data: Question[] },
     HTTPError,
     [string, string | undefined] | null
   >(
-    endpoint && !isWaitingForSession ? [endpoint, accessToken] : null,
-    ([path, token]) => fetcher(path, token),
+    endpoint && !isWaitingForSession ? [endpoint, userId] : null,
+    ([path]) => fetcher(path, accessToken),
   );
 
   // For the page's own changes (posting, voting): refetch right away.

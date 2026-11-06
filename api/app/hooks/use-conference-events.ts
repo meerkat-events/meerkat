@@ -32,15 +32,18 @@ type RawSession = Omit<Session, "start" | "end"> & {
 export function useConferenceEvents(conferenceId: number | undefined) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const userId = session?.user.id;
 
+  // Keyed on the user, not the token, which changes on every refresh and
+  // would blank the page until the refetch.
   const { data, error, isLoading, mutate } = useSWR<
     { data: RawSession[] },
     HTTPError
   >(
-    conferenceId && token
-      ? [`/api/v1/conferences/${conferenceId}/events?limit=1000`, token]
+    conferenceId && token && userId
+      ? [`/api/v1/conferences/${conferenceId}/events?limit=1000`, userId]
       : undefined,
-    ([path, token]: [string, string]) => fetcher(path, token),
+    ([path]: [string, string]) => fetcher(path, token),
     { refreshInterval: 30_000 },
   );
 
