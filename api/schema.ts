@@ -18,7 +18,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import type { ReactionEmoji } from "./reactions.ts";
-import type { Theme } from "./app/types.ts";
+import type { Theme } from "./conference-theme.ts";
 import type {
   ConferenceModeration,
   QuestionModeration,
@@ -54,7 +54,7 @@ export const conferences = pgTable("conferences", {
   pretalxEvent: text("pretalx_event").unique(),
   // Start of the last sync; throttles POST /api/v1/pretalx/:event/sync.
   pretalxSyncedAt: timestamp("pretalx_synced_at"),
-  // The conference's look; the frontend's Theme type documents every key.
+  // The conference's look; conference-theme.ts documents every key.
   theme: jsonb("theme").$type<Theme>(),
   // Automatic question moderation: written context and optional overrides
   // (conferenceModerationSchema in moderation.ts); null = not moderated.

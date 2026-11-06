@@ -406,7 +406,6 @@ function QnAPage() {
             isUserLoading={isLoading}
             isAuthenticated={isAuthenticated}
             canParticipate={mayParticipate}
-            isAttendeesOnly={isAttendeesOnly}
             showDevconPrompt={showDevconPrompt}
             refresh={refresh}
             onProfileOpen={openOwnProfile}
@@ -474,12 +473,16 @@ const groupByState = <E extends { live?: boolean; start?: Date; end?: Date }>(
   events: E[],
 ) => {
   const liveEvent = events.find((event) => event.live);
-  const groupingDate = liveEvent?.start ?? new Date();
+  // Dates arrive as ISO strings in JSON, whatever their declared type:
+  // compare them as times.
+  const groupingTime = liveEvent?.start
+    ? new Date(liveEvent.start).getTime()
+    : Date.now();
 
   return events.reduce((acc, event) => {
     if (event === liveEvent) {
       acc.live.push(event);
-    } else if (event.start && event.start < groupingDate) {
+    } else if (event.start && new Date(event.start).getTime() < groupingTime) {
       acc.past.push(event);
     } else {
       acc.upcoming.push(event);

@@ -1,4 +1,4 @@
-import type { Theme } from "../types.ts";
+import type { Theme } from "../../conference-theme.ts";
 
 export const meerkat: Theme = {
   background: "#0c021d",

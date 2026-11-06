@@ -14,6 +14,7 @@ import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { CONFIRMATION_DURATION, toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
 import type { User } from "../../hooks/use-auth.ts";
+import { ATTENDEES_ONLY_FEATURE } from "../../../features.ts";
 import { MAX_CHARS_PER_QUESTION } from "../../../moderation.ts";
 import { QuestionLengthCounter } from "./QuestionLengthCounter.tsx";
 
@@ -24,8 +25,6 @@ export type FooterProps = {
   isAuthenticated: boolean;
   /** Signed in, and allowed to take part in this conference. */
   canParticipate: boolean;
-  /** Only people with a role in the conference take part: no guest sign-in. */
-  isAttendeesOnly: boolean;
   /**
    * The conference is attendees-only and this visitor has no role there:
    * an overlay points them to the conference app.
@@ -42,7 +41,6 @@ export function Footer({
   event,
   isAuthenticated,
   canParticipate,
-  isAttendeesOnly,
   showDevconPrompt,
   isUserLoading,
   user,
@@ -50,6 +48,16 @@ export function Footer({
   onProfileOpen,
 }: FooterProps) {
   const { login: loginAnonymousUser } = useAnonymousUser();
+  // One sign-in per tap: a second one would create another anonymous user.
+  const [isJoining, setIsJoining] = useState(false);
+  const join = async () => {
+    setIsJoining(true);
+    try {
+      await loginAnonymousUser();
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   // Toasts sit in line with the heart bubble above the footer (see app.css),
   // so they need the footer's height, which grows with the question input.
@@ -220,13 +228,16 @@ export function Footer({
             </Text>
           </LoginOverlay>
         )
-        : !isAuthenticated && !isUserLoading && event && !isAttendeesOnly && (
+        : !isAuthenticated && !isUserLoading && event &&
+          !event.conference.features[ATTENDEES_ONLY_FEATURE] && (
           <LoginOverlay>
             <Button
               variant="solid"
               size="lg"
               _hover={{ bg: "brand.hover" }}
-              onClick={() => loginAnonymousUser()}
+              loading={isJoining}
+              loadingText="Joining..."
+              onClick={join}
             >
               Join conversation
             </Button>

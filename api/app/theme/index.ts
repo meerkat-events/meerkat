@@ -12,7 +12,7 @@ import {
   mix,
   transparentize,
 } from "color2k";
-import type { Theme } from "../types.ts";
+import type { Theme } from "../../conference-theme.ts";
 import { isColor, pageSurface } from "./surface.ts";
 
 export { meerkat } from "./meerkat.ts";

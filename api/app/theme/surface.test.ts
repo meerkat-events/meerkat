@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getLuminance, parseToRgba } from "color2k";
-import type { Theme } from "../types.ts";
+import type { Theme } from "../../conference-theme.ts";
 import { pageSurface } from "./surface.ts";
 
 const theme = (overrides: Partial<Theme>): Theme => ({
