@@ -5,19 +5,14 @@ import { MAX_VOTES_PER_EVENT } from "../moderation.ts";
 import { jwt } from "../middlewares/jwt.ts";
 import { getEventById } from "../models/events.ts";
 import {
-  deleteQuestion,
   getQuestionByUID,
   hideQuestion,
   markAsAnswered,
+  type Question,
   restoreQuestion,
   selectQuestion,
   toPublicQuestion,
 } from "../models/questions.ts";
-import {
-  canModerate,
-  isOrganizer,
-  getConferenceRolesForConference,
-} from "../models/roles.ts";
 import { getUserById } from "../models/user.ts";
 import {
   createVote,
@@ -27,6 +22,7 @@ import {
 } from "../models/votes.ts";
 import {
   requireParticipation,
+  requireRole,
   requireUnblockedUser,
 } from "../utils/require-participant.ts";
 import {
@@ -67,25 +63,16 @@ async function readOptionalJson(request: HonoRequest): Promise<unknown> {
 }
 
 /**
- * The checks every moderation route makes first: the user exists (401
- * otherwise), the question and its event exist (404), and the user holds
- * `requiredRole` in the event's conference (403). "moderator" lets
- * moderators and organizers through (`canModerate`), "organizer" only
- * organizers (`isOrganizer`).
+ * The checks every moderation route makes first: the question and its event
+ * exist (404), and the user holds `requiredRole` in the event's conference
+ * (403, see `requireRole`).
  */
 async function loadQuestionForModeration(
   userId: string,
   uid: string,
   requiredRole: "moderator" | "organizer",
 ) {
-  const [user, question] = await Promise.all([
-    getUserById(userId),
-    getQuestionByUID(uid),
-  ]);
-
-  if (!user) {
-    throw new HTTPException(401, { message: `User ${userId} not found` });
-  }
+  const question = await getQuestionByUID(uid);
 
   if (!question) {
     throw new HTTPException(404, { message: `Question ${uid} not found` });
@@ -99,20 +86,54 @@ async function loadQuestionForModeration(
     });
   }
 
-  const roles = await getConferenceRolesForConference(
-    user.id,
-    event.conferenceId,
-  );
+  await requireRole(userId, event.conferenceId, requiredRole);
 
-  if (requiredRole === "organizer") {
-    if (!isOrganizer(roles)) {
-      throw new HTTPException(403, { message: `User is not an organizer` });
+  return { question, event };
+}
+
+/**
+ * Registers a moderation route, `POST /api/v1/questions/:uid/<action>`: it
+ * loads the question for a user with `requiredRole`, runs `act` on it (500 if
+ * that changes nothing), tells the event's streams, logs `logMessage` and
+ * returns the changed question.
+ */
+function moderationRoute(
+  path: `/api/v1/questions/:uid/${string}`,
+  requiredRole: "moderator" | "organizer",
+  act: (question: Question) => Promise<Question | null | undefined>,
+  logMessage: string,
+) {
+  app.post(path, jwt(), async (c) => {
+    const uid = c.req.param("uid");
+    const userId = c.get("jwtPayload").sub;
+    const { question, event } = await loadQuestionForModeration(
+      userId,
+      uid,
+      requiredRole,
+    );
+
+    const result = await act(question);
+
+    if (!result) {
+      throw new HTTPException(500, {
+        message: `Failed to update question ${uid}`,
+      });
     }
-  } else if (!canModerate(roles)) {
-    throw new HTTPException(403, { message: `User is not a moderator` });
-  }
 
-  return { user, question, event };
+    void notifyQuestionsChanged(event);
+
+    logger.info(
+      {
+        questionUid: question.uid,
+        question: question.question,
+        eventId: event.id,
+        userId,
+      },
+      logMessage,
+    );
+
+    return c.json({ data: toPublicQuestion(result) });
+  });
 }
 
 app.post(
@@ -220,187 +241,45 @@ app.post(
   },
 );
 
-app.post(
+moderationRoute(
   "/api/v1/questions/:uid/select",
-  jwt(),
-  async (c) => {
-    const uid = c.req.param("uid");
-    const { user, question, event } = await loadQuestionForModeration(
-      c.get("jwtPayload").sub,
-      uid,
-      "moderator",
-    );
-
+  "moderator",
+  (question) => {
     // Only its author can see it; restore it before putting it on stage.
     if (question.hiddenAt) {
       throw new HTTPException(409, {
-        message: `Question ${uid} is hidden by moderation`,
+        message: `Question ${question.uid} is hidden by moderation`,
       });
     }
-
-    const result = await selectQuestion(question.id);
-
-    if (!result) {
-      throw new HTTPException(500, { message: `Failed to select question` });
-    }
-
-    void notifyQuestionsChanged(event);
-
-    logger.info(
-      {
-        questionUid: question.uid,
-        question: question.question,
-        eventId: event.id,
-        userId: user.id,
-      },
-      "Selected question",
-    );
-
-    return c.json({ data: toPublicQuestion(result) });
+    return selectQuestion(question.id);
   },
+  "Selected question",
 );
 
-app.post(
+moderationRoute(
   "/api/v1/questions/:uid/mark-as-answered",
-  jwt(),
-  async (c) => {
-    const uid = c.req.param("uid");
-    const { user, question, event } = await loadQuestionForModeration(
-      c.get("jwtPayload").sub,
-      uid,
-      "moderator",
-    );
-
-    const result = await markAsAnswered(question.id);
-
-    if (!result) {
-      throw new HTTPException(500, { message: `Failed to mark as answered` });
-    }
-
-    void notifyQuestionsChanged(event);
-
-    logger.info(
-      {
-        questionUid: question.uid,
-        question: question.question,
-        eventId: event.id,
-        userId: user.id,
-      },
-      "Marked question as answered",
-    );
-
-    return c.json({ data: toPublicQuestion(result) });
-  },
-);
-
-app.delete(
-  "/api/v1/questions/:uid",
-  jwt(),
-  async (c) => {
-    const uid = c.req.param("uid");
-    const { user, question, event } = await loadQuestionForModeration(
-      c.get("jwtPayload").sub,
-      uid,
-      "moderator",
-    );
-
-    const result = await deleteQuestion(question.id);
-
-    if (!result) {
-      throw new HTTPException(500, {
-        message: `Failed to delete question ${uid}`,
-      });
-    }
-
-    void notifyQuestionsChanged(event);
-
-    logger.info(
-      {
-        questionUid: question.uid,
-        question: question.question,
-        eventId: event.id,
-        userId: user.id,
-      },
-      "Deleted question",
-    );
-
-    return c.json({ data: toPublicQuestion(result) });
-  },
+  "moderator",
+  (question) => markAsAnswered(question.id),
+  "Marked question as answered",
 );
 
 // Hides a question like automatic moderation does: its author still sees it,
-// nobody else does, and an organizer can restore it.
-app.post(
+// nobody else does, and an organizer can restore it. Attendees saw it until
+// now, so the stream's update tells nobody more than they knew.
+moderationRoute(
   "/api/v1/questions/:uid/hide",
-  jwt(),
-  async (c) => {
-    const uid = c.req.param("uid");
-    const { user, question, event } = await loadQuestionForModeration(
-      c.get("jwtPayload").sub,
-      uid,
-      "moderator",
-    );
-
-    const result = await hideQuestion(question.id);
-
-    if (!result) {
-      throw new HTTPException(500, {
-        message: `Failed to hide question ${uid}`,
-      });
-    }
-
-    // Attendees saw it until now, so this tells nobody more than they knew.
-    void notifyQuestionsChanged(event);
-
-    logger.info(
-      {
-        questionUid: question.uid,
-        question: question.question,
-        eventId: event.id,
-        userId: user.id,
-      },
-      "Hid question",
-    );
-
-    return c.json({ data: toPublicQuestion(result) });
-  },
+  "moderator",
+  (question) => hideQuestion(question.id),
+  "Hid question",
 );
 
 // Shows a hidden question (by automatic moderation or a moderator), after an
 // organizer reviewed it.
-app.post(
+moderationRoute(
   "/api/v1/questions/:uid/restore",
-  jwt(),
-  async (c) => {
-    const uid = c.req.param("uid");
-    const { user, question, event } = await loadQuestionForModeration(
-      c.get("jwtPayload").sub,
-      uid,
-      "organizer",
-    );
-
-    const result = await restoreQuestion(question.id);
-
-    if (!result) {
-      throw new HTTPException(500, {
-        message: `Failed to restore question ${uid}`,
-      });
-    }
-
-    void notifyQuestionsChanged(event);
-
-    logger.info(
-      {
-        questionUid: uid,
-        question: result.question,
-        userId: user.id,
-        eventId: event.id,
-      },
-      "Restored question hidden by moderation",
-    );
-
-    return c.json({ data: toPublicQuestion(result) });
-  },
+  "organizer",
+  (question) => restoreQuestion(question.id),
+  "Restored question hidden by moderation",
 );
 
 export default app;

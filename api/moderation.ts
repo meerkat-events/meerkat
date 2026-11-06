@@ -19,9 +19,8 @@ export const MODERATION_TIMEOUT_MS = 1500;
 
 /**
  * Probabilities at which a question is hidden, or marked for an organizer to
- * review (stored only until the admin view exists). `category` applies to the
- * probability that the question is not "none", `yesNo` to each yes/no
- * question below. Calibrated on the labeled eval sets: at 0.5 the category
+ * review on the Moderation page. `category` applies to the probability that
+ * the question is not "none", `yesNo` to each yes/no question below. Calibrated on the labeled eval sets: at 0.5 the category
  * hides 12 of 15 real violations and no kept question.
  */
 export const MODERATION_THRESHOLDS = {
@@ -116,10 +115,10 @@ const MAX_TALK_DESCRIPTION_LENGTH = 500;
 
 /**
  * How relevant a question is to the conference, the talk's topic and its
- * speaker, on a scale from 0 (unrelated) to 4 (excellent). Stored only: it neither
- * hides questions nor reaches any client yet. Speaker and description go into
- * this question's instructions, not the shared state, because in the shared
- * state they made the category answers worse.
+ * speaker, on a scale from 0 (unrelated) to 4 (excellent). It never hides a
+ * question; organizers and moderators see it. Speaker and description go
+ * into this question's instructions, not the shared state, because in the
+ * shared state they made the category answers worse.
  */
 export function buildRelevanceQuestion(
   talk: { speaker: string | null; description: string | null },

@@ -14,12 +14,8 @@ const batchUpsertEventsSchema = zod.array(
     uid: zod.string().min(1),
     title: zod.string().min(1),
     stage: zod.string().min(1),
-    start: zod.string().or(zod.date()).transform((val) =>
-      typeof val === "string" ? new Date(val) : val
-    ),
-    end: zod.string().or(zod.date()).transform((val) =>
-      typeof val === "string" ? new Date(val) : val
-    ),
+    start: zod.coerce.date(),
+    end: zod.coerce.date(),
     description: zod.string().optional(),
     cover: zod.string().optional(),
     speaker: zod.string().optional(),

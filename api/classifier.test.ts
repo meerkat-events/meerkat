@@ -164,53 +164,53 @@ describe("classifyQuestion", () => {
     });
   });
 
-  it("treats other provider errors as errors", async (t) => {
-    stubFetch(t, () =>
-      Response.json(
-        { error: { message: "Provider returned error", code: 502 } },
-        { status: 502 },
-      ));
+  const errorResponses: { name: string; respond: () => Response }[] = [
+    {
+      name: "treats other provider errors as errors",
+      respond: () =>
+        Response.json(
+          { error: { message: "Provider returned error", code: 502 } },
+          { status: 502 },
+        ),
+    },
+    {
+      name: "fails when a topic answer is missing",
+      respond: () =>
+        decisionsResponse(probabilities({ none: 1 }), { politics: 0.1 }),
+    },
+    {
+      name: "fails when an option has no probability, instead of treating it as 0",
+      respond: () => {
+        const { none: _none, ...withoutNone } = probabilities({ shilling: 0.2 });
+        return decisionsResponse(withoutNone, {
+          politics: 0,
+          war: 0,
+          safety: 0,
+          selfHarm: 0,
+        });
+      },
+    },
+    {
+      name: "fails on a rate limit",
+      respond: () => new Response("Rate limit exceeded", { status: 429 }),
+    },
+    {
+      name: "fails on an HTML error page from the edge",
+      respond: () => new Response("<html>timeout</html>", { status: 524 }),
+    },
+    {
+      name: "fails on a successful status with a body that is not JSON",
+      respond: () => new Response("<html>oops</html>", { status: 200 }),
+    },
+  ];
 
-    assertError(await classifyQuestion(input, config));
-  });
+  for (const { name, respond } of errorResponses) {
+    it(name, async (t) => {
+      stubFetch(t, respond);
 
-  it("fails when a topic answer is missing", async (t) => {
-    stubFetch(t, () =>
-      decisionsResponse(probabilities({ none: 1 }), { politics: 0.1 }));
-
-    assertError(await classifyQuestion(input, config));
-  });
-
-  it("fails when an option has no probability, instead of treating it as 0", async (t) => {
-    const { none: _none, ...withoutNone } = probabilities({ shilling: 0.2 });
-    stubFetch(t, () =>
-      decisionsResponse(withoutNone, {
-        politics: 0,
-        war: 0,
-        safety: 0,
-        selfHarm: 0,
-      }));
-
-    assertError(await classifyQuestion(input, config));
-  });
-
-  it("fails on a rate limit", async (t) => {
-    stubFetch(t, () => new Response("Rate limit exceeded", { status: 429 }));
-
-    assertError(await classifyQuestion(input, config));
-  });
-
-  it("fails on an HTML error page from the edge", async (t) => {
-    stubFetch(t, () => new Response("<html>timeout</html>", { status: 524 }));
-
-    assertError(await classifyQuestion(input, config));
-  });
-
-  it("fails on a successful status with a body that is not JSON", async (t) => {
-    stubFetch(t, () => new Response("<html>oops</html>", { status: 200 }));
-
-    assertError(await classifyQuestion(input, config));
-  });
+      assertError(await classifyQuestion(input, config));
+    });
+  }
 
   it("fails when the API does not answer within the timeout", async (t) => {
     t.mock.method(globalThis, "fetch", (_url: string, init: RequestInit) =>

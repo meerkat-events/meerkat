@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
+import { eq } from "drizzle-orm";
+import db from "../db.ts";
+import { questions as questionsTable } from "../schema.ts";
 import {
   anonymousUser,
   emailUser,
@@ -60,10 +63,11 @@ describe("the analytics counts", () => {
     const hidden = await request("POST", `/api/v1/questions/${hiddenUid}/hide`, { token: organizer.token });
     assert.equal(hidden.status, 200);
 
+    // No route deletes questions any more; older ones were soft-deleted.
     const deletedAuthor = await anonymousUser();
     const deletedUid = await ask(deletedAuthor);
-    const deleted = await request("DELETE", `/api/v1/questions/${deletedUid}`, { token: organizer.token });
-    assert.equal(deleted.status, 200);
+    await db.update(questionsTable).set({ deletedAt: new Date() })
+      .where(eq(questionsTable.uid, deletedUid));
 
     // Someone who only reacts takes part too.
     const reactor = await anonymousUser();

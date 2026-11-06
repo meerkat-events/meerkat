@@ -307,19 +307,6 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
       },
     },
     {
-      name: "deleting a question",
-      act: (s) =>
-        request("DELETE", `/api/v1/questions/${s.questionUid}`, {
-          token: s.organizer.token,
-        }),
-      expect: (listed, s) => {
-        assert.ok(
-          !listed.some((q) => q.uid === s.questionUid),
-          "the question is gone",
-        );
-      },
-    },
-    {
       name: "hiding a question",
       // Even an attendee who voted on it no longer sees it.
       prepare: async (s) => {

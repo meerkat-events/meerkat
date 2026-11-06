@@ -20,7 +20,6 @@ import { union } from "drizzle-orm/pg-core";
 import db from "../db.ts";
 import { events, lower, questions, votes } from "../schema.ts";
 import { buildConflictUpdateColumns } from "./utils.ts";
-import { DEFAULT_COVER } from "./event.ts";
 
 const toDay = (date: Date) => date.toISOString().slice(0, 10);
 
@@ -182,21 +181,14 @@ export async function getEventByUID(uid: string) {
     eq(lower(events.uid), uid.toLowerCase()),
   ).limit(1).execute();
 
-  const event = results.length === 1 ? results[0] : null;
-  return event ? { ...event, cover: event.cover ?? DEFAULT_COVER } : null;
+  return results[0] ?? null;
 }
 
 export async function getEventById(id: number) {
   const results = await db.select().from(events).where(
     eq(events.id, id),
   ).limit(1).execute();
-  const event = results.length === 1 ? results[0] : null;
-
-  if (event) {
-    event.cover = event.cover ?? DEFAULT_COVER;
-  }
-
-  return event;
+  return results[0] ?? null;
 }
 
 export async function countParticipants(eventId: number) {
