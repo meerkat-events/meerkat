@@ -2,22 +2,12 @@ import { Box, Heading, Text } from "@chakra-ui/react";
 import { FiRadio } from "react-icons/fi";
 import { LuArrowBigUp } from "react-icons/lu";
 import { useListAnimation } from "../hooks/use-list-animation.ts";
-
-export type QuestionWithVotes = {
-  id: number;
-  uid: string;
-  eventId: number;
-  question: string;
-  createdAt: Date;
-  answeredAt?: Date | undefined;
-  selectedAt?: Date | undefined;
-  votes: number;
-};
+import type { Question as QuestionData } from "../types.ts";
 
 interface TopQuestionsProps {
-  questions: QuestionWithVotes[];
+  questions: QuestionData[];
   /** The question on stage right now (see splitAnswering). */
-  answering?: QuestionWithVotes | undefined;
+  answering?: QuestionData | undefined;
 }
 
 const TopQuestions = ({ questions, answering }: TopQuestionsProps) => {
@@ -48,7 +38,7 @@ const TopQuestions = ({ questions, answering }: TopQuestionsProps) => {
 
 /** A question card of the presenter view, greyed out once answered. */
 export function Question(
-  { question, answering }: { question: QuestionWithVotes; answering: boolean },
+  { question, answering }: { question: QuestionData; answering: boolean },
 ) {
   const isSelected = answering;
   const classNames = [

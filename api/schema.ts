@@ -18,6 +18,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import type { ReactionEmoji } from "./reactions.ts";
+import type { Theme } from "./app/types.ts";
 import type {
   ConferenceModeration,
   QuestionModeration,
@@ -53,42 +54,8 @@ export const conferences = pgTable("conferences", {
   pretalxEvent: text("pretalx_event").unique(),
   // Start of the last sync; throttles POST /api/v1/pretalx/:event/sync.
   pretalxSyncedAt: timestamp("pretalx_synced_at"),
-  theme: jsonb("theme").$type<{
-    brandColor: string;
-    textColor: string;
-    contrastColor: string;
-    background: string;
-    systemTheme: "light" | "dark";
-    headingFontFamily?: string;
-    bodyFontFamily?: string;
-    // Optional refinements; documented on the frontend's Theme type.
-    brandHoverColor?: string;
-    mutedTextColor?: string;
-    accentColor?: string;
-    highlightColor?: string;
-    shadowColor?: string;
-    floatingShadow?: string;
-    inputOutlineColor?: string;
-    successToastColor?: string;
-    errorToastColor?: string;
-    notLiveBannerColor?: string;
-    buttonRadius?: string;
-    buttonFontWeight?: string;
-    questionInputRadius?: string;
-    dialogPlacement?: "top" | "center";
-    dialogGutter?: string;
-    dialogTitleFontWeight?: string;
-    dialogTitleSpacing?: string;
-    dialogCloseIconSize?: string;
-    dialogEmphasisFontWeight?: string;
-    voteTextColor?: string;
-    voteOutlineColor?: string;
-    questionControlSize?: string;
-    minTapTarget?: string;
-    questionGap?: string;
-    headerBarSpacing?: string;
-    sessionTimeWidth?: string;
-  }>(),
+  // The conference's look; the frontend's Theme type documents every key.
+  theme: jsonb("theme").$type<Theme>(),
   // Automatic question moderation: written context and optional overrides
   // (conferenceModerationSchema in moderation.ts); null = not moderated.
   moderation: jsonb("moderation").$type<ConferenceModeration>(),

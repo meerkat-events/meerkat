@@ -20,7 +20,6 @@ import { tapTargetStyles } from "../../theme/index.ts";
 export type SessionItem = {
   uid: string;
   title: string;
-  selected: boolean;
   live: boolean;
   start: Date | string;
 };
@@ -28,6 +27,8 @@ export type SessionItem = {
 interface SessionSwitcherProps {
   title: string | undefined;
   stage: string | undefined;
+  /** The session the page shows, marked in the list. */
+  currentUid: string | undefined;
   past: SessionItem[];
   live: SessionItem[];
   upcoming: SessionItem[];
@@ -38,7 +39,7 @@ interface SessionSwitcherProps {
  * same stage, with times and live status.
  */
 export function SessionSwitcher(
-  { title, stage, past, live, upcoming }: SessionSwitcherProps,
+  { title, stage, currentUid, past, live, upcoming }: SessionSwitcherProps,
 ) {
   const [open, setOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -122,9 +123,21 @@ export function SessionSwitcher(
                   )
                   : (
                     <>
-                      <SessionGroup label="Past" sessions={past} />
-                      <SessionGroup label="Live" sessions={live} />
-                      <SessionGroup label="Next" sessions={upcoming} />
+                      <SessionGroup
+                        label="Past"
+                        sessions={past}
+                        currentUid={currentUid}
+                      />
+                      <SessionGroup
+                        label="Live"
+                        sessions={live}
+                        currentUid={currentUid}
+                      />
+                      <SessionGroup
+                        label="Next"
+                        sessions={upcoming}
+                        currentUid={currentUid}
+                      />
                     </>
                   )}
               </Dialog.Body>
@@ -140,7 +153,11 @@ export function SessionSwitcher(
 }
 
 function SessionGroup(
-  { label, sessions }: { label: string; sessions: SessionItem[] },
+  { label, sessions, currentUid }: {
+    label: string;
+    sessions: SessionItem[];
+    currentUid: string | undefined;
+  },
 ) {
   if (sessions.length === 0) return null;
   return (
@@ -151,7 +168,10 @@ function SessionGroup(
       <Box as="ul" listStyleType="none">
         {sessions.map((session) => (
           <li key={session.uid}>
-            <SessionRow session={session} />
+            <SessionRow
+              session={session}
+              selected={session.uid === currentUid}
+            />
           </li>
         ))}
       </Box>
@@ -159,7 +179,9 @@ function SessionGroup(
   );
 }
 
-function SessionRow({ session }: { session: SessionItem }) {
+function SessionRow(
+  { session, selected }: { session: SessionItem; selected: boolean },
+) {
   // A switch waits for the layout's loader (the theme) before it shows the
   // new session; until then the tapped row shows that it's on its way.
   const navigation = useNavigation();
@@ -181,7 +203,7 @@ function SessionRow({ session }: { session: SessionItem }) {
         as="span"
         flex="1"
         textStyle="sm"
-        fontWeight={session.selected ? "semibold" : "normal"}
+        fontWeight={selected ? "semibold" : "normal"}
       >
         {session.title}
       </Text>
@@ -208,7 +230,7 @@ function SessionRow({ session }: { session: SessionItem }) {
       {isSwitchingHere && (
         <Spinner size="xs" color="brand.fg" flexShrink="0" />
       )}
-      {session.selected && (
+      {selected && (
         <Icon
           as={LuCheck}
           color="brand.800"
@@ -230,7 +252,7 @@ function SessionRow({ session }: { session: SessionItem }) {
     borderRadius: "l2",
   } as const;
 
-  return session.selected
+  return selected
     ? (
       <chakra.div {...rowStyles} bg="highlight.selected" aria-current="page">
         {content}

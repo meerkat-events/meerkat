@@ -5,11 +5,9 @@ import {
 import { Provider } from "../components/ui/provider.tsx";
 import { UserProvider } from "../context/user.tsx";
 import { SupabaseProvider } from "../context/supabase.tsx";
-import { MeerkatProvider } from "@meerkat-events/react";
 import { createClient } from "@supabase/supabase-js";
 import type { Route } from "./+types/app.ts";
 import { useMemo } from "react";
-import { SWRConfig } from "swr";
 import { getConfig } from "../lib/config.ts";
 import { getEventTheme } from "../lib/event-theme.server.ts";
 import { Toaster } from "../components/ui/toaster.tsx";
@@ -49,22 +47,18 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const systemTheme = theme?.systemTheme ?? "dark";
 
   const content = (
-    <MeerkatProvider apiUrl="">
-      <SWRConfig>
-        <UserProvider>
-          <Provider
-            colorMode={{
-              defaultTheme: systemTheme,
-              forcedTheme: systemTheme,
-            }}
-            value={system}
-          >
-            <Outlet />
-            <Toaster />
-          </Provider>
-        </UserProvider>
-      </SWRConfig>
-    </MeerkatProvider>
+    <UserProvider>
+      <Provider
+        colorMode={{
+          defaultTheme: systemTheme,
+          forcedTheme: systemTheme,
+        }}
+        value={system}
+      >
+        <Outlet />
+        <Toaster />
+      </Provider>
+    </UserProvider>
   );
 
   if (supabase) {

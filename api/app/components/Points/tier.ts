@@ -1,8 +1,7 @@
 import type { CSSProperties } from "react";
-import type { Tier } from "../../types.ts";
+import type { Tier } from "../../../tiers.ts";
 
-/** Best first, like the API's tiers. */
-export const TIERS: readonly Tier[] = [0.1, 1, 10, 25];
+export { TIERS } from "../../../tiers.ts";
 
 /** A smaller share is better: the top 1% beats the top 10%. */
 export const isBetterTier = (tier: Tier, than: Tier | null) =>

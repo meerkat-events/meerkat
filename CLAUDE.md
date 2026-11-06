@@ -181,8 +181,10 @@ Devcon handover in `routes/QnA.tsx`. Two layouts in `app/routes.ts`:
   screen `/stage/:stage`, which shows the stage's current event and reloads
   itself, on the same URL, when the stage moves on to another), for guests
   only: no auth, no Supabase client, no session.
-- `layouts/app.tsx` — everything else: `MeerkatProvider` (from the react
-  package, `apiUrl=""`), Supabase client, `UserProvider`, Chakra system.
+- `layouts/app.tsx` — everything else: Supabase client, `UserProvider`,
+  Chakra system. No `MeerkatProvider`: the app uses only the react
+  package's context-free parts (`useEventSource`, `useJitteredRefresh`,
+  `eventStreamEvents`), and every SWR hook passes its own fetcher.
 
 Server-only code for loaders lives in `.server.ts` modules (the build fails if
 client code imports one). The server build doesn't bundle the server modules

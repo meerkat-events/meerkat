@@ -1,15 +1,16 @@
 import { Heading, Text } from "@chakra-ui/react";
 import { useListAnimation } from "../../hooks/use-list-animation.ts";
-import { Question, type QuestionWithVotes } from "../TopQuestions.tsx";
+import { Question } from "../TopQuestions.tsx";
+import type { Question as QuestionData } from "../../types.ts";
 
 const PLACEHOLDER_KEY = "placeholder";
 const FEED_LABEL_KEY = "feed-label";
 
 interface HighEngagementQuestionsProps {
   /** The question on stage right now (see splitAnswering). */
-  answering: QuestionWithVotes | undefined;
+  answering: QuestionData | undefined;
   /** The latest answered questions, newest first. */
-  recentlyAnswered: QuestionWithVotes[];
+  recentlyAnswered: QuestionData[];
   /** Whether the screen shows its QR code, which the placeholder points to. */
   showsQRCode: boolean;
 }

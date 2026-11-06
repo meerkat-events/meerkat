@@ -1,3 +1,5 @@
+import type { Tier } from "../tiers.ts";
+
 export type Theme = {
   brandColor: string;
   contrastColor: string;
@@ -44,11 +46,6 @@ export type Theme = {
    * Chakra's red with white text.
    */
   errorToastColor?: string;
-  /**
-   * Background of the banner on events that aren't live, whose text then
-   * takes textColor; defaults to a brand tint with brand text.
-   */
-  notLiveBannerColor?: string;
   /** Corners of every button, including icon and close buttons; defaults to l2. */
   buttonRadius?: string;
   /** Label weight of every button except the vote pill; defaults to medium. */
@@ -158,11 +155,7 @@ export type Question = {
   relevance?: number | null | undefined;
 };
 
-/**
- * A percentile tier at a conference: at most this share (in percent) of
- * everyone who asked or voted there is at or above the participant's place.
- */
-export type Tier = 0.1 | 1 | 10 | 25;
+export type { Tier };
 
 /** Someone's points at a conference (`GET .../participants/:userId`). */
 export type Participant = {

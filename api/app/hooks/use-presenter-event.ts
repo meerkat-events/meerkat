@@ -1,7 +1,5 @@
-import { useMemo } from "react";
 import { useJitteredRefresh } from "@meerkat-events/react";
 import { useEvent } from "./use-event.ts";
-import { toEvent } from "../lib/event.ts";
 import type { Event } from "../types.ts";
 
 // The presenter view refetches the whole event on an SSE update, paced like
@@ -26,8 +24,7 @@ export function usePresenterEvent(initialEvent: Event) {
     },
   });
 
-  const eventData = data?.data ?? initialEvent;
-  const event = useMemo(() => toEvent(eventData), [eventData]);
+  const event = data?.data ?? initialEvent;
 
   const scheduleRefresh = useJitteredRefresh(
     () => mutate(),

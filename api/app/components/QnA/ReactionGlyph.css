@@ -1,0 +1,11 @@
+/* Emoji reactions in the same 24px box as the heart icon. Imported by the
+   component, so the stage screen, whose layout doesn't load app.css, gets it
+   too. */
+.reaction-glyph {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  font-size: 22px;
+  line-height: 24px;
+  text-align: center;
+}
