@@ -23,6 +23,7 @@ import { SessionSearch } from "../components/Manage/SessionSearch.tsx";
 import { useConferencePath } from "../components/Manage/use-conference-path.ts";
 import { PersonDialog } from "../components/Manage/PersonDialog.tsx";
 import { CooldownModal } from "../components/QnA/CooldownModal.tsx";
+import { RefreshButton } from "../components/Manage/RefreshButton.tsx";
 import { dayKey, fmtDay } from "../components/Manage/time.ts";
 
 import "./manage.css";
@@ -143,22 +144,25 @@ export default function ManageLayout() {
           <Logo height="40px" width="auto" />
           <span>Management</span>
         </Link>
-        <div className="manage-event">
-          {organizerRoles.length > 1
-            ? (
-              <ConferenceSwitcher
-                conferences={organizerRoles.map((r) => ({
-                  id: r.conferenceId,
-                  name: r.conferenceName ?? `Conference ${r.conferenceId}`,
-                }))}
-                value={context.conferenceId}
-                // Same page, without the open session, person or filters:
-                // they belong to the conference being left.
-                onChange={(id) => navigate(`${pathname}?conference=${id}`)}
-              />
-            )
-            : <span className="name">{context.conferenceName}</span>}
-          {dates && <span className="dates">{dates}</span>}
+        <div className="manage-top-end">
+          <div className="manage-event">
+            {organizerRoles.length > 1
+              ? (
+                <ConferenceSwitcher
+                  conferences={organizerRoles.map((r) => ({
+                    id: r.conferenceId,
+                    name: r.conferenceName ?? `Conference ${r.conferenceId}`,
+                  }))}
+                  value={context.conferenceId}
+                  // Same page, without the open session, person or filters:
+                  // they belong to the conference being left.
+                  onChange={(id) => navigate(`${pathname}?conference=${id}`)}
+                />
+              )
+              : <span className="name">{context.conferenceName}</span>}
+            {dates && <span className="dates">{dates}</span>}
+          </div>
+          <RefreshButton />
         </div>
       </header>
       <div className="manage-bar">
