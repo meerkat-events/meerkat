@@ -170,8 +170,8 @@ discrimination, phishing, scams or shilling, politics unrelated to crypto
 (outside talks about politics) or current wars and genocide are hidden from
 everyone but their author (compliments are fine); if the classifier fails, questions are shown
 as before. Write a short context about the conference and check it with the
-eval: copy `api/scripts/moderation-cases.json`, set its top-level
-`moderation` to that config, and run
+eval: copy `api/scripts/moderation-cases.json` into the gitignored
+`.backups/moderation/`, set its top-level `moderation` to that config, and run
 `node --env-file=.env scripts/moderation-eval.ts <copy>` in `api/` (it must
 exit 0). Then set it:
 
@@ -181,9 +181,14 @@ SET moderation = '{"context": "Devcon, the Ethereum Foundation''s developer conf
 WHERE id = <id>;
 ```
 
-`NULL` switches moderation off again; organizers restore a wrongly hidden
-question on the management pages (`/manage`). The design decisions
-and eval results are in
+`NULL` switches moderation off again for that conference; unsetting the
+`OPENROUTER_API_KEY` Fly secret switches it off everywhere (the machines
+restart). Organizers restore a wrongly hidden question on the management pages
+(`/manage`). The key needs OpenRouter credit: when it runs out, the API answers
+402 and every question is shown unmoderated, logging a
+`Question moderation failed, shown` warning, so give the key a credit limit
+with margin and watch the logs during a conference. The design decisions and
+eval results are in
 [designs/002-question-moderation.md](designs/002-question-moderation.md).
 
 ### How do I link to the currently live session?
