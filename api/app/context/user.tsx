@@ -30,34 +30,27 @@ export const cooldownFor = (
 export const UserContext = createContext<
   {
     user: User | undefined;
-    setUser: (user: User | undefined) => void;
     session: Session | undefined;
     isLoading: boolean;
     isAuthenticated: boolean;
     cooldown: Cooldown | undefined;
     setCooldown: (cooldown: Cooldown | undefined) => void;
-    isValidated: boolean;
-    setIsValidated: (validated: boolean) => void;
   }
 >({
   user: undefined,
-  setUser: () => {},
   session: undefined,
   isLoading: true,
   isAuthenticated: false,
   cooldown: undefined,
   setCooldown: () => {},
-  isValidated: false,
-  setIsValidated: () => {},
 });
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const { client } = useSupabase();
-  const [user, setUser] = useState<User | undefined>(undefined);
   const [session, setSession] = useState<Session | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [cooldown, setCooldown] = useState<Cooldown | undefined>(undefined);
-  const [isValidated, setIsValidated] = useState<boolean>(false);
+  const user = session?.user;
 
   // PostHog's person is the Supabase user id (never the email), so errors,
   // logs and traces of one person link up across devices. Signing out starts
@@ -78,7 +71,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const { data: { session } } = await client.auth.getSession();
         setSession(session ?? undefined);
-        setUser(session?.user ?? undefined);
       } catch (error) {
         console.error(error);
       } finally {
@@ -92,7 +84,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         posthog?.reset();
       }
       setSession(session ?? undefined);
-      setUser(session?.user ?? undefined);
     });
 
     return () => {
@@ -104,14 +95,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     <UserContext.Provider
       value={{
         user,
-        setUser,
         session,
         isLoading,
-        isAuthenticated: !!session?.user,
+        isAuthenticated: !!user,
         cooldown,
         setCooldown,
-        isValidated,
-        setIsValidated,
       }}
     >
       {children}
