@@ -66,6 +66,9 @@ export default defineConfig(({ mode }) => ({
           // Imported relative to the built file, build/server/index.js.
           makeAbsoluteExternalsRelative: false,
           output: {
+            // One file, so that path holds for every import: the chunks of
+            // the client's import() calls would land in build/server/assets/.
+            codeSplitting: false,
             paths: (id) =>
               isServerSourceModule(id)
                 ? path.relative(serverBuildDir, id)

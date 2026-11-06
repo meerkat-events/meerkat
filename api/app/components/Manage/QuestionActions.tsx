@@ -76,10 +76,10 @@ export function QuestionActions(
                   <Menu.Item
                     value="select"
                     onClick={() =>
-                      run(() => selectQuestion(), "Question highlighted ✅")}
+                      run(() => selectQuestion(), "Question selected ✅")}
                   >
                     <Icon as={FiRadio} mr="2" />
-                    <Box as="span">Highlight</Box>
+                    <Box as="span">Select for answering</Box>
                   </Menu.Item>
                   <Menu.Item
                     value="answer"

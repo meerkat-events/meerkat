@@ -1,13 +1,5 @@
-import useSWRMutation from "swr/mutation";
-import { poster } from "./fetcher.ts";
-import { useAuth } from "./use-auth.ts";
+import { usePost } from "./use-post.ts";
 
 export function useBlockUser(uid: string) {
-  const { session } = useAuth();
-  const { trigger } = useSWRMutation<{ data: Record<string, never> }>(
-    `/api/v1/users/${uid}/block`,
-    (path: string, { arg }: { arg: Record<string, unknown> }) =>
-      poster(path, { arg }, session?.access_token),
-  );
-  return { trigger };
+  return usePost<{ data: Record<string, never> }>(`/api/v1/users/${uid}/block`);
 }

@@ -7,15 +7,12 @@ import { useManage } from "../../layouts/manage.tsx";
 import { useGoLive } from "../../hooks/use-go-live.ts";
 import { useSetHighEngagement } from "../../hooks/use-set-high-engagement.ts";
 import { QuestionTable } from "./QuestionTable.tsx";
-import { FilterChips } from "./FilterChips.tsx";
-import { FILTERS, matchesFilter, SORT_STORAGE_KEY, SORTS, sortQuestions } from "./question-state.ts";
-import { useRememberedChoice } from "./use-remembered-choice.ts";
+import { QuestionToolbar, useQuestionView } from "./QuestionToolbar.tsx";
 import { useUrlChoice } from "./use-url-choice.ts";
-import { toaster } from "../ui/toaster.tsx";
+import { toaster, toastError } from "../ui/toaster.tsx";
 import { ManageDialog, useDialogHandoff } from "./ManageDialog.tsx";
 import { QRBlock } from "./SessionQR.tsx";
 import { qaUrl, stageScreenUrl } from "./session-urls.ts";
-import { SortMenu } from "./SortMenu.tsx";
 import { ActionMenu } from "./ActionMenu.tsx";
 import {
   fmtDay,
@@ -23,11 +20,15 @@ import {
   fmtTime,
   fmtWhen,
   sessionStatus,
+  type SessionStatus,
   useNow,
   zoneName,
 } from "./time.ts";
 
 const SESSION_TABS = ["questions", "details", "qr"] as const;
+
+// Until the questions load: the same array every render, so the view's memo holds.
+const NO_QUESTIONS: never[] = [];
 
 /** One session: status, Go live, Q&A link and QR codes, its questions and details. */
 export function SessionPanel(
@@ -58,11 +59,7 @@ export function SessionPanel(
         description: `The ${session.stage} stage screen now shows its Q&A.`,
       });
     } catch (error) {
-      toaster.create({
-        type: "error",
-        title: "Couldn't go live",
-        description: error instanceof Error ? error.message : undefined,
-      });
+      toastError("Couldn't go live", error);
     }
   };
 
@@ -82,13 +79,13 @@ export function SessionPanel(
           <div className="m-session-status">
             {status === "live"
               ? (
-                <span className="m-chip live">
+                <span className="m-pill live">
                   <span className="m-live-dot" aria-hidden="true" />
                   Live{now < session.end && ` · ${fmtDuration(+session.end - +now)} left`}
                 </span>
               )
               : (
-                <span className="m-chip">
+                <span className="m-pill">
                   {status === "upcoming"
                     ? `Starts in ${fmtDuration(+session.start - +now)}`
                     : status === "ended"
@@ -167,15 +164,14 @@ function SessionQuestions(
   { session, counts, status, now, onPerson }: {
     session: Session;
     counts: SessionCounts | undefined;
-    status: ReturnType<typeof sessionStatus>;
+    status: SessionStatus;
     now: Date;
     onPerson: (userId: string) => void;
   },
 ) {
-  const [sort, setSort] = useRememberedChoice("sort", SORTS.map((s) => s.value), "newest", SORT_STORAGE_KEY);
-  const [filter, setFilter] = useUrlChoice("show", FILTERS.map((f) => f.value), "all");
   const { conferenceId } = useManage();
   const { data, mutate } = useConferenceQuestions(conferenceId, { event: session.uid });
+  const view = useQuestionView(data ?? NO_QUESTIONS);
 
   if (status === "upcoming" && !data?.length) {
     return (
@@ -189,8 +185,7 @@ function SessionQuestions(
     );
   }
 
-  const questions = data ?? [];
-  const shown = sortQuestions(questions.filter((q) => matchesFilter(q, filter)), sort);
+  const { questions, shown } = view;
   return (
     <>
       <div className="m-sec">
@@ -202,10 +197,7 @@ function SessionQuestions(
         </div>
       </div>
       <div className="m-sec">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <FilterChips questions={questions} value={filter} onChange={setFilter} />
-          <SortMenu options={SORTS} value={sort} onChange={setSort} />
-        </div>
+        <QuestionToolbar view={view} />
         {shown.length
           ? (
             <QuestionTable
@@ -250,11 +242,7 @@ function HighEngagementSwitch(
         duration: 1500,
       });
     } catch (error) {
-      toaster.create({
-        type: "error",
-        title: "Couldn't change the stage screen",
-        description: error instanceof Error ? error.message : undefined,
-      });
+      toastError("Couldn't change the stage screen", error);
     } finally {
       setPending(null);
     }

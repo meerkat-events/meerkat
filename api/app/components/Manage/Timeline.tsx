@@ -66,25 +66,20 @@ export function Timeline(
     checkNowVisible();
   }, [checkNowVisible]);
 
-  const centreOn = (ms: number, bias: number) => {
+  // Scrolls `ms` into view, `bias` of the way across the visible lanes.
+  const centreOn = (ms: number, bias: number, behavior: ScrollBehavior) => {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ left: Math.max(0, x(ms) - (el.clientWidth - LABEL) * bias), behavior: "smooth" });
+    el.scrollTo({ left: Math.max(0, x(ms) - (el.clientWidth - LABEL) * bias), behavior });
   };
 
   // Centre on "now" (today) or the first session when the day changes.
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const target = isToday
-      ? now.getTime()
-      : Math.min(...sessions.map((s) => +s.start), v1);
-    el.scrollLeft = Math.max(0, x(target) - (el.clientWidth - LABEL) * (isToday ? 0.32 : 0.05));
+    if (isToday) centreOn(now.getTime(), 0.32, "instant");
+    else centreOn(Math.min(...sessions.map((s) => +s.start), v1), 0.05, "instant");
     // `v0` moves when the day's sessions arrive and widen the range, so centre again then.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayStart, v0]);
-
-
 
   const stageNote = (stage: string) => {
     const onStage = sessions.filter((s) => s.stage === stage);
@@ -111,9 +106,9 @@ export function Timeline(
       {nowOffScreen && (
         <button
           type="button"
-          className={`m-jump-now ${nowOffScreen}`}
-          style={{ ...(nowOffScreen === "left" ? { left: LABEL + 10 } : { right: 10 }) }}
-          onClick={() => centreOn(now.getTime(), 0.32)}
+          className="m-jump-now"
+          style={nowOffScreen === "left" ? { left: LABEL + 10 } : { right: 10 }}
+          onClick={() => centreOn(now.getTime(), 0.32, "smooth")}
         >
           {nowOffScreen === "left" ? "←" : ""} Now {fmtTime(now)}{" "}
           {nowOffScreen === "right" ? "→" : ""}

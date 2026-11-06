@@ -183,8 +183,8 @@ export function Question(
   const handleSelected = () =>
     moderate(
       selectQuestion,
-      "Question highlighted",
-      "Couldn't highlight the question",
+      "Question selected",
+      "Couldn't select the question",
     );
 
   const isAnswered = !!question.answeredAt;
@@ -259,7 +259,7 @@ export function Question(
                     {!answering && (
                       <Menu.Item value="select" onClick={handleSelected}>
                         <Icon as={FiRadio} mr="2" color="accent.menuIcon" />
-                        <Box as="span">Highlight</Box>
+                        <Box as="span">Select for answering</Box>
                       </Menu.Item>
                     )}
                     {!isAnswered && (
