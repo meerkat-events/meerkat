@@ -1,12 +1,14 @@
 import { VisuallyHidden } from "@chakra-ui/react";
 import { QuestionActions } from "./QuestionActions.tsx";
 import {
+  isClosed,
   type ModeratedQuestion,
   questionStates,
   reasonText,
   relevanceLevel,
 } from "./question-state.ts";
 import { RelevanceInfo } from "./RelevanceInfo.tsx";
+import { rowClick } from "./row-click.ts";
 import { askedAt, askedTitle } from "./time.ts";
 import { VoteToggle } from "./VoteToggle.tsx";
 
@@ -36,10 +38,6 @@ export function QuestionTable(
     refresh: () => void;
   },
 ) {
-  const onRowClick = (q: Row) => (ev: React.MouseEvent) => {
-    if ((ev.target as HTMLElement).closest("button, a, [role=menu]")) return;
-    if (q.event) onSession?.(q.event.uid);
-  };
   return (
     <table className="m-qtable">
       <thead>
@@ -65,15 +63,17 @@ export function QuestionTable(
         {questions.map((q) => {
           const createdAt = new Date(q.createdAt);
           const states = questionStates(q);
-          const dimmed = states.includes("answered") || states.includes("hidden") ||
-            states.includes("autoHidden");
+          const dimmed = isClosed(q);
+          const event = q.event;
           return (
             <tr
               key={q.uid}
-              className={[dimmed && "answered", rowOpensSession && "clickable"]
+              className={[dimmed && "answered", rowOpensSession && event && "clickable"]
                 .filter(Boolean)
                 .join(" ")}
-              onClick={rowOpensSession ? onRowClick(q) : undefined}
+              onClick={rowOpensSession && event
+                ? rowClick(() => onSession?.(event.uid))
+                : undefined}
             >
               <td className="when">
                 <time dateTime={createdAt.toISOString()} title={askedTitle(createdAt)}>
@@ -98,15 +98,15 @@ export function QuestionTable(
               <td className="status">
                 <span className="tags">
                   {states.includes("autoHidden") && (
-                    <span className="tag flagged">Auto-hidden</span>
+                    <span className="m-pill danger">Auto-hidden</span>
                   )}
-                  {states.includes("restored") && <span className="tag">Restored</span>}
-                  {states.includes("review") && <span className="tag review">Review</span>}
-                  {states.includes("hidden") && <span className="tag">Hidden</span>}
+                  {states.includes("restored") && <span className="m-pill">Restored</span>}
+                  {states.includes("review") && <span className="m-pill review">Review</span>}
+                  {states.includes("hidden") && <span className="m-pill">Hidden</span>}
                   {states.includes("answering") && (
-                    <span className="tag answering">Answering</span>
+                    <span className="m-pill answering">Answering</span>
                   )}
-                  {states.includes("answered") && <span className="tag">Answered</span>}
+                  {states.includes("answered") && <span className="m-pill">Answered</span>}
                 </span>
                 {(states.includes("autoHidden") || states.includes("restored") ||
                   states.includes("review")) &&

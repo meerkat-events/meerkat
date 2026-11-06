@@ -7,9 +7,11 @@ import {
   type UserActivity,
   useUserActivity,
 } from "../../hooks/use-user-activity.ts";
-import { toaster } from "../ui/toaster.tsx";
+import { toaster, toastError } from "../ui/toaster.tsx";
 import { ManageDialog, useDialogHandoff } from "./ManageDialog.tsx";
 import { QuestionTable } from "./QuestionTable.tsx";
+import { isHidden } from "./question-state.ts";
+import { rowClick } from "./row-click.ts";
 import { fmtDay, fmtTime, useNow } from "./time.ts";
 
 type Tab = "questions" | "votes" | "sessions" | "hidden";
@@ -52,11 +54,7 @@ export function PersonDialog(
       onBlocked();
       toaster.create({ title: "User blocked 🚫", type: "success", duration: 1000 });
     } catch (error) {
-      toaster.create({
-        title: "Couldn't block this user",
-        type: "error",
-        description: error instanceof Error ? error.message : undefined,
-      });
+      toastError("Couldn't block this user", error);
     }
   };
 
@@ -68,7 +66,7 @@ export function PersonDialog(
           <div>
             <Dialog.Title className="name">
               {data?.user.name ?? "…"}
-              {data?.user.blocked && <span className="m-chip blocked">Blocked</span>}
+              {data?.user.blocked && <span className="m-pill danger">Blocked</span>}
             </Dialog.Title>
             <span className="m-hint">
               {data?.user.blocked
@@ -174,9 +172,6 @@ function PersonTab(
     ...asDates(q),
     user: { id: data.user.id, name: data.user.name },
   }));
-  // Hidden by an organizer or by automatic moderation.
-  const isHidden = (q: { deletedAt: string | null; hiddenAt?: string | null | undefined }) =>
-    !!q.deletedAt || !!q.hiddenAt;
   const rows = tab === "questions"
     ? theirs.filter((q) => !isHidden(q))
     : tab === "hidden"
@@ -216,13 +211,17 @@ function PersonTab(
                       <tr
                         key={session.uid}
                         className="clickable"
-                        onClick={() => onSession(session.uid)}
+                        onClick={rowClick(() => onSession(session.uid))}
                       >
                         <td className="session">
                           <span className="m-stage">{session.stage}</span>
                         </td>
                         <td className="question">
-                          <button type="button" className="m-link-button">
+                          <button
+                            type="button"
+                            className="m-link-button"
+                            onClick={() => onSession(session.uid)}
+                          >
                             {session.title}
                           </button>
                         </td>

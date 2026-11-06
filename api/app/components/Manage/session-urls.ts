@@ -12,3 +12,7 @@ export const stageScreenUrl = (session: Session) =>
 // Redirects to whatever is live on the stage (or next up), so it can be printed once.
 export const stageQaUrl = (session: Session) =>
   new URL(`/stage/${encodeURIComponent(session.stage)}/qa`, appOrigin());
+
+// A session opens in its dialog on the schedule. A path inside /manage: pass
+// it through useConferencePath to stay in the same conference.
+export const schedulePath = (uid: string) => `/manage/schedule?session=${encodeURIComponent(uid)}`;

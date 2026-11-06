@@ -1,8 +1,8 @@
 import { LuArrowBigUp } from "react-icons/lu";
 import { FiZap } from "react-icons/fi";
 import { useVote } from "../../hooks/use-vote.ts";
-import { toaster } from "../ui/toaster.tsx";
-import { questionStates, type ModeratedQuestion } from "./question-state.ts";
+import { toastError } from "../ui/toaster.tsx";
+import { isClosed, type ModeratedQuestion } from "./question-state.ts";
 
 /**
  * The vote count as a toggle: an organizer's own vote counts like an
@@ -23,16 +23,10 @@ export function VoteToggle(
       // 409: the vote changed in the meantime (e.g. a supervote). Refetch, so
       // the toggle catches up.
       refresh();
-      toaster.create({
-        title: "Failed to vote",
-        type: "error",
-        description: error.message,
-      });
+      toastError("Failed to vote", error);
     },
   });
-  const states = questionStates(question);
-  const closed = states.includes("answered") || states.includes("hidden") ||
-    states.includes("autoHidden") || !!question.deletedAt;
+  const closed = isClosed(question);
   const voted = vote !== null;
   const supervoted = voted && vote.weight > 1;
   const votes = question.votes;

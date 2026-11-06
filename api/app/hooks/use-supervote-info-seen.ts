@@ -1,14 +1,13 @@
 import { useCallback, useSyncExternalStore } from "react";
+import { readStorage, writeStorage } from "../lib/storage.ts";
 
 const STORAGE_KEY = "meerkat:supervote-info-seen";
 const listeners = new Set<() => void>();
 
+// Blocked storage reads as seen: a dot that never goes away would nag.
 const read = () => {
-  try {
-    return globalThis.localStorage?.getItem(STORAGE_KEY) === "1";
-  } catch {
-    return true;
-  }
+  const stored = readStorage(STORAGE_KEY);
+  return stored === undefined || stored === "1";
 };
 
 const subscribe = (listener: () => void) => {
@@ -24,11 +23,7 @@ const subscribe = (listener: () => void) => {
 export function useSupervoteInfoSeen() {
   const seen = useSyncExternalStore(subscribe, read, () => true);
   const markSeen = useCallback(() => {
-    try {
-      globalThis.localStorage?.setItem(STORAGE_KEY, "1");
-    } catch {
-      // Blocked storage: the dot comes back next visit, which is harmless.
-    }
+    writeStorage(STORAGE_KEY, "1");
     listeners.forEach((listener) => listener());
   }, []);
   return { seen, markSeen };

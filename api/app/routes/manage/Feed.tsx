@@ -2,19 +2,10 @@ import { useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { useManage } from "../../layouts/manage.tsx";
 import { useConferenceQuestions } from "../../hooks/use-conference-questions.ts";
+import { CardHead } from "../../components/Manage/Card.tsx";
 import { QuestionTable } from "../../components/Manage/QuestionTable.tsx";
-import { FilterChips } from "../../components/Manage/FilterChips.tsx";
-import {
-  FILTERS,
-  matchesFilter,
-  SORT_STORAGE_KEY,
-  SORTS,
-  sortQuestions,
-} from "../../components/Manage/question-state.ts";
-import { SortMenu } from "../../components/Manage/SortMenu.tsx";
+import { QuestionToolbar, useQuestionView } from "../../components/Manage/QuestionToolbar.tsx";
 import { fmtDay, useNow } from "../../components/Manage/time.ts";
-import { useRememberedChoice } from "../../components/Manage/use-remembered-choice.ts";
-import { useUrlChoice } from "../../components/Manage/use-url-choice.ts";
 import type { Route } from "./+types/Feed.ts";
 
 export const meta: Route.MetaFunction = () => [
@@ -34,8 +25,6 @@ export default function Feed() {
     { live: true },
   );
 
-  const [sort, setSort] = useRememberedChoice("sort", SORTS.map((s) => s.value), "newest", SORT_STORAGE_KEY);
-  const [filter, setFilter] = useUrlChoice("show", FILTERS.map((f) => f.value), "all");
   const liveSessions = useMemo(
     () =>
       (sessions ?? []).filter((s) => s.live).sort((a, b) =>
@@ -57,11 +46,8 @@ export default function Feed() {
     () => (questions ?? []).filter((q) => !scope || q.eventId === scope.id),
     [questions, scope],
   );
-
-  const shown = useMemo(
-    () => sortQuestions(inScope.filter((q) => matchesFilter(q, filter)), sort),
-    [inScope, filter, sort],
-  );
+  const view = useQuestionView(inScope);
+  const { shown } = view;
 
   const setParam = (key: string, value: string | null) =>
     setParams((p) => {
@@ -109,26 +95,13 @@ export default function Feed() {
       </nav>
 
       <section className="m-card m-stream" aria-label="Questions">
-        <div className="m-stream-head">
-          <div style={{ minWidth: 0 }}>
-            <div className="m-eyebrow">
-              {scope ? `${scope.stage} · live now` : `Live now · ${fmtDay(now, true)}`}
-            </div>
-            <h2>{scope ? scope.title : "All live sessions"}</h2>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <FilterChips
-              questions={inScope}
-              value={filter}
-              onChange={setFilter}
-            />
-            <SortMenu
-              options={SORTS}
-              value={sort}
-              onChange={setSort}
-            />
-          </div>
-        </div>
+        <CardHead
+          large
+          eyebrow={scope ? `${scope.stage} · live now` : `Live now · ${fmtDay(now, true)}`}
+          title={scope ? scope.title : "All live sessions"}
+        >
+          <QuestionToolbar view={view} />
+        </CardHead>
         <div className="m-stream-scroll">
           {shown.length
             ? (
