@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useSearchParams } from "react-router";
+import { readStorage, writeStorage } from "../lib/storage.ts";
 
 export type QuestionSort = "newest" | "popular";
 
@@ -10,13 +11,7 @@ const toQuestionSort = (value: string | null) =>
   value === "popular" || value === "newest" ? value : undefined;
 
 /** Whether the user chose "popular" on this device. */
-const readPrefersPopular = () => {
-  try {
-    return globalThis.localStorage?.getItem(STORAGE_KEY) === "popular";
-  } catch {
-    return false;
-  }
-};
+const readPrefersPopular = () => readStorage(STORAGE_KEY) === "popular";
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
@@ -64,15 +59,8 @@ export function useQuestionSort(): [
   }, [urlSort, prefersPopular, setSearchParams]);
 
   const setSort = useCallback((next: QuestionSort) => {
-    try {
-      if (next === "popular") {
-        globalThis.localStorage?.setItem(STORAGE_KEY, next);
-      } else {
-        globalThis.localStorage?.removeItem(STORAGE_KEY);
-      }
-    } catch {
-      // Blocked storage (private browsing): the URL still holds the choice.
-    }
+    // Blocked storage (private browsing): the URL still holds the choice.
+    writeStorage(STORAGE_KEY, next === "popular" ? next : null);
     listeners.forEach((listener) => listener());
     setSearchParams((params) => {
       if (next === "popular") params.set("sort", next);
