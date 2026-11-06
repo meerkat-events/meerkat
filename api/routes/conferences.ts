@@ -10,7 +10,11 @@ import {
 import { HTTPException } from "hono/http-exception";
 import { getLiveEvent } from "../models/events.ts";
 import { jwt } from "../middlewares/jwt.ts";
-import { getUserByEmail, getUserById } from "../models/user.ts";
+import {
+  getUserByEmail,
+  getUserById,
+  getUserIdAndName,
+} from "../models/user.ts";
 import {
   getConferenceRolesForConference,
   grantRole,
@@ -100,15 +104,12 @@ async function requireOrganizer(conferenceIdParam: string, userId: string) {
 // Organizers get the verdict's summary (decision, reasons, relevance), never
 // the raw scores; attendees never get it at all (toPublicQuestion).
 const toApiQuestion = (
-  { userId: _userId, user, moderation, viewerVoteWeight, ...rest }:
+  { userId: _userId, moderation, viewerVoteWeight, ...rest }:
     ConferenceQuestions[number],
 ) => ({
   ...rest,
   moderation: summarizeModeration(moderation),
   vote: viewerVoteWeight === null ? null : { weight: viewerVoteWeight },
-  user: user
-    ? { id: user.id, name: user.userMetadata?.["name"] ?? user.id }
-    : undefined,
 });
 
 // A time window, e.g. one day in the organizer's time zone, which only the
@@ -381,7 +382,7 @@ app.get(
     const { id: conferenceId, userId } = c.req.valid("param");
 
     const [user, points] = await Promise.all([
-      getUserById(userId),
+      getUserIdAndName(userId),
       getParticipantPoints(conferenceId, userId),
     ]);
     if (!user || !points) {
@@ -392,7 +393,7 @@ app.get(
 
     return c.json({
       data: {
-        user: { id: user.id, name: user.userMetadata?.["name"] ?? user.id },
+        user,
         ...points,
       },
       scoring: SCORING,

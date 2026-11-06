@@ -1,7 +1,9 @@
-import { and, eq, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { events, questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
 import { tierFor } from "../tiers.ts";
+import { visibleQuestion } from "./questions.ts";
+import { notBanned, userName } from "./user.ts";
 
 /**
  * Points a participant earns at a conference. Only what others do for them
@@ -12,18 +14,6 @@ export const SCORING = {
   picked: 5,
   vote: 1,
 } as const;
-
-// The database's clock, so a ban that runs out counts as over right away
-const notBanned = or(
-  isNull(users.bannedUntil),
-  lte(users.bannedUntil, sql`NOW()`),
-);
-
-// Questions the public sees: not deleted, not hidden by moderation
-const isVisibleQuestion = and(
-  isNull(questions.deletedAt),
-  isNull(questions.hiddenAt),
-);
 
 /** Picks and votes received (weighted, own votes left out), per asker. */
 function getAskerStats(conferenceId: number) {
@@ -45,7 +35,7 @@ function getAskerStats(conferenceId: number) {
       ),
     )
     .where(
-      and(eq(events.conferenceId, conferenceId), isVisibleQuestion, notBanned),
+      and(eq(events.conferenceId, conferenceId), visibleQuestion, notBanned()),
     )
     .groupBy(questions.userId)
     .execute();
@@ -60,7 +50,7 @@ function getVoterIds(conferenceId: number) {
     .innerJoin(events, eq(questions.eventId, events.id))
     .innerJoin(users, eq(votes.userId, users.id))
     .where(
-      and(eq(events.conferenceId, conferenceId), isVisibleQuestion, notBanned),
+      and(eq(events.conferenceId, conferenceId), visibleQuestion, notBanned()),
     )
     .execute();
 }
@@ -122,14 +112,12 @@ export async function getTopContributors(conferenceId: number, limit: number) {
   if (top.length === 0) return [];
 
   const people = await db
-    .select({ id: users.id, userMetadata: users.userMetadata })
+    .select({ id: users.id, name: userName })
     .from(users)
     .where(inArray(users.id, top.map((asker) => asker.userId)))
     .execute();
-  const nameOf = (userId: string) => {
-    const metadata = people.find((person) => person.id === userId)?.userMetadata;
-    return (metadata?.["name"] as string | undefined) ?? userId;
-  };
+  const nameOf = (userId: string) =>
+    people.find((person) => person.id === userId)?.name ?? userId;
 
   return top.map((asker) => ({
     userId: asker.userId,
