@@ -182,7 +182,7 @@ export function Question(
     await selectQuestion();
     refresh();
     toaster.create({
-      title: "Question highlighted",
+      title: "Question selected",
       type: "success",
       duration: CONFIRMATION_DURATION,
     });
@@ -261,7 +261,7 @@ export function Question(
                     {!isSelected && (
                       <Menu.Item value="select" onClick={handleSelected}>
                         <Icon as={FiRadio} mr="2" color="accent.menuIcon" />
-                        <Box as="span">Highlight</Box>
+                        <Box as="span">Select for answering</Box>
                       </Menu.Item>
                     )}
                     {!isAnswered && (
