@@ -1,27 +1,24 @@
 import { apiUrl } from "../lib/api-url.ts";
 import { HTTPError } from "./http-error.ts";
 import { extractHTTPError } from "./request.ts";
-import { countFetch } from "./fetch-activity.ts";
 
 const SHARED_HEADERS = {
   "Accept": "application/json",
   "Content-Type": "application/json",
 };
 
-// Counted, so the management pages can show that they are refreshing.
-export const fetcher = (endpoint: string, token?: string) =>
-  countFetch(async () => {
-    const res = await fetch(apiUrl(endpoint), {
-      headers: {
-        ...SHARED_HEADERS,
-        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-      },
-    });
-    if (!res.ok) {
-      throw new HTTPError(res);
-    }
-    return res.json();
+export const fetcher = async (endpoint: string, token?: string) => {
+  const res = await fetch(apiUrl(endpoint), {
+    headers: {
+      ...SHARED_HEADERS,
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    },
   });
+  if (!res.ok) {
+    throw new HTTPError(res);
+  }
+  return res.json();
+};
 
 /**
  * Every POST goes to a route behind `jwt()`, so the token is a required
