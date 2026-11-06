@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { deleter, fetcher, poster } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 
 export type GrantableRole = "organizer" | "moderator" | "attendee";
 
@@ -32,15 +33,19 @@ export type ConferencePermissions = {
 export function useConferencePermissions(conferenceId: number | undefined) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const viewerId = session?.user.id;
   const path = `/api/v1/conferences/${conferenceId}/permissions`;
 
+  // Keyed on the user, not the token, which changes on every refresh and
+  // would blank the page until the refetch.
   const { data, error, isLoading, mutate } = useSWR<
     { data: ConferencePermissions },
     HTTPError
   >(
-    conferenceId && token ? [path, token] : undefined,
-    ([path, token]: [string, string]) => fetcher(path, token),
+    conferenceId && token && viewerId ? [path, viewerId] : undefined,
+    ([path]: [string, string]) => fetcher(path, token),
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   /** Adds an email or changes its role; invited means it has no account yet. */
   const setRole = async (email: string, role: GrantableRole) => {

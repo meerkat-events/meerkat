@@ -3,6 +3,7 @@ import { useEventSource, useJitteredRefresh } from "@meerkat-events/react";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 import { apiUrl } from "../lib/api-url.ts";
 import type { ModeratedQuestion } from "../components/Manage/question-state.ts";
 import type { TimeWindow } from "./use-conference-stats.ts";
@@ -30,6 +31,7 @@ export function useConferenceQuestions(
 ) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const userId = session?.user.id;
   const filter = "live" in scope
     ? "live=true"
     : "event" in scope
@@ -41,19 +43,22 @@ export function useConferenceQuestions(
         : {}),
     }).toString();
 
+  // Keyed on the user, not the token, which changes on every refresh and
+  // would blank the page until the refetch.
   const { data, error, isLoading, mutate } = useSWR<
     { data: ConferenceQuestion[] },
     HTTPError
   >(
-    conferenceId && token
+    conferenceId && token && userId
       ? [
         `/api/v1/conferences/${conferenceId}/questions?${filter}&hidden=true`,
-        token,
+        userId,
       ]
       : undefined,
-    ([path, token]: [string, string]) => fetcher(path, token),
+    ([path]: [string, string]) => fetcher(path, token),
     { refreshInterval: 10_000 },
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   // One stream per list, so a feed and a session panel each refresh.
   const scheduleRefresh = useJitteredRefresh(() => mutate());
