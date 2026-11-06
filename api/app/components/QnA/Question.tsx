@@ -33,6 +33,7 @@ import {
   RELEVANCE_LEVELS,
   relevanceIndex,
 } from "../Manage/question-state.ts";
+import { useSwipeReveal } from "./use-swipe.ts";
 
 /**
  * Whether moderators see a relevance label ("Relevant", "Off topic") next to
@@ -40,6 +41,9 @@ import {
  * score either way.
  */
 const SHOW_RELEVANCE_SCORE = true;
+
+// Space (px) between the revealed buttons and the swiped card.
+const SWIPE_GAP = 8;
 
 export type QuestionSupervotes = {
   /** Supervotes the user can spend; the prompt only shows when above 0. */
@@ -182,7 +186,7 @@ export function Question(
     await selectQuestion();
     refresh();
     toaster.create({
-      title: "Question highlighted",
+      title: "Question selected",
       type: "success",
       duration: CONFIRMATION_DURATION,
     });
@@ -191,6 +195,17 @@ export function Question(
   const isAnswered = !!question.answeredAt;
   const isSelected = answering;
 
+  const canSwipe = canModerate && !isAnswered;
+  // Swipe right to reveal Select for answering and Answered underneath the
+  // card. With the gap after it, Select for answering takes 9rem (144px) and
+  // Answered 5.5rem (88px); app.css sets their widths.
+  const { ref, offset, isDragging, isOpen, close, handlers } = useSwipeReveal({
+    width: isSelected
+      ? 88
+      : 232,
+    enabled: canSwipe,
+  });
+
   const classNames = [
     "question-card",
     isAnswered ? "answered" : "",
@@ -198,130 +213,188 @@ export function Question(
   ];
 
   return (
-    <li className={classNames.join(" ")}>
-      {isSelected && (
-        <div className="question-card-status">
-          <Icon as={FiRadio} />
-          Answering
+    <li
+      ref={ref}
+      className={[
+        "question-swipe",
+        canSwipe ? "swipeable" : "",
+        isDragging ? "dragging" : "",
+      ].join(" ")}
+      {...handlers}
+    >
+      {offset > 0 && (
+        <div
+          className="question-swipe-actions"
+          // Stop short of the card so a half-revealed button never shows in
+          // the gaps around the card's rounded corners.
+          style={{ width: Math.max(0, offset - SWIPE_GAP) }}
+        >
+          {!isSelected && (
+            <button
+              type="button"
+              className="question-swipe-action select"
+              tabIndex={isOpen ? 0 : -1}
+              onClick={() => {
+                close();
+                handleSelected();
+              }}
+            >
+              <Icon as={FiRadio} boxSize="5" />
+              Select for answering
+            </button>
+          )}
+          <button
+            type="button"
+            className="question-swipe-action answered"
+            tabIndex={isOpen ? 0 : -1}
+            onClick={() => {
+              close();
+              handleAnswered();
+            }}
+          >
+            <Icon as={CheckCircleIcon} boxSize="5" />
+            Answered
+          </button>
         </div>
       )}
-      <Text className="question-card-text" textStyle="md" fontWeight="semibold">
-        {question.question}
-      </Text>
-      <div className="question-card-meta">
-        <div className="question-card-byline">
-          {onAuthorSelect
-            ? (
-              <chakra.button
-                type="button"
-                onClick={onAuthorSelect}
-                // Relative and not clipped, so the tap target can reach
-                // beyond the line of text; the name itself truncates
-                position="relative"
-                display="inline-flex"
-                minW="0"
-                textStyle="sm"
-                color="fg.muted"
-                cursor="pointer"
-                borderRadius="sm"
-                _hover={{ color: "fg", textDecoration: "underline" }}
-                focusVisibleRing="outside"
-                aria-label={`Show ${authorName}'s points`}
-                {...tapTargetStyles}
-              >
-                <chakra.span truncate>{authorName}</chakra.span>
-              </chakra.button>
-            )
-            : (
-              <Text as="span" textStyle="sm" color="fg.muted" minW="0" truncate>
-                {authorName}
-              </Text>
-            )}
-          {canModerate && (
-            <Menu.Root positioning={{ placement: "bottom-start" }}>
-              <Menu.Trigger asChild>
-                <IconButton
-                  {...tapTargetStyles}
-                  size="sm"
-                  h="questionControl"
-                  minW="questionControl"
-                  flexShrink={0}
-                  aria-label="Options"
-                  variant="ghost"
-                  colorPalette="gray"
-                  color="accent.icon"
-                >
-                  <Icon as={FiMoreHorizontal} />
-                </IconButton>
-              </Menu.Trigger>
-              <Portal>
-                <Menu.Positioner>
-                  <Menu.Content>
-                    {/* An answered question can go back on stage. */}
-                    {!isSelected && (
-                      <Menu.Item value="select" onClick={handleSelected}>
-                        <Icon as={FiRadio} mr="2" color="accent.menuIcon" />
-                        <Box as="span">Highlight</Box>
-                      </Menu.Item>
-                    )}
-                    {!isAnswered && (
-                      <Menu.Item value="answer" onClick={handleAnswered}>
-                        <Icon
-                          as={CheckCircleIcon}
-                          mr="2"
-                          color="accent.menuIcon"
-                        />
-                        <Box as="span">Answered</Box>
-                      </Menu.Item>
-                    )}
-                    <Menu.Item value="hide" onClick={handleHide}>
-                      <Icon as={SpamIcon} mr="2" color="accent.menuIcon" />
-                      <Box as="span">Spam</Box>
-                    </Menu.Item>
-                    {question.user && (
-                      <Menu.Item value="block" onClick={handleBlock}>
-                        <Icon as={NotAllowedIcon} mr="2" color="accent.menuIcon" />
-                        <Box as="span">Block User</Box>
-                      </Menu.Item>
-                    )}
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Portal>
-            </Menu.Root>
-          )}
-        </div>
-        <div className="question-card-actions">
-          {SHOW_RELEVANCE_SCORE && canModerate && question.relevance != null && (
-            <RelevanceScore score={question.relevance} />
-          )}
-          <UpVoteButton
-            votes={question.votes}
-            voted={voted}
-            loading={isVoting}
-            supervoted={supervoted}
-            onClick={handleVoteClick}
-            // A supervote is spent for good: it can't be un-voted.
-            disabled={!canVote || isAnswered || supervoted}
-          />
-        </div>
-        {supervotes && (
-          <SupervotePrompt
-            open={isPromptOpen}
-            available={supervotes.available}
-            weight={supervotes.weight}
-            onSupervote={() => {
-              setIsPromptOpen(false);
-              isSupervotingRef.current = true;
-              toggleVote({ uid: question.uid, weight: supervotes.weight });
-            }}
-            onRegularVote={() => {
-              setIsPromptOpen(false);
-              isAddingVote.current = true;
-              toggleVote({ uid: question.uid });
-            }}
-            onCancel={() => setIsPromptOpen(false)}
-          />
+      <div
+        className={classNames.join(" ")}
+        style={offset
+          ? { transform: `translateX(${offset}px)` }
+          : undefined}
+        onClickCapture={isOpen
+          ? (event) => {
+            // Clicks in portalled children (the options menu) reach here too.
+            if (!event.currentTarget.contains(event.target as Node)) return;
+            event.stopPropagation();
+            close();
+          }
+          : undefined}
+      >
+        {isSelected && (
+          <div className="question-card-status">
+            <Icon as={FiRadio} />
+            Answering
+          </div>
         )}
+        <Text className="question-card-text" textStyle="md" fontWeight="semibold">
+          {question.question}
+        </Text>
+        <div className="question-card-meta">
+          <div className="question-card-byline">
+            {onAuthorSelect
+              ? (
+                <chakra.button
+                  type="button"
+                  onClick={onAuthorSelect}
+                  // Relative and not clipped, so the tap target can reach
+                  // beyond the line of text; the name itself truncates
+                  position="relative"
+                  display="inline-flex"
+                  minW="0"
+                  textStyle="sm"
+                  color="fg.muted"
+                  cursor="pointer"
+                  borderRadius="sm"
+                  _hover={{ color: "fg", textDecoration: "underline" }}
+                  focusVisibleRing="outside"
+                  aria-label={`Show ${authorName}'s points`}
+                  {...tapTargetStyles}
+                >
+                  <chakra.span truncate>{authorName}</chakra.span>
+                </chakra.button>
+              )
+              : (
+                <Text as="span" textStyle="sm" color="fg.muted" minW="0" truncate>
+                  {authorName}
+                </Text>
+              )}
+            {canModerate && (
+              <Menu.Root positioning={{ placement: "bottom-start" }}>
+                <Menu.Trigger asChild>
+                  <IconButton
+                    {...tapTargetStyles}
+                    size="sm"
+                    h="questionControl"
+                    minW="questionControl"
+                    flexShrink={0}
+                    aria-label="Options"
+                    variant="ghost"
+                    colorPalette="gray"
+                    color="accent.icon"
+                  >
+                    <Icon as={FiMoreHorizontal} />
+                  </IconButton>
+                </Menu.Trigger>
+                <Portal>
+                  <Menu.Positioner>
+                    <Menu.Content>
+                      {/* An answered question can go back on stage. */}
+                      {!isSelected && (
+                        <Menu.Item value="select" onClick={handleSelected}>
+                          <Icon as={FiRadio} mr="2" color="accent.menuIcon" />
+                          <Box as="span">Select for answering</Box>
+                        </Menu.Item>
+                      )}
+                      {!isAnswered && (
+                        <Menu.Item value="answer" onClick={handleAnswered}>
+                          <Icon
+                            as={CheckCircleIcon}
+                            mr="2"
+                            color="accent.menuIcon"
+                          />
+                          <Box as="span">Answered</Box>
+                        </Menu.Item>
+                      )}
+                      <Menu.Item value="hide" onClick={handleHide}>
+                        <Icon as={SpamIcon} mr="2" color="accent.menuIcon" />
+                        <Box as="span">Spam</Box>
+                      </Menu.Item>
+                      {question.user && (
+                        <Menu.Item value="block" onClick={handleBlock}>
+                          <Icon as={NotAllowedIcon} mr="2" color="accent.menuIcon" />
+                          <Box as="span">Block User</Box>
+                        </Menu.Item>
+                      )}
+                    </Menu.Content>
+                  </Menu.Positioner>
+                </Portal>
+              </Menu.Root>
+            )}
+          </div>
+          <div className="question-card-actions">
+            {SHOW_RELEVANCE_SCORE && canModerate && question.relevance != null && (
+              <RelevanceScore score={question.relevance} />
+            )}
+            <UpVoteButton
+              votes={question.votes}
+              voted={voted}
+              loading={isVoting}
+              supervoted={supervoted}
+              onClick={handleVoteClick}
+              // A supervote is spent for good: it can't be un-voted.
+              disabled={!canVote || isAnswered || supervoted}
+            />
+          </div>
+          {supervotes && (
+            <SupervotePrompt
+              open={isPromptOpen}
+              available={supervotes.available}
+              weight={supervotes.weight}
+              onSupervote={() => {
+                setIsPromptOpen(false);
+                isSupervotingRef.current = true;
+                toggleVote({ uid: question.uid, weight: supervotes.weight });
+              }}
+              onRegularVote={() => {
+                setIsPromptOpen(false);
+                isAddingVote.current = true;
+                toggleVote({ uid: question.uid });
+              }}
+              onCancel={() => setIsPromptOpen(false)}
+            />
+          )}
+        </div>
       </div>
     </li>
   );
