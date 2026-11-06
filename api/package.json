@@ -9,7 +9,6 @@
     "start": "node --import ./instrumentation.ts ./main.ts",
     "build": "NODE_ENV=production react-router build",
     "typecheck": "react-router typegen && NODE_ENV=production react-router build && tsc --noEmit",
-    "typegen": "react-router typegen",
     "lint": "eslint .",
     "test": "node --test",
     "test:integration": "../scripts/test-integration.sh",

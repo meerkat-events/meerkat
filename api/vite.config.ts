@@ -1,12 +1,11 @@
 import { reactRouter } from "@react-router/dev/vite";
 import { defineConfig, loadEnv } from "vite";
-import path from "path";
-import { fileURLToPath } from "url";
+import path from "node:path";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const appDir = path.join(__dirname, "app") + path.sep;
-const nodeModulesDir = path.join(__dirname, "node_modules") + path.sep;
-const serverBuildDir = path.join(__dirname, "build", "server");
+const apiDir = import.meta.dirname;
+const appDir = path.join(apiDir, "app") + path.sep;
+const nodeModulesDir = path.join(apiDir, "node_modules") + path.sep;
+const serverBuildDir = path.join(apiDir, "build", "server");
 
 /**
  * Server modules outside app/ (db.ts, models/, env.ts, logger.ts, ...) stay
@@ -15,7 +14,7 @@ const serverBuildDir = path.join(__dirname, "build", "server");
  * one database pool, instead of bundling copies of them.
  */
 function isServerSourceModule(id: string) {
-  return id.startsWith(__dirname + path.sep) &&
+  return id.startsWith(apiDir + path.sep) &&
     !id.startsWith(appDir) &&
     !id.startsWith(nodeModulesDir) &&
     id.endsWith(".ts");
@@ -29,7 +28,7 @@ function isServerSourceModule(id: string) {
  * build rather than publishing a broken page.
  */
 function legalOperator(mode: string) {
-  const raw = loadEnv(mode, __dirname, "")["LEGAL_OPERATOR"]?.trim();
+  const raw = loadEnv(mode, apiDir, "")["LEGAL_OPERATOR"]?.trim();
   if (!raw) {
     return null;
   }
@@ -81,7 +80,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [reactRouter()],
   resolve: {
     alias: {
-      "~": path.resolve(__dirname, "./app"),
+      "~": path.resolve(apiDir, "./app"),
       "react-dom/server": "react-dom/server.node",
     },
   },

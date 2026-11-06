@@ -7,7 +7,6 @@ export default defineConfig(
     // Generated files and build outputs
     ignores: [
       "build/**",
-      "server.js",
       "node_modules/**",
       ".react-router/**",
       "app/components/ui/color-mode.tsx",
