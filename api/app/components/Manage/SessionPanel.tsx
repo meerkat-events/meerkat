@@ -27,6 +27,9 @@ import {
 
 const SESSION_TABS = ["questions", "details", "qr"] as const;
 
+// Until the questions load: the same array every render, so the view's memo holds.
+const NO_QUESTIONS: never[] = [];
+
 /** One session: status, Go live, Q&A link and QR codes, its questions and details. */
 export function SessionPanel(
   { session, counts, onClose, onChanged, onPerson }: {
@@ -168,7 +171,7 @@ function SessionQuestions(
 ) {
   const { conferenceId } = useManage();
   const { data, mutate } = useConferenceQuestions(conferenceId, { event: session.uid });
-  const view = useQuestionView(data ?? []);
+  const view = useQuestionView(data ?? NO_QUESTIONS);
 
   if (status === "upcoming" && !data?.length) {
     return (

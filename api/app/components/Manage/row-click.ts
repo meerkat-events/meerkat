@@ -1,7 +1,7 @@
 import type { MouseEvent } from "react";
 
-// Controls inside a row do their own thing.
-const CONTROLS = "a, button, input, select, textarea, label";
+// Controls inside a row do their own thing, menus included.
+const CONTROLS = "a, button, input, select, textarea, label, [role=menu]";
 
 /**
  * The `onClick` of a table row that opens something as a whole (give it the
