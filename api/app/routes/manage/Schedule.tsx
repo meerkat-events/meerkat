@@ -3,9 +3,10 @@ import { useSearchParams } from "react-router";
 import { useManage } from "../../layouts/manage.tsx";
 import { useConferenceEvents } from "../../hooks/use-conference-events.ts";
 import { useConferenceStats } from "../../hooks/use-conference-stats.ts";
+import { DayFilter, sessionDays } from "../../components/Manage/DayFilter.tsx";
 import { Timeline } from "../../components/Manage/Timeline.tsx";
 import { SessionPanel } from "../../components/Manage/SessionPanel.tsx";
-import { dayKey, endOfDay, fmtDay, startOfDay, useNow } from "../../components/Manage/time.ts";
+import { dayKey, endOfDay, startOfDay, useNow } from "../../components/Manage/time.ts";
 import type { Route } from "./+types/Schedule.ts";
 
 export const meta: Route.MetaFunction = () => [
@@ -33,10 +34,7 @@ export default function Schedule() {
   const now = useNow(30_000);
   const sessions = useMemo(() => allSessions ?? [], [allSessions]);
 
-  const days = useMemo(
-    () => [...new Set(sessions.map((s) => dayKey(s.start)))].sort(),
-    [sessions],
-  );
+  const days = useMemo(() => sessionDays(sessions), [sessions]);
   const stages = useMemo(
     () => [...new Set(sessions.map((s) => s.stage))].sort((a, b) => a.localeCompare(b)),
     [sessions],
@@ -87,40 +85,29 @@ export default function Schedule() {
 
   return (
     <div className="m-schedule">
-      <div className="m-schedule-bar">
-        <nav className="m-days" aria-label="Event days">
-          {days.map((d) => (
-            <button key={d} type="button" aria-current={d === day} onClick={() => setDay(d)}>
-              {fmtDay(startOfDay(d))}
-              {d === today && <small>Today</small>}
-            </button>
-          ))}
-        </nav>
-      </div>
-      <div className="m-schedule-body">
-        {dayStart && (
-          <Timeline
-            day={dayStart}
-            sessions={daySessions}
-            stages={stages.filter((stage) => daySessions.some((s) => s.stage === stage))}
-            now={now}
-            counts={counts}
-            selectedUid={selected?.uid}
-            onSelect={(s) => select(s.uid)}
-          />
-        )}
-        {/* One dialog at a time, even if a link names a session and a person. */}
-        {selected && !params.get("person") && (
-          <SessionPanel
-            key={selected.uid}
-            session={selected}
-            counts={counts.get(selected.id)}
-            onClose={() => select(undefined)}
-            onChanged={() => refreshSessions()}
-            onPerson={openPersonInstead}
-          />
-        )}
-      </div>
+      <DayFilter days={days} today={today} value={day} onChange={setDay} allDays={false} />
+      {dayStart && (
+        <Timeline
+          day={dayStart}
+          sessions={daySessions}
+          stages={stages.filter((stage) => daySessions.some((s) => s.stage === stage))}
+          now={now}
+          counts={counts}
+          selectedUid={selected?.uid}
+          onSelect={(s) => select(s.uid)}
+        />
+      )}
+      {/* One dialog at a time, even if a link names a session and a person. */}
+      {selected && !params.get("person") && (
+        <SessionPanel
+          key={selected.uid}
+          session={selected}
+          counts={counts.get(selected.id)}
+          onClose={() => select(undefined)}
+          onChanged={() => refreshSessions()}
+          onPerson={openPersonInstead}
+        />
+      )}
     </div>
   );
 }

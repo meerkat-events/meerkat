@@ -106,6 +106,19 @@ export function questionStates(q: ModeratedQuestion): QuestionState[] {
   return states;
 }
 
+/** Hidden (by a moderator or automatic moderation) or deleted: off the Q&A. */
+export function isHidden(q: ModeratedQuestion) {
+  return !!q.deletedAt || !!q.hiddenAt;
+}
+
+/**
+ * Done with: answered, or off the Q&A. These fade in the tables and can't be
+ * voted on, as on the Q&A page.
+ */
+export function isClosed(q: ModeratedQuestion) {
+  return isHidden(q) || !!q.answeredAt;
+}
+
 export const FILTERS = [
   { value: "all", label: "All" },
   { value: "answered", label: "Answered" },
