@@ -17,14 +17,13 @@ import {
   type Session,
   useConferenceEvents,
 } from "../hooks/use-conference-events.ts";
-import { mutate, SWRConfig } from "swr";
+import { mutate } from "swr";
 import { ConferenceSwitcher } from "../components/Manage/ConferenceSwitcher.tsx";
 import { SessionSearch } from "../components/Manage/SessionSearch.tsx";
 import { useConferencePath } from "../components/Manage/use-conference-path.ts";
 import { PersonDialog } from "../components/Manage/PersonDialog.tsx";
 import { CooldownModal } from "../components/QnA/CooldownModal.tsx";
 import { RefreshButton } from "../components/Manage/RefreshButton.tsx";
-import { trackRequests } from "../components/Manage/request-activity.ts";
 import { dayKey, fmtDay } from "../components/Manage/time.ts";
 
 import "./manage.css";
@@ -55,23 +54,11 @@ export const links: LinksFunction = () => [
   },
 ];
 
-// A constant, so SWR doesn't see a new configuration on every render.
-const swrConfig = { use: [trackRequests] };
-
 /**
  * Organizer pages: live question feed, schedule and analytics for one
  * conference the signed-in user organizes.
  */
 export default function ManageLayout() {
-  // Every fetch on these pages is counted, for the refresh button's spinner.
-  return (
-    <SWRConfig value={swrConfig}>
-      <ManagePages />
-    </SWRConfig>
-  );
-}
-
-function ManagePages() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { data: roles, isLoading: rolesLoading } = useConferenceRoles();
   const [params, setParams] = useSearchParams();

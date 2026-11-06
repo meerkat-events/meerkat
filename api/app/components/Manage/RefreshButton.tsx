@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSWRConfig } from "swr";
 import { Icon, IconButton } from "@chakra-ui/react";
 import { LuRefreshCw } from "react-icons/lu";
-import { useIsFetching } from "./request-activity.ts";
+import { useIsFetching } from "../../hooks/fetch-activity.ts";
 
 // A poll can finish in a few milliseconds; keep spinning a little longer so
 // the icon visibly turns instead of twitching.
@@ -13,8 +13,26 @@ const MIN_SPIN_MS = 600;
  * it is being fetched, including the pages' own polls and live updates.
  */
 export function RefreshButton() {
-  const { mutate } = useSWRConfig();
+  const { cache, mutate } = useSWRConfig();
   const spinning = useStaysOnFor(useIsFetching(), MIN_SPIN_MS);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refresh = async () => {
+    // One refresh at a time: another click would restart every request.
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      // A filter skips infinite lists (the attendees on Permissions), so
+      // they are revalidated by their keys, which SWR prefixes with $inf$.
+      const infiniteKeys = [...cache.keys()].filter((key) => key.startsWith("$inf$"));
+      await Promise.all([
+        mutate(() => true),
+        ...infiniteKeys.map((key) => mutate(key)),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <IconButton
@@ -26,7 +44,7 @@ export function RefreshButton() {
       aria-busy={spinning}
       title={spinning ? "Refreshing…" : "Refresh"}
       className="m-refresh"
-      onClick={() => mutate(() => true)}
+      onClick={refresh}
     >
       <Icon as={LuRefreshCw} />
     </IconButton>
