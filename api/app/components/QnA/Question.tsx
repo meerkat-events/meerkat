@@ -23,6 +23,7 @@ import { FiRadio, FiStar, FiThumbsDown } from "react-icons/fi";
 import { useSelectQuestion } from "../../hooks/use-select-question.ts";
 import {
   CONFIRMATION_DURATION,
+  toastError,
   toaster,
 } from "../../components/ui/toaster.tsx";
 import { useVote } from "../../hooks/use-vote.ts";
@@ -51,10 +52,8 @@ interface QuestionProps {
   canVote: boolean;
   canModerate: boolean;
   question: QuestionType;
-  voted: boolean;
   refresh: () => void;
   supervotes?: QuestionSupervotes | undefined;
-  supervoted?: boolean;
   /** The question on stage right now (see splitAnswering). */
   answering: boolean;
   /** Opens the author's points from their name. */
@@ -66,15 +65,15 @@ export function Question(
     canVote,
     canModerate,
     question,
-    voted,
     refresh,
     supervotes,
-    supervoted,
     answering,
     onAuthorSelect,
   }: QuestionProps,
 ) {
   const [isPromptOpen, setIsPromptOpen] = useState(false);
+  const voted = !!question.vote;
+  const supervoted = !!question.vote && question.vote.weight > 1;
   const authorName = question.user?.name ?? question.user?.id ?? "Unknown";
   // Set while a supervoted vote is in flight, so its toast can say so.
   const isSupervotingRef = useRef(false);
@@ -132,6 +131,31 @@ export function Question(
   const { trigger: hideQuestion } = useHideQuestion(question.uid);
   const { trigger: selectQuestion } = useSelectQuestion(question.uid);
 
+  /**
+   * Runs a moderation action and refreshes the list, then confirms it or
+   * says why it failed. A failure refreshes too: it often means the question
+   * changed in the meantime.
+   */
+  const moderate = async (
+    action: () => Promise<unknown>,
+    successTitle: string,
+    failTitle: string,
+  ) => {
+    try {
+      await action();
+    } catch (error) {
+      refresh();
+      toastError(failTitle, error);
+      return;
+    }
+    refresh();
+    toaster.create({
+      title: successTitle,
+      type: "success",
+      duration: CONFIRMATION_DURATION,
+    });
+  };
+
   const handleBlock = async () => {
     const result = await confirm("Are you sure you want to block this user?");
 
@@ -139,67 +163,41 @@ export function Question(
       return;
     }
 
-    try {
-      await block();
-    } catch (error) {
-      toaster.create({
-        title: "Couldn't block this user",
-        type: "error",
-        description: error instanceof Error ? error.message : undefined,
-      });
-      return;
-    }
-    refresh();
-
-    toaster.create({
-      title: "User blocked",
-      type: "success",
-      duration: CONFIRMATION_DURATION,
-    });
+    await moderate(block, "User blocked", "Couldn't block this user");
   };
 
-  const handleAnswered = async () => {
-    await markAsAnswered();
-    refresh();
-    toaster.create({
-      title: "Question answered",
-      type: "success",
-      duration: CONFIRMATION_DURATION,
-    });
-  };
+  const handleAnswered = () =>
+    moderate(
+      markAsAnswered,
+      "Question answered",
+      "Couldn't mark the question answered",
+    );
 
-  const handleHide = async () => {
-    await hideQuestion();
-    refresh();
-    toaster.create({
-      title: "Question marked as spam",
-      type: "success",
-      duration: CONFIRMATION_DURATION,
-    });
-  };
+  const handleHide = () =>
+    moderate(
+      hideQuestion,
+      "Question marked as spam",
+      "Couldn't mark the question as spam",
+    );
 
-  const handleSelected = async () => {
-    await selectQuestion();
-    refresh();
-    toaster.create({
-      title: "Question highlighted",
-      type: "success",
-      duration: CONFIRMATION_DURATION,
-    });
-  };
+  const handleSelected = () =>
+    moderate(
+      selectQuestion,
+      "Question highlighted",
+      "Couldn't highlight the question",
+    );
 
   const isAnswered = !!question.answeredAt;
-  const isSelected = answering;
 
   const classNames = [
     "question-card",
     isAnswered ? "answered" : "",
-    isSelected ? "selected" : "",
+    answering ? "selected" : "",
   ];
 
   return (
     <li className={classNames.join(" ")}>
-      {isSelected && (
+      {answering && (
         <div className="question-card-status">
           <Icon as={FiRadio} />
           Answering
@@ -258,7 +256,7 @@ export function Question(
                 <Menu.Positioner>
                   <Menu.Content>
                     {/* An answered question can go back on stage. */}
-                    {!isSelected && (
+                    {!answering && (
                       <Menu.Item value="select" onClick={handleSelected}>
                         <Icon as={FiRadio} mr="2" color="accent.menuIcon" />
                         <Box as="span">Highlight</Box>
