@@ -74,7 +74,8 @@ async function loadQuestionForModeration(
 ) {
   const question = await getQuestionByUID(uid);
 
-  if (!question) {
+  // Older questions were soft-deleted; they are gone for moderation too.
+  if (!question || question.deletedAt) {
     throw new HTTPException(404, { message: `Question ${uid} not found` });
   }
 

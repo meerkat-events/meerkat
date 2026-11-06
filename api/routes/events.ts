@@ -477,7 +477,6 @@ app.get("/e/:uid/card", (c) => {
 // screen (the page /stage/:stage, or /e/:uid?keep-live=true) polls
 // /api/v1/events/stage/:stage/live. Both resolve the event the stage shows:
 // live, else running, else next, else the one that ended last.
-
 app.get("/stage/:stage/qa", async (c) => {
   const stage = c.req.param("stage");
   const liveEvent = await getStageLiveEvent(stage);
@@ -508,7 +507,7 @@ app.get("/api/v1/events/stage/:stage/live", async (c) => {
 
 // Public, like the question list it tells clients to refetch (EventSource
 // can't send a token anyway). An unnamed `update` means "refetch the
-// questions" (asked, voted, selected, answered, deleted, restored, or a
+// questions" (asked, voted, selected, answered, hidden, restored, or a
 // resync); a named `reaction` carries one reaction; a named `live` carries
 // `{ uid, title }` of the event just put live on this event's stage (same
 // conference), so a stage screen can switch to it and the Q&A page can offer
