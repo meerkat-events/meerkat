@@ -9,8 +9,6 @@ import {
   isNotNull,
   isNull,
   lt,
-  lte,
-  or,
   sql,
 } from "drizzle-orm";
 import db from "../db.ts";
@@ -24,10 +22,9 @@ import {
   votes,
 } from "../schema.ts";
 import { REACTION_EMOJIS, type ReactionEmoji } from "../reactions.ts";
-import { voteTotal, voteTotalOf } from "./votes.ts";
-
-const notBlocked = () =>
-  or(isNull(users.bannedUntil), lte(users.bannedUntil, new Date()));
+import { visibleQuestion } from "./questions.ts";
+import { isBanned, notBanned, userName } from "./user.ts";
+import { viewerVoteWeight, voteTotal, voteTotalOf } from "./votes.ts";
 
 // Questions automatic moderation hid are shadow-hidden: attendees never see
 // them, so counts of what happened in a session leave them out. Organizers
@@ -77,10 +74,10 @@ export function getConferenceQuestions(
 ) {
   const conditions = [
     eq(events.conferenceId, conferenceId),
-    notBlocked(),
+    notBanned(),
   ];
   if (!options.includeHidden) {
-    conditions.push(isNull(questions.deletedAt), notModerationHidden);
+    conditions.push(visibleQuestion);
   }
   if (options.live) conditions.push(eq(events.live, true));
   if (options.moderated) conditions.push(moderatedByModeration);
@@ -88,10 +85,6 @@ export function getConferenceQuestions(
   if (options.eventUid) {
     conditions.push(eq(lower(events.uid), options.eventUid.toLowerCase()));
   }
-
-  const viewerVoteWeight = options.viewerId
-    ? sql<number | null>`MAX(${votes.weight}) FILTER (WHERE ${votes.userId} = ${options.viewerId})`
-    : sql<null>`NULL`;
 
   return db
     .select({
@@ -106,9 +99,9 @@ export function getConferenceQuestions(
       hiddenAt: questions.hiddenAt,
       moderation: questions.moderation,
       userId: questions.userId,
-      user: users,
+      user: { id: users.id, name: userName },
       votes: voteTotal,
-      viewerVoteWeight: viewerVoteWeight.as("viewer_vote_weight"),
+      viewerVoteWeight: viewerVoteWeight(options.viewerId),
       event: {
         id: events.id,
         uid: events.uid,
@@ -119,7 +112,8 @@ export function getConferenceQuestions(
     .from(questions)
     .innerJoin(events, eq(questions.eventId, events.id))
     .leftJoin(votes, eq(questions.id, votes.questionId))
-    .leftJoin(users, eq(questions.userId, users.id))
+    // questions.user_id references auth.users: every question has its author.
+    .innerJoin(users, eq(questions.userId, users.id))
     .where(and(...conditions))
     .groupBy(questions.id, users.id, events.id)
     .orderBy(desc(questions.createdAt))
@@ -183,9 +177,8 @@ export async function getConferenceStats(
         .where(and(
           inConference,
           asked,
-          isNull(questions.deletedAt),
-          notModerationHidden,
-          notBlocked(),
+          visibleQuestion,
+          notBanned(),
         ))
         .groupBy(questions.eventId)
         .execute(),
@@ -322,9 +315,8 @@ function participantsSql(conferenceId: number, window: TimeWindow) {
     INNER JOIN ${events} ON ${events.id} = ${questions.eventId}
     LEFT JOIN ${users} ON ${users.id} = ${questions.userId}
     WHERE ${events.conferenceId} = ${conferenceId}
-      AND ${questions.deletedAt} IS NULL
-      AND ${questions.hiddenAt} IS NULL
-      AND ${notBlocked()}
+      AND ${visibleQuestion}
+      AND ${notBanned()}
       AND ${within(questions.createdAt, window)}
     UNION
     SELECT ${questions.eventId} AS event_id, ${votes.userId} AS user_id
@@ -355,7 +347,7 @@ export async function getConferenceUserActivity(
   const [person] = await db
     .select({
       id: users.id,
-      userMetadata: users.userMetadata,
+      name: userName,
       bannedUntil: users.bannedUntil,
     })
     .from(users)
@@ -365,25 +357,30 @@ export async function getConferenceUserActivity(
 
   if (!person) return null;
 
-  const [asked, upvoted, votesCast, sessionRows] = await Promise.all([
+  // What both question lists show of a question and its session.
+  const questionColumns = {
+    id: questions.id,
+    eventId: questions.eventId,
+    uid: questions.uid,
+    question: questions.question,
+    createdAt: questions.createdAt,
+    selectedAt: questions.selectedAt,
+    answeredAt: questions.answeredAt,
+    deletedAt: questions.deletedAt,
+    event: {
+      uid: events.uid,
+      title: events.title,
+      stage: events.stage,
+      start: events.start,
+    },
+  };
+
+  const [asked, upvoted, sessionRows] = await Promise.all([
     db.select({
-      id: questions.id,
-      eventId: questions.eventId,
-      uid: questions.uid,
-      question: questions.question,
-      createdAt: questions.createdAt,
-      selectedAt: questions.selectedAt,
-      answeredAt: questions.answeredAt,
-      deletedAt: questions.deletedAt,
+      ...questionColumns,
       hiddenAt: questions.hiddenAt,
       moderation: questions.moderation,
       votes: voteTotal,
-      event: {
-        uid: events.uid,
-        title: events.title,
-        stage: events.stage,
-        start: events.start,
-      },
     })
       .from(questions)
       .innerJoin(events, eq(questions.eventId, events.id))
@@ -398,43 +395,20 @@ export async function getConferenceUserActivity(
     // The questions they upvoted, with whoever asked them and that question's
     // total votes (not just this person's).
     db.select({
-      id: questions.id,
-      eventId: questions.eventId,
-      uid: questions.uid,
-      question: questions.question,
-      createdAt: questions.createdAt,
-      selectedAt: questions.selectedAt,
-      answeredAt: questions.answeredAt,
-      deletedAt: questions.deletedAt,
+      ...questionColumns,
       votes: voteTotalOf(questions.id),
-      askedById: questions.userId,
-      askedByMetadata: users.userMetadata,
-      event: {
-        uid: events.uid,
-        title: events.title,
-        stage: events.stage,
-        start: events.start,
-      },
+      user: { id: users.id, name: userName },
     })
       .from(questions)
       .innerJoin(events, eq(questions.eventId, events.id))
-      .leftJoin(users, eq(questions.userId, users.id))
+      // questions.user_id references auth.users: every question has its author.
+      .innerJoin(users, eq(questions.userId, users.id))
       .where(and(
         eq(events.conferenceId, conferenceId),
         notModerationHidden,
         sql`EXISTS (SELECT 1 FROM votes v WHERE v.question_id = ${questions.id} AND v.user_id = ${userId})`,
       ))
       .orderBy(desc(questions.createdAt))
-      .execute(),
-    db.select({ n: count() })
-      .from(votes)
-      .innerJoin(questions, eq(votes.questionId, questions.id))
-      .innerJoin(events, eq(questions.eventId, events.id))
-      .where(and(
-        eq(votes.userId, userId),
-        eq(events.conferenceId, conferenceId),
-        notModerationHidden,
-      ))
       .execute(),
     // Every session they touched, with what they did there.
     db.execute<{
@@ -467,7 +441,6 @@ export async function getConferenceUserActivity(
       ORDER BY e.start DESC`),
   ]);
 
-  const blocked = !!person.bannedUntil && person.bannedUntil > new Date();
   // Hidden by an organizer or by automatic moderation.
   const isHidden = (q: { deletedAt: Date | null; hiddenAt: Date | null }) =>
     q.deletedAt !== null || q.hiddenAt !== null;
@@ -475,13 +448,14 @@ export async function getConferenceUserActivity(
   return {
     user: {
       id: person.id,
-      name: (person.userMetadata?.["name"] as string | undefined) ?? person.id,
-      blocked,
+      name: person.name,
+      blocked: isBanned(person),
     },
     summary: {
       questions: asked.filter((q) => !isHidden(q)).length,
       hidden: asked.filter(isHidden).length,
-      votes: votesCast.at(0)?.n ?? 0,
+      // Every session with a vote is among the rows, so these sums are the totals.
+      votes: sessionRows.reduce((total, s) => total + s.votes, 0),
       reactions: sessionRows.reduce((total, s) => total + s.reactions, 0),
       sessions: sessionRows.length,
     },
@@ -490,12 +464,6 @@ export async function getConferenceUserActivity(
       ...rest,
       moderation: summarizeModeration(moderation),
     })),
-    upvoted: upvoted.map(({ askedById, askedByMetadata, ...rest }) => ({
-      ...rest,
-      user: {
-        id: askedById,
-        name: (askedByMetadata?.["name"] as string | undefined) ?? askedById,
-      },
-    })),
+    upvoted,
   };
 }

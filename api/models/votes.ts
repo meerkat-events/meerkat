@@ -16,6 +16,18 @@ export const voteTotal = sql<number>`COALESCE(SUM(${votes.weight}), 0)`
   .mapWith(Number)
   .as("votes");
 
+/**
+ * The weight of the viewer's vote on a question, for a query that left-joins
+ * votes and groups by question; null when they haven't voted or there is no
+ * viewer.
+ */
+export function viewerVoteWeight(viewerId: string | undefined) {
+  const weight = viewerId
+    ? sql<number | null>`MAX(${votes.weight}) FILTER (WHERE ${votes.userId} = ${viewerId})`
+    : sql<number | null>`NULL`;
+  return weight.as("viewer_vote_weight");
+}
+
 /** Vote total for a query that doesn't join votes: a correlated subquery. */
 export function voteTotalOf(questionId: AnyPgColumn) {
   return sql<number>`(
@@ -52,7 +64,7 @@ export async function deleteVote(
   ).execute();
 }
 
-const votesByEventIdAndUserId = db
+const votesByQuestionIdAndUserId = db
   .select()
   .from(votes)
   .where(
@@ -61,12 +73,12 @@ const votesByEventIdAndUserId = db
       eq(votes.userId, sql.placeholder("user_id")),
     ),
   )
-  .prepare("votes_by_event_id_and_user_id");
+  .prepare("votes_by_question_id_and_user_id");
 
 export async function getVotesByQuestionIdAndUserId(
   { questionId, userId }: { questionId: number; userId: string },
 ) {
-  const [results]: Vote[] | undefined = await votesByEventIdAndUserId.execute(
+  const [results]: Vote[] | undefined = await votesByQuestionIdAndUserId.execute(
     {
       question_id: questionId,
       user_id: userId,
@@ -102,4 +114,4 @@ export async function getUserVoteTimesAfterDate(
   return result.map((row) => row.createdAt);
 }
 
-export type Vote = typeof votes.$inferSelect;
+type Vote = typeof votes.$inferSelect;

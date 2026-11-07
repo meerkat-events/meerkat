@@ -117,8 +117,6 @@ export type Event = {
   description: string | null;
   cover: string | null;
   questions: Question[];
-  votes: number;
-  participants: number;
   speaker: string;
   stage: string;
   conference: Conference;

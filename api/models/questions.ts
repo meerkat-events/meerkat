@@ -5,7 +5,6 @@ import {
   eq,
   isNotNull,
   isNull,
-  lte,
   not,
   or,
   sql,
@@ -14,11 +13,18 @@ import { uuidv7 } from "uuidv7";
 import { events, questions, users, votes } from "../schema.ts";
 import db from "../db.ts";
 import { addSupervote } from "./supervotes.ts";
-import { voteTotal } from "./votes.ts";
+import { notBanned, userName } from "./user.ts";
+import { viewerVoteWeight, voteTotal } from "./votes.ts";
 
 export const Sorts = ["popular", "newest"] as const;
 export type Sort = (typeof Sorts)[number];
 
+
+/** Questions anyone may see: not deleted, not hidden by moderation. */
+export const visibleQuestion = and(
+  isNull(questions.deletedAt),
+  isNull(questions.hiddenAt),
+);
 
 export type Questions = Awaited<ReturnType<typeof getQuestions>>;
 
@@ -49,7 +55,7 @@ export function getQuestions(
 
   const conditions = [
     eq(questions.eventId, eventId),
-    or(isNull(users.bannedUntil), lte(users.bannedUntil, new Date())),
+    notBanned(),
     isNull(questions.deletedAt),
     visibleToViewer,
   ];
@@ -62,10 +68,6 @@ export function getQuestions(
 
   const where = and(...conditions);
 
-  const viewerVoteWeight = viewerId
-    ? sql<number | null>`MAX(${votes.weight}) FILTER (WHERE ${votes.userId} = ${viewerId})`
-    : sql<null>`NULL`;
-
   return db
     .select({
       id: questions.id,
@@ -77,13 +79,14 @@ export function getQuestions(
       answeredAt: questions.answeredAt,
       deletedAt: questions.deletedAt,
       userId: questions.userId,
-      user: users,
+      user: { id: users.id, name: userName },
       votes: voteTotal,
-      viewerVoteWeight: viewerVoteWeight.as("viewer_vote_weight"),
+      viewerVoteWeight: viewerVoteWeight(viewerId),
     })
     .from(questions)
     .leftJoin(votes, eq(questions.id, votes.questionId))
-    .leftJoin(users, eq(questions.userId, users.id))
+    // questions.user_id references auth.users: every question has its author.
+    .innerJoin(users, eq(questions.userId, users.id))
     .where(where)
     .groupBy(questions.id, users.id)
     .orderBy(...orderBy)
@@ -260,4 +263,3 @@ export function toPublicQuestion(
 ) {
   return question;
 }
-export type QuestionWithVotes = Question & { votes: number };

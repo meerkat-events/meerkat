@@ -35,8 +35,8 @@ export async function addSupervote(tx: Tx, userId: string) {
  * Spends one of the user's supervotes on a new vote, in one transaction.
  * The balance only drops while it is above 0, and the update locks the
  * user's balance row, so two quick taps can't both spend the last one.
- * Un-voting deletes the vote but doesn't refund it: a supervote is spent
- * once. Returns false when there's none left to spend.
+ * A supervote is spent once: it can't be removed (the upvote toggle answers
+ * 409) and is never refunded. Returns false when there's none left to spend.
  */
 export function spendSupervote(questionId: number, userId: string) {
   return db.transaction(async (tx) => {
