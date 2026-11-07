@@ -46,10 +46,12 @@ internal_port = 8000
 force_https = true
 # Never stop machines on their own: stopping one drops every SSE stream it
 # holds (a few thousand at event scale) and they all reconnect at once. The
-# machine count is set with `fly scale count`; deploys keep it.
+# machine count is set with `fly scale count`; deploys keep it. With
+# auto_stop off, Fly doesn't act on min_machines_running: it only records
+# the intended prod count (2, so one can fail).
 auto_stop_machines = "off"
 auto_start_machines = true
-min_machines_running = 6
+min_machines_running = 2
 processes = ['app']
 
 # Every open page (Q&A on phones, stage screens, organizer pages) holds an SSE
@@ -58,9 +60,12 @@ processes = ['app']
 # after a few dozen viewers. Above soft_limit the proxy prefers other machines;
 # at hard_limit it queues new requests.
 #
-# Sized for 15,000 open pages on 6 machines (performance-2x, 4 GB): 2,500
-# streams each at soft_limit, and with one machine down 15,000 / 5 = 3,000,
-# still under hard_limit.
+# Prod runs 2 machines (shared-cpu-2x; size from the GitHub `prod`
+# variables CPUS, CPU_KIND, MEMORY): Devcon 8's peak was about 300 open
+# pages. At soft_limit they hold 5,000 streams, and one machine alone up to
+# hard_limit's 4,000. For a bigger audience, add machines with
+# `fly scale count`; every update makes each open page refetch the
+# questions, so CPU and database run out long before these limits.
 [http_service.concurrency]
 type = 'requests'
 soft_limit = 2500
