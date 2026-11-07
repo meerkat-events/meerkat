@@ -39,7 +39,9 @@ test("database errors are logged without parameters or details", () => {
   assert.doesNotMatch(output, /attendee@example\.com/);
   const logged = JSON.parse(output);
   assert.equal(logged.userId, "user-1");
+  assert.equal(logged.err.type, "DrizzleQueryError");
   assert.equal(logged.err.message, "Failed query");
+  assert.equal(logged.err.cause.type, "FakePostgresError");
   assert.equal(logged.err.cause.message, "duplicate key value");
   assert.equal(logged.err.cause.code, "23505");
 });

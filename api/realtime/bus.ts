@@ -6,8 +6,7 @@
  * viewer may see.
  *
  * `postgres-bus.ts` implements it with LISTEN/NOTIFY, `memory-bus.ts` within
- * one process (tests). Another transport (Redis pub/sub) is one more file
- * implementing `Bus`, chosen in `index.ts`.
+ * one process (tests).
  */
 
 /** The public fields of a reaction, as the react route answers them. */

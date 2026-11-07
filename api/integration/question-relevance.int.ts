@@ -7,6 +7,7 @@ import {
   anonymousUser,
   emailUser,
   grantTestRole,
+  postedQuestionUid,
   request,
   resetDb,
   seedConference,
@@ -39,14 +40,8 @@ describe("question relevance", () => {
     return data;
   };
 
-  const ask = async (author: TestUser, question: string) => {
-    const asked = await request("POST", `/api/v1/events/${eventUid}/questions`, {
-      token: author.token,
-      body: { question },
-    });
-    assert.equal(asked.status, 200);
-    return (await asked.json() as { data: ListedQuestion }).data.uid;
-  };
+  const ask = (author: TestUser, question: string) =>
+    postedQuestionUid(eventUid, author, question);
 
   beforeEach(async () => {
     await resetDb();

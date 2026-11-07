@@ -12,33 +12,18 @@ jobs:
   ci:
     name: CI
     uses: ./.github/workflows/ci.yml
-  set-env:
-    name: Set Environment Variable
-    runs-on: ubuntu-26.04
-    outputs:
-      deploy_env: ${{ steps.set-env.outputs.ENVIRONMENT }}
-    steps:
-      - name: Determine Environment
-        id: set-env
-        run: |
-          if [ "${{ github.event_name }}" == "release" ]; then
-            ENVIRONMENT=prod
-          elif [ "${{ github.event_name }}" == "push" ]; then
-            ENVIRONMENT=dev
-          fi
-          echo "ENVIRONMENT=$ENVIRONMENT" >> $GITHUB_OUTPUT
   deploy:
     name: Deploy app
     runs-on: ubuntu-26.04
-    needs: [ci, set-env]
+    needs: ci
     concurrency: deploy-group # optional: ensure only one action runs at a time
-    environment: ${{ needs.set-env.outputs.deploy_env }}
+    # A release deploys prod, a push to master deploys dev.
+    environment: ${{ github.event_name == 'release' && 'prod' || 'dev' }}
     steps:
-      - uses: actions/checkout@v5
-      - name: Print Environment Variable
-        run: |
-          echo "Deploying to environment: ${{ needs.set-env.outputs.deploy_env }}"
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: actions/checkout@v7
+      # 1.6 is the newest tag; the last GitHub release (1.5) still runs on
+      # Node 20.
+      - uses: superfly/flyctl-actions/setup-flyctl@1.6
       - run: envsubst < fly.template.toml > fly.toml
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
@@ -51,7 +36,7 @@ jobs:
           CPU_KIND: ${{ vars.CPU_KIND }}
           MEMORY: ${{ vars.MEMORY }}
           PRETALX_URL: ${{ secrets.PRETALX_URL }}
-          ENVIRONMENT: ${{ needs.set-env.outputs.deploy_env }}
+          ENVIRONMENT: ${{ github.event_name == 'release' && 'prod' || 'dev' }}
           POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
           POSTHOG_HOST: ${{ secrets.POSTHOG_HOST }}
           POSTHOG_CLI_HOST: ${{ secrets.POSTHOG_CLI_HOST }}
@@ -72,7 +57,7 @@ jobs:
     name: Publish @meerkat-events/react
     if: github.event_name == 'release'
     runs-on: ubuntu-26.04
-    needs: [ci, deploy]
+    needs: deploy
     environment: npm
     permissions:
       contents: read

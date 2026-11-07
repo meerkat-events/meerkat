@@ -7,6 +7,7 @@ import {
   anonymousUser,
   emailUser,
   grantTestRole,
+  postedQuestionUid,
   request,
   resetDb,
   seedConference,
@@ -22,14 +23,7 @@ describe("the analytics counts", () => {
   let eventUid: string;
   let organizer: TestUser;
 
-  const ask = async (user: TestUser) => {
-    const response = await request("POST", `/api/v1/events/${eventUid}/questions`, {
-      token: user.token,
-      body: { question: "How does this scale?" },
-    });
-    assert.equal(response.status, 200);
-    return (await response.json() as { data: { uid: string } }).data.uid;
-  };
+  const ask = (user: TestUser) => postedQuestionUid(eventUid, user);
 
   const stats = async () => {
     const response = await request("GET", `/api/v1/conferences/${conferenceId}/stats`, {

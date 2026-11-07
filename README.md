@@ -125,33 +125,10 @@ the package, bump that version and create a release.
 
 ## Environment variables
 
-Set in `api/.env` (see `api/.env.example`).
-
-Required:
-
-| Variable                    | Purpose                                                                                     |
-| --------------------------- | ------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`              | The direct Postgres connection (`db.<project-ref>.supabase.co:5432`), for queries and the realtime bus, which LISTENs on it. No pooler. |
-| `SUPABASE_URL`              | Supabase project URL.                                                                       |
-| `SUPABASE_ANON_KEY`         | Supabase anon key, used by the browser for Auth.                                            |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key, used server-side for Devcon handover sign-ins.                   |
-| `DEVCON_VERIFICATION_SECRET` | Shared HS256 secret for verifying Devcon handover tokens (the Devcon app's `VERIFICATION_SECRET`). |
-
-Optional:
-
-| Variable                 | Purpose                                                                          |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| `PORT`                   | Listen port (default `8000`).                                                    |
-| `BASE_URL`               | Public origin of the app, used for redirects and QR codes. Default `http://localhost:$PORT`. |
-| `VITE_API_URL`           | API origin compiled into the frontend. Default empty: the frontend calls the origin it was served from. |
-| `CORS_ORIGINS`           | Comma-separated origins allowed to call `/api/*` from a browser. Default: `*`.   |
-| `POSTHOG_PROJECT_TOKEN`  | PostHog project token (`phc_…`): server logs, traces and exceptions over OTLP, and browser error tracking. Unset turns it off; logs then go to stdout only. |
-| `POSTHOG_HOST`           | PostHog ingestion host of the project's region, e.g. `https://eu.i.posthog.com`. Required with the token. |
-| `ENVIRONMENT`            | Deployment name sent with everything to PostHog (default `development`).        |
-| `PRETALX_URL`            | Origin of the Pretalx instance whose schedules are synced into conferences. Unset disables the sync endpoint. |
-| `SUPABASE_SECRET_KEY`    | Supabase secret API key (`sb_secret_…`). When set, Devcon handover sign-ins forward the attendee's IP so Supabase rate-limits per attendee rather than per server; also enable IP Address Forwarding in the project. |
-| `DATABASE_MAX_POOL_SIZE` | Max DB connections per server (default: 10), plus one for the realtime bus. Keep machines × (size + 1) well below the project's `max_connections` (60 on the smallest compute); 8 suits 4–6 machines. |
-| `OPENROUTER_API_KEY`     | OpenRouter key for automatic question moderation. Unset disables moderation everywhere. |
+Set in `api/.env`. [`api/.env.example`](api/.env.example) lists every
+variable, required and optional, with what it does. Two of them are compiled
+into the frontend at build time, so changing them needs a rebuild:
+`VITE_API_URL` and `LEGAL_OPERATOR`; everything else is read at runtime.
 
 ## FAQ
 
@@ -192,8 +169,11 @@ like harassment, threats, doxxing, explicit content, self-harm, hate,
 discrimination, phishing, scams or shilling, politics unrelated to crypto
 (outside talks about politics) or current wars and genocide are hidden from
 everyone but their author (compliments are fine); if the classifier fails, questions are shown
-as before. Write a short context about the conference, check it with the eval,
-then set it:
+as before. Write a short context about the conference and check it with the
+eval: copy `api/scripts/moderation-cases.json` into the gitignored
+`.backups/moderation/`, set its top-level `moderation` to that config, and run
+`node --env-file=.env scripts/moderation-eval.ts <copy>` in `api/` (it must
+exit 0). Then set it:
 
 ```sql
 UPDATE conferences
@@ -201,9 +181,14 @@ SET moderation = '{"context": "Devcon, the Ethereum Foundation''s developer conf
 WHERE id = <id>;
 ```
 
-`NULL` switches moderation off again; `UPDATE questions SET hidden_at = NULL
-WHERE uid = '<uid>'` shows a wrongly hidden question. The design, the eval and
-the setup per environment are in
+`NULL` switches moderation off again for that conference; unsetting the
+`OPENROUTER_API_KEY` Fly secret switches it off everywhere (the machines
+restart). Organizers restore a wrongly hidden question on the management pages
+(`/manage`). The key needs OpenRouter credit: when it runs out, the API answers
+402 and every question is shown unmoderated, logging a
+`Question moderation failed, shown` warning, so give the key a credit limit
+with margin and watch the logs during a conference. The design decisions and
+eval results are in
 [designs/002-question-moderation.md](designs/002-question-moderation.md).
 
 ### How do I link to the currently live session?

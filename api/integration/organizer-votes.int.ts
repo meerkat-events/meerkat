@@ -5,6 +5,7 @@ import {
   anonymousUser,
   emailUser,
   grantTestRole,
+  postedQuestionUid,
   request,
   resetDb,
   seedConference,
@@ -51,12 +52,7 @@ describe("organizers voting from the management pages", () => {
 
     const author = await emailUser("author@example.com");
     await grantTestRole(author.id, conference.id, "attendee");
-    const asked = await request("POST", `/api/v1/events/${event.uid}/questions`, {
-      token: author.token,
-      body: { question: "How does this scale?" },
-    });
-    assert.equal(asked.status, 200);
-    questionUid = (await asked.json() as { data: { uid: string } }).data.uid;
+    questionUid = await postedQuestionUid(event.uid, author);
   });
 
   test("the list carries the organizer's own vote, and voting again removes it", async () => {

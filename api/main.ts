@@ -8,8 +8,8 @@ import { hub } from "./realtime/index.ts";
 import { shutdownTelemetry } from "./instrumentation.ts";
 import { reportException } from "./posthog.ts";
 
-// A stray rejection from background work (Realtime cleanup, an SSE write to a
-// closed connection) is logged and the server keeps running, rather than
+// A stray rejection from background work (an SSE write to a closed
+// connection) is logged and the server keeps running, rather than
 // dropping every request and stream on the instance. An uncaught exception
 // leaves the process in an unknown state, so it is logged and the server
 // exits; Fly restarts it.

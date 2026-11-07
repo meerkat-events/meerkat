@@ -1,9 +1,10 @@
 import type { Config } from "@react-router/dev/config";
 
 export default {
-  // Server-side render by default, to enable SPA mode set this to `false`
+  // The server renders every page, in its conference's theme: the layouts'
+  // server loaders read it from the database (see CLAUDE.md, "Frontend").
   ssr: true,
-  // Layouts load their data in `clientLoader`; nothing is worth prerendering.
+  // Those loaders run per request, so there is nothing to prerender.
   prerender: false,
   // React Router v8 enables middleware, split route modules, the Vite
   // Environment API, pass-through requests and trailing-slash-aware data

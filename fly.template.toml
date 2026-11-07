@@ -38,9 +38,7 @@ POSTHOG_HOST = '$POSTHOG_HOST'
 # aborts the deploy and the running version keeps serving.
 release_command = 'node /workspace/api/migrate.ts'
 
-[processes]
-app = 'node --import /workspace/api/instrumentation.ts /workspace/api/main.ts'
-
+# Machines run the Dockerfile's CMD, in Fly's default process group ("app").
 [http_service]
 internal_port = 8000
 force_https = true

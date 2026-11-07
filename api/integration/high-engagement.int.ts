@@ -10,6 +10,7 @@ import { getPresenterEvent } from "../app/lib/presenter-event.server.ts";
 import {
   anonymousUser,
   grantTestRole,
+  insertQuestion,
   request,
   resetDb,
   seedConference,
@@ -23,28 +24,6 @@ beforeEach(async () => {
   await resetDb();
 });
 
-/** An open question of `eventId`, with the given timestamps set. */
-async function insertQuestion(
-  eventId: number,
-  uid: string,
-  timestamps: { answeredAt?: Date; deletedAt?: Date; hiddenAt?: Date } = {},
-) {
-  const author = await anonymousUser();
-  const [question] = await db.insert(questions)
-    .values({
-      uid,
-      eventId,
-      userId: author.id,
-      question: `Question ${uid}`,
-      ...timestamps,
-    })
-    .returning();
-  if (!question) {
-    throw new Error("Question insert returned nothing");
-  }
-  return question;
-}
-
 async function answeredAtOf(questionId: number) {
   const [row] = await db.select({ answeredAt: questions.answeredAt })
     .from(questions)
@@ -55,9 +34,10 @@ async function answeredAtOf(questionId: number) {
 describe("selecting a question", () => {
   test("answers only the previous selection, keeping earlier answer times", async () => {
     const { event } = await seedConference({ name: "Select order" });
-    const a = await insertQuestion(event.id, "a");
-    const b = await insertQuestion(event.id, "b");
-    const c = await insertQuestion(event.id, "c");
+    const author = await anonymousUser();
+    const a = await insertQuestion(event.id, author.id, "a");
+    const b = await insertQuestion(event.id, author.id, "b");
+    const c = await insertQuestion(event.id, author.id, "c");
 
     await selectQuestion(a.id);
     await selectQuestion(b.id);
@@ -77,8 +57,9 @@ describe("selecting a question", () => {
 
   test("puts an answered question back on stage", async () => {
     const { event } = await seedConference({ name: "Reselect" });
-    const a = await insertQuestion(event.id, "a");
-    const b = await insertQuestion(event.id, "b");
+    const author = await anonymousUser();
+    const a = await insertQuestion(event.id, author.id, "a");
+    const b = await insertQuestion(event.id, author.id, "b");
 
     await selectQuestion(a.id);
     await selectQuestion(b.id);
@@ -140,18 +121,19 @@ describe("POST /api/v1/events/:uid/high-engagement", () => {
 describe("the public event in high engagement mode", () => {
   test("has the latest visible answered questions, newest first", async () => {
     const { event } = await seedConference({ name: "Feed" });
+    const author = await anonymousUser();
     const minute = 60 * 1000;
     const start = Date.now() - 60 * minute;
     for (let index = 0; index < RECENTLY_ANSWERED_LIMIT + 2; index++) {
-      await insertQuestion(event.id, `answered-${index}`, {
+      await insertQuestion(event.id, author.id, `answered-${index}`, {
         answeredAt: new Date(start + index * minute),
       });
     }
-    await insertQuestion(event.id, "hidden", {
+    await insertQuestion(event.id, author.id, "hidden", {
       answeredAt: new Date(),
       hiddenAt: new Date(),
     });
-    await insertQuestion(event.id, "deleted", {
+    await insertQuestion(event.id, author.id, "deleted", {
       answeredAt: new Date(),
       deletedAt: new Date(),
     });

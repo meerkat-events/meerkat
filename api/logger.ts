@@ -1,6 +1,5 @@
-import { DrizzleQueryError } from "drizzle-orm/errors";
 import { type LoggerOptions, pino } from "pino";
-import { stackFrames } from "./query-errors.ts";
+import { stackFrames, withoutQueryDetails } from "./query-errors.ts";
 
 // Logs carry ids (userId, question uid, eventId, conferenceId) and may carry
 // question text, but never email addresses, secrets or tokens (see
@@ -12,25 +11,21 @@ import { stackFrames } from "./query-errors.ts";
  * default serializer copies every property of an error: postgres-js errors
  * carry the query's `parameters` and a `detail` with the conflicting values,
  * and Drizzle's `DrizzleQueryError` puts the parameters into its message, so
- * for that one only the underlying database error is kept.
+ * for that one only the underlying database error is kept
+ * (`withoutQueryDetails`).
  */
-function serializeError(error: unknown): Record<string, unknown> {
+function serializeError(unsafeError: unknown): Record<string, unknown> {
+  const error = withoutQueryDetails(unsafeError);
   if (!(error instanceof Error)) {
     return { type: typeof error };
   }
 
-  if (error instanceof DrizzleQueryError) {
-    return {
-      type: "DrizzleQueryError",
-      message: "Failed query",
-      stack: stackFrames(error),
-      cause: serializeError(error.cause),
-    };
-  }
-
+  // A plain Error names its type in `name`, as the sanitized failed query
+  // does; subclasses don't always set it, so for them the class name counts.
+  const type = error.constructor === Error ? error.name : error.constructor.name;
   const code = (error as { code?: unknown }).code;
   return {
-    type: error.constructor.name,
+    type,
     message: error.message,
     ...(typeof code === "string" || typeof code === "number" ? { code } : {}),
     stack: stackFrames(error),

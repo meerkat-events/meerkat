@@ -16,11 +16,12 @@ if ! docker info > /dev/null 2>&1; then
   exit 1
 fi
 
-# Only what the API uses: Postgres, Auth, Realtime (question
-# broadcasts) and Kong in front of them. The CLI signs user tokens with an
-# ES256 key of its own, which api/middlewares/jwt.ts requires.
+# Only what the API uses: Postgres, Auth and Kong in front of it (real-time
+# updates go over our own SSE streams, not Supabase Realtime). The CLI signs
+# user tokens with an ES256 key of its own, which api/middlewares/jwt.ts
+# requires.
 supabase start \
-  -x studio,edge-runtime,logflare,vector,imgproxy,storage-api,supavisor,postgres-meta,mailpit
+  -x studio,edge-runtime,logflare,vector,imgproxy,storage-api,supavisor,postgres-meta,mailpit,realtime
 
 # API_URL, ANON_KEY, SERVICE_ROLE_KEY, DB_URL, ...
 eval "$(supabase status -o env)"
