@@ -87,11 +87,14 @@ describe("the presenter view's server data", () => {
       presented.questions.map(({ uid, votes }) => ({ uid, votes })),
       [{ uid: "p2-most", votes: 4 }, { uid: "p2-fewer", votes: 1 }],
     );
-    assert.equal(presented.votes, 5);
+    for (const field of ["votes", "participants"]) {
+      assert.ok(!(field in presented), `event carries ${field}`);
+    }
     for (const question of presented.questions) {
       for (const field of ["userId", "hiddenAt", "moderation", "vote"]) {
         assert.ok(!(field in question), `question carries ${field}`);
       }
+      assert.deepEqual(Object.keys(question.user ?? {}).sort(), ["id", "name"]);
     }
   });
 

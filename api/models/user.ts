@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import db from "../db.ts";
 import { questions, users } from "../schema.ts";
 
@@ -17,9 +17,39 @@ export async function getUserByEmail(email: string) {
   return user.length > 0 ? user[0] : null;
 }
 
+/**
+ * A user's display name: the name in their metadata, or their id when they
+ * have none. Public responses carry this, never the user row (it holds the
+ * email).
+ */
+export const userName = sql<string>`COALESCE(${users.userMetadata}->>'name', ${users.id}::text)`;
+
+/** A user's id and display name, or null when there is no such user. */
+export async function getUserIdAndName(id: string) {
+  const [user] = await db.select({ id: users.id, name: userName })
+    .from(users)
+    .where(eq(users.id, id))
+    .limit(1)
+    .execute();
+
+  return user ?? null;
+}
+
 /** Whether the user is blocked right now: a block lasts until `bannedUntil`. */
-export function isBanned(user: User) {
+export function isBanned(user: { bannedUntil: Date | null }) {
   return user.bannedUntil !== null && user.bannedUntil > new Date();
+}
+
+/**
+ * Users who aren't blocked right now, for queries that join `users`; the SQL
+ * twin of `isBanned`. It compares against this server's clock, not the
+ * database's `NOW()`: `markUserAsBlocked` writes `bannedUntil` from this
+ * clock and `isBanned` checks it against it, so a block ends at the same
+ * moment in every query and in JS. Hence a function: the time is read per
+ * query.
+ */
+export function notBanned() {
+  return or(isNull(users.bannedUntil), lte(users.bannedUntil, new Date()));
 }
 
 const BAN_DURATION = 1000 * 60 * 60 * 24 * 30; // 30 days

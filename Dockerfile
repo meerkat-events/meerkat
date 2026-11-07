@@ -1,9 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM node:26-bookworm-slim
 
-ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
-
 # Node 26 no longer ships corepack. Take the pnpm binary from its official
 # image, which is what https://pnpm.io/docker recommends; the standalone install
 # script is the other supported route but needs curl or wget, and this base image
@@ -25,8 +22,12 @@ COPY api/ ./api/
 
 ENV NODE_ENV=production
 
-# Operator JSON for the legal page, compiled into the bundle
-# (`legalOperator` in api/vite.config.ts).
+# Compiled into the browser bundle by the build below and nowhere else: as
+# ARGs (not ENV) they stay out of the running container's environment, and
+# declared here they leave the dependency layers cached when they change.
+# API origin (app/lib/api-url.ts); empty means the page's own origin.
+ARG VITE_API_URL
+# Operator JSON for the legal page (`legalOperator` in api/vite.config.ts).
 ARG LEGAL_OPERATOR
 
 RUN pnpm -r build

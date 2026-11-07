@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 
 export type Supervotes = {
   /** Supervotes the user can spend, in any conference. */
@@ -12,21 +13,22 @@ export type Supervotes = {
 
 /** The signed-in user's supervotes. */
 export function useSupervotes() {
-  const { isAuthenticated, session } = useAuth();
-  const accessToken = session?.access_token;
+  const { session } = useAuth();
+  const token = session?.access_token;
+  const userId = session?.user.id;
 
-  // The token is part of the key, so switching accounts never shows the
-  // previous user's cached balance.
+  // Keyed on the user, so switching accounts never shows the previous user's
+  // cached balance. Not on the token: it changes on every refresh, which would
+  // drop the balance and unmount the supervote counter.
   const { data, error, isLoading, mutate } = useSWR<
     { data: Supervotes },
     HTTPError,
-    [string, string | undefined] | null
+    [string, string] | null
   >(
-    isAuthenticated
-      ? ["/api/v1/users/me/supervotes", accessToken]
-      : null,
-    ([path, token]) => fetcher(path, token),
+    token && userId ? ["/api/v1/users/me/supervotes", userId] : null,
+    ([path]) => fetcher(path, token),
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   return { data: data?.data, error, isLoading, mutate };
 }

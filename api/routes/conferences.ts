@@ -2,20 +2,12 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import zod from "zod";
 import env from "../env.ts";
-import {
-  getConferenceById,
-  getConferences,
-  toApiConference,
-} from "../models/conferences.ts";
+import { getConferenceById } from "../models/conferences.ts";
 import { HTTPException } from "hono/http-exception";
 import { getLiveEvent } from "../models/events.ts";
 import { jwt } from "../middlewares/jwt.ts";
-import { getUserByEmail, getUserById } from "../models/user.ts";
-import {
-  getConferenceRolesForConference,
-  grantRole,
-  isOrganizer,
-} from "../models/roles.ts";
+import { getUserByEmail, getUserIdAndName } from "../models/user.ts";
+import { grantRole } from "../models/roles.ts";
 import {
   getConferenceAttendees,
   getConferencePermissions,
@@ -37,62 +29,45 @@ import {
 } from "../models/points.ts";
 import { hub } from "../realtime/index.ts";
 import { eventStream } from "../realtime/sse.ts";
+import { conferenceParams } from "../utils/conference-params.ts";
+import { requireRole } from "../utils/require-participant.ts";
 
 const app = new Hono();
-
-// No page lists conferences; signed-in API clients still can.
-app.get("/api/v1/conferences", jwt(), async (c) => {
-  const conferences = await getConferences();
-  return c.json({ data: conferences.map(toApiConference) });
-});
 
 // Public: the conference page's QR code points here, so a phone camera opens
 // the Q&A page of the event the conference shows (live, else running, else
 // next, else the one that ended last), like /stage/:stage/qa. It only
 // redirects.
-app.get("/api/v1/conferences/:id/live", async (c) => {
-  const conferenceId = parseInt(c.req.param("id"));
-  if (Number.isInteger(conferenceId) === false) {
-    throw new HTTPException(400, {
-      message: `Invalid conference id ${conferenceId}`,
-    });
-  }
+app.get(
+  "/api/v1/conferences/:id/live",
+  zValidator("param", conferenceParams),
+  async (c) => {
+    const { id: conferenceId } = c.req.valid("param");
+    const liveEvent = await getLiveEvent(conferenceId);
 
-  const liveEvent = await getLiveEvent(conferenceId);
+    if (!liveEvent) {
+      throw new HTTPException(404, {
+        message: `No event found for conference ${conferenceId}`,
+      });
+    }
 
-  if (!liveEvent) {
-    throw new HTTPException(404, {
-      message: `No event found for conference ${conferenceId}`,
-    });
-  }
+    return c.redirect(new URL(`/e/${liveEvent.uid}/qa`, env.base));
+  },
+);
 
-  return c.redirect(new URL(`/e/${liveEvent.uid}/qa`, env.base));
-});
-
-/** Resolves `:id` to a conference the signed-in user organizes, or throws. */
-async function requireOrganizer(conferenceIdParam: string, userId: string) {
-  const conferenceId = parseInt(conferenceIdParam);
-  if (!Number.isInteger(conferenceId)) {
-    throw new HTTPException(400, {
-      message: `Invalid conference id ${conferenceIdParam}`,
-    });
-  }
-
-  const [user, conference] = await Promise.all([
-    getUserById(userId),
-    getConferenceById(conferenceId),
-  ]);
-  if (!user) throw new HTTPException(401, { message: "User not found" });
+/**
+ * The conference, if it exists (404 otherwise) and the signed-in user
+ * organizes it (403 otherwise).
+ */
+async function requireOrganizer(conferenceId: number, userId: string) {
+  const conference = await getConferenceById(conferenceId);
   if (!conference) {
     throw new HTTPException(404, {
       message: `Conference with id ${conferenceId} not found`,
     });
   }
 
-  const roles = await getConferenceRolesForConference(user.id, conferenceId);
-  if (!isOrganizer(roles)) {
-    throw new HTTPException(403, { message: "User is not an organizer" });
-  }
+  await requireRole(userId, conferenceId, "organizer");
 
   return conference;
 }
@@ -100,15 +75,12 @@ async function requireOrganizer(conferenceIdParam: string, userId: string) {
 // Organizers get the verdict's summary (decision, reasons, relevance), never
 // the raw scores; attendees never get it at all (toPublicQuestion).
 const toApiQuestion = (
-  { userId: _userId, user, moderation, viewerVoteWeight, ...rest }:
+  { userId: _userId, moderation, viewerVoteWeight, ...rest }:
     ConferenceQuestions[number],
 ) => ({
   ...rest,
   moderation: summarizeModeration(moderation),
   vote: viewerVoteWeight === null ? null : { weight: viewerVoteWeight },
-  user: user
-    ? { id: user.id, name: user.userMetadata?.["name"] ?? user.id }
-    : undefined,
 });
 
 // A time window, e.g. one day in the organizer's time zone, which only the
@@ -139,10 +111,11 @@ const conferenceQuestionsQuery = timeWindowQuery.extend({
 app.get(
   "/api/v1/conferences/:id/questions",
   jwt(),
+  zValidator("param", conferenceParams),
   zValidator("query", conferenceQuestionsQuery),
   async (c) => {
     const userId = c.get("jwtPayload").sub;
-    const conference = await requireOrganizer(c.req.param("id"), userId);
+    const conference = await requireOrganizer(c.req.valid("param").id, userId);
     const { live, event, hidden, moderated, limit, ...window } = c.req.valid("query");
 
     const questions = await getConferenceQuestions(conference.id, {
@@ -164,20 +137,21 @@ app.get(
 // Public: it carries no data, only that something changed, which the public
 // event streams tell anyone anyway (questions moderation hid send nothing).
 // The questions themselves still need an organizer's token.
-app.get("/api/v1/conferences/:id/questions/stream", async (c) => {
-  const conferenceId = Number(c.req.param("id"));
-  const conference = Number.isInteger(conferenceId)
-    ? await getConferenceById(conferenceId)
-    : undefined;
-  if (!conference) {
-    throw new HTTPException(404, { message: "Conference not found" });
-  }
+app.get(
+  "/api/v1/conferences/:id/questions/stream",
+  zValidator("param", conferenceParams),
+  async (c) => {
+    const conference = await getConferenceById(c.req.valid("param").id);
+    if (!conference) {
+      throw new HTTPException(404, { message: "Conference not found" });
+    }
 
-  return eventStream(c, (send) =>
-    hub.listenToConference(conference.id, () => {
-      send({ data: "update" });
-    }));
-});
+    return eventStream(c, (send) =>
+      hub.listenToConference(conference.id, () => {
+        send({ data: "update" });
+      }));
+  },
+);
 
 // Activity totals for the organizer dashboard: the whole conference and each
 // session (questions, votes, reactions, participants, supervotes), and what
@@ -186,10 +160,11 @@ app.get("/api/v1/conferences/:id/questions/stream", async (c) => {
 app.get(
   "/api/v1/conferences/:id/stats",
   jwt(),
+  zValidator("param", conferenceParams),
   zValidator("query", timeWindowQuery),
   async (c) => {
     const conference = await requireOrganizer(
-      c.req.param("id"),
+      c.req.valid("param").id,
       c.get("jwtPayload").sub,
     );
 
@@ -207,37 +182,42 @@ app.get(
 
 // One person's history in this conference, so moderators can check who they
 // are before blocking them.
-app.get("/api/v1/conferences/:id/users/:userId/activity", jwt(), async (c) => {
-  const conference = await requireOrganizer(
-    c.req.param("id"),
-    c.get("jwtPayload").sub,
-  );
+const userActivityParams = conferenceParams.extend({ userId: zod.string() });
 
-  const activity = await getConferenceUserActivity(
-    conference.id,
-    c.req.param("userId"),
-  );
+app.get(
+  "/api/v1/conferences/:id/users/:userId/activity",
+  jwt(),
+  zValidator("param", userActivityParams),
+  async (c) => {
+    const { id, userId } = c.req.valid("param");
+    const conference = await requireOrganizer(id, c.get("jwtPayload").sub);
 
-  if (!activity) {
-    throw new HTTPException(404, {
-      message: `User ${c.req.param("userId")} not found`,
-    });
-  }
+    const activity = await getConferenceUserActivity(conference.id, userId);
 
-  return c.json({ data: activity });
-});
+    if (!activity) {
+      throw new HTTPException(404, { message: `User ${userId} not found` });
+    }
+
+    return c.json({ data: activity });
+  },
+);
 
 // Who has access to the conference and with which role. Emails only ever
 // reach organizers, through these routes. Nobody can change or remove their
 // own role, so a conference always keeps an organizer.
-app.get("/api/v1/conferences/:id/permissions", jwt(), async (c) => {
-  const conference = await requireOrganizer(
-    c.req.param("id"),
-    c.get("jwtPayload").sub,
-  );
+app.get(
+  "/api/v1/conferences/:id/permissions",
+  jwt(),
+  zValidator("param", conferenceParams),
+  async (c) => {
+    const conference = await requireOrganizer(
+      c.req.valid("param").id,
+      c.get("jwtPayload").sub,
+    );
 
-  return c.json({ data: await getConferencePermissions(conference.id) });
-});
+    return c.json({ data: await getConferencePermissions(conference.id) });
+  },
+);
 
 // A cursor is where the previous page ended: `<grantedAt ISO>_<userId>`, as
 // returned in `next`. It carries no email, unlike `search`, which
@@ -262,10 +242,11 @@ const attendeesQuery = zod.object({
 app.get(
   "/api/v1/conferences/:id/permissions/attendees",
   jwt(),
+  zValidator("param", conferenceParams),
   zValidator("query", attendeesQuery),
   async (c) => {
     const conference = await requireOrganizer(
-      c.req.param("id"),
+      c.req.valid("param").id,
       c.get("jwtPayload").sub,
     );
     const { limit, after, search } = c.req.valid("query");
@@ -295,10 +276,11 @@ const permissionBody = zod.object({
 app.post(
   "/api/v1/conferences/:id/permissions",
   jwt(),
+  zValidator("param", conferenceParams),
   zValidator("json", permissionBody),
   async (c) => {
     const actorId = c.get("jwtPayload").sub;
-    const conference = await requireOrganizer(c.req.param("id"), actorId);
+    const conference = await requireOrganizer(c.req.valid("param").id, actorId);
     const { email, role } = c.req.valid("json");
 
     const user = await getUserByEmail(email);
@@ -318,7 +300,7 @@ app.post(
   },
 );
 
-const memberParams = zod.object({ userId: zod.uuid() });
+const memberParams = conferenceParams.extend({ userId: zod.uuid() });
 
 app.delete(
   "/api/v1/conferences/:id/permissions/members/:userId",
@@ -326,8 +308,8 @@ app.delete(
   zValidator("param", memberParams),
   async (c) => {
     const actorId = c.get("jwtPayload").sub;
-    const conference = await requireOrganizer(c.req.param("id"), actorId);
-    const { userId } = c.req.valid("param");
+    const { id, userId } = c.req.valid("param");
+    const conference = await requireOrganizer(id, actorId);
 
     if (userId === actorId) {
       throw new HTTPException(400, {
@@ -342,7 +324,7 @@ app.delete(
   },
 );
 
-const invitationParams = zod.object({
+const invitationParams = conferenceParams.extend({
   invitationId: zod.coerce.number().int(),
 });
 
@@ -351,11 +333,8 @@ app.delete(
   jwt(),
   zValidator("param", invitationParams),
   async (c) => {
-    const conference = await requireOrganizer(
-      c.req.param("id"),
-      c.get("jwtPayload").sub,
-    );
-    const { invitationId } = c.req.valid("param");
+    const { id, invitationId } = c.req.valid("param");
+    const conference = await requireOrganizer(id, c.get("jwtPayload").sub);
 
     if (!await removeInvitation(conference.id, invitationId)) {
       throw new HTTPException(404, { message: "Invitation not found" });
@@ -365,10 +344,7 @@ app.delete(
   },
 );
 
-const participantParams = zod.object({
-  id: zod.coerce.number().int(),
-  userId: zod.uuid(),
-});
+const participantParams = conferenceParams.extend({ userId: zod.uuid() });
 
 // One participant's points and percentile tier at a conference, fetched when
 // someone opens their profile from a question (and for the signed-in user's
@@ -381,7 +357,7 @@ app.get(
     const { id: conferenceId, userId } = c.req.valid("param");
 
     const [user, points] = await Promise.all([
-      getUserById(userId),
+      getUserIdAndName(userId),
       getParticipantPoints(conferenceId, userId),
     ]);
     if (!user || !points) {
@@ -392,7 +368,7 @@ app.get(
 
     return c.json({
       data: {
-        user: { id: user.id, name: user.userMetadata?.["name"] ?? user.id },
+        user,
         ...points,
       },
       scoring: SCORING,

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { TierPromotion } from "../../hooks/use-tier-promotion.ts";
+import { readStorage, writeStorage } from "../../lib/storage.ts";
 import { tierLabel, tierPaletteStyle } from "./tier.ts";
 import { Celebration } from "../Celebration/Celebration.tsx";
 // Recolors the celebration in the tier's palette
@@ -27,19 +28,14 @@ const GREETINGS = [
 
 const GREETING_KEY = "meerkat:tier-greeting";
 
-/** The next greeting in the cycle, remembered in localStorage. */
+/**
+ * The next greeting in the cycle, remembered in localStorage. Blocked
+ * storage always gives the first greeting, which is fine.
+ */
 function nextGreeting() {
-  try {
-    const index = Number(globalThis.localStorage?.getItem(GREETING_KEY)) || 0;
-    globalThis.localStorage?.setItem(
-      GREETING_KEY,
-      String((index + 1) % GREETINGS.length),
-    );
-    return GREETINGS[index % GREETINGS.length]!;
-  } catch {
-    // Blocked storage: always the first greeting, which is fine.
-    return GREETINGS[0]!;
-  }
+  const index = Number(readStorage(GREETING_KEY)) || 0;
+  writeStorage(GREETING_KEY, String((index + 1) % GREETINGS.length));
+  return GREETINGS[index % GREETINGS.length]!;
 }
 
 export type TierCelebrationProps = {

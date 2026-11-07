@@ -1,6 +1,11 @@
 import { HTTPException } from "hono/http-exception";
 import { ATTENDEES_ONLY_MESSAGE } from "../features.ts";
-import { mayParticipate } from "../models/roles.ts";
+import {
+  canModerate,
+  getConferenceRolesForConference,
+  isOrganizer,
+  mayParticipate,
+} from "../models/roles.ts";
 import { getUserById, isBanned, type User } from "../models/user.ts";
 
 /**
@@ -44,4 +49,26 @@ export async function requireParticipant(userId: string, conferenceId: number) {
   const user = requireUnblockedUser(await getUserById(userId), userId);
   await requireParticipation(user.id, conferenceId);
   return user;
+}
+
+/**
+ * Throws 403 unless the user holds `requiredRole` in the conference:
+ * "moderator" lets moderators and organizers through (`canModerate`),
+ * "organizer" only organizers (`isOrganizer`). A role row implies the user
+ * exists, so there is no separate user lookup.
+ */
+export async function requireRole(
+  userId: string,
+  conferenceId: number,
+  requiredRole: "moderator" | "organizer",
+) {
+  const roles = await getConferenceRolesForConference(userId, conferenceId);
+
+  if (requiredRole === "organizer") {
+    if (!isOrganizer(roles)) {
+      throw new HTTPException(403, { message: "User is not an organizer" });
+    }
+  } else if (!canModerate(roles)) {
+    throw new HTTPException(403, { message: "User is not a moderator" });
+  }
 }

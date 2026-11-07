@@ -22,15 +22,20 @@ export const apiKey = () => {
 };
 
 /**
- * Validates an API key against the database. Fetching all API keys from the database and verifying the key against the hashed key is
- * highly inefficient. This should be improved in the future.
- * @param key - The API key to validate
- * @returns The API key if it is valid, otherwise null
+ * The stored key that `key` matches, unless it has expired (`valid_until` in
+ * the past; null never expires), otherwise null. Keys are argon2 hashes, so
+ * each one is verified in turn; there are only a handful.
  */
 async function getApiKey(key: string) {
+  const now = new Date();
   const allKeys = await getAllApiKeys();
 
   for (const apiKey of allKeys) {
+    const isExpired = apiKey.validUntil !== null && apiKey.validUntil <= now;
+    if (isExpired) {
+      continue;
+    }
+
     const matches = await verify(apiKey.hashedKey, key);
 
     if (matches) {

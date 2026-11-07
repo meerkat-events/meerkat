@@ -75,7 +75,6 @@ describe("hiding a question", () => {
 
     const presented = await getPresenterEvent(eventUid);
     assert.deepEqual(presented.questions, []);
-    assert.equal(presented.votes, 0);
     const onStage = await getStagePresenterEvent(stage);
     assert.equal(onStage.uid, eventUid);
     assert.deepEqual(onStage.questions, []);

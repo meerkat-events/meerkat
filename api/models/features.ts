@@ -22,5 +22,3 @@ export async function isFeatureActive(conferenceId: number, name: string) {
 
   return feature?.active ?? false;
 }
-
-export type Feature = typeof features.$inferSelect;

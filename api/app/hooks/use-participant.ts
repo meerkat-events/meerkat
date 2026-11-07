@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 import type { Participant, PointsScoring } from "../types.ts";
 
 export const participantUrl = (conferenceId: number, userId: string) =>
@@ -18,16 +19,20 @@ export function useParticipant(
 ) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const viewerId = session?.user.id;
 
-  const { data, error, isLoading } = useSWR<
+  // Keyed on the viewer rather than the token, which changes on every
+  // refresh and would blank the open profile.
+  const { data, error, isLoading, mutate } = useSWR<
     { data: Participant; scoring: PointsScoring },
     HTTPError
   >(
-    conferenceId !== undefined && userId && token
-      ? [participantUrl(conferenceId, userId), token]
+    conferenceId !== undefined && userId && token && viewerId
+      ? [participantUrl(conferenceId, userId), viewerId]
       : undefined,
-    ([path, token]: [string, string]) => fetcher(path, token),
+    ([path]: [string, string]) => fetcher(path, token),
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   return { data: data?.data, scoring: data?.scoring, error, isLoading };
 }

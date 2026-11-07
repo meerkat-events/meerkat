@@ -22,6 +22,7 @@ import { ConferenceSwitcher } from "../components/Manage/ConferenceSwitcher.tsx"
 import { SessionSearch } from "../components/Manage/SessionSearch.tsx";
 import { useConferencePath } from "../components/Manage/use-conference-path.ts";
 import { PersonDialog } from "../components/Manage/PersonDialog.tsx";
+import { schedulePath } from "../components/Manage/session-urls.ts";
 import { CooldownModal } from "../components/QnA/CooldownModal.tsx";
 import { dayKey, fmtDay } from "../components/Manage/time.ts";
 
@@ -187,8 +188,7 @@ export default function ManageLayout() {
           onPerson={openPerson}
           // A session opens in its dialog on the schedule, same conference;
           // the new URL has no ?person, so this dialog is gone there.
-          onSession={(uid) =>
-            navigate(conferencePath(`/manage/schedule?session=${encodeURIComponent(uid)}`))}
+          onSession={(uid) => navigate(conferencePath(schedulePath(uid)))}
         />
       )}
       {/* Organizers vote from the question tables, under the same rate limit. */}

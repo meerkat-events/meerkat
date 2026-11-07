@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { HTTPError } from "./http-error.ts";
 import { fetcher } from "./fetcher.ts";
 import { useAuth } from "./use-auth.ts";
+import { useRefetchOnTokenRefresh } from "./use-refetch-on-token-refresh.ts";
 
 import type { ModerationReason } from "../components/Manage/question-state.ts";
 import type { ReactionEmoji } from "../../reactions.ts";
@@ -81,20 +82,24 @@ export function useConferenceStats(
 ) {
   const { session } = useAuth();
   const token = session?.access_token;
+  const userId = session?.user.id;
   const query = window
     ? `?${new URLSearchParams({ from: window.from.toISOString(), to: window.to.toISOString() })}`
     : "";
 
+  // Keyed on the user, not the token, which changes on every refresh and
+  // would blank the page until the refetch.
   const { data, error, isLoading, mutate } = useSWR<
     { data: ConferenceStats },
     HTTPError
   >(
-    conferenceId && token
-      ? [`/api/v1/conferences/${conferenceId}/stats${query}`, token]
+    conferenceId && token && userId
+      ? [`/api/v1/conferences/${conferenceId}/stats${query}`, userId]
       : undefined,
-    ([path, token]: [string, string]) => fetcher(path, token),
+    ([path]: [string, string]) => fetcher(path, token),
     { refreshInterval: 15_000 },
   );
+  useRefetchOnTokenRefresh(token, mutate);
 
   return { data: data?.data, error, isLoading, mutate };
 }

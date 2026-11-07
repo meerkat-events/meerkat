@@ -18,8 +18,8 @@ export async function getSupervoteBalance(userId: string) {
 }
 
 /**
- * Gives the user one supervote. Runs inside the caller's transaction: earning
- * one for a selected question, or refunding one for a deleted question.
+ * Gives the user one supervote, for a selected question. Runs inside the
+ * caller's transaction.
  */
 export async function addSupervote(tx: Tx, userId: string) {
   await tx.insert(supervoteBalances)
@@ -32,28 +32,11 @@ export async function addSupervote(tx: Tx, userId: string) {
 }
 
 /**
- * Refunds the supervotes spent on a question to their voters. Runs inside the
- * transaction that deletes the question.
- */
-export async function refundSupervotes(tx: Tx, questionId: number) {
-  const supervotes = await tx.select({ userId: votes.userId })
-    .from(votes)
-    .where(
-      and(eq(votes.questionId, questionId), gt(votes.weight, 1)),
-    )
-    .execute();
-
-  for (const supervote of supervotes) {
-    await addSupervote(tx, supervote.userId);
-  }
-}
-
-/**
  * Spends one of the user's supervotes on a new vote, in one transaction.
  * The balance only drops while it is above 0, and the update locks the
  * user's balance row, so two quick taps can't both spend the last one.
- * Un-voting deletes the vote but doesn't refund it: a supervote is spent
- * once. Returns false when there's none left to spend.
+ * A supervote is spent once: it can't be removed (the upvote toggle answers
+ * 409) and is never refunded. Returns false when there's none left to spend.
  */
 export function spendSupervote(questionId: number, userId: string) {
   return db.transaction(async (tx) => {

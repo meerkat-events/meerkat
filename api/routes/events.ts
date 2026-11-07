@@ -16,6 +16,7 @@ import { getConferenceById } from "../models/conferences.ts";
 import {
   getEventByUID,
   getEvents,
+  getStageLiveEvent,
   setEventLive,
   setHighEngagement,
 } from "../models/events.ts";
@@ -34,11 +35,14 @@ import {
   getUserReactionTimesAfterDate,
 } from "../models/reactions.ts";
 import {
-  getUserById,
   getUserPostTimesAfterDate,
   getUserPostCountPerTalk,
 } from "../models/user.ts";
-import { requireParticipant } from "../utils/require-participant.ts";
+import {
+  requireParticipant,
+  requireRole,
+} from "../utils/require-participant.ts";
+import { conferenceParams } from "../utils/conference-params.ts";
 import {
   enforceRateLimit,
   tooManyRequests,
@@ -48,10 +52,8 @@ import { REACTION_EMOJIS } from "../reactions.ts";
 import {
   canModerate,
   getConferenceRolesForConference,
-  isOrganizer,
 } from "../models/roles.ts";
 import logger from "../logger.ts";
-import { getStageLiveEvent } from "../models/events.ts";
 import { getPublicEvent, toApiQuestion } from "../models/public-event.ts";
 import { hub } from "../realtime/index.ts";
 import {
@@ -69,11 +71,9 @@ type Env = {
   };
 };
 
-const eventMiddleware = createMiddleware<Env>(async (c, next) => {
+// Only mounted on routes with a `:uid`, which "/:uid" tells the type checker.
+const eventMiddleware = createMiddleware<Env, "/:uid">(async (c, next) => {
   const uid = c.req.param("uid");
-  if (!uid) {
-    throw new HTTPException(400, { message: `Event UID is required` });
-  }
   const event = await getEventByUID(uid);
 
   if (!event) {
@@ -99,8 +99,6 @@ app.get("/api/v1/events/:uid", eventMiddleware, async (c) => {
   return c.json({ data: publicEvent });
 });
 
-// The viewer's vote is left out here: only the Q&A page's own list, fetched
-// with a token, gets it (see the questions route).
 // Public, for guests and embedders (`@meerkat-events/react`). Authentication
 // is optional: with a valid token, the viewer's own hidden questions are
 // included (automatic moderation hides them from everyone else) and each
@@ -133,10 +131,6 @@ app.get(
         : [],
     ]);
 
-    if (!viewerId) {
-      return c.json({ data: questions.map(toApiQuestion) });
-    }
-
     const relevanceByQuestion = canModerate(roles)
       ? await getRelevanceByQuestion(event.id)
       : null;
@@ -144,9 +138,14 @@ app.get(
     return c.json({
       data: questions.map((question) => ({
         ...toApiQuestion(question),
-        vote: question.viewerVoteWeight === null
-          ? null
-          : { weight: question.viewerVoteWeight },
+        // Guests get no `vote` field at all.
+        ...(viewerId
+          ? {
+            vote: question.viewerVoteWeight === null
+              ? null
+              : { weight: question.viewerVoteWeight },
+          }
+          : {}),
         ...(relevanceByQuestion
           ? { relevance: relevanceByQuestion.get(question.uid) ?? null }
           : {}),
@@ -225,28 +224,21 @@ app.post(
     // A question hidden by moderation sends nothing: every stream is public
     // and must not reveal when hidden questions arrive. Its author's page
     // refreshes after posting, and the management pages poll.
-    if (question.hiddenAt) {
-      logger.info(
-        {
-          questionUid: question.uid,
-          question: question.question,
-          eventId: event.id,
-          userId: user.id,
-        },
-        "Created question, hidden by moderation",
-      );
-    } else {
+    const hidden = question.hiddenAt !== null;
+    if (!hidden) {
       void notifyQuestionsChanged(event);
-      logger.info(
-        {
-          questionUid: question.uid,
-          question: question.question,
-          eventId: event.id,
-          userId: user.id,
-        },
-        "Created question",
-      );
     }
+
+    logger.info(
+      {
+        questionUid: question.uid,
+        question: question.question,
+        eventId: event.id,
+        userId: user.id,
+        hidden,
+      },
+      "Created question",
+    );
 
     return c.json({
       data: toPublicQuestion(question),
@@ -366,20 +358,8 @@ app.post(
   eventMiddleware,
   async (c) => {
     const event = c.get("event");
-    const payload = c.get("jwtPayload");
-    const user = await getUserById(payload.sub);
-
-    if (!user) {
-      throw new HTTPException(401, { message: "User not found" });
-    }
-
-    const roles = await getConferenceRolesForConference(
-      user.id,
-      event.conferenceId,
-    );
-    if (!canModerate(roles)) {
-      throw new HTTPException(403, { message: `User is not a moderator` });
-    }
+    const userId = c.get("jwtPayload").sub;
+    await requireRole(userId, event.conferenceId, "moderator");
 
     const { event: liveEvent, changedEvents } = await setEventLive(event.id);
 
@@ -394,7 +374,7 @@ app.post(
         eventId: event.id,
         eventUid: event.uid,
         stage: event.stage,
-        userId: user.id,
+        userId,
         answeredOnEndEventIds: changedEvents.map((changed) => changed.id),
       },
       "Set event live",
@@ -417,14 +397,7 @@ app.post(
     const event = c.get("event");
     const { enabled } = c.req.valid("json");
     const userId = c.get("jwtPayload").sub;
-
-    const roles = await getConferenceRolesForConference(
-      userId,
-      event.conferenceId,
-    );
-    if (!isOrganizer(roles)) {
-      throw new HTTPException(403, { message: `User is not an organizer` });
-    }
+    await requireRole(userId, event.conferenceId, "organizer");
 
     const result = await setHighEngagement(event.id, enabled);
     if (!result) {
@@ -447,29 +420,18 @@ app.post(
 app.get(
   "/api/v1/conferences/:id/events",
   jwt(),
+  zValidator("param", conferenceParams),
   async (c) => {
-    const conferenceId = parseInt(c.req.param("id"));
+    const { id: conferenceId } = c.req.valid("param");
 
-    if (Number.isInteger(conferenceId) === false) {
-      throw new HTTPException(400, {
-        message: `Invalid conference id ${conferenceId}`,
-      });
-    }
-
-    const [conference, roles] = await Promise.all([
-      getConferenceById(conferenceId),
-      getConferenceRolesForConference(c.get("jwtPayload").sub, conferenceId),
-    ]);
-
+    const conference = await getConferenceById(conferenceId);
     if (!conference) {
       throw new HTTPException(404, {
         message: `Conference with id ${conferenceId} not found`,
       });
     }
 
-    if (!canModerate(roles)) {
-      throw new HTTPException(403, { message: `User is not a moderator` });
-    }
+    await requireRole(c.get("jwtPayload").sub, conferenceId, "moderator");
 
     const limit = parseInt(c.req.query("limit") ?? "100");
     if (isNaN(limit) || limit < 1 || limit > 1000) {
@@ -504,10 +466,6 @@ app.get("/api/v1/events", async (c) => {
   return c.json({ data: events });
 });
 
-// Signage, public: printed QR codes open /stage/:stage/qa, and the stage
-// screen (the page /stage/:stage, or /e/:uid?keep-live=true) polls
-// /api/v1/events/stage/:stage/live. Both resolve the event the stage shows:
-// live, else running, else next, else the one that ended last.
 // The Event Card (Zupass attendance PODs) is gone; old links and bookmarks
 // land on the session's Q&A page instead.
 app.get("/e/:uid/card", (c) => {
@@ -515,6 +473,10 @@ app.get("/e/:uid/card", (c) => {
   return c.redirect(new URL(`/e/${uid}/qa`, env.base), 301);
 });
 
+// Signage, public: printed QR codes open /stage/:stage/qa, and the stage
+// screen (the page /stage/:stage, or /e/:uid?keep-live=true) polls
+// /api/v1/events/stage/:stage/live. Both resolve the event the stage shows:
+// live, else running, else next, else the one that ended last.
 app.get("/stage/:stage/qa", async (c) => {
   const stage = c.req.param("stage");
   const liveEvent = await getStageLiveEvent(stage);
@@ -545,7 +507,7 @@ app.get("/api/v1/events/stage/:stage/live", async (c) => {
 
 // Public, like the question list it tells clients to refetch (EventSource
 // can't send a token anyway). An unnamed `update` means "refetch the
-// questions" (asked, voted, selected, answered, deleted, restored, or a
+// questions" (asked, voted, selected, answered, hidden, restored, or a
 // resync); a named `reaction` carries one reaction; a named `live` carries
 // `{ uid, title }` of the event just put live on this event's stage (same
 // conference), so a stage screen can switch to it and the Q&A page can offer

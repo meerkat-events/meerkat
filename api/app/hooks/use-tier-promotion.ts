@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { isBetterTier, TIERS } from "../components/Points/tier.ts";
+import { readStorage, writeStorage } from "../lib/storage.ts";
 import type { Tier } from "../types.ts";
 
 export type TierPromotion = {
@@ -13,22 +14,14 @@ const storageKey = (conferenceId: number, userId: string) =>
 
 // Anything that isn't a known tier reads as "no tier"
 const readTier = (key: string): Tier | null => {
-  try {
-    const stored = Number(globalThis.localStorage?.getItem(key));
-    return TIERS.find((tier) => tier === stored) ?? null;
-  } catch {
-    return null;
-  }
+  const stored = Number(readStorage(key));
+  return TIERS.find((tier) => tier === stored) ?? null;
 };
 
-const writeTier = (key: string, tier: Tier | null) => {
-  try {
-    globalThis.localStorage?.setItem(key, tier === null ? "" : String(tier));
-  } catch {
-    // Blocked storage: the promotion is celebrated again next visit, which is
-    // fine.
-  }
-};
+// Blocked storage: the promotion is celebrated again next visit, which is
+// fine.
+const writeTier = (key: string, tier: Tier | null) =>
+  writeStorage(key, tier === null ? "" : String(tier));
 
 export type UseTierPromotionOptions = {
   conferenceId: number | undefined;

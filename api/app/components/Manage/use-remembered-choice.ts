@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useSearchParams } from "react-router";
+import { readStorage, writeStorage } from "../../lib/storage.ts";
 
 const listeners = new Set<() => void>();
 
@@ -8,21 +9,11 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener);
 };
 
-const readStored = (storageKey: string) => {
-  try {
-    return globalThis.localStorage?.getItem(storageKey) ?? null;
-  } catch {
-    return null;
-  }
-};
+const readStored = (storageKey: string) => readStorage(storageKey) ?? null;
 
+// Blocked storage (private browsing): the URL still holds the choice.
 const writeStored = (storageKey: string, value: string | null) => {
-  try {
-    if (value === null) globalThis.localStorage?.removeItem(storageKey);
-    else globalThis.localStorage?.setItem(storageKey, value);
-  } catch {
-    // Blocked storage (private browsing): the URL still holds the choice.
-  }
+  writeStorage(storageKey, value);
   listeners.forEach((listener) => listener());
 };
 

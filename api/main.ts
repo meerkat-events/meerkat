@@ -62,7 +62,9 @@ app.get(
   serveStatic({
     root: "./build/client",
     // The first argument is the file's path on disk (build/client/…), so
-    // match the URL path instead.
+    // match the URL path instead. Not Fly's [[statics]]: its proxy answers
+    // GETs itself, with `max-age=0, must-revalidate`, so browsers would
+    // download every chunk again on each visit.
     onFound(_filePath, c) {
       if (c.req.path.startsWith("/assets/")) {
         c.header("Cache-Control", "public, max-age=31536000, immutable");
