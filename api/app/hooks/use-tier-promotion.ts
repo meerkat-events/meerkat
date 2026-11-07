@@ -4,7 +4,7 @@ import { readStorage, writeStorage } from "../lib/storage.ts";
 import type { Tier } from "../types.ts";
 
 export type TierPromotion = {
-  /** The tier they had before, or null when they had none. */
+  /** The best tier they had reached before, or null when they had none. */
   from: Tier | null;
   to: Tier;
 };
@@ -42,7 +42,9 @@ export type UseTierPromotionOptions = {
 export function useTierPromotion(
   { conferenceId, userId, tier, isLoaded }: UseTierPromotionOptions,
 ) {
-  const [promotion, setPromotion] = useState<TierPromotion>();
+  const [pending, setPending] = useState<
+    { key: string; promotion: TierPromotion }
+  >();
 
   useEffect(() => {
     if (!isLoaded || conferenceId === undefined || !userId) return;
@@ -50,16 +52,20 @@ export function useTierPromotion(
     const previous = readBestTier(key);
     if (tier === null || !isBetterTier(tier, previous)) return;
 
-    // Deferred so the state change happens outside the effect body. The tier
-    // is stored once it shows, so a cancelled celebration comes back.
-    const show = setTimeout(() => {
-      writeBestTier(key, tier);
-      setPromotion({ from: previous, to: tier });
-    }, 0);
+    // Deferred so the state change happens outside the effect body
+    const show = setTimeout(
+      () => setPending({ key, promotion: { from: previous, to: tier } }),
+      0,
+    );
     return () => clearTimeout(show);
   }, [isLoaded, conferenceId, userId, tier]);
 
-  const dismiss = useCallback(() => setPromotion(undefined), []);
+  // The tier is stored once the user has seen it, so a celebration that never
+  // showed (waiting behind another one, or the page closed) comes back.
+  const dismiss = useCallback(() => {
+    if (pending) writeBestTier(pending.key, pending.promotion.to);
+    setPending(undefined);
+  }, [pending]);
 
-  return { promotion, dismiss };
+  return { promotion: pending?.promotion, dismiss };
 }
