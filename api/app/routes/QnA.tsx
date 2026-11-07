@@ -1,21 +1,12 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { FiX } from "react-icons/fi";
-import { LuCalendarClock } from "react-icons/lu";
+import { Suspense, useMemo, useRef, useState } from "react";
+import { Flex, Grid } from "@chakra-ui/react";
 import {
-  Alert,
-  Button,
-  Flex,
-  Grid,
-  Icon,
-  IconButton,
-} from "@chakra-ui/react";
-import {
-  Link,
   redirect,
   redirectDocument,
   useParams,
   useSearchParams,
 } from "react-router";
+import { useJitteredRefresh } from "@meerkat-events/react";
 import type { Route } from "./+types/QnA.ts";
 import { NavigationDrawer } from "../components/NavigationDrawer/index.tsx";
 import { Footer } from "../components/QnA/Footer.tsx";
@@ -37,12 +28,10 @@ import { type ReactionEmoji, toReactionEmoji } from "../../reactions.ts";
 import { ATTENDEES_ONLY_FEATURE } from "../../features.ts";
 import { canParticipate } from "../lib/participation.ts";
 import { uuidv7 } from "uuidv7";
-import { useDocumentTitle } from "@uidotdev/usehooks";
 import { pageTitle } from "../utils/events.ts";
-import throttle from "lodash.throttle";
 import { CONFIRMATION_DURATION, toaster } from "~/components/ui/toaster.tsx";
-import type { Event } from "../types.ts";
-import { LiveDialog } from "../components/QnA/LiveDialog.tsx";
+import { HandoverErrorAlert } from "../components/QnA/HandoverErrorAlert.tsx";
+import { NotLiveCard } from "../components/QnA/NotLiveCard.tsx";
 import { SupervoteCounter } from "../components/QnA/SupervoteCounter.tsx";
 import { useSupervoteInfoSeen } from "../hooks/use-supervote-info-seen.ts";
 import { useSupervotes } from "../hooks/use-supervotes.ts";
@@ -58,7 +47,6 @@ import { useStageEvents } from "../hooks/use-stage-events.ts";
 import { useQuestionSort } from "../hooks/use-question-sort.ts";
 import { splitAnswering } from "../lib/questions.ts";
 import {
-  HANDOVER_ERROR_MESSAGES,
   HANDOVER_ERROR_PARAM,
   HANDOVER_TOKEN_PARAM,
   parseHandoverError,
@@ -165,10 +153,9 @@ function QnAPage() {
   });
   const events = eventsData?.data;
   const { past, live, upcoming } = useMemo(
-    () => groupByState(computeFields(events ?? [], uid ?? "")),
-    [events, uid],
+    () => groupByState(events ?? []),
+    [events],
   );
-  useDocumentTitle(pageTitle(event));
 
   const [sort, changeSort] = useQuestionSort();
 
@@ -211,19 +198,14 @@ function QnAPage() {
   });
   const { data: supervoteData, mutate: refreshSupervotes } = useSupervotes();
   const { data: roles } = useConferenceRoles();
-  const refreshQuestionsRef = useRef(refreshQuestions);
-  refreshQuestionsRef.current = refreshQuestions;
-  const refreshSupervotesRef = useRef(refreshSupervotes);
-  refreshSupervotesRef.current = refreshSupervotes;
-  const refresh = useRef(throttle(() => {
-    // The questions carry the user's votes; a supervoted vote also lowers
-    // the balance.
-    refreshQuestionsRef.current();
-    refreshSupervotesRef.current();
-  }, 500)).current;
-  // A pending trailing refresh belongs to this session: drop it when
-  // switching to another one.
-  useEffect(() => () => refresh.cancel(), [refresh]);
+  // After the user's own question, vote or moderation action: at once
+  // (no jitter), one refetch at a time, and calls during one collapse into a
+  // single follow-up. The questions carry the user's votes; a supervoted vote
+  // also lowers the balance. Dropped when switching to another session.
+  const refresh = useJitteredRefresh(
+    () => Promise.all([refreshQuestions(), refreshSupervotes()]),
+    0,
+  );
 
   const { trigger } = useReact(
     event?.uid ?? "",
@@ -238,22 +220,6 @@ function QnAPage() {
     },
   );
 
-  // Toasts sit in line with the heart bubble above the footer (see app.css),
-  // so they need the footer's height, which grows with the question input.
-  const footerRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const footer = footerRef.current;
-    if (!footer) return;
-    const root = document.documentElement;
-    const observer = new ResizeObserver(() => {
-      root.style.setProperty("--footer-height", `${footer.offsetHeight}px`);
-    });
-    observer.observe(footer);
-    return () => {
-      observer.disconnect();
-      root.style.removeProperty("--footer-height");
-    };
-  }, []);
   const { user, isAuthenticated, isLoading, cooldown } = useAuth();
   const handoverError = parseHandoverError(
     searchParams.get(HANDOVER_ERROR_PARAM),
@@ -348,8 +314,7 @@ function QnAPage() {
   // Nothing to sort in an empty session. Hidden until the questions load,
   // so it appears with the first ones instead of flashing on empty sessions.
   const hasQuestions = (questions?.length ?? 0) > 0;
-  const isntLive = event === undefined ? false : !event.live;
-  // Where the "not live" banner sends attendees: the session live on this
+  // Where the not-live card sends attendees: the session live on this
   // stage now (from the schedule, so not while it shows another day).
   const otherLiveSession = live.find((session) =>
     session.live && session.uid !== uid
@@ -370,31 +335,16 @@ function QnAPage() {
 
   return (
     <>
+      {/* Once the event has loaded, in the browser: until then the root's
+          default title stays. React puts this one before it in <head>. */}
+      {event && <title>{pageTitle(event)}</title>}
       <div className="layout">
-        <header className="header flex">
+        <Flex as="header" className="header" direction="column">
           {handoverError && (
-            <Alert.Root
-              status="error"
-              borderRadius="0"
-              display="flex"
-              flexDirection="row"
-              gap="1"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Alert.Indicator />
-              <Alert.Content>
-                <Alert.Title>{HANDOVER_ERROR_MESSAGES[handoverError]}</Alert.Title>
-              </Alert.Content>
-              <IconButton
-                size="sm"
-                variant="ghost"
-                aria-label="Dismiss"
-                onClick={dismissHandoverError}
-              >
-                <FiX />
-              </IconButton>
-            </Alert.Root>
+            <HandoverErrorAlert
+              error={handoverError}
+              onDismiss={dismissHandoverError}
+            />
           )}
           {/* Equal side columns keep the session title centered in the row */}
           <Grid
@@ -417,6 +367,7 @@ function QnAPage() {
               <SessionSwitcher
                 title={event?.title}
                 stage={event?.stage}
+                currentUid={uid}
                 past={past}
                 live={live}
                 upcoming={upcoming}
@@ -443,60 +394,13 @@ function QnAPage() {
             gap="1.5"
             padding="0 1rem 0.5rem"
           >
-            {/* A notification card under the session title in the top bar:
-                this isn't the session on stage right now */}
-            {isntLive && (
-              <Alert.Root
-                status="info"
-                width="full"
-                display="flex"
-                flexDirection="row"
-                alignItems="center"
-                gap="3"
-                padding="2.5"
-                paddingInlineStart="3"
-                borderRadius="15px"
-                bg="bg.panel"
-                color="fg"
-                // A light lift, much softer than the floating heart bubble's
-                boxShadow="xs"
-                marginBlock="1"
-              >
-                {/* In the colorway, like the session title's chevron circle:
-                    the brand tint behind the icon, the brand color for it */}
-                <Flex
-                  aria-hidden="true"
-                  alignItems="center"
-                  justifyContent="center"
-                  flexShrink="0"
-                  boxSize="8"
-                  borderRadius="full"
-                  bg="segment.track"
-                  color="brand.fg"
-                >
-                  <Icon as={LuCalendarClock} boxSize="4" />
-                </Flex>
-                <Alert.Content flex="1" minW="0">
-                  <Alert.Title textStyle="sm" fontWeight="medium">
-                    You're viewing a past or upcoming event.
-                  </Alert.Title>
-                </Alert.Content>
-                {/* Moderators get Go Live instead: two live buttons side by
-                    side read alike */}
-                {otherLiveSession && !canModerateHere && (
-                  <Button asChild size="sm" colorPalette="brand" flexShrink="0" whiteSpace="nowrap">
-                    <Link
-                      to={qa(otherLiveSession.uid)}
-                      title={otherLiveSession.title}
-                    >
-                      Jump to Live
-                    </Link>
-                  </Button>
-                )}
-                {event && canModerateHere && (
-                  <LiveDialog event={event} onConfirm={onConfirm} />
-                )}
-              </Alert.Root>
+            {event && !event.live && (
+              <NotLiveCard
+                event={event}
+                liveSession={otherLiveSession}
+                canModerate={canModerateHere}
+                onGoLive={onConfirm}
+              />
             )}
             {hasQuestions && (
               <Flex width="full" justifyContent="center">
@@ -504,7 +408,7 @@ function QnAPage() {
               </Flex>
             )}
           </Flex>
-        </header>
+        </Flex>
         <main className="content question-content">
           <QuestionsSection
             questions={questions}
@@ -524,7 +428,7 @@ function QnAPage() {
             onAuthorSelect={isAuthenticated ? setSelectedAuthor : undefined}
           />
         </main>
-        <footer className="footer" ref={footerRef}>
+        <footer className="footer">
           <div className="react-bubble">
             <ReactButton
               ref={reactButtonRef}
@@ -629,12 +533,16 @@ const groupByState = <E extends { live?: boolean; start?: Date; end?: Date }>(
   events: E[],
 ) => {
   const liveEvent = events.find((event) => event.live);
-  const groupingDate = liveEvent?.start ?? new Date();
+  // Dates arrive as ISO strings in JSON, whatever their declared type:
+  // compare them as times.
+  const groupingTime = liveEvent?.start
+    ? new Date(liveEvent.start).getTime()
+    : Date.now();
 
   return events.reduce((acc, event) => {
     if (event === liveEvent) {
       acc.live.push(event);
-    } else if (event.start && event.start < groupingDate) {
+    } else if (event.start && new Date(event.start).getTime() < groupingTime) {
       acc.past.push(event);
     } else {
       acc.upcoming.push(event);
@@ -645,11 +553,4 @@ const groupByState = <E extends { live?: boolean; start?: Date; end?: Date }>(
     live: [] as E[],
     upcoming: [] as E[],
   });
-};
-
-const computeFields = (events: Event[], uid: string) => {
-  return events.map((event) => ({
-    ...event,
-    selected: event.uid === uid,
-  }));
 };

@@ -1,5 +1,5 @@
 import { getLuminance, mix, parseToRgba, toHex } from "color2k";
-import type { Theme } from "../types.ts";
+import type { Theme } from "../../conference-theme.ts";
 
 export const isColor = (value: string) => {
   try {

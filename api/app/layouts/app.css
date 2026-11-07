@@ -34,7 +34,7 @@ body {
 
 /* Toasts on the Q&A page sit in line with the reaction bubble (.reaction-picker),
    across the column to its left, and follow the footer up as the question
-   input grows (routes/QnA.tsx sets --footer-height; see ui/toaster.tsx). */
+   input grows (QnA/Footer.tsx sets --footer-height; see ui/toaster.tsx). */
 :root:has(.footer) {
   --toast-column-inset: calc(max(0px, (100vw - 512px) / 2) + 1rem);
   --toast-offset-bottom: calc(var(--footer-height, 7rem) + 0.25rem);
@@ -289,16 +289,6 @@ ul {
   }
 }
 
-/* Emoji reactions in the same 24px box as the heart icon. */
-.reaction-glyph {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  font-size: 22px;
-  line-height: 24px;
-  text-align: center;
-}
-
 /* Reaction hearts float up from the heart button, growing and fading out. */
 .reactions-overlay {
   position: fixed;
@@ -377,7 +367,3 @@ ul {
   }
 }
 
-.flex {
-  display: flex;
-  flex-direction: column;
-}

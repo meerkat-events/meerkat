@@ -12,7 +12,7 @@ import {
   mix,
   transparentize,
 } from "color2k";
-import type { Theme } from "../types.ts";
+import type { Theme } from "../../conference-theme.ts";
 import { isColor, pageSurface } from "./surface.ts";
 
 export { meerkat } from "./meerkat.ts";
@@ -329,20 +329,6 @@ const chakraAdapter = (theme: Theme) => {
               value: theme.errorToastColor
                 ? "{colors.fg}"
                 : "{colors.red.contrast}",
-            },
-          },
-          // Banner on events that aren't live. By default a brand tint with
-          // high-contrast brand text; a theme's notLiveBannerColor takes the
-          // regular text color instead.
-          notLiveBanner: {
-            bg: {
-              value: theme.notLiveBannerColor ??
-                { _light: brandTint(12), _dark: brandTint(20) },
-            },
-            fg: {
-              value: theme.notLiveBannerColor
-                ? "{colors.fg}"
-                : { _light: "{colors.brand.900}", _dark: "{colors.brand.300}" },
             },
           },
           // The Q&A page's top bar (menu, conference name, supervotes): the

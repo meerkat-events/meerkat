@@ -4,23 +4,27 @@ import { Heading, Text } from "@chakra-ui/react";
 import TopQuestions from "../TopQuestions.tsx";
 import HighEngagementQuestions from "./HighEngagementQuestions.tsx";
 import { eventStreamEvents, useEventSource } from "@meerkat-events/react";
-import { HeartIcon } from "../assets/heart.ts";
+import { ReactionGlyph } from "../QnA/ReactionGlyph.tsx";
 import { useSearchParams } from "react-router";
 import { useState, useSyncExternalStore } from "react";
 import { apiUrl, appOrigin } from "../../lib/api-url.ts";
 import { splitAnswering } from "../../lib/questions.ts";
 import { qa } from "../../routing.ts";
 import type { Event } from "../../types.ts";
-import {
-  REACTION_GLYPHS,
-  type ReactionEmoji,
-  toReactionEmoji,
-} from "../../../reactions.ts";
-import { randomNormal } from "d3-random";
+import { type ReactionEmoji, toReactionEmoji } from "../../../reactions.ts";
 
 import "./styles.css";
 
-const randomX = randomNormal(50, 8);
+/**
+ * A normally distributed random number (the Box-Muller transform), for
+ * where a reaction floats up: clustered around the middle of the screen.
+ */
+function randomNormal(mean: number, deviation: number) {
+  // 1 - random() is in (0, 1]: the logarithm of 0 would be -Infinity.
+  const radius = Math.sqrt(-2 * Math.log(1 - Math.random()));
+  const angle = 2 * Math.PI * Math.random();
+  return mean + deviation * radius * Math.cos(angle);
+}
 
 /** The page's origin never changes: nothing to subscribe to. */
 function subscribeToNothing() {
@@ -58,7 +62,8 @@ export default function Presenter(
 
   const addReaction = (emoji: ReactionEmoji) => {
     const id = globalThis.crypto.randomUUID();
-    const x = Math.max(0, Math.min(100, randomX()));
+    // Percent of the screen's width
+    const x = Math.max(0, Math.min(100, randomNormal(50, 8)));
 
     setReactions((prev) => [...prev, { id, x, emoji }]);
 
@@ -103,7 +108,9 @@ export default function Presenter(
           ? (
             <HighEngagementQuestions
               answering={answering}
-              recentlyAnswered={event.recentlyAnswered}
+              // Missing from servers older than high engagement mode, which
+              // a new client can still reach while a deploy rolls out.
+              recentlyAnswered={event.recentlyAnswered ?? []}
               showsQRCode={!hideQRCode}
             />
           )
@@ -134,26 +141,15 @@ export default function Presenter(
       )}
 
       <div className="reactions-container">
-        {reactions.map((reaction) =>
-          reaction.emoji === "heart"
-            ? (
-              <div
-                key={reaction.id}
-                className="reaction"
-                style={{ left: `${reaction.x}%` }}
-                dangerouslySetInnerHTML={{ __html: HeartIcon }}
-              />
-            )
-            : (
-              <div
-                key={reaction.id}
-                className="reaction reaction-emoji"
-                style={{ left: `${reaction.x}%` }}
-              >
-                {REACTION_GLYPHS[reaction.emoji]}
-              </div>
-            )
-        )}
+        {reactions.map((reaction) => (
+          <div
+            key={reaction.id}
+            className="reaction"
+            style={{ left: `${reaction.x}%` }}
+          >
+            <ReactionGlyph emoji={reaction.emoji} />
+          </div>
+        ))}
       </div>
     </div>
   );

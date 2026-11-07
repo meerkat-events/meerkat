@@ -4,7 +4,7 @@ import {
   getConferenceThemeById,
 } from "../../models/conferences.ts";
 import { getStageLiveEvent } from "../../models/events.ts";
-import type { Theme } from "../types.ts";
+import type { Theme } from "../../conference-theme.ts";
 
 /**
  * The theme of the event's conference, for the layouts' `loader`; null when

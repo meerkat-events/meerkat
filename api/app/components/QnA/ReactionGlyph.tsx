@@ -1,6 +1,8 @@
 import { REACTION_GLYPHS, type ReactionEmoji } from "../../../reactions.ts";
 import { HeartIcon } from "./HeartIcon.tsx";
 
+import "./ReactionGlyph.css";
+
 /** A reaction's icon in a 24px box: the custom heart, or an emoji. */
 export function ReactionGlyph({ emoji }: { emoji: ReactionEmoji }) {
   return emoji === "heart"

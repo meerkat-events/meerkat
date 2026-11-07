@@ -1,15 +1,15 @@
 import { FiSend } from "react-icons/fi";
 import {
   Box,
+  Button,
   IconButton,
   Link as ChakraLink,
   Text,
   Textarea,
 } from "@chakra-ui/react";
 import type { Event } from "../../types.ts";
-import { PrimaryButton } from "../Buttons/PrimaryButton.tsx";
 import { tapTargetStyles } from "../../theme/index.ts";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useAskQuestion } from "../../hooks/use-ask-question.ts";
 import { CONFIRMATION_DURATION, toaster } from "../ui/toaster.tsx";
 import { useAnonymousUser } from "../../hooks/use-anonymous-user.ts";
@@ -48,6 +48,33 @@ export function Footer({
   onProfileOpen,
 }: FooterProps) {
   const { login: loginAnonymousUser } = useAnonymousUser();
+  // One sign-in per tap: a second one would create another anonymous user.
+  const [isJoining, setIsJoining] = useState(false);
+  const join = async () => {
+    setIsJoining(true);
+    try {
+      await loginAnonymousUser();
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  // Toasts sit in line with the heart bubble above the footer (see app.css),
+  // so they need the footer's height, which grows with the question input.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty("--footer-height", `${container.offsetHeight}px`);
+    });
+    observer.observe(container);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--footer-height");
+    };
+  }, []);
 
   const [question, setQuestion] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -99,122 +126,124 @@ export function Footer({
   };
 
   return (
-    <>
-      <div className="overlay-container">
-        <div className="target question-input">
-          {/* The send button sits inside the field, in its bottom corner as a
-              long question grows. Once there is text, the character count
-              sits in the opposite corner. */}
-          <Box position="relative">
-            <Textarea
-              ref={textareaRef}
-              resize="none"
-              rows={1}
-              // Once there is text, a strip at the bottom holds the count,
-              // and the field is taller by as much so as many lines show.
-              maxH={hasText ? "11rem" : "9.25rem"}
-              paddingBottom={hasText ? "10" : undefined}
-              overflowY="auto"
-              size="lg"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  submitQuestion();
-                }
+    <div className="overlay-container" ref={containerRef}>
+      <div className="target question-input">
+        {/* The send button sits inside the field, in its bottom corner as a
+            long question grows. Once there is text, the character count
+            sits in the opposite corner. */}
+        <Box position="relative">
+          <Textarea
+            ref={textareaRef}
+            resize="none"
+            rows={1}
+            // Once there is text, a strip at the bottom holds the count,
+            // and the field is taller by as much so as many lines show.
+            maxH={hasText ? "11rem" : "9.25rem"}
+            paddingBottom={hasText ? "10" : undefined}
+            overflowY="auto"
+            size="lg"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submitQuestion();
+              }
+            }}
+            disabled={!canParticipate}
+            // The conference-app hint takes the placeholder's place
+            placeholder={showDevconPrompt ? "" : "Type a question..."}
+            name="question"
+            borderRadius="questionInput"
+            borderColor="transparent"
+            background="bg.subtle"
+            _placeholder={{ color: "fg.muted" }}
+            _focusVisible={{
+              borderColor: "transparent",
+            }}
+            maxLength={MAX_CHARS_PER_QUESTION}
+            aria-describedby={lengthDescriptionId}
+            paddingEnd="14"
+            // Block, so the wrapper ends where the field does
+            display="block"
+          />
+          <IconButton
+            loading={isMutating}
+            disabled={!canParticipate}
+            size="md"
+            onClick={submitQuestion}
+            aria-label="Submit question"
+            position="absolute"
+            insetEnd="5px"
+            bottom="5px"
+            h="40px"
+            w="40px"
+            minW="40px"
+            borderRadius="full"
+            _hover={{ bg: "brand.hover" }}
+          >
+            <FiSend />
+          </IconButton>
+          <QuestionLengthCounter
+            length={question.length}
+            maxLength={MAX_CHARS_PER_QUESTION}
+            descriptionId={lengthDescriptionId}
+            className="question-counter"
+          />
+        </Box>
+        {/* Guests have no account yet; one is created only when they
+            join the conversation. */}
+        {isAuthenticated && (
+          <span className="signin-name">
+            Signed as{" "}
+            <ChakraLink
+              as="button"
+              onClick={onProfileOpen}
+              position="relative"
+              // The full tap target, shifted down into the padding below so
+              // it stays off the question input just above
+              _before={{
+                ...tapTargetStyles._before,
+                transform: "translate(-50%, calc(-50% + 6px))",
               }}
-              disabled={!canParticipate}
-              // The conference-app hint takes the placeholder's place
-              placeholder={showDevconPrompt ? "" : "Type a question..."}
-              name="question"
-              borderRadius="questionInput"
-              borderColor="transparent"
-              background="bg.subtle"
-              _placeholder={{ color: "fg.muted" }}
-              _focusVisible={{
-                borderColor: "transparent",
-              }}
-              maxLength={MAX_CHARS_PER_QUESTION}
-              aria-describedby={lengthDescriptionId}
-              paddingEnd="14"
-              // Block, so the wrapper ends where the field does
-              display="block"
-            />
-            <IconButton
-              loading={isMutating}
-              disabled={!canParticipate}
-              size="md"
-              onClick={submitQuestion}
-              aria-label="Submit question"
-              position="absolute"
-              insetEnd="5px"
-              bottom="5px"
-              h="40px"
-              w="40px"
-              minW="40px"
-              borderRadius="full"
-              _hover={{ bg: "brand.hover" }}
             >
-              <FiSend />
-            </IconButton>
-            <QuestionLengthCounter
-              length={question.length}
-              maxLength={MAX_CHARS_PER_QUESTION}
-              descriptionId={lengthDescriptionId}
-              className="question-counter"
-            />
-          </Box>
-          {/* Guests have no account yet; one is created only when they
-              join the conversation. */}
-          {isAuthenticated && (
-            <span className="signin-name">
-              Signed as{" "}
-              <ChakraLink
-                as="button"
-                onClick={onProfileOpen}
-                position="relative"
-                // The full tap target, shifted down into the padding below so
-                // it stays off the question input just above
-                _before={{
-                  ...tapTargetStyles._before,
-                  transform: "translate(-50%, calc(-50% + 6px))",
-                }}
-              >
-                {user?.user_metadata["name"] ?? user?.id}
-              </ChakraLink>
-            </span>
-          )}
-        </div>
-        {/* Attendees-only conferences offer no anonymous sign-in: people
-            without a role there are pointed to the conference app instead. */}
-        {showDevconPrompt
-          ? (
-            <LoginOverlay>
-              <Text
-                // Positioned, so it paints above the positioned field below
-                // it, like the Join button does
-                position="relative"
-                color="fg.muted"
-                textAlign="center"
-              >
-                Open this session from the conference app
-              </Text>
-            </LoginOverlay>
-          )
-          : !isAuthenticated && !isUserLoading && event &&
-            !event.conference.features[ATTENDEES_ONLY_FEATURE] && (
-            <LoginOverlay>
-              <PrimaryButton
-                loadingText="Joining..."
-                onClick={() => loginAnonymousUser()}
-              >
-                Join conversation
-              </PrimaryButton>
-            </LoginOverlay>
-          )}
+              {user?.user_metadata["name"] ?? user?.id}
+            </ChakraLink>
+          </span>
+        )}
       </div>
-    </>
+      {/* Attendees-only conferences offer no anonymous sign-in: people
+          without a role there are pointed to the conference app instead. */}
+      {showDevconPrompt
+        ? (
+          <LoginOverlay>
+            <Text
+              // Positioned, so it paints above the positioned field below
+              // it, like the Join button does
+              position="relative"
+              color="fg.muted"
+              textAlign="center"
+            >
+              Open this session from the conference app
+            </Text>
+          </LoginOverlay>
+        )
+        : !isAuthenticated && !isUserLoading && event &&
+          !event.conference.features[ATTENDEES_ONLY_FEATURE] && (
+          <LoginOverlay>
+            <Button
+              variant="solid"
+              size="lg"
+              _hover={{ bg: "brand.hover" }}
+              loading={isJoining}
+              loadingText="Joining..."
+              onClick={join}
+            >
+              Join conversation
+            </Button>
+          </LoginOverlay>
+        )}
+    </div>
   );
 }
 
