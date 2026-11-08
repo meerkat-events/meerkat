@@ -15,7 +15,7 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-test("the stage screen follows its stage to the session put live", async ({ page, browser }) => {
+test("the stage screen follows its stage to the session put live", async ({ page, openPage }) => {
   const conference = await insertConference("Go live");
   // Event titles are their uids (insertEvent).
   await insertEvent({
@@ -36,7 +36,7 @@ test("the stage screen follows its stage to the session put live", async ({ page
   const moderator = await emailUser("moderator@example.com");
   await grantTestRole(moderator.id, conference.id, "moderator");
 
-  const stageScreen = await (await browser.newContext()).newPage();
+  const stageScreen = await openPage();
   await stageScreen.goto("/stage/main");
   await expect(stageScreen.getByRole("heading", { name: "opening-keynote" })).toBeVisible();
 

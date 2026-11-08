@@ -1,7 +1,7 @@
 import {
   emailUser,
   expect,
-  insertQuestions,
+  insertQuestion,
   joinAnonymously,
   resetDb,
   seedConference,
@@ -15,7 +15,7 @@ test.beforeEach(async () => {
 test("an attendee votes for a question and takes the vote back", async ({ page }) => {
   const { event } = await seedConference({ name: "Vote" });
   const asker = await emailUser("asker@example.com");
-  await insertQuestions({ eventId: event.id, userId: asker.id, count: 1 });
+  await insertQuestion(event.id, asker.id, "rollup-question");
 
   await joinAnonymously(page, event.uid);
   await page.getByRole("button", { name: "Upvote, 0 votes" }).click();

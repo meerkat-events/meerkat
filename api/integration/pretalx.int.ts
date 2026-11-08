@@ -8,7 +8,7 @@ import { conferences, events } from "../schema.ts";
 import {
   emailUser,
   insertConference,
-  insertQuestions,
+  insertQuestion,
   request,
   resetDb,
 } from "./helpers.ts";
@@ -126,7 +126,7 @@ describe("Pretalx sync", () => {
     assert.equal((await sync()).status, 200);
     const [gone] = await db.select().from(events).where(eq(events.uid, "BBB"));
     const asker = await emailUser("asker@example.com");
-    await insertQuestions({ eventId: gone!.id, userId: asker.id, count: 1 });
+    await insertQuestion(gone!.id, asker.id, "asked-in-bbb");
     answer.body = scheduleOf([talk("AAA")]);
     await allowNextSync();
 

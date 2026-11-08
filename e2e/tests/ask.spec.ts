@@ -4,9 +4,9 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-test("an attendee asks a question and another attendee sees it", async ({ page, browser }) => {
+test("an attendee asks a question and another attendee sees it", async ({ page, openPage }) => {
   const { event } = await seedConference({ name: "Ask" });
-  const other = await (await browser.newContext()).newPage();
+  const other = await openPage();
   await other.goto(`/e/${event.uid}/qa`);
 
   await joinAnonymously(page, event.uid);

@@ -10,7 +10,7 @@ import {
   askQuestion,
   emailUser,
   insertEvent,
-  insertQuestions,
+  insertQuestion,
   resetDb,
   seedConference,
   type TestUser,
@@ -18,6 +18,21 @@ import {
 } from "./helpers.ts";
 
 const HOUR = 60 * 60 * 1000;
+
+/**
+ * `count` questions by `userId` in the event, asked two hours ago: outside
+ * every limit's window. Returns their uids.
+ */
+async function insertEarlierQuestions(eventId: number, userId: string, count: number) {
+  const createdAt = new Date(Date.now() - 2 * HOUR);
+  const uids: string[] = [];
+  for (let index = 1; index <= count; index++) {
+    const uid = `earlier-${eventId}-${index}`;
+    await insertQuestion(eventId, userId, uid, { createdAt });
+    uids.push(uid);
+  }
+  return uids;
+}
 
 /** Asserts a 429 and whether it says when to retry. */
 function assertTooMany(response: Response, { retryAfter }: { retryAfter: boolean }) {
@@ -69,11 +84,7 @@ describe("rate limits", () => {
   });
 
   test("a session takes a limited number of questions per person, for good", async () => {
-    await insertQuestions({
-      eventId,
-      userId: user.id,
-      count: MAX_QUESTIONS_PER_EVENT - 1,
-    });
+    await insertEarlierQuestions(eventId, user.id, MAX_QUESTIONS_PER_EVENT - 1);
     assert.equal((await askQuestion(eventUid, user)).status, 200);
 
     assertTooMany(await askQuestion(eventUid, user), { retryAfter: false });
@@ -88,11 +99,11 @@ describe("rate limits", () => {
 
   test("voting is limited per minute and session, removing a vote included", async () => {
     const author = await emailUser("author@example.com");
-    const questionUids = (await insertQuestions({
+    const questionUids = await insertEarlierQuestions(
       eventId,
-      userId: author.id,
-      count: MAX_VOTES_PER_EVENT + 1,
-    })).map((question) => question.uid);
+      author.id,
+      MAX_VOTES_PER_EVENT + 1,
+    );
 
     for (const questionUid of questionUids.slice(0, MAX_VOTES_PER_EVENT)) {
       assert.equal((await upvote(questionUid, user)).status, 200);
@@ -112,21 +123,13 @@ describe("rate limits", () => {
       startOffsetMs: -HOUR,
       endOffsetMs: HOUR,
     });
-    const questionUids = (await insertQuestions({
-      eventId,
-      userId: author.id,
-      count: MAX_VOTES_PER_EVENT,
-    })).map((question) => question.uid);
-    const [otherQuestion] = await insertQuestions({
-      eventId: otherEvent.id,
-      userId: author.id,
-      count: 1,
-    });
+    const questionUids = await insertEarlierQuestions(eventId, author.id, MAX_VOTES_PER_EVENT);
+    const [otherQuestion] = await insertEarlierQuestions(otherEvent.id, author.id, 1);
 
     for (const questionUid of questionUids) {
       assert.equal((await upvote(questionUid, user)).status, 200);
     }
 
-    assert.equal((await upvote(otherQuestion!.uid, user)).status, 200);
+    assert.equal((await upvote(otherQuestion!, user)).status, 200);
   });
 });

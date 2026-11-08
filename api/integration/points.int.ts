@@ -9,7 +9,7 @@ import { questions, users, votes } from "../schema.ts";
 import {
   anonymousUser,
   emailUser,
-  insertQuestions,
+  insertQuestion,
   request,
   resetDb,
   seedConference,
@@ -48,14 +48,10 @@ describe("points", () => {
     return (await response.json() as { data: Participant }).data;
   };
 
-  /** One question by `author`, stored directly. */
+  /** A new question by `author`, stored directly. */
   const questionBy = async (author: TestUser) => {
-    const [question] = await insertQuestions({
-      eventId,
-      userId: author.id,
-      count: 1,
-    });
-    return question!.id;
+    const question = await insertQuestion(eventId, author.id, crypto.randomUUID());
+    return question.id;
   };
 
   beforeEach(async () => {

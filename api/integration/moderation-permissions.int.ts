@@ -4,7 +4,7 @@ import {
   anonymousUser,
   emailUser,
   grantTestRole,
-  insertQuestions,
+  insertQuestion,
   request,
   resetDb,
   seedConference,
@@ -56,12 +56,7 @@ describe("moderation permissions", () => {
     actors.set("moderator elsewhere", elsewhereModerator);
 
     const asker = await emailUser("asker@example.com");
-    const [question] = await insertQuestions({
-      eventId: event.id,
-      userId: asker.id,
-      count: 1,
-    });
-    const questionUid = question!.uid;
+    const { uid: questionUid } = await insertQuestion(event.id, asker.id, "moderated");
 
     const moderators: Actor[] = ["moderator", "organizer"];
     actions = [

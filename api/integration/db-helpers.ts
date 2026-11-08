@@ -98,31 +98,6 @@ export async function insertEvent(
   return event;
 }
 
-/**
- * Questions stored directly, bypassing the rate limits: by default created
- * two hours ago, outside every limit's window.
- */
-export async function insertQuestions(
-  { eventId, userId, count, createdAt = new Date(Date.now() - 2 * 60 * 60 * 1000) }: {
-    eventId: number;
-    userId: string;
-    count: number;
-    createdAt?: Date;
-  },
-) {
-  return await db.insert(questions)
-    .values(
-      Array.from({ length: count }, (_, index) => ({
-        uid: crypto.randomUUID(),
-        eventId,
-        userId,
-        question: `Earlier question ${index + 1}`,
-        createdAt,
-      })),
-    )
-    .returning({ id: questions.id, uid: questions.uid });
-}
-
 /** A conference with one event, optionally with features switched on. */
 export async function seedConference(
   { name, featureNames = [] }: { name: string; featureNames?: string[] },
@@ -226,7 +201,12 @@ export async function insertQuestion(
   eventId: number,
   userId: string,
   uid: string,
-  timestamps: { answeredAt?: Date; deletedAt?: Date; hiddenAt?: Date } = {},
+  timestamps: {
+    createdAt?: Date;
+    answeredAt?: Date;
+    deletedAt?: Date;
+    hiddenAt?: Date;
+  } = {},
 ) {
   const [question] = await db.insert(questions)
     .values({ uid, eventId, userId, question: `Question ${uid}`, ...timestamps })

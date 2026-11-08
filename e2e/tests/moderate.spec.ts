@@ -2,7 +2,7 @@ import {
   emailUser,
   expect,
   grantTestRole,
-  insertQuestions,
+  insertQuestion,
   resetDb,
   seedConference,
   signIn,
@@ -13,17 +13,17 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-test("a moderator selects a question and the stage screen shows it", async ({ page, browser }) => {
+test("a moderator selects a question and the stage screen shows it", async ({ page, openPage }) => {
   const { conference, event } = await seedConference({ name: "Moderate" });
   const asker = await emailUser("asker@example.com");
-  await insertQuestions({ eventId: event.id, userId: asker.id, count: 1 });
+  await insertQuestion(event.id, asker.id, "rollup-question");
   const moderator = await emailUser("moderator@example.com");
   await grantTestRole(moderator.id, conference.id, "moderator");
 
-  const stageScreen = await (await browser.newContext()).newPage();
+  const stageScreen = await openPage();
   await stageScreen.goto(`/stage/${event.stage}`);
   const onScreen = stageScreen.getByRole("listitem")
-    .filter({ hasText: "Earlier question 1" });
+    .filter({ hasText: "Question rollup-question" });
   await expect(onScreen).toBeVisible();
   await expect(onScreen.getByText("Answering")).toHaveCount(0);
 

@@ -29,7 +29,6 @@ if [ -n "${COVERAGE_REPORT:-}" ]; then
   coverage=(
     --experimental-test-coverage
     --test-coverage-exclude='**/*.test.ts'
-    --test-coverage-exclude='**/*.int.ts'
     --test-coverage-exclude='integration/**'
     --test-coverage-exclude='testing/**'
     --test-reporter=spec --test-reporter-destination=stdout

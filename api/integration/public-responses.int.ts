@@ -7,7 +7,7 @@ import { events, questions } from "../schema.ts";
 import { PUBLIC_ROUTES } from "../testing/route-lists.ts";
 import {
   emailUser,
-  insertQuestions,
+  insertQuestion,
   request,
   resetDb,
   seedConference,
@@ -70,17 +70,17 @@ describe("public responses", () => {
       relevance: 3,
       model: "test/model",
     };
-    const [visible] = await insertQuestions({ eventId: event.id, userId: asker.id, count: 1 });
-    const [hidden] = await insertQuestions({ eventId: event.id, userId: author.id, count: 1 });
-    hiddenUid = hidden!.uid;
-    visibleUid = visible!.uid;
+    const visible = await insertQuestion(event.id, asker.id, "visible");
+    const hidden = await insertQuestion(event.id, author.id, "hidden");
+    hiddenUid = hidden.uid;
+    visibleUid = visible.uid;
     const answeredAt = new Date();
     await db.update(questions)
       .set({ answeredAt, selectedAt: answeredAt, moderation: keptVerdict })
-      .where(eq(questions.id, visible!.id));
+      .where(eq(questions.id, visible.id));
     await db.update(questions)
       .set({ answeredAt, selectedAt: answeredAt, hiddenAt: answeredAt, moderation: hiddenVerdict })
-      .where(eq(questions.id, hidden!.id));
+      .where(eq(questions.id, hidden.id));
 
     samples.set("GET /api/v1/health", "/api/v1/health");
     samples.set("GET /api/v1/events/:uid", `/api/v1/events/${event.uid}`);
