@@ -6,7 +6,7 @@ import {
   splitAnswering,
 } from "./questions.ts";
 
-const now = new Date();
+const now = new Date().toISOString();
 
 test("isAnswering is true only for a selected question not yet answered", () => {
   assert.equal(isAnswering({ selectedAt: now }), true);

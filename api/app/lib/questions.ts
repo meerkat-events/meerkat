@@ -1,4 +1,4 @@
-type Answerable = { selectedAt?: Date | string | undefined; answeredAt?: unknown };
+type Answerable = { selectedAt?: string | undefined; answeredAt?: unknown };
 
 /** Selected and not answered yet. */
 export const isAnswering = (question: Answerable) =>
@@ -44,7 +44,6 @@ export function isQuestionListLoading(
   return !isSortKnown || isWaitingForSession || isFetching;
 }
 
-// selectedAt arrives as an ISO string in JSON, whatever its declared type.
 function selectedTime(question: Answerable) {
   return new Date(question.selectedAt!).getTime();
 }
