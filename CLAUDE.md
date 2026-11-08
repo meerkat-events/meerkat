@@ -133,7 +133,30 @@ needs Docker, starts the stack, migrates and runs them
 with an environment of its own, not `api/.env`. The stack is shared by every
 worktree, and the tests empty its tables. Run them for changes to auth,
 authorization or rate limits; `integration/helpers.ts` resets the database,
-seeds conferences and signs users in with real local tokens.
+seeds conferences and signs users in with real local tokens (its database
+helpers live in `db-helpers.ts`, which the end-to-end tests share). Pass
+files to run only those: `pnpm --dir api test:integration
+integration/points.int.ts`.
+
+End-to-end tests (`e2e/`, Playwright, Chromium) cover the **core user
+stories only**: asking, voting, a moderator selecting a question for the
+stage screen, and the stage screen following a session put live.
+`pnpm test:e2e` from the root (`scripts/test-e2e.sh`, Docker) starts the
+same local stack, builds the app with an empty `VITE_API_URL` and runs them;
+arguments go to `playwright test` (a spec, `--repeat-each=5`). Users sign in
+through the Devcon handover (`signIn` in `e2e/tests/fixtures.ts`), so it
+needs no suite of its own, and a test fails on page errors and hydration
+mismatches. A change to a core story updates its spec, whose title states
+the story; there is no other list of stories. Permissions, limits and edge
+cases are tested below the browser, in integration or unit tests.
+
+Every route is classified in `api/testing/route-lists.ts`: public or not,
+and for writes whether they notify the event stream (`realtime.int.ts`
+checks every one that must). `app.test.ts` fails until a new route is
+listed there, and `integration/public-responses.int.ts` checks that public
+JSON routes leak no hidden question, moderation field or email. CI writes
+the unit and integration tests' line coverage to the job summary, as a
+report, not a gate.
 
 ## Architecture
 
@@ -261,9 +284,9 @@ its CSS, callers pass the items' uids joined, nothing moves with
   carry hidden questions, moderation fields or emails (`toPublicQuestion`,
   `toApiConference`); the one exception is the relevance score in the
   question list a conference's moderators fetch (see Automatic moderation).
-  `api/app.test.ts` holds the same list and checks that every other route
-  answers 401 without credentials, so a new public route
-  has to be added there on purpose. On the frontend, a hook calling a
+  `PUBLIC_ROUTES` in `api/testing/route-lists.ts` holds the same list, and
+  `api/app.test.ts` checks that every other route answers 401 without
+  credentials, so a new public route has to be added there on purpose. On the frontend, a hook calling a
   protected route passes `session?.access_token` and keeps its SWR key
   `null` until there is one. `optionalJwt()` sets the payload when a valid
   token is present and otherwise lets the request through anonymously (the

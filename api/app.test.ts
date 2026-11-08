@@ -12,34 +12,11 @@ delete process.env["SUPABASE_URL"];
 delete process.env["SUPABASE_ANON_KEY"];
 
 const { default: app } = await import("./app.ts");
+const { OTHER_MUTATIONS, PUBLIC_ROUTES, QUESTION_MUTATIONS } = await import(
+  "./testing/route-lists.ts"
+);
 
-/**
- * The routes anyone may call without a token, and who needs them (CLAUDE.md,
- * "Auth and roles"). Every other route must answer 401 without credentials.
- */
-const PUBLIC_ROUTES = [
-  // Fly's health check
-  "GET /api/v1/health",
-  // Guests and embedders: an event, its questions and their live updates
-  "GET /api/v1/events/:uid",
-  "GET /api/v1/events/:uid/questions",
-  "GET /api/v1/events/:uid/questions/stream",
-  // The organizer pages' live updates: carries no data, only "refetch"
-  "GET /api/v1/conferences/:id/questions/stream",
-  // The Q&A page's session switcher
-  "GET /api/v1/events",
-  // Old Event Card links, redirected to the Q&A page
-  "GET /e/:uid/card",
-  // Signage and printed QR codes (the stage screen /stage/:stage is a page)
-  "GET /stage/:stage/qa",
-  "GET /api/v1/events/stage/:stage/live",
-  "GET /api/v1/conferences/:id/live",
-  // posthog-js in every browser, through our proxy to PostHog
-  "GET /relay/*",
-  "POST /relay/*",
-  // The Devcon team's webhook; it only re-pulls a public schedule
-  "POST /api/v1/pretalx/:event/sync",
-];
+const WRITE_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
 
 /** Each route once, as "METHOD /path" (middlewares register their own rows). */
 function registeredRoutes() {
@@ -58,14 +35,14 @@ function samplePath(pattern: string) {
 
 test("every public route exists", () => {
   const routes = registeredRoutes();
-  for (const publicRoute of PUBLIC_ROUTES) {
+  for (const publicRoute of Object.keys(PUBLIC_ROUTES)) {
     assert.ok(routes.includes(publicRoute), `${publicRoute} is not registered`);
   }
 });
 
 test("every other route answers 401 without credentials", async () => {
   const protectedRoutes = registeredRoutes().filter((route) =>
-    !PUBLIC_ROUTES.includes(route)
+    !(route in PUBLIC_ROUTES)
   );
   assert.ok(protectedRoutes.length > 0);
 
@@ -73,6 +50,23 @@ test("every other route answers 401 without credentials", async () => {
     const [method, pattern] = route.split(" ") as [string, string];
     const response = await app.request(samplePath(pattern), { method });
     assert.equal(response.status, 401, `${route} answered ${response.status}`);
+  }
+});
+
+test("every route that writes is classified for real-time updates", () => {
+  const writes = registeredRoutes().filter((route) =>
+    WRITE_METHODS.includes(route.split(" ")[0]!)
+  );
+  for (const route of writes) {
+    const notifies = QUESTION_MUTATIONS.includes(route);
+    const exempt = route in OTHER_MUTATIONS;
+    assert.ok(
+      notifies !== exempt,
+      `${route} must be in exactly one of QUESTION_MUTATIONS and OTHER_MUTATIONS (testing/route-lists.ts)`,
+    );
+  }
+  for (const route of [...QUESTION_MUTATIONS, ...Object.keys(OTHER_MUTATIONS)]) {
+    assert.ok(writes.includes(route), `${route} is not registered`);
   }
 });
 

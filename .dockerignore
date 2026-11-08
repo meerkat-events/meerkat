@@ -20,3 +20,5 @@ Caddyfile
 docker-compose.yml
 LICENSE
 README.md
+# End-to-end tests (Playwright) are not part of the image
+e2e

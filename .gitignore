@@ -37,3 +37,7 @@ caddy_data/
 # state is kept out by supabase/.gitignore. The raw dashboard export of the dev
 # project's email templates is superseded by supabase/templates/.
 supabase/meerkat-dev-email-templates.json
+
+# Playwright output (e2e/)
+test-results/
+playwright-report/

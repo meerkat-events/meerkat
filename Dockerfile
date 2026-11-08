@@ -15,7 +15,9 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/react/package.json ./packages/react/
 COPY api/package.json ./api/
 
-RUN pnpm install --frozen-lockfile
+# Only the two packages the image runs: the lockfile also lists the
+# end-to-end tests (e2e/, Playwright), which stay out of the image.
+RUN pnpm install --frozen-lockfile --filter ./api --filter ./packages/react
 
 COPY packages/react/ ./packages/react/
 COPY api/ ./api/

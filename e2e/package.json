@@ -1,0 +1,12 @@
+{
+  "name": "e2e",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end tests of the core user stories: Playwright against the built app and the local Supabase stack. Run with scripts/test-e2e.sh.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0"
+  }
+}

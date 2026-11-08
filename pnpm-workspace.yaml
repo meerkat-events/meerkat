@@ -1,6 +1,8 @@
 packages:
   - "api"
   - "packages/*"
+  # End-to-end tests; not part of the Docker image (.dockerignore)
+  - "e2e"
 
 # Packages allowed to run install/build scripts (pnpm >= 10.26 syntax).
 allowBuilds:
