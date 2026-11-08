@@ -21,7 +21,7 @@ export type SessionItem = {
   uid: string;
   title: string;
   live: boolean;
-  start: Date | string;
+  start: string;
 };
 
 interface SessionSwitcherProps {
@@ -273,7 +273,7 @@ function SessionRow(
     );
 }
 
-function formatTime(start: Date | string) {
+function formatTime(start: string) {
   return new Date(start).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",

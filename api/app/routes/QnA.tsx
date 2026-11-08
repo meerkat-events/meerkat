@@ -46,6 +46,7 @@ import { useGoLive } from "~/hooks/use-go-live.ts";
 import { useStageEvents } from "../hooks/use-stage-events.ts";
 import { useQuestionSort } from "../hooks/use-question-sort.ts";
 import { splitAnswering } from "../lib/questions.ts";
+import { groupByState } from "../lib/group-sessions.ts";
 import {
   HANDOVER_ERROR_PARAM,
   HANDOVER_TOKEN_PARAM,
@@ -153,7 +154,7 @@ function QnAPage() {
   });
   const events = eventsData?.data;
   const { past, live, upcoming } = useMemo(
-    () => groupByState(events ?? []),
+    () => groupByState(events ?? [], new Date()),
     [events],
   );
 
@@ -528,29 +529,3 @@ function QnAPage() {
     </>
   );
 }
-
-const groupByState = <E extends { live?: boolean; start?: Date; end?: Date }>(
-  events: E[],
-) => {
-  const liveEvent = events.find((event) => event.live);
-  // Dates arrive as ISO strings in JSON, whatever their declared type:
-  // compare them as times.
-  const groupingTime = liveEvent?.start
-    ? new Date(liveEvent.start).getTime()
-    : Date.now();
-
-  return events.reduce((acc, event) => {
-    if (event === liveEvent) {
-      acc.live.push(event);
-    } else if (event.start && new Date(event.start).getTime() < groupingTime) {
-      acc.past.push(event);
-    } else {
-      acc.upcoming.push(event);
-    }
-    return acc;
-  }, {
-    past: [] as E[],
-    live: [] as E[],
-    upcoming: [] as E[],
-  });
-};
