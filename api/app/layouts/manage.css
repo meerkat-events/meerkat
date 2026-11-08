@@ -76,6 +76,14 @@
   flex-wrap: wrap;
 }
 
+/* The event, then the refresh button in the top right corner. */
+.manage-top-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .manage-event {
   display: flex;
   flex-direction: column;
