@@ -4,7 +4,8 @@
   "type": "module",
   "description": "End-to-end tests of the core user stories: Playwright against the built app and the local Supabase stack. Run with scripts/test-e2e.sh.",
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "typecheck": "pnpm --dir ../api exec tsc -p ../e2e"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0"

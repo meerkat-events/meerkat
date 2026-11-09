@@ -110,7 +110,7 @@ public values belong in `publicConfig()`: it reaches every visitor.
 Before calling a code change done, all of this must pass, from the repo root:
 
 ```bash
-pnpm --dir api typecheck && pnpm --dir api lint && pnpm --dir api test
+pnpm --dir api typecheck && pnpm --dir e2e typecheck && pnpm --dir api lint && pnpm --dir api test
 # Docker image builds and serves HTTP 200. Per-checkout name and a random
 # host port, so parallel worktrees don't collide.
 tag="meerkat-$(basename "$PWD")"
@@ -143,17 +143,19 @@ stories only**: asking, voting, a moderator selecting a question for the
 stage screen, and the stage screen following a session put live.
 `pnpm test:e2e` from the root (`scripts/test-e2e.sh`, Docker) starts the
 same local stack, builds the app with an empty `VITE_API_URL` and runs them;
-arguments go to `playwright test` (a spec, `--repeat-each=5`). Users sign in
+arguments go to `playwright test` (a spec, `--repeat-each=5`). The build
+replaces the worktree's `api/build`, which `pnpm dev` serves too. Users sign in
 through the Devcon handover (`signIn` in `e2e/tests/fixtures.ts`), so it
 needs no suite of its own, and a test fails on page errors and hydration
 mismatches. A change to a core story updates its spec, whose title states
 the story; there is no other list of stories. Permissions, limits and edge
 cases are tested below the browser, in integration or unit tests.
 
-Every route is classified in `api/testing/route-lists.ts`: public or not,
-and for writes whether they notify the event stream (`realtime.int.ts`
-checks every one that must). `app.test.ts` fails until a new route is
-listed there, and `integration/public-responses.int.ts` checks that public
+Public routes and every route that writes are listed in
+`api/testing/route-lists.ts`, the writes split by whether they must send an
+`update` to the event stream (`realtime.int.ts` checks every one that
+must). `app.test.ts` fails until a new public or writing route is listed
+there (a new protected read only has to answer 401 without a token), and `integration/public-responses.int.ts` checks that public
 JSON routes leak no hidden question, moderation field or email. CI writes
 the unit and integration tests' line coverage to the job summary, as a
 report, not a gate.

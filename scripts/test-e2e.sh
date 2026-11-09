@@ -7,7 +7,10 @@
 # api/.env. The local stack is shared by every worktree on this machine, and
 # the tests empty its tables.
 #
-# E2E_SKIP_BUILD=1 reuses the existing build (CI's typecheck step built it).
+# It rebuilds api/build, which a running `pnpm dev` then serves too: run
+# `pnpm build` in api/ afterwards if your dev server needs api/.env's
+# VITE_API_URL. E2E_SKIP_BUILD=1 reuses the existing build (CI's typecheck
+# step built it).
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"

@@ -1,8 +1,10 @@
 /**
  * The routes some tests check by kind, as "METHOD /path" the way Hono
  * registers them (`app.routes`). Test-only: nothing at runtime imports this.
- * `app.test.ts` fails when a route is added without classifying it here, so
- * a new route's authorization and real-time behavior are decided on purpose.
+ * `app.test.ts` fails when a public route or a route that writes isn't
+ * listed here, so whether it is public and whether it updates the event
+ * stream are decided on purpose. Protected reads aren't listed: the test
+ * only checks that they answer 401 without a token.
  */
 
 /**
@@ -40,11 +42,11 @@ export const PUBLIC_ROUTES: Record<string, PublicRouteKind> = {
 };
 
 /**
- * Routes that change questions or votes: each must notify the event's stream
- * (`notifyQuestionsChanged`), which integration/realtime.int.ts checks for
- * every one of them.
+ * Routes that must send an `update` to an event's stream
+ * (`notifyQuestionsChanged`): they change its questions, votes or what its
+ * presenter view shows. integration/realtime.int.ts checks every one.
  */
-export const QUESTION_MUTATIONS = [
+export const EVENT_STREAM_UPDATES = [
   "POST /api/v1/events/:uid/questions",
   "POST /api/v1/questions/:uid/upvote",
   "POST /api/v1/questions/:uid/select",
@@ -53,14 +55,16 @@ export const QUESTION_MUTATIONS = [
   "POST /api/v1/questions/:uid/restore",
   // Their questions leave every list
   "POST /api/v1/users/:uid/block",
+  // The ended session's question on stage is marked answered (it also sends
+  // a `live` message to the stage)
+  "POST /api/v1/events/:uid/live",
+  // The presenter view switches mode
+  "POST /api/v1/events/:uid/high-engagement",
 ];
 
-/** Every other route that writes, and why it sends no question update. */
+/** Every other route that writes, and why it sends no `update`. */
 export const OTHER_MUTATIONS: Record<string, string> = {
   "POST /api/v1/events/:uid/react": "sends a `reaction` message instead",
-  "POST /api/v1/events/:uid/live": "sends a `live` message instead",
-  "POST /api/v1/events/:uid/high-engagement":
-    "notifies the presenter view itself (high-engagement.int.ts)",
   "POST /api/v1/conferences/:id/permissions": "roles, not questions",
   "DELETE /api/v1/conferences/:id/permissions/members/:userId": "roles, not questions",
   "DELETE /api/v1/conferences/:id/permissions/invitations/:invitationId":

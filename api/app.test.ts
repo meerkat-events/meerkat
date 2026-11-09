@@ -12,7 +12,7 @@ delete process.env["SUPABASE_URL"];
 delete process.env["SUPABASE_ANON_KEY"];
 
 const { default: app } = await import("./app.ts");
-const { OTHER_MUTATIONS, PUBLIC_ROUTES, QUESTION_MUTATIONS } = await import(
+const { OTHER_MUTATIONS, PUBLIC_ROUTES, EVENT_STREAM_UPDATES } = await import(
   "./testing/route-lists.ts"
 );
 
@@ -58,14 +58,14 @@ test("every route that writes is classified for real-time updates", () => {
     WRITE_METHODS.includes(route.split(" ")[0]!)
   );
   for (const route of writes) {
-    const notifies = QUESTION_MUTATIONS.includes(route);
+    const notifies = EVENT_STREAM_UPDATES.includes(route);
     const exempt = route in OTHER_MUTATIONS;
     assert.ok(
       notifies !== exempt,
-      `${route} must be in exactly one of QUESTION_MUTATIONS and OTHER_MUTATIONS (testing/route-lists.ts)`,
+      `${route} must be in exactly one of EVENT_STREAM_UPDATES and OTHER_MUTATIONS (testing/route-lists.ts)`,
     );
   }
-  for (const route of [...QUESTION_MUTATIONS, ...Object.keys(OTHER_MUTATIONS)]) {
+  for (const route of [...EVENT_STREAM_UPDATES, ...Object.keys(OTHER_MUTATIONS)]) {
     assert.ok(writes.includes(route), `${route} is not registered`);
   }
 });

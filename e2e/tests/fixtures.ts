@@ -65,8 +65,9 @@ export const test = base.extend<{
 export async function signIn(page: Page, email: string, eventUid: string) {
   const token = await handoverToken(email);
   await page.goto(`/e/${eventUid}/qa?token=${token}`);
-  // The loader redirects without the token once the session is minted.
-  await expect(page).not.toHaveURL(/token=/);
+  // The loader redirects without the token query parameter once the session
+  // is minted (the fragment then carries access_token=, which isn't it).
+  await expect(page).not.toHaveURL(/[?&]token=/);
   await expect(page.getByPlaceholder("Type a question...")).toBeEditable();
 }
 

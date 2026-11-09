@@ -6,6 +6,7 @@ import { supervoteBalances } from "../schema.ts";
 import {
   emailUser,
   grantTestRole,
+  postedQuestionUid,
   request,
   resetDb,
   seedConference,
@@ -27,14 +28,7 @@ describe("supervotes", () => {
   let voter: TestUser;
   let moderator: TestUser;
 
-  const ask = async (question: string) => {
-    const response = await request("POST", `/api/v1/events/${eventUid}/questions`, {
-      token: author.token,
-      body: { question },
-    });
-    assert.equal(response.status, 200);
-    return (await response.json() as { data: ListedQuestion }).data.uid;
-  };
+  const ask = (question: string) => postedQuestionUid(eventUid, author, question);
 
   const votesOn = async (questionUid: string) => {
     const response = await request("GET", `/api/v1/events/${eventUid}/questions`);

@@ -32,6 +32,8 @@ jobs:
       - run: pnpm --dir api lint
       # react-router typegen + production build + tsc --noEmit
       - run: pnpm --dir api typecheck
+      # The end-to-end specs and the db-helpers they share with api/
+      - run: pnpm --dir e2e typecheck
       - run: pnpm --dir packages/react test
       # Unit and integration tests also report line coverage to the job
       # summary (report only, no threshold).

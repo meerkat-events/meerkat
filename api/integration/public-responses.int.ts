@@ -18,7 +18,8 @@ import {
 // (CLAUDE.md, "Auth and roles"), whoever asks: a guest, or someone signed in
 // who isn't the hidden question's author.
 
-const FORBIDDEN_KEYS = ["hiddenAt", "moderation", "email"];
+// `relevance` too: only a conference's moderators get it, in its question list.
+const FORBIDDEN_KEYS = ["hiddenAt", "moderation", "email", "relevance"];
 
 /** Every key and every string value anywhere in a JSON value. */
 function keysAndStrings(value: unknown, found = { keys: [] as string[], strings: [] as string[] }) {

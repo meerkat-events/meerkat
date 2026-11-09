@@ -16,12 +16,13 @@ import {
   askQuestion,
   emailUser,
   grantTestRole,
+  insertEvent,
   request,
   resetDb,
   seedConference,
   type TestUser,
 } from "./helpers.ts";
-import { QUESTION_MUTATIONS } from "../testing/route-lists.ts";
+import { EVENT_STREAM_UPDATES } from "../testing/route-lists.ts";
 
 const TIMEOUT_MS = 5_000;
 
@@ -365,11 +366,55 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
         );
       },
     },
+    {
+      name: "switching high engagement mode",
+      route: "POST /api/v1/events/:uid/high-engagement",
+      act: (s) =>
+        request("POST", `/api/v1/events/${s.eventUid}/high-engagement`, {
+          token: s.organizer.token,
+          body: { enabled: true },
+        }),
+      // The questions stay; the presenter view refetches the event too.
+      expect: (listed, s) => {
+        assert.ok(listed.some((q) => q.uid === s.questionUid));
+      },
+    },
+    {
+      name: "putting the next session on the stage live",
+      route: "POST /api/v1/events/:uid/live",
+      // This session is live with a question on stage; the next one on the
+      // same stage takes over.
+      prepare: async (s) => {
+        await db.update(events).set({ live: true })
+          .where(eq(events.uid, s.eventUid));
+        const selected = await request(
+          "POST",
+          `/api/v1/questions/${s.questionUid}/select`,
+          { token: s.organizer.token },
+        );
+        assert.equal(selected.status, 200);
+        await insertEvent({
+          conferenceId: s.conferenceId,
+          uid: "actions-next-talk",
+          stage: "main",
+          startOffsetMs: 60 * 60 * 1000,
+          endOffsetMs: 2 * 60 * 60 * 1000,
+        });
+      },
+      act: (s) =>
+        request("POST", "/api/v1/events/actions-next-talk/live", {
+          token: s.organizer.token,
+        }),
+      expect: (listed, s) => {
+        const question = listed.find((q) => q.uid === s.questionUid);
+        assert.ok(question?.answeredAt, "the question on stage is answered");
+      },
+    },
   ];
 
-  test("every route that changes questions or votes is among the actions", () => {
+  test("every route that must update the event stream is among the actions", () => {
     const covered = new Set(questionActions.map((action) => action.route));
-    assert.deepEqual([...covered].toSorted(), QUESTION_MUTATIONS.toSorted());
+    assert.deepEqual([...covered].toSorted(), EVENT_STREAM_UPDATES.toSorted());
   });
 
   for (const { name, prepare, act, expect } of questionActions) {
