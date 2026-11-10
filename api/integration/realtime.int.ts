@@ -16,11 +16,13 @@ import {
   askQuestion,
   emailUser,
   grantTestRole,
+  insertEvent,
   request,
   resetDb,
   seedConference,
   type TestUser,
 } from "./helpers.ts";
+import { EVENT_STREAM_UPDATES } from "../testing/route-lists.ts";
 
 const TIMEOUT_MS = 5_000;
 
@@ -214,6 +216,8 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
   // so an update sent before the change is written fails.
   const questionActions: {
     name: string;
+    // The route `act` calls, as in testing/route-lists.ts
+    route: string;
     prepare?: (setup: Setup) => Promise<void>;
     // `request` answers like Hono's app.request: a Response or its promise.
     act: (setup: Setup) => Response | Promise<Response>;
@@ -221,6 +225,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
   }[] = [
     {
       name: "asking",
+      route: "POST /api/v1/events/:uid/questions",
       act: (s) =>
         request("POST", `/api/v1/events/${s.eventUid}/questions`, {
           token: s.voter.token,
@@ -235,6 +240,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     },
     {
       name: "voting",
+      route: "POST /api/v1/questions/:uid/upvote",
       act: (s) =>
         request("POST", `/api/v1/questions/${s.questionUid}/upvote`, {
           token: s.voter.token,
@@ -247,6 +253,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     },
     {
       name: "removing a vote",
+      route: "POST /api/v1/questions/:uid/upvote",
       prepare: async (s) => {
         const voted = await request(
           "POST",
@@ -268,6 +275,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     },
     {
       name: "supervoting",
+      route: "POST /api/v1/questions/:uid/upvote",
       act: (s) =>
         request("POST", `/api/v1/questions/${s.questionUid}/upvote`, {
           token: s.voter.token,
@@ -281,6 +289,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     },
     {
       name: "selecting a question for the stage",
+      route: "POST /api/v1/questions/:uid/select",
       act: (s) =>
         request("POST", `/api/v1/questions/${s.questionUid}/select`, {
           token: s.organizer.token,
@@ -292,6 +301,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     },
     {
       name: "marking a question answered",
+      route: "POST /api/v1/questions/:uid/mark-as-answered",
       act: (s) =>
         request("POST", `/api/v1/questions/${s.questionUid}/mark-as-answered`, {
           token: s.organizer.token,
@@ -303,6 +313,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     },
     {
       name: "hiding a question",
+      route: "POST /api/v1/questions/:uid/hide",
       // Even an attendee who voted on it no longer sees it.
       prepare: async (s) => {
         const voted = await request(
@@ -325,6 +336,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     },
     {
       name: "blocking the asker",
+      route: "POST /api/v1/users/:uid/block",
       act: (s) =>
         request("POST", `/api/v1/users/${s.asker.id}/block`, {
           token: s.organizer.token,
@@ -338,6 +350,7 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
     },
     {
       name: "restoring a question moderation hid",
+      route: "POST /api/v1/questions/:uid/restore",
       prepare: async (s) => {
         await db.update(questions).set({ hiddenAt: new Date() })
           .where(eq(questions.uid, s.questionUid));
@@ -353,7 +366,56 @@ describe("realtime for every action on the Q&A page and the stage screen", () =>
         );
       },
     },
+    {
+      name: "switching high engagement mode",
+      route: "POST /api/v1/events/:uid/high-engagement",
+      act: (s) =>
+        request("POST", `/api/v1/events/${s.eventUid}/high-engagement`, {
+          token: s.organizer.token,
+          body: { enabled: true },
+        }),
+      // The questions stay; the presenter view refetches the event too.
+      expect: (listed, s) => {
+        assert.ok(listed.some((q) => q.uid === s.questionUid));
+      },
+    },
+    {
+      name: "putting the next session on the stage live",
+      route: "POST /api/v1/events/:uid/live",
+      // This session is live with a question on stage; the next one on the
+      // same stage takes over.
+      prepare: async (s) => {
+        await db.update(events).set({ live: true })
+          .where(eq(events.uid, s.eventUid));
+        const selected = await request(
+          "POST",
+          `/api/v1/questions/${s.questionUid}/select`,
+          { token: s.organizer.token },
+        );
+        assert.equal(selected.status, 200);
+        await insertEvent({
+          conferenceId: s.conferenceId,
+          uid: "actions-next-talk",
+          stage: "main",
+          startOffsetMs: 60 * 60 * 1000,
+          endOffsetMs: 2 * 60 * 60 * 1000,
+        });
+      },
+      act: (s) =>
+        request("POST", "/api/v1/events/actions-next-talk/live", {
+          token: s.organizer.token,
+        }),
+      expect: (listed, s) => {
+        const question = listed.find((q) => q.uid === s.questionUid);
+        assert.ok(question?.answeredAt, "the question on stage is answered");
+      },
+    },
   ];
+
+  test("every route that must update the event stream is among the actions", () => {
+    const covered = new Set(questionActions.map((action) => action.route));
+    assert.deepEqual([...covered].toSorted(), EVENT_STREAM_UPDATES.toSorted());
+  });
 
   for (const { name, prepare, act, expect } of questionActions) {
     test(`${name} sends an update to the event stream`, async () => {

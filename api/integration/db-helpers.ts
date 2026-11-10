@@ -1,0 +1,218 @@
+/**
+ * Database and sign-in setup shared by the integration tests (`*.int.ts`,
+ * through helpers.ts) and the end-to-end tests (`e2e/`), both against the
+ * local Supabase CLI stack. Their scripts set the environment; these helpers
+ * reset and seed the database and sign users in with real tokens from the
+ * local Auth server. Nothing here loads the Hono app.
+ */
+import { createClient } from "@supabase/supabase-js";
+import { sql } from "drizzle-orm";
+import { sign } from "hono/jwt";
+import db from "../db.ts";
+import env from "../env.ts";
+import {
+  conferenceRole,
+  conferences,
+  events,
+  features,
+  invitations,
+  questions,
+} from "../schema.ts";
+
+type Role = "attendee" | "organizer" | "moderator";
+
+export type TestUser = { id: string; token: string };
+
+const LOCAL_HOSTS = ["127.0.0.1", "localhost"];
+
+const adminClient = () =>
+  createClient(env.supabaseUrl!, env.supabaseServiceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+const anonClient = () =>
+  createClient(env.supabaseUrl!, env.supabaseAnonKey!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+/**
+ * Empties every application table and deletes all users. Refuses to run
+ * unless the database is the local stack, so a stray cloud URL can't be
+ * wiped.
+ */
+export async function resetDb() {
+  const host = new URL(env.connectionString).hostname;
+  if (!LOCAL_HOSTS.includes(host)) {
+    throw new Error(`resetDb refuses to run against ${host}`);
+  }
+
+  const tables = await db.execute<{ tablename: string }>(sql`
+    SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+  `);
+  const names = tables.map((table) => `public."${table.tablename}"`);
+  if (names.length > 0) {
+    await db.execute(
+      sql.raw(`TRUNCATE ${names.join(", ")} RESTART IDENTITY CASCADE`),
+    );
+  }
+  await db.execute(sql`DELETE FROM auth.users`);
+}
+
+/** A conference without events. */
+export async function insertConference(name: string) {
+  const [conference] = await db.insert(conferences)
+    .values({ name })
+    .returning();
+  if (!conference) {
+    throw new Error("Conference insert returned nothing");
+  }
+  return conference;
+}
+
+/** An event whose start and end lie the given milliseconds from now. */
+export async function insertEvent(
+  { conferenceId, uid, stage, startOffsetMs, endOffsetMs, live = false }: {
+    conferenceId: number;
+    uid: string;
+    stage: string;
+    startOffsetMs: number;
+    endOffsetMs: number;
+    live?: boolean;
+  },
+) {
+  const now = Date.now();
+  const [event] = await db.insert(events)
+    .values({
+      conferenceId,
+      uid,
+      title: uid,
+      start: new Date(now + startOffsetMs),
+      end: new Date(now + endOffsetMs),
+      stage,
+      live,
+    })
+    .returning();
+  if (!event) {
+    throw new Error("Event insert returned nothing");
+  }
+  return event;
+}
+
+/** A conference with one event, optionally with features switched on. */
+export async function seedConference(
+  { name, featureNames = [] }: { name: string; featureNames?: string[] },
+) {
+  const conference = await insertConference(name);
+
+  const now = Date.now();
+  const [event] = await db.insert(events)
+    .values({
+      conferenceId: conference.id,
+      uid: `${name.toLowerCase().replaceAll(" ", "-")}-talk`,
+      title: `${name} talk`,
+      start: new Date(now - 60 * 60 * 1000),
+      end: new Date(now + 60 * 60 * 1000),
+      stage: "main",
+    })
+    .returning();
+  if (!event) {
+    throw new Error("Event insert returned nothing");
+  }
+
+  for (const featureName of featureNames) {
+    await db.insert(features)
+      .values({ conferenceId: conference.id, name: featureName, active: true });
+  }
+
+  return { conference, event };
+}
+
+export async function grantTestRole(
+  userId: string,
+  conferenceId: number,
+  role: Role,
+  grantedAt = new Date(),
+) {
+  await db.insert(conferenceRole).values({
+    userId,
+    conferenceId,
+    role,
+    grantedAt,
+  });
+}
+
+/** An invitation, claimed by the sign-up trigger when the email signs up. */
+export async function invite(email: string, conferenceId: number, role: Role) {
+  await db.insert(invitations).values({ email, conferenceId, role });
+}
+
+export async function rolesOf(userId: string) {
+  return await db.select({
+    conferenceId: conferenceRole.conferenceId,
+    role: conferenceRole.role,
+  })
+    .from(conferenceRole)
+    .where(sql`${conferenceRole.userId} = ${userId}`);
+}
+
+/** A fresh anonymous user, as "Join conversation" creates one. */
+export async function anonymousUser(): Promise<TestUser> {
+  const { data, error } = await anonClient().auth.signInAnonymously();
+  if (error || !data.session || !data.user) {
+    throw new Error(`Anonymous sign-in failed: ${error?.message}`);
+  }
+  return { id: data.user.id, token: data.session.access_token };
+}
+
+/** A user who signed up with this email (and claimed its invitations). */
+export async function emailUser(email: string): Promise<TestUser> {
+  const password = `pw-${crypto.randomUUID()}`;
+  const created = await adminClient().auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (created.error) {
+    throw new Error(`Creating ${email} failed: ${created.error.message}`);
+  }
+
+  const { data, error } = await anonClient().auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error || !data.session || !data.user) {
+    throw new Error(`Signing in ${email} failed: ${error?.message}`);
+  }
+  return { id: data.user.id, token: data.session.access_token };
+}
+
+/** A Devcon handover token for `email`, as the Devcon app signs it. */
+export function handoverToken(email: string) {
+  const now = Date.now();
+  return sign(
+    { email, iat: now, exp: now + 5 * 60 * 1000 },
+    env.devconVerificationSecret,
+    "HS256",
+  );
+}
+
+/** A question of `eventId` by `userId`, with the given timestamps set. */
+export async function insertQuestion(
+  eventId: number,
+  userId: string,
+  uid: string,
+  timestamps: {
+    createdAt?: Date;
+    answeredAt?: Date;
+    deletedAt?: Date;
+    hiddenAt?: Date;
+  } = {},
+) {
+  const [question] = await db.insert(questions)
+    .values({ uid, eventId, userId, question: `Question ${uid}`, ...timestamps })
+    .returning();
+  if (!question) {
+    throw new Error("Question insert returned nothing");
+  }
+  return question;
+}

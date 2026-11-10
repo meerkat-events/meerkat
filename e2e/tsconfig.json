@@ -1,0 +1,12 @@
+{
+  // api's strict settings, so specs and the db-helpers they import are
+  // checked together. Checked with api's TypeScript: pnpm typecheck here.
+  "extends": "../api/tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "typeRoots": ["../api/node_modules/@types"],
+    "paths": {}
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "playwright-report", "test-results"]
+}

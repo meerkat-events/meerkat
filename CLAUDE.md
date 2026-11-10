@@ -110,7 +110,7 @@ public values belong in `publicConfig()`: it reaches every visitor.
 Before calling a code change done, all of this must pass, from the repo root:
 
 ```bash
-pnpm --dir api typecheck && pnpm --dir api lint && pnpm --dir api test
+pnpm --dir api typecheck && pnpm --dir e2e typecheck && pnpm --dir api lint && pnpm --dir api test
 # Docker image builds and serves HTTP 200. Per-checkout name and a random
 # host port, so parallel worktrees don't collide.
 tag="meerkat-$(basename "$PWD")"
@@ -133,7 +133,32 @@ needs Docker, starts the stack, migrates and runs them
 with an environment of its own, not `api/.env`. The stack is shared by every
 worktree, and the tests empty its tables. Run them for changes to auth,
 authorization or rate limits; `integration/helpers.ts` resets the database,
-seeds conferences and signs users in with real local tokens.
+seeds conferences and signs users in with real local tokens (its database
+helpers live in `db-helpers.ts`, which the end-to-end tests share). Pass
+files to run only those: `pnpm --dir api test:integration
+integration/points.int.ts`.
+
+End-to-end tests (`e2e/`, Playwright, Chromium) cover the **core user
+stories only**: asking, voting, a moderator selecting a question for the
+stage screen, and the stage screen following a session put live.
+`pnpm test:e2e` from the root (`scripts/test-e2e.sh`, Docker) starts the
+same local stack, builds the app with an empty `VITE_API_URL` and runs them;
+arguments go to `playwright test` (a spec, `--repeat-each=5`). The build
+replaces the worktree's `api/build`, which `pnpm dev` serves too. Users sign in
+through the Devcon handover (`signIn` in `e2e/tests/fixtures.ts`), so it
+needs no suite of its own, and a test fails on page errors and hydration
+mismatches. A change to a core story updates its spec, whose title states
+the story; there is no other list of stories. Permissions, limits and edge
+cases are tested below the browser, in integration or unit tests.
+
+Public routes and every route that writes are listed in
+`api/testing/route-lists.ts`, the writes split by whether they must send an
+`update` to the event stream (`realtime.int.ts` checks every one that
+must). `app.test.ts` fails until a new public or writing route is listed
+there (a new protected read only has to answer 401 without a token), and `integration/public-responses.int.ts` checks that public
+JSON routes leak no hidden question, moderation field or email. CI writes
+the unit and integration tests' line coverage to the job summary, as a
+report, not a gate.
 
 ## Architecture
 
@@ -261,9 +286,9 @@ its CSS, callers pass the items' uids joined, nothing moves with
   carry hidden questions, moderation fields or emails (`toPublicQuestion`,
   `toApiConference`); the one exception is the relevance score in the
   question list a conference's moderators fetch (see Automatic moderation).
-  `api/app.test.ts` holds the same list and checks that every other route
-  answers 401 without credentials, so a new public route
-  has to be added there on purpose. On the frontend, a hook calling a
+  `PUBLIC_ROUTES` in `api/testing/route-lists.ts` holds the same list, and
+  `api/app.test.ts` checks that every other route answers 401 without
+  credentials, so a new public route has to be added there on purpose. On the frontend, a hook calling a
   protected route passes `session?.access_token` and keeps its SWR key
   `null` until there is one. `optionalJwt()` sets the payload when a valid
   token is present and otherwise lets the request through anonymously (the

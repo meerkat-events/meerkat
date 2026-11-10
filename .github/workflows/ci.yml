@@ -1,9 +1,9 @@
 name: CI
 
 # Lint, build and test: unit tests (api/ and packages/react/), then integration tests
-# (api/integration/*.int.ts, against the local Supabase CLI stack). Runs on
-# pull requests, and before every deploy: continous-deployment.yml calls it and
-# deploys only if it passes.
+# (api/integration/*.int.ts) and end-to-end tests (e2e/), both against the
+# local Supabase CLI stack. Runs on pull requests, and before every deploy:
+# continous-deployment.yml calls it and deploys only if it passes.
 
 on:
   pull_request:
@@ -32,6 +32,43 @@ jobs:
       - run: pnpm --dir api lint
       # react-router typegen + production build + tsc --noEmit
       - run: pnpm --dir api typecheck
+      # The end-to-end specs and the db-helpers they share with api/
+      - run: pnpm --dir e2e typecheck
       - run: pnpm --dir packages/react test
-      - run: pnpm --dir api test
-      - run: pnpm --dir api test:integration
+      # Unit and integration tests also report line coverage to the job
+      # summary (report only, no threshold).
+      - name: pnpm --dir api test (with coverage)
+        run: >-
+          pnpm --dir api test
+          --experimental-test-coverage
+          --test-coverage-exclude='**/*.test.ts'
+          --test-reporter=spec --test-reporter-destination=stdout
+          --test-reporter=spec --test-reporter-destination="$RUNNER_TEMP/coverage-unit.txt"
+      - name: pnpm --dir api test:integration (with coverage)
+        run: pnpm --dir api test:integration
+        env:
+          COVERAGE_REPORT: ${{ runner.temp }}/coverage-integration.txt
+      # End-to-end tests of the core user stories (e2e/), on the build the
+      # typecheck step made and the stack test:integration started.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --dir e2e exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - run: pnpm --dir e2e exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env:
+          E2E_SKIP_BUILD: "1"
+      - uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        run: |
+          scripts/coverage-summary.sh "$RUNNER_TEMP/coverage-unit.txt" "Unit test coverage" || true
+          scripts/coverage-summary.sh "$RUNNER_TEMP/coverage-integration.txt" "Integration test coverage" || true
